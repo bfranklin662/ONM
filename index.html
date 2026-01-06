@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Oche Ness Monsters</title>
+  <meta name="viewport" content="width=device-width initial-scale=1">
+  <link rel="stylesheet" href="styles/index.css">
+  <link rel="stylesheet" href="styles/header.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="logo-container">
+      <img class="logo" src="graphics/onmLogoWhiteFit.png">
+    </div>
+    <div class="logo-container">
+      <a href="/">
+        <img class="top-left-logo" src="graphics/logoWText.png">
+      </a>
+    </div>
+    <nav class="nav-links desktop-nav">
+      <ul>
+        <li><a href="/" class="active">Home</a></li>
+        <li><a href="comps.html">Comps</a></li>
+        <li><a href="results.html">Results & Stats</a></li>
+        <li><a href="players.html">Players</a></li>
+        <li><a href="fines.html">Fine Tracker</a></li>
+      </ul>
+    </nav>
+    <!-- Hamburger Menu Icon -->
+    <div class="hamburger" onclick="toggleSidebar()">
+      ☰
+    </div>
+
+  </header>
+
+  <!-- Sidebar (Mobile Nav) -->
+  <div id="sidebar" class="sidebar">
+    <div class="close-btn" onclick="toggleSidebar()">✖</div>
+    <a href="/">Home</a>
+    <a href="comps.html">Comps</a>
+    <a href="results.html">Results & Stats</a>
+    <a href="players.html">Players</a>
+    <a href="fines.html">Fine Tracker</a>
+  </div>
+
+  <!-- ABOUT SECTION -->
+  <div class="page-wrap">
+    <div class="about-container">
+      <section class="about-section">
+        <h1>Welcome to the Oche Ness Monsters</h1>
+        <h3>About Us</h3>
+        <p>
+          We are The Oche Ness Monsters, a fiercely competitive and wildly fun darts team based in the heart of London.
+          Proud champions of the Alex Beckett Cup 2025 and Banks League Div 2 2025. We don’t just play darts —
+          we bring energy, character, and a touch of legend to every oche we step up to.
+        </p>
+        <img src="images/team1.jpg" alt="Team photo" class="about-image team-image">
+      </section>
+
+      <section class="about-section">
+        <h3>Bull or Bust</h3>
+        <p>
+          Our motto, “Bull or Bust”, says it all: when you're sitting on 50, there's only one way to win —
+          straight through the bullseye. It’s not just about style, it’s about belief. We take risks, we aim high,
+          and we play with purpose.
+        </p>
+        <img src="images/bull.jpg" alt="Player throwing darts" class="about-image team-image1">
+      </section>
+
+      <section class="about-section">
+        <h3>More than just a team</h3>
+        <p>
+          The Oche Ness Monsters are as much about camaraderie as we are about competition. We're a sociable crew with a
+          love
+          for darts, great nights out, and our go-to drink: the mighty Baby Guinness. Whether it's match night or
+          post-game celebrations,
+          you'll find us bringing the same spirit to the pub as we do to the oche.
+        </p>
+        <img src="images/team3.jpg" alt="Team celebration" class="about-image team-image2">
+      </section>
+
+      <section class="about-section">
+        <h3>Fines, Fun &amp; Fierce Competition</h3>
+        <p>
+          Every Monster follows the rules — and that includes our infamous fines system. From missed checkouts to dress
+          code violations,
+          we keep things sharp, cheeky, and disciplined. It’s all part of what makes this team something special.
+          Welcome to the Monsters’ den.
+        </p>
+        <img src="images/mpl.jpg" alt="Victory shot" class="about-image team-image3">
+      </section>
+      <div class="button">
+        <a href="comps.html" class="forward">Jump to Competitions →</a>
+      </div>
+    </div>
+
+</body>
+<script>
+  function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("active");
+    }
+    document.querySelectorAll("#sidebar a").forEach(a => {
+      a.addEventListener("click", () => {
+        document.getElementById("sidebar").classList.remove("active");
+      });
+    });
+</script>
+
+</html>

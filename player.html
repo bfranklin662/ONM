@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oche Ness Monsters | Player Profile</title>
+
+  <link rel="stylesheet" href="styles/header.css">
+  <link rel="stylesheet" href="styles/buttons.css">
+  <link rel="stylesheet" href="styles/index.css">
+  <link rel="stylesheet" href="styles/player-profile.css">
+  <link rel="stylesheet" href="styles/players-landing.css">
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="logo-container">
+      <img class="logo" src="graphics/onmLogoWhiteFit.png">
+    </div>
+    <div class="logo-container">
+      <a href="/">
+        <img class="top-left-logo" src="graphics/logoWText.png">
+      </a>
+    </div>
+    <nav class="nav-links desktop-nav">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="comps.html">Comps</a></li>
+        <li><a href="results.html">Results & Stats</a></li>
+        <li><a href="players.html" class="active">Players</a></li>
+        <li><a href="fines.html">Fine Tracker</a></li>
+      </ul>
+    </nav>
+    <!-- Hamburger Menu Icon -->
+    <div class="hamburger" onclick="toggleSidebar()">
+      ☰
+    </div>
+
+  </header>
+
+  <!-- Sidebar (Mobile Nav) -->
+  <div id="sidebar" class="sidebar">
+    <div class="close-btn" onclick="toggleSidebar()">✖</div>
+    <a href="/">Home</a>
+    <a href="comps.html">Comps</a>
+    <a href="results.html">Results & Stats</a>
+    <a href="players.html">Players</a>
+    <a href="fines.html">Fine Tracker</a>
+  </div>
+
+  <main>
+
+    <div id="playerProfileSection" class="player-stats-container">
+
+      <div class="stats-header main-profile-header">
+
+        <!-- LEFT: Back button -->
+        <div class="stats-header-left">
+          <button id="backToPlayers" class="back-btn only-desktop">← All Players</button>
+        </div>
+
+        <!-- MIDDLE: Title + dropdown -->
+        <div class="stats-header-middle title-middle">
+          <h2 class="profile-title">
+            Player Profile –
+            <select id="playerSelect" class="player-selector-inline"></select>
+          </h2>
+        </div>
+
+        <!-- RIGHT: Tabs -->
+        <div class="stats-header-right title-left">
+
+        </div>
+
+      </div>
+
+
+      <!-- PROFILE CONTENT ONLY -->
+      <section id="playerProfileContent">
+        <div class="main-container">
+          <div class="player-page-container">
+
+            <!-- HEADER CARD -->
+            <div class="player-header-card">
+              <div class="header-col header-photo">
+                <div class="profile-photo-shell">
+
+                  <!-- CLIPPED FRAME: image + ribbon only -->
+                  <div class="profile-photo-frame is-loading" id="profilePhotoFrame">
+                    <img id="playerPhoto" class="profile-photo" alt="Player photo" decoding="async" loading="eager">
+                    <div class="photo-loader" aria-hidden="true">
+                      <div class="spinner"></div>
+                    </div>
+
+                    <!-- optional: accolades/ribbon overlays can sit here too -->
+                    <div id="profilePhotoAccolades" class="profile-photo-accolades"></div>
+                    <div id="profileCaptainRibbon"></div>
+                  </div>
+
+                </div>
+              </div>
+
+
+
+              <div class="header-col header-info">
+                <h1 id="playerName" class="player-name"></h1>
+                <div id="playerNickname" class="player-nickname"></div>
+
+                <div class="player-meta">
+                  <span class="meta-label">Date joined:</span>
+                  <span id="playerDateJoined" class="meta-value">...</span>
+                </div>
+
+                <div id="playerBioRow" class="player-meta-line"></div>
+
+                <div id="playerQuickStats" class="player-stats-line"></div>
+              </div>
+
+
+              <div class="header-col header-form">
+
+                <div class="walkout-wrap">
+                  <div class="walkout-embed">
+                    <div class="walkout-badge">Walkout Song</div>
+                    <div id="playerWalkout"></div>
+                  </div>
+                </div>
+
+
+                <div class="form-medals-bottom">
+                  <div class="last5-title">Last 5 →</div>
+                  <div id="playerFormGraph" class="form-dots"></div>
+
+                  <div class="medals-title">Medals</div>
+                  <div id="playerMedals" class="medals-row"></div>
+                </div>
+              </div>
+
+
+
+            </div>
+
+            <!-- STATS + APPEARANCES -->
+            <div class="stats-and-appearances-wrapper">
+              <div class="stats-header">
+                <div class="stats-toggle-left">
+                  <button class="season-btn active" data-season="all">All</button>
+                  <button class="season-btn" data-season="25-26">25/26</button>
+                  <button class="season-btn" data-season="24-25">24/25</button>
+                </div>
+
+                <div class="stats-title" id="statsTitle">
+                  Player Stats – <span id="statsPlayerName"></span>
+                </div>
+
+                <div class="stats-toggle-right">
+                  <button class="league-btn active" data-league="all">All</button>
+                  <button class="league-btn" data-league="banks">Banks</button>
+                  <button class="league-btn" data-league="traf">Trafalgar</button>
+                </div>
+              </div>
+
+              <!-- STATS TABLE -->
+              <section class="player-stats-section">
+
+
+                <div class="player-stats-table">
+                  <div class="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Competition</th>
+                          <th>Played</th>
+                          <th>Wins</th>
+                          <th>Losses</th>
+                          <th>Checkouts</th>
+                          <th>CO/Game</th>
+                          <th>Fines</th>
+                          <th>Fines/Game</th>
+                          <th>Bagels</th>
+                          <th>Specials</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr id="row-overall" class="stats-row stats-overall">
+                          <td>Overall</td>
+                          <td id="overall-played"></td>
+                          <td id="overall-wins"></td>
+                          <td id="overall-losses"></td>
+                          <td id="overall-checkouts"></td>
+                          <td id="overall-checkoutsPerGame"></td>
+                          <td id="overall-fines"></td>
+                          <td id="overall-finesPerGame"></td>
+                          <td id="overall-bagels"></td>
+                          <td id="overall-specials"></td>
+                        </tr>
+
+                        <tr id="row-season" class="stats-row stats-overall">
+                          <td>25/26 Season</td>
+                          <td id="season-played"></td>
+                          <td id="season-wins"></td>
+                          <td id="season-losses"></td>
+                          <td id="season-checkouts"></td>
+                          <td id="season-checkoutsPerGame"></td>
+                          <td id="season-fines"></td>
+                          <td id="season-finesPerGame"></td>
+                          <td id="season-bagels"></td>
+                          <td id="season-specials"></td>
+                        </tr>
+
+                        <tr id="row-banks2625" class="stats-row row-banks">
+                          <td>Banks 25/26</td>
+                          <td id="banks2625-played"></td>
+                          <td id="banks2625-wins"></td>
+                          <td id="banks2625-losses"></td>
+                          <td id="banks2625-checkouts"></td>
+                          <td id="banks2625-checkoutsPerGame"></td>
+                          <td id="banks2625-fines"></td>
+                          <td id="banks2625-finesPerGame"></td>
+                          <td id="banks2625-bagels"></td>
+                          <td id="banks2625-specials"></td>
+                        </tr>
+
+                        <tr id="row-traf2625" class="stats-row row-traf">
+                          <td>Trafalgar 25/26</td>
+                          <td id="traf2625-played"></td>
+                          <td id="traf2625-wins"></td>
+                          <td id="traf2625-losses"></td>
+                          <td id="traf2625-checkouts"></td>
+                          <td id="traf2625-checkoutsPerGame"></td>
+                          <td id="traf2625-fines"></td>
+                          <td id="traf2625-finesPerGame"></td>
+                          <td id="traf2625-bagels"></td>
+                          <td id="traf2625-specials"></td>
+                        </tr>
+
+                        <tr id="row-banks2425" class="stats-row row-banks">
+                          <td>Banks 24/25</td>
+                          <td id="banks2425-played"></td>
+                          <td id="banks2425-wins"></td>
+                          <td id="banks2425-losses"></td>
+                          <td id="banks2425-checkouts"></td>
+                          <td id="banks2425-checkoutsPerGame"></td>
+                          <td id="banks2425-fines"></td>
+                          <td id="banks2425-finesPerGame"></td>
+                          <td id="banks2425-bagels"></td>
+                          <td id="banks2425-specials"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
+
+              <!-- APPEARANCES -->
+              <section class="player-appearances">
+                <div id="playerAppearancesWrapper">
+                  <div id="playerAppearances" class="appearances-grid"></div>
+                </div>
+              </section>
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <script src="scripts/player-data.js"></script>
+  <script src="scripts/player-profile.js"></script>
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("active");
+    }
+    document.querySelectorAll("#sidebar a").forEach(a => {
+      a.addEventListener("click", () => {
+        document.getElementById("sidebar").classList.remove("active");
+      });
+    });
+  </script>
+</body>
+
+</html>

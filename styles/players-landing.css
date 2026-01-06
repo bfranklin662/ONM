@@ -1,0 +1,583 @@
+/* === PLAYER CARD CONTAINER === */
+.player-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(20, 20, 20, 0.65);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.45);
+  transition: all 0.35s ease;
+  opacity: 0;
+  animation: playerCardFade 0.45s ease forwards;
+  user-select: none;
+  width: 340px;
+  max-width: 100%;
+  /* safety on small screens */
+
+}
+
+.player-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 0 30px rgba(0, 255, 136, 0.25);
+  border-color: rgba(0, 255, 136, 0.35);
+}
+
+/* === PLAYER IMAGE === */
+.player-card img {
+  width: 100%;
+  border-radius: 10px;
+  height: 180px;
+  object-fit: cover;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.45);
+}
+
+/* === PLAYER NAME === */
+.player-card-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 12px;
+  color: white;
+  letter-spacing: 0.4px;
+}
+
+
+
+/* Stat box */
+.player-card-stat {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 3px 5px;
+  text-align: center;
+  user-select: none;
+  transition: background-color 0.3s ease;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.player-card-stat:hover {
+  background-color: rgba(180, 180, 180, 0.12);
+}
+
+/* Labels: keep on one line */
+.player-card-stat .label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  line-height: 1.1;
+  opacity: .75;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Values: numbers under label */
+.player-card-stat .value {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.player-card-stat .value span {
+  white-space: nowrap;
+}
+
+/* Checkouts + ratio */
+.player-card [data-stat="coRatio"] .co {
+  color: #44d17a;
+  font-weight: 900;
+}
+
+.player-card [data-stat="coRatio"] .ratio {
+  color: #FFD740;
+  font-weight: 900;
+}
+
+.player-card .sep {
+  opacity: 0.7;
+}
+
+.player-card [data-stat="played"] {
+  color: #44d17a;
+  font-weight: 900;
+}
+
+/* Wins + % */
+.player-card [data-stat="wlPct"] .wins {
+  color: #44d17a;
+  font-weight: 900;
+}
+
+.player-card [data-stat="wlPct"] .pct {
+  color: #FFD740;
+  font-weight: 900;
+}
+
+/* Fines + ratio */
+.player-card [data-stat="fineRatio"] .fines {
+  color: #44d17a;
+  font-weight: 900;
+}
+
+.player-card [data-stat="fineRatio"] .ratio {
+  color: #FFD740;
+  font-weight: 900;
+}
+
+/* Stack: 2x2 grid on top, specials underneath */
+.player-card-stats {
+  display: flex;
+  flex-direction: column;
+  /* ✅ stack vertically */
+  gap: 8px;
+  margin-top: 14px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+/* 2x2 grid stays the same */
+.player-card-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* Specials now full width under the grid */
+.player-card-specials {
+  display: grid;
+  /* ✅ easier full-width row */
+  grid-template-columns: repeat(3, 1fr);
+  /* 3 equal badges */
+  gap: 5px;
+  width: 100%;
+  /* ✅ match grid width */
+  min-width: 0;
+}
+
+/* Badges fill their cell */
+.player-card-specials .stat-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  /* keep single-line */
+  overflow: hidden;
+  /* ✅ prevent overflow */
+  text-overflow: ellipsis;
+  /* ✅ show ... if needed */
+}
+
+
+
+
+.player-card button {
+  margin-top: 16px;
+  padding: 10px 18px;
+
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-weight: 600;
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.15);
+
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: auto;
+  /* 🔑 let it size naturally */
+  align-self: stretch;
+  /* fills card width instead */
+}
+
+.player-card button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #00FF88;
+  box-shadow: 0 0 14px rgba(0, 255, 136, 0.35);
+  transform: translateY(-1px);
+}
+
+/* === FADE / SLIDE IN ANIMATION === */
+@keyframes playerCardFade {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.player-card,
+.player-card * {
+  pointer-events: auto;
+}
+
+
+
+
+.player-card,
+.player-card-stats,
+.player-card-specials,
+.profile-specials-col,
+.specials-row {
+  overflow: visible;
+}
+
+
+
+/* === GRID LAYOUT === */
+.players-landing-wrapper {
+  max-width: 1550px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 22px;
+  margin-top: 30px;
+}
+
+/* Optional: Ensure dropdown stays fixed width across UI */
+.player-selector-inline,
+.player-selector {
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
+}
+
+/* Center loading spinner in players grid */
+.players-grid {
+  position: relative;
+  min-height: 100px;
+  /* ensures vertical centering space */
+}
+
+.players-grid .loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.sort-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: white;
+  font-weight: 600;
+}
+
+.sort-select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.sort-select option {
+  color: #000;
+}
+
+.player-card-photo-wrap {
+  position: relative;
+  /* required for absolute overlay */
+}
+
+.player-card-accolades {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 8px;
+  border-radius: 12px;
+
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.35);
+}
+
+.player-card-accolades .acc-emoji {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Outer wrap: allow tooltips to escape */
+
+
+.player-card-photo-wrap {
+  position: relative;
+  overflow: visible;
+}
+
+/* The photo itself is clipped here */
+.player-card-photo-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+/* Place accolades over the photo, but not clipped */
+.player-card-accolades {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 5;
+  /* above photo */
+}
+
+
+
+/* ===== Captain ribbon (contained) ===== */
+.captain-ribbon {
+  position: absolute;
+  top: 16px;
+  right: -48px;
+  /* pushes diagonal into corner */
+  width: 160px;
+
+  transform: rotate(45deg);
+  transform-origin: center;
+
+  text-align: center;
+  padding: 6px 0;
+
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+
+  background: rgba(0, 255, 136, 0.28);
+  border: 1px solid rgba(0, 255, 136, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  z-index: 6;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.25);
+}
+
+/* Override body { text-align:center } just for the header */
+.stats-header {
+  text-align: left;
+}
+
+.stats-header-middle {
+  text-align: center;
+  /* keeps desktop title centered */
+}
+
+.stats-header-right {
+  text-align: right;
+}
+
+
+.only-mobile {
+  display: none !important;
+}
+
+.only-desktop {
+  display: block !important;
+}
+
+/* Always stacked: grid then specials underneath (recommended) */
+.player-card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.player-card-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  min-width: 0;
+}
+
+.player-card-specials {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+}
+
+.player-card-specials .stat-badge {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+
+@media (max-width: 740px) {
+  .only-mobile {
+    display: block !important;
+  }
+
+  .only-desktop {
+    display: none !important;
+  }
+
+
+  .player-selector-inline {
+    font-size: 0.9rem;
+    padding-right: 1rem;
+    padding-left: 0.5rem;
+    padding-top: 0.5rem;
+  }
+
+}
+
+@media (max-width: 550px) and (min-width: 451px) {
+  .profile-title {
+    font-size: 1.3rem;
+  }
+
+  .sort-select {
+    padding: 7px 5px;
+  }
+
+  .stats-header {
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+@media (max-width: 450px) {
+  .profile-title {
+    font-size: 1.1rem;
+  }
+
+  .sort-select {
+    padding: 4px 2px;
+  }
+
+  .stats-header {
+    padding: 0.3rem 0.5rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .players-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    /* small gap */
+  }
+
+  .player-card {
+    width: 100%;
+    /* ✅ let grid decide */
+    max-width: 100%;
+    padding: 10px;
+    /* smaller padding */
+    border-radius: 12px;
+  }
+
+  .player-card img {
+    height: 150px;
+    /* smaller image */
+    border-radius: 10px;
+  }
+
+  .player-card-name {
+    font-size: 1rem;
+    margin-top: 8px;
+  }
+
+  .players-landing-wrapper {
+    padding: 0 8px;
+  }
+
+  .player-card-stat .value {
+    font-size: 0.75rem;
+  }
+
+  .player-card-specials .stat-badge {
+    font-size: 0.6rem;
+  }
+
+
+  /* ===== Captain ribbon (contained) ===== */
+  .captain-ribbon {
+    top: 12px;
+    right: -58px;
+    width: 160px;
+    padding: 3px 0;
+    font-size: 0.5rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .players-grid {
+    gap: 8px;
+  }
+}
+
+.player-card-nickname {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.75;
+  line-height: 1.1;
+}
+
+.profile-photo {
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+
+.profile-photo-frame {
+  position: relative;
+  width: 260px;
+  /* ✅ exact final width */
+  aspect-ratio: 1 / 1;
+  /* or 4 / 5 if portrait */
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+
+.profile-photo-frame:not(.is-loading) .profile-photo {
+  opacity: 1;
+}
+

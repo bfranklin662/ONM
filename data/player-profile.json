@@ -1,0 +1,132 @@
+{
+    "Ricky": {
+      "nickname": "Captain Curfew",
+      "photo": "images/players/ricky.jpg",
+      "bio": "Co-founder and captain. Loves the armband, Argyle till he dies, dry January survivor, failed to keep his bike accident a secret.",
+      "accolades": ["banks_winner_24_25", "alex_beckett_winner_25"],
+      "role": "captain"
+    },
+    "Nick": {
+      "nickname": "The Spreadsheet General",
+      "photo": "images/players/nick.jpg",
+      "bio": "Co-founder and captain. Gym lover with chaotic darts technique. Autistically dedicated to websites, data, and immaculate spreadsheets.",
+      "accolades": ["banks_winner_24_25", "alex_beckett_winner_25"],
+      "role": "captain",
+      "song": "https://open.spotify.com/track/2ihCaVdNZmnHZWt0fvAM7B?si=37c651c44c57476a"
+    },
+    "Phil L": {
+      "nickname": "The Unmute Button",
+      "photo": "images/players/philL.jpg",
+      "bio": "OG Monster and vice-captain. Software dev by day, unstoppable chatterbox by night, fuelled by beer and dog stories.",
+      "accolades": ["banks_winner_24_25", "alex_beckett_winner_25"]
+    },
+    "Rob": {
+      "nickname": "One-Eighty Wonder",
+      "photo": "images/players/rob.jpg",
+      "bio": "Opened his Monsters career with a 180 and retired the trick immediately. Builds kids’ games, occasionally plays cricket.",
+      "accolades": ["banks_winner_24_25"]
+    },
+    "Filip": {
+      "nickname": "Average Merchant",
+      "photo": "images/players/filip.jpg",
+      "bio": "Obsessed with posting averages, never quiet, always up for DC. Passionate, emotional, and prone to losing his head mid-match.",
+      "accolades": ["banks_winner_24_25", "alex_beckett_winner_25", "mpl_winner_25"]
+    },
+    "James B": {
+      "nickname": "Vegas Missing",
+      "photo": "images/players/jamesB.jpg",
+      "bio": "Pub-based darting specialist. Loves a session, Millwall fan, vanished mid-season for Vegas and never fully recovered."
+    },
+    "George": {
+      "nickname": "The Fine Collector",
+      "photo": "images/players/george.jpg",
+      "bio": "Welsh countryside export. Fined very often, missed the board plenty. Runs a glove company, dodges HMRC rumours.",
+      "accolades": ["banks_winner_24_25"]
+    },
+    "Jack": {
+      "nickname": "The Aussie Import",
+      "photo": "images/players/jack.jpg",
+      "bio": "Scouted from the Alex Beckett league. 180 machine from down under, premium signing, usually found in the smoking area."
+    },
+    "Paddy": {
+      "nickname": "Baby Guinness Bandit",
+      "photo": "images/players/paddy.jpg",
+      "bio": "OG Monster and first to order every night. Forgets shirts, loves Baby Guinness, thrives on rattling opponents’ heads.",
+      "accolades": ["banks_winner_24_25"]
+    },
+    "Billiams": {
+      "nickname": "Billie Arrows",
+      "photo": "images/players/billiams.jpg",
+      "bio": "OG Monster. Accident-prone, scruffy, vanished for three days in 2023. Loves late nights, no first name, endless stories.",
+      "accolades": ["banks_winner_24_25"]
+    },
+    "Simon": {
+      "nickname": "The Annual Appearance",
+      "photo": "images/players/simon.jpg",
+      "bio": "Appears once a season, usually injured. Throws nothing straight but remains strangely optimistic every single year.",
+      "accolades": ["banks_winner_24_25"]
+    },
+    "Andre": {
+      "nickname": "Round-The-Board Royalty",
+      "photo": "images/players/andre.jpg",
+      "bio": "Alex Beckett legend and record-holder. First Monster to nail a ton-plus bull finish. Dreadlocked, calm, quietly deadly."
+    },
+    "Fraser": {
+      "nickname": "The Translator Required",
+      "photo": "images/players/fraser.jpg",
+      "bio": "Glaswegian Trainline alumni. Impossible to understand, always smoking, louder after beers, somehow still effective at the oche."
+    },
+    "Phil A": {
+      "nickname": "Fancy Dress Phil",
+      "photo": "images/players/philA.jpg",
+      "bio": "Not actually named Argyle, just obsessed with them. Puts alarming effort into fancy dress and Plymouth loyalty.",
+      "accolades": ["banks_winner_24_25"]
+    },
+    "James R": {
+      "nickname": "Warm-Up Wizard",
+      "photo": "images/players/jamesR.jpg",
+      "bio": "Loves a rave, hits 180s in warm-up, then politely refuses to repeat it in matches."
+    },
+    "Brad": {
+      "nickname": "Mr Available",
+      "photo": "images/players/brad.jpg",
+      "bio": "Always marked available, always up for it. Consistently enthusiastic, occasionally dangerous, and never misses a chance to throw darts."
+    },
+    "Codon": {
+      "nickname": "The Colda Ghost",
+      "photo": "images/players/codon.jpg",
+      "bio": "Maximum two games a year. Frequently missing, permanently capped, mysteriously bald, and proudly part-time at best."
+    },
+    "Gary": {
+      "nickname": "Voice Note Menace",
+      "photo": "images/players/gary.jpg",
+      "bio": "Lives in the pub, hates Christmas, communicates exclusively in voice notes. Colda player with unmatched bar stamina."
+    },
+    "Luke": {
+      "nickname": "The Budget Littler",
+      "photo": "images/players/luke.jpg",
+      "bio": "Young gun and Exeter City fan. Loves a Paddy Power board, confident thrower, and showing flashes of serious potential."
+    },
+    "Magnus": {
+      "nickname": "The Traitorous Baker",
+      "photo": "images/players/magnus.jpg",
+      "bio": "Ex-Monster turned Silverback. Swedish baker with dodgy teeth. Recently beaten in a clutch victory that still hurts.",
+      "accolades": ["banks_winner_24_25"]
+    },
+    "Lloyd": {
+      "nickname": "Just One More",
+      "photo": "images/players/lloyd.jpg",
+      "bio": "Former OG Monster now living in New Zealand. Easily convinced into “just one beer” despite pretending otherwise.",
+      "accolades": ["banks_winner_24_25"]
+    },
+    "Rhino": {
+      "nickname": "The Outstanding Balance",
+      "photo": "images/players/rhino.jpg",
+      "bio": "South African smoker who vanished after 2023. Still owes fines, hasn’t been seen since, but remains legend-adjacent."
+    },
+    "Bobby": {
+      "nickname": "Smeagol With Delts",
+      "photo": "images/players/bobby.jpg",
+      "bio": "Shockingly muscly, suspiciously bald. Looks like Gollum, throws with menace, and never remove the cap under any circumstances."
+    }
+}

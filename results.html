@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Results & Stats</title>
+  <link rel="stylesheet" href="styles/index.css">
+  <link rel="stylesheet" href="styles/header.css">
+  <link rel="stylesheet" href="styles/results.css">
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="logo-container">
+      <img class="logo" src="graphics/onmLogoWhiteFit.png">
+    </div>
+    <div class="logo-container">
+      <a href="/">
+        <img class="top-left-logo" src="graphics/logoWText.png">
+      </a>
+    </div>
+    <nav class="nav-links desktop-nav">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="comps.html">Comps</a></li>
+        <li><a href="results.html" class="active">Results & Stats</a></li>
+        <li><a href="players.html">Players</a></li>
+        <li><a href="fines.html">Fine Tracker</a></li>
+      </ul>
+    </nav>
+    <!-- Hamburger Menu Icon -->
+    <div class="hamburger" onclick="toggleSidebar()">
+      ☰
+    </div>
+
+  </header>
+
+  <!-- Sidebar (Mobile Nav) -->
+  <div id="sidebar" class="sidebar">
+    <div class="close-btn" onclick="toggleSidebar()">✖</div>
+    <a href="/">Home</a>
+    <a href="comps.html">Comps</a>
+    <a href="results.html">Results & Stats</a>
+    <a href="players.html">Players</a>
+    <a href="fines.html">Fine Tracker</a>
+  </div>
+
+  <section class="results-container">
+    <div class="results-header-bar">
+      <div class="season-selector">
+        <button class="season-tab active" data-season="25-26" title="25/26 season">25/26</button>
+        <button class="season-tab" data-season="24-25" title="24/25 season">24/25</button>
+      </div>
+
+      <h2 class="results-title">Match Results 25/26</h2>
+
+      <div class="view-selector">
+        <button class="view-btn active" data-view="results" title="Result view">🧾</button>
+        <button class="view-btn" data-view="stats" title="Stats view">📊</button>
+        <button class="view-btn" data-view="gallery" title="Gallery view">🖼️</button>
+      </div>
+
+      <h2 class="results-title2">Match Results 25/26</h2>
+    </div>
+
+
+    <div id="resultsGrid" class="results-grid view active"></div>
+    <div id="galleryGrid" class="gallery-grid view" style="display:none;"></div>
+    <div id="statsGrid" class="stats-grid view" style="display:none;"></div>
+
+
+  </section>
+
+  </main>
+  <script src="scripts/results.js"></script>
+
+  <script>
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("active");
+    }
+    document.querySelectorAll("#sidebar a").forEach(a => {
+      a.addEventListener("click", () => {
+        document.getElementById("sidebar").classList.remove("active");
+      });
+    });
+
+
+  </script>
+  <div class="lightbox" onclick="handleLightboxClick(event)">
+    <div class="lightbox-content">
+      <button class="lightbox-prev" onclick="prevImage()">❮</button>
+      <div class="lightbox-info-top"></div>
+      <img class="lightbox-img" src="" alt="Match image">
+      <div class="lightbox-info-bottom"></div>
+      <button class="lightbox-next" onclick="nextImage()">❯</button>
+    </div>
+  </div>
+
+
+</body>
+
+</html>

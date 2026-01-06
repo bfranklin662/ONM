@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="styles/index.css">
+  <link rel="stylesheet" href="styles/mpl-stats.css">
+  <link rel="stylesheet" href="styles/header.css">
+  <title>MPL 25 | Player Profiles</title>
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="logo-container">
+      <img class="logo" src="graphics/onmLogoWhiteFit.png">
+    </div>
+    <div class="logo-container">
+      <a href="/">
+        <img class="top-left-logo" src="graphics/logoWText.png">
+      </a>
+    </div>
+    <nav class="nav-links desktop-nav">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="comps.html">Comps</a></li>
+        <li><a href="results.html">Results & Stats</a></li>
+        <li><a href="players.html">Players</a></li>
+        <li><a href="fines.html">Fine Tracker</a></li>
+      </ul>
+    </nav>
+    <!-- Hamburger Menu Icon -->
+    <div class="hamburger" onclick="toggleSidebar()">
+      ☰
+    </div>
+
+  </header>
+
+  <!-- Sidebar (Mobile Nav) -->
+  <div id="sidebar" class="sidebar">
+    <div class="close-btn" onclick="toggleSidebar()">✖</div>
+    <a href="/">Home</a>
+    <a href="comps.html">Comps</a>
+    <a href="results.html">Results & Stats</a>
+    <a href="players.html">Players</a>
+    <a href="fines.html">Fine Tracker</a>
+  </div>
+
+  <div class="container" id="playerContainer"></div>
+
+  <script>
+    const leagues = {
+      "mpl.html": "Monsters Premier League 2025 — Player Stats",
+      "banks-24-25.html": "Banks 24/25 League — Player Stats",
+      "banks-25-26.html": "Banks 25/26 League — Player Stats",
+      "trafalgar-25-26.html": "Trafalgar 25/26 League — Player Stats"
+    };
+
+    let players = {};
+    let profiles = {}; // player-profile.json        
+    let currentLeague = "mpl.html";
+
+
+
+
+    async function loadPlayers() {
+      try {
+        const [mplRes, profRes] = await Promise.all([
+          fetch("data/mpl-results-24-25.json"),
+          fetch("data/player-profile.json")
+        ]);
+
+        players = await mplRes.json();
+        profiles = await profRes.json();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const playerFromURL = urlParams.get("player");
+
+        showPlayer(playerFromURL || "Filip");
+      } catch (err) {
+        console.error("Error loading JSON files:", err);
+      }
+    }
+
+
+    function showPlayer(name) {
+      const player = players[name];
+      if (!player) return;
+
+      const profile = profiles[name] || {};
+      const photo = profile.photo || `images/players/${name}.jpg`;
+      const nickname = profile.nickname || "—";
+
+
+      const resultClassMap = {
+        "Win": "win",
+        "Draw": "draw",
+        "NA": "na",
+        "Loss": "loss"
+      };
+
+      const statsHTML = Object.entries(player.stats)
+        .map(([k, v]) => `<div class="stat"><h3>${k}</h3><p>${v}</p></div>`)
+        .join("");
+
+      const resultsHTML = player.results.length > 0
+        ? player.results.map(r => `
+          <tr>
+            <td>Fixture ${r.fixture}</td>
+            <td>${r.opponent}</td>
+            <td class="${resultClassMap[r.result] || 'unknown'}">${r.result}</td>
+            <td>${r.score}</td>
+            <td>${r.bulls}</td>
+          </tr>
+        `).join("")
+        : `<tr><td colspan="5">No match data available yet.</td></tr>`;
+
+      document.getElementById("playerContainer").innerHTML = `
+      <div class="league-banner">${leagues[currentLeague]}</div>
+
+      <div class="top-controls">
+        <select id="playerSelect" onchange="showPlayer(this.value)">
+          ${Object.keys(players)
+          .map(p => `<option value="${p}" ${p === name ? "selected" : ""}>${p}</option>`)
+          .join('')}
+        </select>
+      </div>
+      
+
+      <div class="player-header">
+        <div class="player-photo" style="background-image: url('${photo}')"></div>
+        <div class="player-info">
+          <h2>${name}</h2>
+          <p><strong>Nickname:</strong> ${nickname}</p>
+        </div>
+      </div>
+
+
+      <div class="stats">${statsHTML}</div>
+
+      <div class="results">
+        <h2>Match Results</h2>
+        <table>
+          <thead>
+            <tr><th>Fixture</th><th>Opponent</th><th>Result</th><th>Score</th><th>Bulls</th></tr>
+          </thead>
+          <tbody>${resultsHTML}</tbody>
+        </table>
+      </div>
+
+      <a href="mpl-table.html" class="back">← Back to MPL League Table</a>
+    `;
+    }
+
+    // Load everything
+    loadPlayers();
+  </script>
+
+</body>
+<script>
+  function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    sidebar.classList.toggle("active");
+  }
+</script>
+
+</html>

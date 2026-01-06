@@ -1,0 +1,85 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+.date-box {
+  font-family: "Poppins", sans-serif;
+  display: flex;
+  margin: 0 auto;
+  align-items: center;
+  font-size: 11px;
+  height: 23px;
+  width: 120px;
+  margin-top: 15px;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 10px;
+  background-color: rgba(255, 255, 255, 0.6);
+}
+button {
+  margin-top: -0px;
+  border: 1px solid rgb(129, 129, 129);
+  outline: none;
+  border-radius: 5px;
+  padding: 3px 8px;
+  color: rgb(0, 0, 0);
+  font-size: 15px;
+  cursor: pointer;
+  
+}
+.team-container,
+.league-date-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+.score1-box,
+.score2-box {
+  width: 40px;  
+}
+.stats-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.player-container,
+.checkouts-container,
+.fines-container,
+.specials-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ch,
+.fn,
+.sp {
+  width: 77px;
+}
+
+.teamscore {
+  font-family: "Poppins", serif;
+}
+h1 {
+  margin-top: 30px;
+  margin-bottom: 15px;
+}
+.banks-box,
+.trafalgar-box {
+  display: none;
+}
+.visible {
+  display: block;
+}
+.not-visible {
+  display: none;
+}
+

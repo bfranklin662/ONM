@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Competitions</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles/comps.css">
+  <link rel="stylesheet" href="styles/index.css">
+  <link rel="stylesheet" href="styles/header.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+</head>
+
+<body>
+
+  <header class="site-header">
+    <div class="logo-container">
+      <img class="logo" src="graphics/onmLogoWhiteFit.png">
+    </div>
+    <div class="logo-container">
+      <a href="/">
+        <img class="top-left-logo" src="graphics/logoWText.png">
+      </a>
+    </div>
+    <nav class="nav-links desktop-nav">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="comps.html" class="active">Comps</a></li>
+        <li><a href="results.html">Results & Stats</a></li>
+        <li><a href="players.html">Players</a></li>
+        <li><a href="fines.html">Fine Tracker</a></li>
+      </ul>
+    </nav>
+    <!-- Hamburger Menu Icon -->
+    <div class="hamburger" onclick="toggleSidebar()">
+      ☰
+    </div>
+
+  </header>
+
+  <!-- Sidebar (Mobile Nav) -->
+  <div id="sidebar" class="sidebar">
+    <div class="close-btn" onclick="toggleSidebar()">✖</div>
+    <a href="/">Home</a>
+    <a href="comps.html">Comps</a>
+    <a href="results.html">Results & Stats</a>
+    <a href="players.html">Players</a>
+    <a href="fines.html">Fine Tracker</a>
+  </div>
+
+
+  <div class="competitions-container">
+    <h1>Our Competitions</h1>
+
+
+
+    <!-- Banks League -->
+    <div class="competition-card">
+      <img src="images/banks.jpg" alt="Banks League" class="competition-image banks-image">
+      <div class="competition-content">
+        <h2>Banks League</h2>
+        <p class="bold">⭐ Division 2 Champions 2024/25</p>
+        <p>We're proud to have been promoted from Division 2 in the 2024/25 season. The Banks League is ongoing and
+          highly competitive.</p>
+        <div class="location">
+          <span class="location-label">Home Pub:</span>
+          <span class="location-value">📍 The Horseshoe, Clerkenwell</span>
+        </div>
+        <div class="competition-links">
+          <a href="results.html#results">Results</a>
+          <a href="results.html#stats">Stats</a>
+          <a href="results.html#gallery">Gallery</a>
+          <a href="https://cbfidl2.leaguerepublic.com/fg/1_991506423.html" target="_blank">Table</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trafalgar League -->
+    <div class="competition-card">
+      <img src="images/trafalgar.jpg" alt="Trafalgar League" class="competition-image trafalgar-image">
+      <div class="competition-content">
+        <h2>Trafalgar League</h2>
+        <p class="bold">🎯 Newcomers in the Trafalgar League</p>
+        <p>New territory! A 14 team league featuring a different format from Banks, bringing
+          fresh challenges including team legs, trebles, doubles and singles legs.</p>
+        <div class="location">
+          <span class="location-label">Home Pub:</span>
+          <span class="location-value">📍 The Horseshoe, Clerkenwell</span>
+        </div>
+        <div class="competition-links">
+          <a href="results.html#results">Results</a>
+          <a href="results.html#stats">Stats</a>
+          <a href="results.html#gallery">Gallery</a>
+          <a href="https://www.trafalgardartleague.org.uk/table.html" target="_blank">
+            Table
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Alex Beckett League -->
+    <div class="competition-card">
+      <img src="images/beckett.jpg" alt="Alex Beckett League" class="competition-image beckett-image">
+      <div class="competition-content">
+        <h2>Alex Beckett League</h2>
+        <p class="bold">🏆 Alex Beckett Tournament Champions 2024/25</p>
+        <p>We are the reigning champions of the Alex Beckett League and will be defending our title this season with
+          full force.</p>
+        <div class="location">
+          <span class="location-label">Location:</span>
+          <span class="location-value">📍 The Barley Mow, Baker St</span>
+        </div>
+        <div class="competition-links">
+          <a href="https://thebarleymowmarylebone.com/the-darts-league" target="_blank">Website</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- MPL -->
+    <div class="competition-card">
+      <img src="images/mpl.jpg" alt="Monsters Premier League" class="competition-image mpl-image">
+      <div class="competition-content">
+        <h2>Monsters Premier League (MPL)</h2>
+        <p class="bold">🏅 2025 Winner: Filip</p>
+        <p>The MPL is an internal, invite only, summer round-robin tournament featuring the best of the Oche Ness Monsters. </p>
+        <div class="location">
+          <span class="location-label">Location:</span>
+          <span class="location-value">📍 London</span>
+        </div>
+        <div class="competition-links">
+          <a href="mpl-table.html">Table</a>
+          <a href="mpl-stats.html">Stats</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+<script>
+  function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    sidebar.classList.toggle("active");
+  }
+  document.querySelectorAll("#sidebar a").forEach(a => {
+    a.addEventListener("click", () => {
+      document.getElementById("sidebar").classList.remove("active");
+    });
+  });
+</script>
+
+</html>

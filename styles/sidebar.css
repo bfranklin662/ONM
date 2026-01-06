@@ -1,0 +1,23 @@
+.sidebar-container0 {
+  margin-top: 60px;
+  background-color: #263238;
+  width: 200px;
+  position: fixed;
+  bottom: 0;
+  top: 50px;
+  z-index: 1;
+}
+.buttons {
+  font-family: "Poppins", sans-serif;
+  color: white;
+  margin-top: 30px;
+  list-style: none;
+}
+
+li {
+  font-family: arial;
+  color: white;
+  margin-top: 30px;
+  list-style: none;
+  margin-left: 15px;
+}

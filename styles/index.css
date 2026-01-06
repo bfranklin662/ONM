@@ -1,0 +1,173 @@
+* {
+  font-family: "Poppins", sans-serif;
+  color: white;
+  margin: 0 0 0 0;
+}
+
+.page-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.top-margin {
+  margin-top: 150px;
+}
+
+body {
+  background-image: url("../images/bg-blurred.png");
+  background-position-x: 50%;
+  background-size: initial;
+  background-repeat: no-repeat;
+  background-attachment: initial;
+  background-origin: initial;
+  background-clip: initial;
+  background-color: initial;
+  background-size: cover;
+  margin-bottom: 100px;
+  min-height: 100vh;
+}
+
+
+
+
+
+#about .about-block {
+  max-width: 1500px;
+  margin: 0 auto 60px auto;
+  text-align: center;
+}
+
+#about h3 {
+  font-size: 1.8rem;
+  color: #ffca28;
+  margin-bottom: 15px;
+}
+
+#about p {
+  color: #eee;
+  margin-bottom: 20px;
+  line-height: 1.7;
+}
+
+.about-image {
+  width: 100%;
+  max-width: 700px;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 15px;
+  display: block;
+  margin: 40px auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  transition: all 0.4s ease-in-out;
+}
+
+.about-image:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.6);
+}
+
+.team-image {
+  object-position: center 40%;
+}
+
+.team-image1 {
+  object-position: center 95%;
+}
+
+
+
+
+/* Main title with strong shadow */
+.title {
+  font-size: 2.2rem;
+
+  text-align: center;
+  margin-bottom: 28px;
+  /* layered text-shadow for legibility */
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.95),
+    0 3px 8px rgba(0, 0, 0, 0.7),
+    0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.about-section {
+  margin-bottom: 46px;
+  text-align: center;
+}
+
+h1 {
+  color: white;
+  font-weight: 800;
+  font-size: 1.6rem;
+  margin-bottom: 25px;
+  letter-spacing: 1px;
+}
+
+.about-section h3 {
+  font-size: 1.25rem;
+  color: #ffca28;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+
+}
+
+.about-section p {
+  max-width: 820px;
+  margin: 0 auto;
+  line-height: 1.8;
+  color: #f3f3f3;
+  font-size: 1.08rem;
+  /* paragraph shadow (subtle + readable) */
+  text-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.92),
+    0 3px 10px rgba(0, 0, 0, 0.55);
+}
+
+
+/* responsive tweaks */
+@media (max-width: 640px) {
+  .title {
+    font-size: 1.8rem;
+  }
+
+  .about-section h3 {
+    font-size: 1.05rem;
+  }
+
+  .divider-img {
+    height: 160px;
+  }
+}
+
+a.forward {
+  display: block;
+  margin-right: 15px;
+  margin-bottom: 10px;
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: all 0.3s ease;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.1);
+}
+
+a.forward:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #00ff88;
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
+  transform: translateY(-1px);
+}
+
+.button {
+  width: 280px;
+  margin: 0 auto;
+}

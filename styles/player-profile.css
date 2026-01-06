@@ -1,0 +1,3670 @@
+* {
+  box-sizing: border-box;
+
+}
+
+[title] {
+  pointer-events: none !important;
+}
+
+
+
+
+.player-stats-container {
+  width: 100%;
+  max-width: 1550px;
+  margin: 0 auto;
+  padding: 1rem;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+
+.stats-and-appearances-wrapper {
+  margin-top: 10px;
+  padding: 28px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.35);
+  align-items: start;
+}
+
+.double-fine {
+  color: #ff4d4d !important;
+  font-weight: 700;
+}
+
+.bagel {
+  display: inline-block;
+  font-size: 1.2rem;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.bagel:hover {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.bagel,
+.fine-warning {
+  position: relative;
+  z-index: 10;
+}
+
+#tooltip {
+  position: fixed;
+  pointer-events: none;
+  opacity: 0;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  transition: opacity .12s ease, transform .12s ease;
+  transform: translateY(4px);
+  z-index: 99999;
+  /* ← THIS IS THE FIX */
+}
+
+/* Tooltip support */
+[data-tooltip] {
+  position: relative;
+  cursor: help;
+}
+
+[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background: #000;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 1;
+  z-index: 100000;
+}
+
+
+
+[data-tooltip]:hover::before {
+  content: "";
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #000 transparent transparent transparent;
+  z-index: 100000;
+}
+
+
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(20, 20, 30, 0.6);
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+
+.stats-header .header-tab {
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 600;
+  text-align: center;
+  flex: 1;
+  user-select: none;
+}
+
+.stats-header,
+.stats-header-left,
+.stats-header-middle,
+.stats-header-right {
+  display: flex;
+  align-items: center;
+  text-align: center;
+}
+
+/* Ensure the left control area is clickable and above overlays */
+.stats-header-left {
+  z-index: 50;
+  pointer-events: auto;
+}
+
+/* If you have an absolutely centered title, ensure it doesn't block clicks */
+.stats-header-middle {
+  pointer-events: none;
+  /* title ignores mouse */
+}
+
+.stats-header-middle * {
+  pointer-events: none;
+}
+
+/* But make sure the select itself can receive clicks */
+#playerSelect {
+  z-index: 60;
+  pointer-events: auto;
+}
+
+
+.profile-title {
+  margin: 0 auto;
+  text-align: center;
+}
+
+
+
+.season-tabs button {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #fff;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.season-tabs button.active {
+  background: #00b894;
+  color: #fff;
+}
+
+.season-tabs button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.player-selector {
+  padding: 6px 12px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.header-tab {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #fff;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px !important;
+}
+
+.header-tab:hover {
+  color: #fff;
+}
+
+.header-tab.active {
+  background: #00b894;
+  color: #fff;
+}
+
+
+
+.player-stats-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.player-stats-table table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.player-stats-table th,
+.player-stats-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.player-stats-table th {
+  background: rgba(0, 0, 0, 0.25);
+  font-weight: 700;
+  color: #FFD740;
+}
+
+.player-stats-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+
+.appearance-card {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* if tables are wide, allow internal horizontal scroll instead of global overflow */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll table {
+  min-width: 700px;
+}
+
+/* only the table will scroll */
+
+
+
+.player-page-container {
+  background: rgba(25, 25, 35, 0.6);
+  flex: 1 1 48%;
+  min-width: 340px;
+  padding: 1rem;
+  border-radius: 14px;
+  box-sizing: border-box;
+  overflow: hidden;
+  height: auto !important;
+  min-height: 0 !important;
+  align-self: flex-start;
+  container-name: leagueColumn;
+  container-type: inline-size;
+}
+
+
+
+/* Dropdown */
+.player-select-wrapper {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+/* This is the new wrapper that holds your grid + bio */
+.player-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+/* Limit bio width to stats width */
+.player-bio-row {
+  max-width: fit-content;
+}
+
+
+
+
+
+
+.player-info {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 8px 20px;
+  align-items: start;
+}
+
+#playerName,
+#playerNickname {
+  grid-column: 1;
+}
+
+#playerAccolades,
+#playerAchievements {
+  grid-column: 2;
+}
+
+.player-name {
+  margin: 0;
+}
+
+
+
+.player-name-card {
+  background: linear-gradient(135deg, rgba(0, 30, 60, 0.85), rgba(0, 60, 120, 0.85));
+  padding: 0.8rem 1.4rem;
+  border-left: 4px solid #FFD740;
+  border-radius: 0.4rem;
+  margin-bottom: 0.6rem;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.25);
+}
+
+.player-name {
+  font-size: 1.9rem;
+  font-weight: 800;
+  margin: 0;
+  color: White;
+  user-select: none;
+}
+
+
+
+
+
+.meta-label {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 1rem;
+  user-select: none;
+}
+
+
+.meta-value {
+  color: white;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  white-space: normal;
+  word-break: break-word;
+  font-size: 1rem;
+  user-select: none;
+}
+
+
+.match-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+
+.result-tag.win {
+  color: #4aff88;
+}
+
+.result-tag.loss {
+  color: #ff5b5b;
+}
+
+
+
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.photos-grid img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+
+
+.match-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.league-section {
+  margin-bottom: 2rem;
+}
+
+.league-section h3 {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.appearance-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin: 0.5rem 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  transition: background 0.3s ease;
+}
+
+.appearance-card.win {
+  border-left: 5px solid #4caf50;
+}
+
+.appearance-card.loss {
+  border-left: 5px solid #e53935;
+}
+
+.match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 500;
+}
+
+.match-stats {
+  display: flex;
+  justify-content: space-around;
+  opacity: 0.8;
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
+}
+
+
+
+
+
+.total-badge {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+  transition: all 0.4s ease-in-out;
+  border-radius: 10px;
+  padding: 15px 8px;
+  text-align: center;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.total-badge:hover {
+  background-color: rgba(184, 184, 184, 0.1);
+  transition: background-color 0.3s ease;
+}
+
+.badge-inner {
+  text-align: center;
+  font-size: 0.7rem;
+}
+
+.badge-inner .value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  display: block;
+  color: #FFD740;
+}
+
+
+
+.season-tab {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #fff;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.season-tab.active {
+  background: #00b894;
+  color: #fff;
+}
+
+
+.season-tab:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.season-tab.active:hover {
+  background: #00b894;
+  color: #fff;
+}
+
+.season-toggle {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  opacity: 0.8;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 5px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+#playerSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 0.45rem 2.2rem 0.45rem 0.8rem;
+  /* room for arrow on right */
+  border-radius: 0.5rem;
+  top: 2rem;
+  right: 3rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24'><path fill='white' d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 15px;
+}
+
+
+
+.player-dropdown {
+  position: absolute;
+  top: 2rem;
+  right: 3rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+
+
+
+
+
+
+/* Opponent + label */
+.opp-wrap {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.opp-name {
+  font-weight: 600;
+}
+
+.opp-loc {
+  font-size: 0.7rem;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.result-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 6px;
+
+  white-space: nowrap;
+  /* no wrapping */
+  overflow: hidden;
+  /* ⬅ prevent overflow */
+  text-overflow: ellipsis;
+  /* safety */
+  font-weight: bold;
+  box-sizing: border-box;
+}
+
+.result-win {
+  background: rgba(0, 200, 0, 0.25);
+  border: 1px solid rgba(0, 200, 0, 0.6);
+}
+
+.result-loss {
+  background: rgba(255, 0, 0, 0.25);
+  border: 1px solid rgba(255, 0, 0, 0.6);
+}
+
+.result-unknown {
+  background: rgba(200, 200, 200, 0.25);
+  border: 1px solid rgba(180, 180, 180, 0.6);
+}
+
+
+/* Specials row */
+.specials-row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+
+/* Specials: badges inline and centered */
+.specials-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-badge {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 2px 3px;
+  border-radius: 6px;
+  color: #fff;
+  text-transform: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+}
+
+/* active/colour rules you already have - repeat/ensure these exist */
+.stat-badge.active.badge-180 {
+  background: linear-gradient(135deg, #ff6b6b, #ff1e1e);
+}
+
+.stat-badge.active.badge-bull {
+  background: linear-gradient(135deg, #00d084, #009e60);
+}
+
+.stat-badge.active.badge-ton {
+  background: linear-gradient(135deg, #1e90ff, #007bff);
+}
+
+.stat-badge.inactive {
+  background: #8a8a8ab5;
+  color: #c1c1c1;
+}
+
+
+
+
+
+
+.league-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 5px;
+  color: #fff;
+}
+
+.specials-row.specials-24 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+
+/* Ensure badges stay horizontal */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Tooltip trigger fix */
+.badge[data-tooltip] {
+  position: relative;
+  cursor: default;
+}
+
+
+
+/* === PLAYER PROFILE IMAGE (match landing cards) === */
+#playerPhoto {
+  width: 100%;
+  max-width: 260px;
+
+  /* square */
+  height: auto;
+
+  object-fit: cover;
+  border-radius: 10px;
+  /* same as landing page */
+  display: block;
+}
+
+
+/* Dropdown arrow alignment fix */
+#playerSelect {
+  padding-right: 1.5rem;
+  background-position: right 0.75rem center;
+}
+
+
+.league-section {
+  flex: 1 1 48%;
+}
+
+
+
+/* Score box like results page */
+.score-box {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border: 2px solid var(--primary-color, #333);
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.fine-cell.fine-warning {
+  color: #db5656 !important;
+  font-weight: 700;
+}
+
+
+.accolade {
+  font-size: 1.2rem;
+  margin-right: 0.25rem;
+}
+
+.player-profile-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.player-profile-table th,
+.player-profile-table td {
+  padding: 10px 12px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+}
+
+.player-profile-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+
+
+.player-stat {
+  flex: 1;
+  min-width: 100px;
+  font-size: 0.9rem;
+}
+
+.specials-container {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.specials-cell {
+  white-space: nowrap;
+}
+
+.specials-cell .specials-row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+}
+
+.specials-cell .stat-badge {
+  margin: 0 2px;
+  line-height: 1.2;
+}
+
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: white;
+}
+
+.badge-wrapper {
+  display: inline-flex;
+}
+
+.badge-180 {
+  background: linear-gradient(135deg, #ff6b6b, #ff1e1e);
+}
+
+.badge-bull {
+  background: linear-gradient(135deg, #00d084, #009e60);
+}
+
+.badge-ton {
+  background: linear-gradient(135deg, #1e90ff, #007bff);
+}
+
+.league-name.banks {
+  color: #007bff;
+  font-weight: 600;
+}
+
+.league-name.traf {
+  color: #ff9800;
+  font-weight: 600;
+}
+
+.gallery-header {
+  display: flex;
+  flex-direction: column;
+
+  font-size: 0.9rem;
+}
+
+.gallery-meta {
+  opacity: 0.8;
+  font-size: 0.8rem;
+}
+
+.gallery-score {
+  flex: 0;
+  min-width: 45px;
+  position: absolute;
+  text-align: center;
+  right: 10px;
+  white-space: nowrap;
+  text-wrap: nowrap;
+  font-weight: bold;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.2rem 0.3rem;
+  border-radius: 0.3rem;
+}
+
+.result-label {
+  position: absolute;
+  bottom: 0.6rem;
+  right: 0.8rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.3rem;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.result-card.won .result-label {
+  background: rgba(76, 175, 80, 0.25);
+  color: #4caf50;
+}
+
+.result-card.lost .result-label {
+  background: rgba(229, 57, 53, 0.25);
+  color: #e53935;
+}
+
+.gallery-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+  color: white;
+  position: relative;
+  container-type: inline-size;
+  container-name: gallery-matchcard;
+}
+
+.gallery-result-label {
+  position: absolute;
+  top: 1.5rem;
+  right: 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.3rem;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.gallery-card.win .gallery-result-label {
+  background: rgba(76, 175, 80, 0.25);
+  color: #4caf50;
+}
+
+.gallery-card.loss .gallery-result-label {
+  background: rgba(229, 57, 53, 0.25);
+  color: #e53935;
+}
+
+.season-stat-box {
+  width: 100%;
+  table-layout: auto;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.stat-title {
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.season-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+
+}
+
+.stat-left .stat-line {
+  display: flex;
+  justify-content: space-between;
+
+}
+
+.stat-right {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.stat-badge {
+  display: inline-block;
+  min-width: 48px;
+  text-align: center;
+  font-size: 0.75rem;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  transition: 0.2s ease;
+}
+
+.stat-badge[title] {
+  pointer-events: none;
+}
+
+/* Active badge styles (already provided) */
+
+
+
+/* Inactive stays grey */
+.stat-badge.inactive {
+  background: #8a8a8ab5;
+  color: #c1c1c1;
+  opacity: 0.6;
+}
+
+
+/* ACTIVE badges (player achieved at least 1) */
+.stat-badge.active.badge-180 {
+  background: linear-gradient(135deg, #ff6b6b, #ff1e1e);
+}
+
+.stat-badge.active.badge-bull {
+  background: linear-gradient(135deg, #00d084, #009e60);
+}
+
+.stat-badge.active.badge-ton {
+  background: linear-gradient(135deg, #1e90ff, #007bff);
+}
+
+/* INACTIVE (0) */
+.stat-badge.inactive {
+  background: #8a8a8ab5;
+  color: #c1c1c1;
+}
+
+/* Tooltip styling */
+.stat-badge[data-tooltip] {
+  position: relative;
+  user-select: none;
+}
+
+/* Tooltip bubble */
+.stat-badge[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+/* Tooltip arrow */
+.stat-badge[data-tooltip]::before {
+  content: "";
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #000 transparent transparent transparent;
+  z-index: 9998;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+/* Show both on hover */
+.stat-badge[data-tooltip]:hover::after,
+.stat-badge[data-tooltip]:hover::before {
+  opacity: 1;
+}
+
+.badge-wrapper {
+  overflow: visible;
+}
+
+
+
+.hexagon-row {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+/* Mini hexagon base styling */
+.mini-hex {
+  width: 78px;
+  height: 78px;
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  background: rgba(16, 16, 16, 0.477);
+  border: 5px solid currentColor;
+  /* border uses the league/metric colour */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: currentColor !important;
+  font-size: 1.1rem;
+  font-weight: 700;
+  transition: 0.25s ease;
+}
+
+/* Individual colour coding */
+.played-hex {
+  border-color: #29B6F6 !important;
+  /* Blue */
+}
+
+.checkout-hex {
+  border-color: #66BB6A !important;
+  /* Green */
+}
+
+.fines-hex {
+  border-color: #FF7043 !important;
+  /* Orange */
+}
+
+.hex-large {
+  font-size: 1.2rem;
+  /* bigger numbers */
+}
+
+.hex-small {
+  font-size: 1.1rem;
+  /* smaller for fines */
+  font-weight: 600;
+}
+
+.season-stats-box {
+  width: 95%;
+  margin: 1rem auto;
+  padding: 0.75rem 0.5rem;
+  background: rgba(33, 33, 33, 0.06);
+  border-radius: 6px;
+}
+
+.season-stats-title {
+  margin: 0 0 8px 6px;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 600;
+}
+
+/* Table tweaks for season stats */
+.season-table {
+  width: 90%;
+  margin: 0 auto;
+  border-collapse: collapse;
+  color: #fff;
+}
+
+.season-table thead th {
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.season-table td {
+  padding: 8px 6px;
+  text-align: center;
+  font-size: 0.85rem;
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.08);
+}
+
+.season-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* No specials styling */
+.no-specials {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+/* Badge container */
+.specials-container {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+
+
+
+
+/* No borders anywhere */
+.medal-wrapper,
+.medal-icon {
+  border: none !important;
+  outline: none !important;
+}
+
+/* Medal images */
+.medal-icon {
+  height: 10px;
+  width: auto;
+  display: block;
+}
+
+.tooltip {
+  position: fixed;
+  background: #222;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity .12s ease, transform .12s ease;
+  z-index: 9999;
+}
+
+
+
+/* Tooltip */
+.medal-wrapper {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  cursor: default;
+}
+
+.medal-tooltip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  background: rgba(20, 20, 20, 0.95);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  transform-origin: center top;
+  transition: opacity .12s ease, transform .12s ease;
+  opacity: 0;
+  transform: translateY(6px) scale(.98);
+  white-space: nowrap;
+}
+
+.medal-wrapper:hover .medal-tooltip {
+  opacity: 1;
+}
+
+#playerAchievementsWrapper {
+  margin-top: 6px;
+}
+
+.medals-title {
+  opacity: 0.8;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+
+/* Medal images — small consistent size */
+.medal-icon {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  display: block;
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.medal img:hover {
+  transform: scale(1.09);
+}
+
+/* container/title reveal */
+.medals-title,
+#playerMedals {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.medals-title.is-open,
+#playerMedals.is-open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* medal fan-in ONLY (remove any .is-open child forcing) */
+@keyframes medalFanIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#playerMedals .medal {
+  opacity: 0;
+  /* start hidden */
+  animation: medalFanIn 420ms ease forwards;
+  animation-delay: var(--d, 0ms);
+}
+
+/* ❌ DELETE this rule if you have it */
+/* #playerMedals.is-open .medal { opacity: 1; transform: translateY(0) scale(1); } */
+
+
+.medal-item:hover::after {
+  opacity: 1;
+  bottom: -38px;
+}
+
+/* Achievements section */
+.achievements-wrapper {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.achievements-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Loading spinner */
+.achievements-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.achievements-loading .spinner {
+  width: 14px;
+  height: 14px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+.medal {
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s ease;
+}
+
+
+
+.form-medals-bottom {
+  margin-top: auto;
+  /* 🔑 pushes to bottom */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  /* bottom-right alignment */
+  gap: 6px;
+}
+
+
+.medals-row {
+  display: flex;
+  gap: 2px;
+  padding: 0.5px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.317);
+  transition: all 0.35s ease-in-out;
+}
+
+.medals-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 14px rgba(0, 255, 136, 0.35);
+  transform: translateY(-1px);
+}
+
+
+
+
+/* Medal image */
+.medal img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: all 0.35s ease-in-out;
+}
+
+/* Base tooltip + arrow (hidden state) */
+.medal::after,
+.medal::before {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Tooltip bubble */
+.medal::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: #000;
+  color: #fff;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Tooltip arrow */
+.medal::before {
+  content: "";
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #000 transparent transparent transparent;
+}
+
+/* Hover state — fade & scale */
+.medal:hover {
+  transform: scale(1.08);
+}
+
+.medal:hover::after,
+.medal:hover::before {
+  opacity: 1;
+}
+
+
+.profile-stats-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  margin-top: 1.2rem;
+  gap: 1.5rem;
+}
+
+.section-title {
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  opacity: 0.8;
+  margin-bottom: 0.5rem;
+}
+
+/* === RINGS === */
+.totals-rings {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ring {
+  width: 85px;
+  height: 85px;
+  border-radius: 50%;
+  border: 5px solid #FFD740;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+
+.ring-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #FFD740;
+}
+
+.ring-label {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* === MEDALS === */
+.profile-medals {
+  display: flex;
+  flex-direction: column;
+}
+
+
+.medal-item {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.medal-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.medals-title,
+#playerMedals {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.medals-title.is-open,
+#playerMedals.is-open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+
+
+
+
+.label {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.player-achievements,
+.player-accolades {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-height: 32px;
+}
+
+.player-totals-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.totals-title {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.totals-grid {
+  display: flex;
+  gap: 18px;
+  margin-top: 10px;
+}
+
+
+
+/* League borders */
+.row-banks {
+  border-left: 4px solid #1e90ff;
+}
+
+.row-traf {
+  border-left: 4px solid #ff7b00;
+}
+
+
+
+.specials-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Badge styling reused */
+.stat-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: #fff;
+  opacity: 0.9;
+}
+
+.stat-badge.inactive {
+  background: #8a8a8ab5;
+  color: #c1c1c1;
+}
+
+/* ============================================================
+   FULL OVERRIDE: PLAYER STATS TABLE = APPEARANCES TABLE STYLE
+   ============================================================ */
+
+.player-stats-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: transparent;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  font-size: 0.9rem;
+}
+
+/* Header — identical */
+.player-stats-table thead th {
+  padding: 8px 10px;
+  font-weight: 700;
+  opacity: .8;
+  text-transform: uppercase;
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Cells — identical */
+.player-stats-table td {
+  padding: 8px 10px;
+  text-align: center;
+  vertical-align: middle;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+/* Borders identical to appearances table */
+.player-stats-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.player-stats-table tbody tr:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.player-stats-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+
+/* Remove old highlight backgrounds */
+#row-overall,
+#row-season {
+  background: none !important;
+  font-weight: 700;
+  color: #fff;
+}
+
+
+
+/* Scrollbar — match Appearances scroll behaviour */
+.player-stats-table .table-container {
+  position: relative;
+  overflow-x: auto;
+  cursor: grab;
+  -webkit-overflow-scrolling: touch;
+  user-select: none;
+  transform: rotateX(180deg);
+}
+
+.player-stats-table .table-container table {
+  transform: rotateX(180deg);
+}
+
+/* Scrollbar look identical */
+.player-stats-table .table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.player-stats-table .table-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.player-stats-table .table-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+}
+
+
+/* ====== APPEARANCES TABLE MATCH PLAYER-STATS TABLE ====== */
+
+.appearance-table-container {
+  position: relative;
+  overflow-x: auto;
+  cursor: grab;
+  -webkit-overflow-scrolling: touch;
+  user-select: none;
+  transform: rotateX(180deg);
+  /* scrollbar top */
+  margin-top: 0.4rem;
+}
+
+.appearance-table-container.dragging {
+  cursor: grabbing;
+}
+
+.appearance-table-container table {
+  min-width: 550px;
+  width: 100%;
+  border-collapse: collapse;
+  transform: rotateX(180deg);
+  table-layout: auto;
+}
+
+/* Scrollbar */
+.appearance-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.appearance-table-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.appearance-table-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+}
+
+/* Table cells */
+.appearances-table-simple th,
+.appearances-table-simple td {
+  text-align: center;
+  padding: 6px 8px;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+
+.appearances-table-simple td .bagel {
+  font-size: 1.2rem;
+}
+
+
+/* Headings */
+.appearances-table-simple th {
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Zebra stripes */
+.appearances-table-simple tbody tr:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.appearances-table-simple tbody tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Row divider */
+.appearances-table-simple tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Fixed column widths for appearances table */
+.appearances-table-simple th:nth-child(1),
+.appearances-table-simple td:nth-child(1) {
+  width: 110px;
+  /* League */
+}
+
+.appearances-table-simple th:nth-child(2),
+.appearances-table-simple td:nth-child(2) {
+  width: 200px;
+  /* Opponent */
+}
+
+.appearances-table-simple th:nth-child(3),
+.appearances-table-simple td:nth-child(3) {
+  width: 120px;
+  /* Date */
+}
+
+.appearances-table-simple th:nth-child(4),
+.appearances-table-simple td:nth-child(4) {
+  width: 100px;
+  /* Result */
+}
+
+.appearances-table-simple th:nth-child(5),
+.appearances-table-simple td:nth-child(5) {
+  width: 100px;
+  /* Checkouts */
+}
+
+.appearances-table-simple th:nth-child(6),
+.appearances-table-simple td:nth-child(6) {
+  width: 100px;
+  /* Fines */
+}
+
+.appearances-table-simple th:nth-child(7),
+.appearances-table-simple td:nth-child(7) {
+  width: 150px;
+  /* Specials */
+}
+
+
+/* Borders by league */
+.row-banks {
+  border-left: 5px solid #1e90ff;
+}
+
+.row-traf {
+  border-left: 5px solid #ff7b00;
+}
+
+.appearance-season-title {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+
+  color: #FFD740;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 15px 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+/* Lines */
+.appearance-season-title::before,
+.appearance-season-title::after {
+  content: "";
+  height: 1px;
+  background: #ffd64084;
+}
+
+.appearance-season-title::before {
+  margin-right: 12px;
+}
+
+.appearance-season-title::after {
+  margin-left: 12px;
+}
+
+
+#playerAppearancesWrapper {
+  margin-top: 40px;
+  /* Increase or reduce as needed */
+}
+
+/* Special badges */
+.appearances-table-simple .specials-row {
+  white-space: nowrap;
+}
+
+.appearances-table-simple .stat-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 2px;
+}
+
+.appearances-table-simple .stat-badge.inactive {
+  opacity: 0.3;
+}
+
+/* Season block spacing */
+.appearance-season-block {
+  margin-bottom: 1.2rem;
+}
+
+.appearance-season-title {
+  font-weight: 700;
+  font-size: 1rem;
+  margin: 0.3rem 0 0.5rem;
+  opacity: 0.85;
+}
+
+.row-banks {
+  border-left: 5px solid #1e90ff;
+}
+
+.row-traf {
+  border-left: 5px solid #ff7b00;
+}
+
+
+
+
+
+
+
+
+/* If your badges already have colours elsewhere, these will just help alignment */
+.player-stats-table .stat-badge.inactive {
+  opacity: 0.35;
+}
+
+.player-stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0 18px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.player-stats-header button {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 6px 10px;
+  margin-right: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.player-stats-header button:last-child {
+  margin-right: 0;
+}
+
+.player-stats-header button.active {
+  background: #00c853;
+  border-color: #00c853;
+  color: #000;
+  font-weight: 700;
+}
+
+.stats-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.appearances-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 25px 0 12px;
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+}
+
+.appearances-left,
+.appearances-right {
+  display: flex;
+  gap: 8px;
+}
+
+.appearances-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Toggle buttons */
+.season-btn,
+.league-btn {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  padding: 4px 10px;
+  font-size: .85rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.season-btn.active,
+.league-btn.active {
+  background: #ffe066;
+  color: #000;
+  font-weight: 700;
+}
+
+
+
+#playerName,
+#playerNickname,
+#captainBadge {
+  grid-column: 1 / -1;
+}
+
+.player-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.player-name {
+  font-size: 2.4rem;
+  margin: 0;
+}
+
+.captain-badge span {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: .9rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.form-title {
+  font-size: .8rem;
+  opacity: .7;
+  margin-bottom: 4px;
+  letter-spacing: .4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-title .arrow {
+  opacity: .7;
+  font-size: .9rem;
+}
+
+.form-dots {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+/* Animated entrance */
+.form-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: formDotIn .4s ease-out forwards;
+}
+
+
+@keyframes formDotIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Colours */
+.form-dot.win {
+  background: #00d26a;
+}
+
+.form-dot.loss {
+  background: #ff5c5c;
+}
+
+.form-dot.draw {
+  background: #aaaaaa;
+}
+
+
+
+
+
+/* Text sizing so everything fits neatly */
+.stat-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  line-height: 1.1;
+  opacity: .75;
+  white-space: normal;
+  /* ← allows wrapping without changing size */
+}
+
+.stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #00ff88;
+  padding-top: 5px;
+}
+
+
+
+
+
+@keyframes statIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+@keyframes badgeIn {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+
+.stats {
+  display: flex;
+  justify-content: space-between;
+  overflow-x: auto;
+  gap: 10px;
+  margin-top: 0px;
+}
+
+.stat-box {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.275);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+  transition: all 0.4s ease-in-out;
+  border-radius: 10px;
+  padding: 15px 8px;
+  text-align: center;
+  min-width: 100px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.stat-box:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #00FF88;
+  box-shadow: 0 0 14px rgba(0, 255, 136, 0.35);
+  transform: translateY(-1px);
+}
+
+
+
+.stat-box h3 {
+  margin: 0;
+  color: #ffd700;
+  font-size: 1rem;
+}
+
+.stat-box p {
+  margin: 8px 0 0;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #00ff88;
+}
+
+
+
+
+.special-stat-box {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.275);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+  transition: all 0.4s ease-in-out;
+  border-radius: 10px;
+  padding: 15px 8px;
+  text-align: center;
+  min-width: 100px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.special-stat-box:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #00FF88;
+  box-shadow: 0 0 14px rgba(0, 255, 136, 0.35);
+  transform: translateY(-1px);
+}
+
+
+.special-180 {
+  border: 1px solid #ffd90071;
+  background: #ffd9000f;
+  user-select: none;
+}
+
+.special-bull {
+  border: 1px solid rgba(5, 209, 36, 0.45);
+  background: rgba(5, 209, 36, 0.06);
+  user-select: none;
+}
+
+.special-ton {
+  border: 1px solid rgba(26, 89, 248, 0.725);
+  background: rgba(6, 45, 241, 0.06);
+  user-select: none;
+}
+
+.special-stat-box .stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.special-stat-box .stat-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+
+
+
+
+
+
+/* Accolades */
+.player-accolades-row {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+
+
+.app-header {
+  background: #222;
+  color: #fff;
+  padding: 10px 16px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  border-radius: 6px;
+  margin: 20px 0 10px 0;
+  letter-spacing: .5px;
+}
+
+.season-divider {
+  height: 2px;
+  background: #444;
+  margin: 25px 0;
+  border-radius: 100px;
+  opacity: .4;
+}
+
+.appearance-row {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: fadeInRow .35s ease forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+
+
+.appearances-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+
+.appearances-table-simple {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.appearances-table-simple th {
+
+  padding: 8px 10px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.appearances-table-simple td {
+  padding: 8px 10px;
+  font-size: 0.95rem;
+}
+
+.appearance-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+
+/* Specials row */
+.player-specials-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.stat-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: .75rem;
+  font-weight: 700;
+  color: white;
+  white-space: nowrap;
+}
+
+/* Active badges */
+.stat-badge.active.badge-180 {
+  background: #ffd9002a;
+  border: 1px solid #ffd900dc;
+}
+
+.stat-badge.active.badge-bull {
+  background: #009e5f4d;
+  border: 1px solid #009e5fc7;
+}
+
+.stat-badge.active.badge-ton {
+  background: #007bff4b;
+  border: 1px solid #007bffc2;
+}
+
+/* Inactive */
+.stat-badge.inactive {
+  background: #8a8a8a44;
+  border: 1px solid #8a8a8ad3;
+  color: #c1c1c1;
+}
+
+
+.col-form-medals {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.last5-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+
+.form-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.form-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  opacity: 0;
+  transform: translateX(10px);
+  animation: dotIn .35s ease-out forwards;
+}
+
+@keyframes dotIn {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.form-dot.win {
+  background: #00d26a;
+}
+
+.form-dot.loss {
+  background: #ff5c5c;
+}
+
+.form-dot.draw {
+  background: #aaa;
+}
+
+
+.form-dot.win:hover {
+  background-color: rgba(184, 184, 184, 0.4);
+  transition: background-color 0.3s ease;
+}
+
+.form-dot.loss:hover {
+  background-color: rgba(184, 184, 184, 0.4);
+  transition: background-color 0.3s ease;
+}
+
+
+
+
+/* =========================
+   PLAYER HEADER – 4 SECTIONS
+   ========================= */
+
+.player-header-card {
+  display: flex !important;
+  justify-content: space-between !important;
+  /* evenly spread 4 sections */
+  align-items: stretch;
+  /* ✅ REQUIRED */
+  gap: 24px;
+  padding: 24px 28px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.35);
+  user-select: none;
+}
+
+/* generic column */
+.header-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-info {
+  flex: 1 1 0;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.player-name {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin: 0;
+  color: #ffd700;
+}
+
+
+
+.captain-badge span {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 4px;
+}
+
+.accolades-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* not full width */
+  gap: 6px;
+  width: auto !important;
+}
+
+.accolades-list,
+.accolade-item {
+  width: auto !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  transition: all 0.4s ease-in-out;
+  border: 1px solid rgba(246, 255, 0, 0.317);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.accolade-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 14px rgba(0, 255, 136, 0.35);
+  transform: translateY(-1px);
+}
+
+
+
+/* SECTION 3 – stats + specials */
+.header-stats {
+  flex: 1 1 0;
+  align-items: center;
+  margin-top: 60px;
+}
+
+
+
+
+.stat-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* specials directly underneath, horizontal */
+.player-specials-row {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-top: 10px;
+}
+
+
+.header-form {
+  flex: 0 0 320px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  overflow: visible;
+  /* do NOT clip children */
+  /* right-align contents */
+}
+
+
+
+.form-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.form-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+}
+
+.form-dot.win {
+  background: #00d2694e;
+  border: 1px solid #00d269b1;
+}
+
+.form-dot.loss {
+  background: #ff5c5c61;
+  border: 1px solid #ff5c5cd4;
+}
+
+.form-dot.draw {
+  background: #aaaaaa;
+}
+
+.medals-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+
+
+/* Each accolade gets its own mini-card */
+.accolades-wrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+
+.appearances-grid .stat-badge.inactive,
+.appearances-table-simple .stat-badge.inactive {
+  display: none !important;
+}
+
+
+
+/* Specials row placement */
+.player-specials-row {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+
+.player-specials-row .stat-badge {
+  width: 120px;
+  height: 55px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  /* base transparent look */
+  color: #fff;
+
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  text-transform: uppercase;
+}
+
+/* ACTIVE tinted colours (very subtle, matches stat boxes!) */
+.player-specials-row .badge-180.active {
+  background: linear-gradient(135deg, rgba(255, 50, 50, 0.25), rgba(255, 20, 20, 0.2));
+  border-color: rgba(255, 100, 100, 0.6);
+}
+
+.player-specials-row .badge-bull.active {
+  background: linear-gradient(135deg, rgba(0, 220, 100, 0.22), rgba(0, 160, 80, 0.18));
+  border-color: rgba(0, 200, 110, 0.6);
+}
+
+.player-specials-row .badge-ton.active {
+  background: linear-gradient(135deg, rgba(50, 150, 255, 0.22), rgba(0, 120, 255, 0.18));
+  border-color: rgba(70, 160, 255, 0.6);
+}
+
+/* No inactive specials in this area */
+.player-specials-row .stat-badge.inactive {
+  display: none !important;
+}
+
+
+
+
+
+
+/* --- COLUMN 1 --- */
+.col-photo {
+  display: flex;
+  justify-content: center;
+  align-items: start;
+}
+
+/* --- COLUMN 2 : NAME + NICKNAME + ACCOLADES --- */
+.col-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.col-name h1 {
+  margin-bottom: 0;
+}
+
+.accolades-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+
+.col-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 34px;
+}
+
+.player-stats-line {
+  display: flex;
+  margin-top: auto;
+  gap: 12px;
+  max-width: max-content;
+  /* ← key line */
+}
+
+.player-stats-row {
+  display: flex;
+  margin-top: auto;
+  gap: 12px;
+  max-width: 100%;
+}
+
+/* Back button */
+.back-btn {
+  background: none;
+  border: none;
+  color: #FFD740;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 10px;
+  transition: 0.2s ease;
+}
+
+.back-btn:hover {
+  color: white;
+  transform: translateX(-2px);
+}
+
+/* Inline dropdown inside title */
+.player-selector-inline {
+  font-size: 1.1rem;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  color: white;
+  margin-left: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  width: 160px;
+  /* ⬅ fixed width so it doesn’t jump */
+  transition: all 0.4s ease-in-out;
+}
+
+.player-selector-inline:focus {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 14px rgba(0, 255, 136, 0.35);
+  transform: translateY(-1px);
+}
+
+/* Make main header aligned nicely */
+.main-profile-header .stats-header-middle {
+  display: flex;
+  justify-content: center;
+}
+
+.stats-header-middle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  /* prevents blocking clicks on dropdown */
+}
+
+
+.profile-title {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.main-profile-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+
+/* SPECIAL BOXES MATCH SIZE + LOOK */
+.player-specials-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.special-box {
+  width: 110px;
+  height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ACTIVE COLOURED SHADE */
+.special-box.red {
+  box-shadow: inset 0 0 12px rgba(255, 0, 0, 0.35);
+}
+
+.special-box.green {
+  box-shadow: inset 0 0 12px rgba(0, 255, 0, 0.35);
+}
+
+.special-box.blue {
+  box-shadow: inset 0 0 12px rgba(0, 120, 255, 0.35);
+}
+
+.col-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+/* Match appearances left borders */
+.player-stats-table .row-banks {
+  border-left: 4px solid #1e90ff;
+}
+
+.player-stats-table .row-traf {
+  border-left: 4px solid #ff7b00;
+}
+
+/* Grey border for Overall rows */
+.player-stats-table .stats-overall {
+  border-left: 4px solid #777;
+}
+
+
+
+/* Fade-in animation reused from appearances */
+@keyframes statRowFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.player-stats-table .stats-row {
+  opacity: 0;
+  animation: statRowFade 0.45s ease-out forwards;
+}
+
+
+/* Container row: 2x2 grid + stacked specials column */
+.profile-stats-row {
+  display: flex;
+  gap: 12px;
+  max-width: 100%;
+  margin-top: auto;
+}
+
+/* 2x2 stats grid */
+.profile-stats-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  /* ✅ 4 across */
+  gap: 10px;
+  align-items: stretch;
+}
+
+
+
+
+
+/* Stat box styling (match landing look) */
+.profile-stat-box {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 10px 10px;
+  text-align: center;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all 0.35s ease-in-out;
+}
+
+.profile-stat-box:hover {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 14px rgba(0, 255, 136, 0.35);
+  transform: translateY(-1px);
+}
+
+.profile-stat-box .label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  opacity: .75;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.profile-stat-box .value {
+  margin-top: 6px;
+  font-size: 1.1rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+/* Colors */
+.profile-stat-box .played {
+  color: #44d17a;
+}
+
+.profile-stat-box .co {
+  color: #44d17a;
+}
+
+.profile-stat-box .wins {
+  color: #44d17a;
+}
+
+.profile-stat-box .fines {
+  color: #44d17a;
+}
+
+.profile-stat-box .ratio {
+  color: #FFD740;
+}
+
+.profile-stat-box .sep {
+  opacity: .7;
+}
+
+/* Specials column: 3 stacked boxes same height as grid */
+.profile-specials-col {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: max-content;
+}
+
+.profile-specials-col .stat-badge {
+  flex: 1;
+  /* each badge shares the full column height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  padding: 3px 6px;
+  border-radius: 10px;
+}
+
+.stats-header,
+.player-profile-header {
+  display: flex;
+  align-items: stretch;
+  /* ✅ THIS is the key */
+  gap: 16px;
+}
+
+.header-photo {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+/* === PLAYER PROFILE PHOTO — FULL HEIGHT CIRCLE === */
+.player-photo {
+  height: 100%;
+  width: auto;
+  aspect-ratio: 1 / 1;
+
+  object-fit: cover;
+
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.45);
+  display: block;
+}
+
+.profile-photo-wrap {
+  position: relative;
+  height: 100%;
+  display: inline-block;
+  user-select: none;
+}
+
+/* Photo wrapper must be the clipping frame */
+.profile-photo-wrap {
+  position: relative;
+  overflow: hidden;
+  /* ✅ keeps ribbon inside photo */
+  display: inline-block;
+}
+
+/* Ensure image fills wrapper shape */
+.profile-photo-wrap .player-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ===== Captain ribbon (contained) ===== */
+.profile-captain-ribbon {
+  position: absolute;
+  top: 16px;
+  right: -48px;
+  width: 160px;
+
+  transform: rotate(45deg);
+  transform-origin: center;
+
+  text-align: center;
+  padding: 6px 0;
+
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+
+  background: rgba(0, 255, 136, 0.28);
+  border: 1px solid rgba(0, 255, 136, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  z-index: 6;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.25);
+}
+
+
+/* Outer shell: allows overlays to escape */
+.profile-photo-shell {
+  position: relative;
+  display: inline-block;
+  overflow: visible;
+  /* ✅ tooltips can show */
+}
+
+/* Inner frame: clips ribbon to photo */
+.profile-photo-frame {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Image itself */
+.player-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.45);
+}
+
+/* Accolades box bottom-right (NOT clipped) */
+.profile-photo-accolades {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 20;
+
+  display: flex;
+  gap: 6px;
+
+  padding: 6px 8px;
+  border-radius: 8px;
+
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.45);
+}
+
+/* Optional: make emoji a bit crisper */
+.profile-photo-accolades .acc-emoji {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.header-walkout {
+  align-self: flex-start;
+  display: flex;
+  justify-content: flex-end;
+}
+
+#playerWalkout iframe {
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.35);
+  background: #000;
+}
+
+
+
+
+#playerWalkout {
+  pointer-events: auto !important;
+}
+
+#playerWalkout iframe {
+  pointer-events: auto !important;
+}
+
+
+.walkout-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+/* Embed container */
+.walkout-embed {
+  position: relative;
+
+}
+
+/* Spotify iframe */
+.walkout-embed iframe {
+  width: 100%;
+  height: 80px;
+  border: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Overlay badge */
+.walkout-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 4px 8px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: #fff;
+
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  border-radius: 6px;
+
+  pointer-events: none;
+  /* ✅ does not block play button */
+  z-index: 3;
+}
+
+.stats-header.main-profile-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  /* left | middle | right */
+  align-items: center;
+  column-gap: 12px;
+}
+
+
+
+/* 1) Make the header layout deterministic */
+.stats-header.main-profile-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  /* left | middle | right */
+  align-items: center;
+  column-gap: 12px;
+
+  /* IMPORTANT: override any body/page centering */
+  text-align: left;
+}
+
+/* Keep middle centered on desktop if you want */
+.stats-header-middle {
+  justify-self: center;
+}
+
+
+/* TABLET / SMALL DESKTOP: designed layout (not just "stack everything") */
+@media (max-width: 1110px) {
+  .player-header-card {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    /* all same width */
+    grid-template-areas:
+      "photo"
+      "info"
+      "stats"
+      "bottom";
+    gap: 14px;
+    padding: 22px 25px;
+    align-items: center;
+    text-align: center;
+  }
+
+
+  /* Make each column behave like a centered block of same width */
+  .col-photo {
+    grid-area: photo;
+    justify-content: center;
+  }
+
+  .header-info,
+  .col-name {
+    grid-area: info;
+    align-items: center;
+  }
+
+  .header-stats,
+  .col-stats {
+    grid-area: stats;
+    align-items: center;
+  }
+
+  .header-form,
+  .col-form {
+    grid-area: bottom;
+  }
+
+  /* Ensure the photo is centered */
+  .profile-photo-shell,
+  .profile-photo-wrap {
+    margin: 0 auto;
+  }
+
+  /* Kill the desktop spacing that causes the huge vertical gap */
+  .header-stats {
+    margin-top: 0 !important;
+    /* you currently have margin-top: 60px */
+  }
+
+  /* Keep bio from being wider than the rest */
+  #playerBioRow,
+  .meta-value {
+    width: 100%;
+    max-width: 560px;
+    /* tweak to taste */
+    margin: 0 auto;
+    margin-bottom: 15px;
+  }
+
+  /* --- Bottom row layout: walkout bottom-left, last5/medals bottom-right --- */
+  .header-form {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+    column-gap: 16px;
+    row-gap: 8px;
+    text-align: left;
+    /* left column left aligned */
+  }
+
+  /* walkout LEFT */
+  .header-walkout,
+  .walkout-wrap {
+    justify-self: start;
+    align-self: end;
+    margin: 0;
+  }
+
+  /* last5 + medals RIGHT */
+  .form-medals-bottom {
+    justify-self: end;
+    align-self: end;
+    align-items: flex-end;
+    margin-top: 0;
+    /* stop it floating up */
+  }
+
+  /* Reduce the "gap" feeling between stats and bottom row */
+  .header-form {
+    margin-top: 4px;
+  }
+
+  .header-form {
+    display: flex;
+    flex-direction: row;
+    /* ⬅️ side-by-side */
+    align-items: stretch;
+    /* ⬅️ same height */
+    justify-content: space-between;
+    gap: 18px;
+    width: 100%;
+  }
+
+  /* LEFT: Spotify area takes remaining width */
+
+  .header-walkout,
+  .walkout-embed {
+    flex: 1 1 auto;
+    /* ⬅️ grow */
+    min-width: 0;
+    /* ⬅️ IMPORTANT: allows iframe to shrink nicely */
+    display: flex;
+    align-items: stretch;
+    /* ⬅️ make iframe fill height */
+  }
+
+  /* RIGHT: only takes the space it needs */
+  .form-medals-bottom {
+    flex: 0 0 auto;
+    /* ⬅️ don't grow */
+    width: max-content;
+    /* ⬅️ stay tight */
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 10px;
+    /* ⬅️ reduce big gap */
+  }
+
+  /* Make the Spotify embed fill the available height */
+  #playerWalkout {
+
+    display: flex;
+    align-items: stretch;
+  }
+
+  #playerWalkout iframe {
+
+
+    /* tweak if you want it taller */
+    border-radius: 12px;
+  }
+}
+
+
+/* MOBILE: everything centered + spotify full width at bottom */
+@media (max-width: 650px) {
+  .player-header-card {
+    padding: 20px 17px;
+  }
+
+  .header-form {
+    flex-direction: column;
+    /* ⬅️ stack */
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  /* Center last 5 + medals titles + rows */
+  .form-medals-bottom {
+    justify-self: center;
+    align-items: center;
+  }
+
+  #playerWalkout iframe {
+    width: 100%;
+    height: 80px;
+    /* Spotify native height */
+  }
+
+  /* Last 5 + Medals centered underneath */
+  .form-medals-bottom {
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .last5-title,
+  .medals-title {
+    text-align: center;
+  }
+
+  .medals-row,
+  .form-dots {
+    justify-content: center;
+  }
+
+  .last5-title,
+  .medals-title {
+    text-align: center;
+    width: 100%;
+  }
+
+  /* Spotify full width */
+  .walkout-wrap,
+  .header-walkout,
+  .walkout-embed {
+    width: 100%;
+    flex: none;
+  }
+
+  /* Put walkout at bottom and make it full width of the card */
+  .header-walkout,
+  .walkout-wrap {
+    order: 3;
+    width: 100%;
+    justify-self: center;
+    justify-content: center;
+  }
+
+  #playerWalkout {
+    width: 100%;
+  }
+
+  #playerWalkout iframe {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  /* Allow Spotify to overflow cleanly */
+  .player-header-card,
+  .header-form,
+  .walkout-wrap,
+  .header-walkout,
+  .walkout-embed {
+    overflow: visible !important;
+  }
+
+}
+
+/* IMPORTANT: undo the old hide rule */
+@media (max-width: 900px) {
+  .header-walkout {
+    display: flex;
+    /* overrides your previous "display:none" */
+  }
+}
+
+
+/* Smaller screens: 2x2 */
+@media (max-width: 650px) {
+  .profile-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    /* ✅ 2x2 */
+  }
+}
+
+/* Optional: hide on small screens */
+@media (max-width: 900px) {
+  .header-walkout {
+    display: none;
+  }
+}
+
+/* 3 medals per row, then wrap to next line */
+@media (max-width: 1250px) and (min-width: 1111px) {
+  #playerMedals.medals-row {
+    display: grid;
+    grid-template-columns: repeat(3, 45px);
+    /* match your .medal size */
+    grid-auto-rows: 45px;
+    gap: 0px;
+    margin-top: 2px;
+    justify-content: end;
+    /* keep it tucked to the right */
+    align-content: start;
+
+    padding: 0.5px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.317);
+
+    overflow: visible;
+    /* important for tooltips */
+  }
+
+  .header-col .header-form {
+    gap: -20px;
+  }
+
+  .form-medals-bottom {
+    gap: 0px;
+  }
+
+  /* keep tooltips positioned correctly */
+  #playerMedals .medal {
+    position: relative;
+    width: 45px;
+    height: 45px;
+  }
+
+  .form-medals-bottom {
+    margin-top: -15px;
+    gap: 3px;
+  }
+}
+
+.form-medals-bottom {
+  margin-top: auto;
+  /* 🔴 THIS creates Gap #2 */
+}
+
+@media (max-width: 768px) {
+  .league-section {
+    flex: 1 1 100%;
+  }
+}
+
+/* Slightly move arrow left if it sits too far out */
+@media (max-width: 600px) {
+  #playerSelect {
+    background-position: right 0.4rem center;
+  }
+}
+
+/* small responsive tweak: allow wrapping of opponent on small screens */
+@media (max-width:650px) {
+  .appearances-table thead {
+    display: none;
+  }
+
+  .appearances-table tbody td {
+    display: block;
+    width: 100%;
+  }
+
+  .appearance-row {
+    margin-bottom: 12px;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 10px;
+  }
+
+  .form-medals-bottom {
+    margin-top: -15px;
+    gap: 3px;
+  }
+
+}
+
+@media (max-width:460px) {
+  .profile-specials-col .stat-badge {
+    padding: 2px 3px;
+  }
+
+  .profile-stats-row {
+    gap: 5px;
+  }
+
+  .profile-stats-grid {
+    gap: 5px;
+  }
+
+  .profile-stat-box .value {
+    font-size: 0.9rem;
+  }
+
+  .profile-stat-box {
+    padding: 5px;
+  }
+
+  .player-header-card {
+    padding: 15px 10px;
+  }
+
+  .meta-label {
+    font-size: 0.9rem;
+  }
+
+  .meta-value {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width:1110px) {
+  .player-stats-table td {
+    padding: 2px 4px;
+    font-size: 0.9rem;
+  }
+
+  .player-stats-table thead th {
+    padding: 3px 5px;
+    font-weight: 700;
+    opacity: .8;
+    text-transform: uppercase;
+    color: #ddd;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  #overall-specials {
+    display: flex;
+    flex-wrap: nowrap;
+    /* ✅ no wrapping */
+    overflow: hidden;
+    /* ✅ no overflow */
+    gap: 6px;
+    min-width: 0;
+    /* ✅ allows flex children to shrink */
+    justify-content: center;
+    /* or flex-end / flex-start */
+  }
+
+  #overall-specials .stat-badge {
+    flex: 1 1 0;
+    /* ✅ badges share space */
+    min-width: 0;
+    /* ✅ allow text to shrink */
+    white-space: nowrap;
+    /* ✅ keep badge text single-line */
+    overflow: hidden;
+    /* ✅ prevent text overflow */
+
+  }
+}
+
+/*season stats */
+@media (max-width: 720px) {
+
+  .season-toggle,
+  .appearances-left,
+  .appearances-right {
+    flex-direction: column;
+    /* ⬇ stack */
+    align-items: stretch;
+    /* full width */
+    gap: 8px;
+  }
+
+  .season-btn,
+  .league-btn {
+    width: 100%;
+    /* equal width */
+    text-align: center;
+  }
+
+  .stats-header {
+    padding: 0.5rem 0.5rem;
+  }
+
+  .stats-title {
+    font-size: 1rem;
+  }
+
+  .stats-header {
+    display: grid;
+    align-items: center;
+    gap: 12px;
+
+    /* middle is bigger */
+    grid-template-columns: 1fr 2.5fr 1fr;
+  }
+
+  .stats-toggle-left {
+    justify-self: start;
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+  }
+
+  .stats-toggle-right {
+    justify-self: end;
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+  }
+
+  .stats-title {
+    justify-self: center;
+    text-align: center;
+    margin: 0;
+  }
+
+}
+
+/*appearances */
+@media (max-width: 1110px) {
+  .appearances-table-simple th {
+    padding: 3px 5px;
+    font-size: 0.9rem;
+  }
+
+  .appearances-table-simple td {
+    padding: 3px 5px;
+    font-size: 0.9rem;
+  }
+}
+
+.profile-photo-frame {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  /* adjust to your layout */
+  aspect-ratio: 1 / 1;
+  /* change to 4/5 if you prefer portrait */
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.profile-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* loader overlay */
+.profile-photo-frame .photo-loader {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+
+.profile-photo-frame.is-loading .photo-loader {
+  opacity: 1;
+}

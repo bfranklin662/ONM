@@ -1,0 +1,128 @@
+.container {
+  margin: 0 auto;
+  width: 90%;
+  max-width: 900px;
+  min-width: 750px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 20px;
+  /* semi-transparent glass look */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  /* Safari support */
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+  transition: all 0.4s ease-in-out;
+}
+
+.table-body {
+  font-family: "Poppins", sans-serif;
+  color: #eee;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  /* Align to the right */
+  position: relative;
+}
+
+table {
+  border-collapse: collapse;
+  width: 90%;
+  max-width: 900px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 1px;
+  /* semi-transparent glass look */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  /* Safari support */
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+  transition: all 0.4s ease-in-out;
+  margin-bottom: 30px;
+}
+
+
+
+caption {
+  font-size: 1.6rem;
+  font-weight: 800;
+  padding: 15px;
+   /* semi-transparent glass look */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  /* Safari support */
+  transition: all 0.4s ease-in-out;
+  text-transform: uppercase;
+
+}
+
+thead {
+   /* semi-transparent glass look */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  /* Safari support */
+  transition: all 0.4s ease-in-out;
+}
+
+th,
+td {
+  padding: 12px 15px;
+  text-align: center;
+}
+
+th {
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  opacity: .8;
+  text-transform: uppercase;
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+tr:nth-child(even) {
+   /* semi-transparent glass look */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  /* Safari support */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+  transition: all 0.4s ease-in-out;
+}
+
+tr:hover {
+  background-color: rgba(184, 184, 184, 0.1);
+  transition: background-color 0.3s ease;
+}
+
+td:first-child {
+  font-weight: 700;
+  color: #ccc;
+}
+
+.winner {
+  color: #00ff88;
+  font-weight: 700;
+}
+
+.pts {
+
+  font-weight: bold;
+}
+
+
+@media (max-width: 680px) {
+  .desktop-nav,
+  .logo {
+    display: none;
+  }
+}
+
+.status-complete {
+  color: #00ff88; /* a nice bright green */
+  font-weight: 600; /* optional, makes it stand out */
+}

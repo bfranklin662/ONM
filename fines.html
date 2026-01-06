@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oche Ness Monsters | Players</title>
+  <link rel="stylesheet" href="styles/header.css">
+  <link rel="stylesheet" href="styles/buttons.css">
+  <link rel="stylesheet" href="styles/fines.css"/>
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="logo-container">
+      <img class="logo" src="graphics/onmLogoWhiteFit.png">
+    </div>
+    <div class="logo-container">
+      <a href="/">
+        <img class="top-left-logo" src="graphics/logoWText.png">
+      </a>
+    </div>
+    <nav class="nav-links desktop-nav">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="comps.html">Comps</a></li>
+        <li><a href="results.html">Results & Stats</a></li>
+        <li><a href="players.html">Players</a></li>
+        <li><a href="fines.html" class="active">Fine Tracker</a></li>
+      </ul>
+    </nav>
+    <!-- Hamburger Menu Icon -->
+    <div class="hamburger" onclick="toggleSidebar()">
+      ☰
+    </div>
+
+  </header>
+
+  <!-- Sidebar (Mobile Nav) -->
+  <div id="sidebar" class="sidebar">
+    <div class="close-btn" onclick="toggleSidebar()">✖</div>
+    <a href="/">Home</a>
+    <a href="comps.html">Comps</a>
+    <a href="results.html">Results & Stats</a>
+    <a href="players.html">Players</a>
+    <a href="fines.html">Fine Tracker</a>
+  </div>
+
+  <div class="wrap">
+    <div class="header" id="appHeader">
+      <div>
+        <div class="title">Fines Tracker</div>
+        <div class="subtitle">Mobile-friendly fines for your darts game</div>
+      </div>
+
+      <div class="headerActions hidden" id="headerActions">
+        <button id="openHistoryBtn" class="iconSquare" title="History">H</button>
+        <button id="openFinesBtn" class="iconSquare" title="Fines List">£</button>
+        <button id="submitResultBtn" class="resultBtn" title="Double Fines">Double Fines →</button>
+
+      </div>
+    </div>
+
+    <!-- RESULTS SCREEN (Double fines setup) -->
+    <div id="resultsCard" class="card hidden">
+      <div class="resultsHeader">
+        <div class="sectionTitle" style="margin:0;">Double Fines Selector</div>
+      </div>
+
+      <div class="mutedSmall">Tap the X to exclude a player from the wheel.</div>
+      <div id="resultsList" class="resultsList"></div>
+
+      <div style="margin-top:14px;">
+        <button id="spinBtn" class="btn btnPrimary">Spin for Double Fines</button>
+      </div>
+
+      <div class="wheelWrap">
+        <canvas id="wheelCanvas" width="320" height="320"></canvas>
+        <div class="wheelPointer" aria-hidden="true"></div>
+      </div>
+
+      <div class="bottomBar">
+        <div class="row">
+          <button id="wheelBackBtn" class="btn btnGhost">Back</button>
+          <button id="confirmResultBtn" class="btn btnDisabled" disabled>Submit Result</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FINAL RESULT SCREEN -->
+    <div id="finalCard" class="card hidden">
+      <div class="sectionTitle" style="margin:0 0 12px;">Match Result</div>
+
+      <div id="finalList" class="resultsList"></div>
+
+      <div class="bottomBar">
+        <div class="row">
+          <button id="finalBackBtn" class="btn btnGhost">Back</button>
+          <button id="resetGameBtn" class="btn btnGhost">Reset Game</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- WINNER POPUP -->
+    <div id="winnerOverlay" class="modalOverlay hidden" aria-hidden="true">
+      <div class="modalCard">
+        <div class="modalHeader">
+          <div class="modalTitle">Double Fine Winner</div>
+          <button id="closeWinnerBtn" class="modalClose">✕</button>
+        </div>
+        <div class="modalBody">
+          <div id="winnerName" style="font-weight:900; font-size:18px; margin-bottom:10px;"></div>
+          <div class="mutedSmall" style="margin-bottom:8px;">Total after doubling:</div>
+          <div id="winnerAmount" style="font-weight:900; font-size:28px;"></div>
+
+          <div style="display:flex; gap:10px; margin-top:14px;">
+            <button id="winnerContinueBtn" class="btn btnPrimary" style="height:44px;">Submit Result</button>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- SETUP SCREEN -->
+    <div id="setupCard" class="card">
+      <div class="sectionTitle">Enter up to 6 players</div>
+      <div class="setupGrid" id="setupGrid"></div>
+      <button id="startBtn" class="btn btnPrimary" style="margin-top:12px;">Submit Players</button>
+      <div class="smallNote">Tip: leave blanks for fewer than 6.</div>
+    </div>
+
+    <!-- TRACKER SCREEN -->
+    <div id="trackerCard" class="card hidden">
+      <div class="sectionTitle">Players</div>
+      <div id="playersGrid" class="playersGrid"></div>
+
+      <div class="sectionTitle" style="margin-top:10px;">Fine amount</div>
+      <div class="fineGrid" id="fineGrid"></div>
+
+      <div class="sectionTitle" style="margin-top:10px;">Specials</div>
+      <div id="specialsGrid" class="specialsGrid"></div>
+
+
+      <div class="hint">
+        Select a player, select an amount, then submit. After submitting:
+        the <b>amount clears</b> and the <b>player stays selected</b>.
+      </div>
+
+      <div class="bottomBar">
+        <button id="submitFineBtn" class="btn btnDisabled" disabled>Submit Fine</button>
+
+        <div class="row">
+          <button id="undoBtn" class="btn btnGhost">Undo last fine</button>
+          <button id="resetBtn" class="btn btnGhost">Reset game</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modalOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div id="modalTitle" class="modalTitle">Modal</div>
+        <button id="closeModalBtn" class="modalClose">✕</button>
+      </div>
+      <div id="modalBody" class="modalBody"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="scripts/fines.js"></script>
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("active");
+    }
+    document.querySelectorAll("#sidebar a").forEach(a => {
+      a.addEventListener("click", () => {
+        document.getElementById("sidebar").classList.remove("active");
+      });
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles/mpl-table.css">
+  <link rel="stylesheet" href="styles/index.css">
+  <link rel="stylesheet" href="styles/buttons.css">
+  <link rel="stylesheet" href="styles/header.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">  
+  <title>MPL 25 League Table</title>
+</head>
+<style>
+  
+</style>
+<body>
+  <header class="site-header">
+    <div class="logo-container">
+      <img class="logo" src="graphics/onmLogoWhiteFit.png">
+    </div>
+    <div class="logo-container">
+      <a href="/">
+        <img class="top-left-logo" src="graphics/logoWText.png">
+      </a>
+    </div>
+    <nav class="nav-links desktop-nav">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="comps.html">Comps</a></li>
+        <li><a href="results.html">Results & Stats</a></li>
+        <li><a href="players.html">Players</a></li>
+        <li><a href="fines.html">Fine Tracker</a></li>
+      </ul>
+    </nav>
+    <!-- Hamburger Menu Icon -->
+    <div class="hamburger" onclick="toggleSidebar()">
+      ☰
+    </div>
+
+  </header>
+
+  <!-- Sidebar (Mobile Nav) -->
+  <div id="sidebar" class="sidebar">
+    <div class="close-btn" onclick="toggleSidebar()">✖</div>
+    <a href="/">Home</a>
+    <a href="comps.html">Comps</a>
+    <a href="results.html">Results & Stats</a>
+    <a href="players.html">Players</a>
+    <a href="fines.html">Fine Tracker</a>
+  </div>
+  
+  <div class="container">
+  <div class="table-body">
+  <table>
+    <caption>Monsters Premier League 2025</caption>
+    <thead>
+      <tr>
+        <th>Position</th>
+        <th>Player</th>
+        <th>Played</th>
+        <th>Won</th>
+        <th>Drawn</th>
+        <th>Lost</th>
+        <th>Legs For</th>
+        <th>Legs Against</th>
+        <th>Bulls</th>
+        <th>Pts</th>
+      </tr>
+    </thead>
+    
+    <tbody>
+    <tr><td>1</td><td class="winner"><a class="winner">Filip</a></td><td>9</td><td>8</td><td>0</td><td>1</td><td>32</td><td>11</td><td>0</td><td class="pts">24</td></tr>
+    <tr><td>2</td><td><a>Ricky</a></td><td>8</td><td>5</td><td>1</td><td>2</td><td>25</td><td>16</td><td>2</td><td class="pts">19</td></tr>
+    <tr><td>3</td><td><a>Jack</a></td><td>7</td><td>6</td><td>0</td><td>1</td><td>26</td><td>13</td><td>0</td><td class="pts">19</td></tr>
+    <tr><td>4</td><td><a>Rob</a></td><td>9</td><td>4</td><td>2</td><td>3</td><td>25</td><td>21</td><td>3</td><td class="pts">17</td></tr>
+    <tr><td>5</td><td><a>Phil</a></td><td>9</td><td>3</td><td>3</td><td>3</td><td>24</td><td>26</td><td>3</td><td class="pts">15</td></tr>
+    <tr><td>6</td><td><a>Codon</a></td><td>6</td><td>3</td><td>0</td><td>3</td><td>14</td><td>14</td><td>0</td><td class="pts">11</td></tr>
+    <tr><td>7</td><td><a>Billy/James</a></td><td>8</td><td>3</td><td>0</td><td>5</td><td>18</td><td>21</td><td>1</td><td class="pts">9</td></tr>
+    <tr><td>8</td><td><a>Paddy</a></td><td>7</td><td>1</td><td>3</td><td>3</td><td>14</td><td>21</td><td>2</td><td class="pts">8</td></tr>
+    <tr><td>9</td><td><a>Nick</a></td><td>9</td><td>1</td><td>1</td><td>7</td><td>14</td><td>33</td><td>0</td><td class="pts">4</td></tr>
+    <tr><td>10</td><td class="loser"><a>George</a></td><td>8</td><td>0</td><td>1</td><td>7</td><td>10</td><td>31</td><td>0</td><td class="pts">1</td></tr>
+  </tbody>
+  </table>
+  
+  </div>
+  <div class="table-button-container">
+  
+    
+
+    <a href="comps.html" class="back">← Back to Comps</a>
+    <p>Status: <span class="status-complete">Complete</span></p>
+    <a href="mpl-stats.html" class="forward">Player Stats →</a>
+    
+  </div>
+  </div>
+
+</body>
+<script>
+  function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    sidebar.classList.toggle("active");
+  }
+</script>
+</html>
