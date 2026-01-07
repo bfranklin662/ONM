@@ -615,3 +615,17 @@ input[type="text"]::placeholder {
 .btnReset:hover{
   filter: brightness(0.95);
 }
+
+@media (max-width: 420px) {
+
+  .fineBox.custom input {
+    width: 65px;
+    min-width: 44px;
+    font-size: 13px;
+  }
+
+  .fineBox.custom {
+    gap: 10px;
+  }
+
+}
