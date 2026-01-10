@@ -4,7 +4,9 @@ console.log("✅ fines.js loaded");
 document.addEventListener("DOMContentLoaded", () => {
   // ---- Constants ----
   const STORAGE_KEY = "darts_fines_tracker_v1";
-  const MAX_TOTAL_PENCE = 2500; // £25 cap
+  const MAX_BEFORE_DOUBLE_PENCE = 2500; // £25
+  const MAX_AFTER_DOUBLE_PENCE = 5000; // £50
+
 
   const fineOptions = [
     { label: "50p", pence: 50 },
@@ -23,6 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
   ];
 
   let selectedSpecial = null; // "S180" | "BULLOUT" | "TONOUT" | null
+  let specialsPickerOpen = false; // <-- NEW: purely for UI highlight while modal is open
 
 
   // Fines rules list (for modal)
@@ -43,20 +46,20 @@ document.addEventListener("DOMContentLoaded", () => {
   <ul>
     <li>5 score or less</li>
     <li>Madhouse not checked out</li>
-    <li>Late 10 mins (18:40)</li>
+    <li>Late (18:30+)</li>
   </ul>
 
   <h3><span class="pill">£2.50</span></h3>
   <ul>
     <li>Bagel (no checkouts)</li>
-    <li>Late 30 mins (19:00)</li>
+    <li>Late 15+ mins (18:45+)</li>
   </ul>
 
   <h3><span class="pill">£5</span></h3>
   <ul>
     <li>Forgot darts</li>
     <li>Not wearing team T-shirt</li>
-    <li>Late, game has started (19:15 ish)</li>
+    <li>Late 30+ mins (19:00+)</li>
   </ul>
 
   <h3><span class="pill">Specials</span></h3>
@@ -64,6 +67,12 @@ document.addEventListener("DOMContentLoaded", () => {
     <li>Score 180 - £1.80 everyone else</li>
     <li>Bull checkout - £2 everyone else</li>
     <li>Ton+ checkout - £1+ everyone else (eg 116 = £1.16)</li>
+  </ul>
+
+  <h3><span class="pill">Max Fines</span></h3>
+  <ul>
+    <li>£25 max in game fines</li>
+    <li>£50 max after doubled</li>
   </ul>
 `;
 
@@ -93,6 +102,193 @@ document.addEventListener("DOMContentLoaded", () => {
     syncPlayersFromStore();
   }
 
+  function submitSpecialFlow() {
+    if (selectedPlayerIndex === null) return;
+
+    const selectedName = players[selectedPlayerIndex].name;
+    const otherNames = players.filter((_, i) => i !== selectedPlayerIndex).map(p => p.name);
+
+    // 180
+    if (selectedSpecial === "S180") {
+      const penceEach = 180;
+      const list = otherNames.map(n => `<li>${escapeHtml(n)} — <b>${fmtGBP(penceEach)}</b></li>`).join("");
+      openConfirmModal({
+        title: "Confirm Special",
+        bodyHtml: `
+        <div style="font-weight:900; font-size:14px; margin-bottom:8px;">${escapeHtml(selectedName)} — 180 Scored</div>
+        <div class="muted" style="margin-bottom:6px;">Fines for everyone else:</div>
+        <ul>${list}</ul>
+      `,
+        onConfirm: () => {
+          const { anyCapped } = applyFineToMany(otherNames, penceEach);
+          if (anyCapped) showToast("Maximum fine amount reached");
+          else showToast("Special applied");
+          clearFineSelection();
+        }
+      });
+      return;
+    }
+
+    // Bull-out
+    if (selectedSpecial === "BULLOUT") {
+      const penceEach = 200;
+      const list = otherNames.map(n => `<li>${escapeHtml(n)} — <b>${fmtGBP(penceEach)}</b></li>`).join("");
+      openConfirmModal({
+        title: "Confirm Special",
+        bodyHtml: `
+        <div style="font-weight:900; font-size:14px; margin-bottom:8px;">${escapeHtml(selectedName)} — Bull-Out</div>
+        <div class="muted" style="margin-bottom:6px;">Fines for everyone else:</div>
+        <ul>${list}</ul>
+      `,
+        onConfirm: () => {
+          const { anyCapped } = applyFineToMany(otherNames, penceEach);
+          if (anyCapped) showToast("Maximum fine amount reached");
+          else showToast("Special applied");
+          clearFineSelection();
+        }
+      });
+      return;
+    }
+
+    // Ton+ Out (same as your previous TONOUT flow)
+    if (selectedSpecial === "TONOUT") {
+      openConfirmModal({
+        title: "Confirm Special",
+        bodyHtml: `
+        <div style="font-weight:900; font-size:14px; margin-bottom:8px;">${escapeHtml(selectedName)} — Ton+ Out</div>
+        <div class="muted" style="margin-bottom:10px;">Enter checkout score (e.g. 116 → £1.16 each):</div>
+        <input id="tonOutInput" type="text" inputmode="numeric"
+          style="width:100%; height:44px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
+                 background: rgba(0,0,0,.22); color: var(--text); padding:0 12px; font-weight:900;"
+          placeholder="Checkout score" />
+        <div id="tonOutPreview" class="muted" style="margin-top:10px;"></div>
+      `,
+        onConfirm: () => {
+          const input = document.getElementById("tonOutInput");
+          const raw = (input?.value ?? "").trim();
+          if (!/^\d{2,3}$/.test(raw)) {
+            showToast("Enter a valid checkout (e.g. 116)");
+            return;
+          }
+          const penceEach = Number(raw);
+          const { anyCapped } = applyFineToMany(otherNames, penceEach);
+          if (anyCapped) showToast("Maximum fine amount reached");
+          else showToast(`Applied £${(penceEach / 100).toFixed(2)} to everyone else`);
+          clearFineSelection();
+        }
+      });
+
+      setTimeout(() => {
+        const input = document.getElementById("tonOutInput");
+        const preview = document.getElementById("tonOutPreview");
+        if (!input || !preview) return;
+
+        const update = () => {
+          const raw = input.value.trim();
+          if (!/^\d{2,3}$/.test(raw)) {
+            preview.innerHTML = "";
+            return;
+          }
+          const penceEach = Number(raw);
+          const list = otherNames.map(n => `<li>${escapeHtml(n)} — <b>${fmtGBP(penceEach)}</b></li>`).join("");
+          preview.innerHTML = `
+          <div style="margin-bottom:6px;">Fines for everyone else:</div>
+          <ul>${list}</ul>
+        `;
+        };
+
+        input.addEventListener("input", update);
+        input.focus();
+      }, 0);
+
+      return;
+    }
+  }
+
+
+
+
+
+  function openSpecialsPicker() {
+    if (selectedPlayerIndex === null) {
+      showToast("Select a player first.");
+      return;
+    }
+
+    let temp = null;
+
+    const html = `
+      <div class="muted" style="margin-bottom:10px;">Choose a special:</div>
+
+      <div id="specialPickGrid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+        <div class="fineBox" id="pick180" style="height:44px; display:flex; align-items:center; justify-content:center; font-weight:900;">180</div>
+        <div class="fineBox" id="pickBull" style="height:44px; display:flex; align-items:center; justify-content:center; font-weight:900;">Bull-Out</div>
+        <div class="fineBox" id="pickTon"  style="height:44px; display:flex; align-items:center; justify-content:center; font-weight:900;">Ton+ Out</div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        <button id="spBack" class="btn btnGhost" style="height:44px;">Back</button>
+        <button id="spSubmit" class="btn btnDisabled" style="height:44px;" disabled>Submit</button>
+      </div>
+    `;
+
+
+    // ✅ opening specials should deselect any preset/custom
+    selectedFine = null;
+    customValueText = "";
+
+    // (optional) if you want it un-selected until they pick one:
+    // selectedSpecial = null;
+
+    renderFines();
+    updateSubmitState();
+
+    openModal("Specials", html);
+
+    const setActive = (choiceId) => {
+      temp = choiceId;
+
+      // enable submit
+      const submit = document.getElementById("spSubmit");
+      submit.disabled = false;
+      submit.className = "btn btnPrimary";
+
+      // toggle yellow selected state like fine tiles
+      ["pick180", "pickBull", "pickTon"].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle("selected", id === choiceId);
+      });
+    };
+
+
+    document.getElementById("pick180")?.addEventListener("click", () => setActive("pick180"));
+    document.getElementById("pickBull")?.addEventListener("click", () => setActive("pickBull"));
+    document.getElementById("pickTon")?.addEventListener("click", () => setActive("pickTon"));
+
+    document.getElementById("spBack")?.addEventListener("click", () => closeModal());
+
+    document.getElementById("spSubmit")?.addEventListener("click", () => {
+      if (!temp) return;
+
+      if (temp === "pick180") selectedSpecial = "S180";
+      if (temp === "pickBull") selectedSpecial = "BULLOUT";
+      if (temp === "pickTon") selectedSpecial = "TONOUT";
+
+      selectedFine = null;
+
+      specialsPickerOpen = false;   // <-- NEW
+      renderFines();                // <-- NEW (keeps yellow border after selection)
+      updateSubmitState();          // <-- NEW
+
+      closeModal();
+      submitSpecialFlow();
+    });
+
+  }
+
+
+
   function updateSpinButtons() {
     const hasWinner = !!doubleWinnerName;
     const label = hasWinner ? "Re-spin Double Fines" : "Spin for Double Fines";
@@ -108,44 +304,183 @@ document.addEventListener("DOMContentLoaded", () => {
     confirmResultBtn.className = "btn " + (enabled ? "btnPrimary" : "btnDisabled");
   }
 
-
-  function renderSpecials() {
-    specialsGrid.innerHTML = "";
-    specials.forEach(s => {
-      const box = document.createElement("div");
-      box.className = "specialBox" + (selectedSpecial === s.type ? " selected" : "");
-      box.textContent = s.label;
-      box.addEventListener("click", () => {
-        selectedSpecial = (selectedSpecial === s.type) ? null : s.type;
-        // when selecting a special, clear normal fine selection
-        selectedFine = null;
-        renderFines();
-        renderSpecials();
-        updateSubmitState();
-      });
-      specialsGrid.appendChild(box);
-    });
+  function fmtGameDate(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d)) return "";
+    const date = d.toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short", year: "numeric" });
+    const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    return `${date} • ${time}`;
   }
 
-  function makeBatchId() {
-    return "b_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
+  function resumeModalHtml(game) {
+    const created = fmtGameDate(game?.createdAt);
+    const updated = fmtGameDate(game?.updatedAt);
+
+    const names = Array.isArray(game?.players) ? game.players : [];
+    const rows = names.map(n => {
+      const total = store.totalsByName?.[n] ?? 0;
+      return `
+      <div style="display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.08);">
+        <div style="font-weight:900;">${escapeHtml(n)}</div>
+        <div style="font-weight:900;">${fmtGBP(total)}</div>
+      </div>
+    `;
+    }).join("");
+
+    return `
+    <div class="muted" style="margin-bottom:10px;">
+      A saved game was found.
+    </div>
+
+    <div style="margin-bottom:10px;">
+      <div><b>Started:</b> ${escapeHtml(created || "Unknown")}</div>
+      <div class="muted" style="margin-top:4px;"><b>Last updated:</b> ${escapeHtml(updated || "Unknown")}</div>
+    </div>
+
+    <div style="margin-top:10px; font-weight:900;">Players</div>
+    <div style="margin-top:6px;">
+      ${rows || `<div class="muted">No players found.</div>`}
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button id="resumeGameBtn" class="btn btnPrimary" style="height:44px;">Continue game</button>
+      <button id="resetSavedGameBtn" class="btn btnGhost" style="height:44px;">Reset game</button>
+    </div>
+  `;
   }
+
+  function restoreGameFromStore() {
+    const g = store.game;
+    if (!g || !Array.isArray(g.players) || !g.players.length) return false;
+
+    // Restore players + totals
+    players = g.players.map(name => ({
+      name,
+      totalPence: store.totalsByName?.[name] ?? 0
+    }));
+
+    selectedPlayerIndex =
+      Number.isInteger(g.selectedPlayerIndex) ? g.selectedPlayerIndex : 0;
+
+    excludedFromWheel = new Set(Array.isArray(g.excludedFromWheel) ? g.excludedFromWheel : []);
+
+    // ✅ Restore double-fines context
+    doubleWinnerName = g.doubleWinnerName ?? null;
+    doubleBatchId = g.doubleBatchId ?? null;
+    doubleFromPence = Number.isInteger(g.doubleFromPence) ? g.doubleFromPence : null;
+    doubleToPence = Number.isInteger(g.doubleToPence) ? g.doubleToPence : null;
+
+    // Clear transient UI selections
+    selectedFine = null;
+    selectedSpecial = null;
+    customValueText = "";
+
+    // Restore screen
+    const targetScreen = g.screen || "tracker";
+    showScreen(targetScreen);
+
+    // Re-render base UI
+    renderPlayers();
+    renderFines();
+    updateSubmitState();
+    updateSpinButtons();
+    updateConfirmResultButton();
+
+    // Restore screen-specific UI
+    if (targetScreen === "results") {
+      renderResultsList();
+      drawWheel(getWheelNames());
+    }
+
+    if (targetScreen === "final") {
+      renderFinalList();
+    }
+
+    return true;
+  }
+
+
+  const doubleTitle = document.getElementById("doubleTitle");
 
   function showScreen(screen) {
-    // screen: "setup" | "tracker" | "results" | "final"
+    currentScreen = screen;
+
     setupCard.classList.toggle("hidden", screen !== "setup");
     trackerCard.classList.toggle("hidden", screen !== "tracker");
     resultsCard.classList.toggle("hidden", screen !== "results");
     finalCard.classList.toggle("hidden", screen !== "final");
 
-    // Header visible only during setup/tracker
+    // Header visibility logic
     const headerShouldShow = (screen === "setup" || screen === "tracker");
     appHeader?.classList.toggle("hiddenHeader", !headerShouldShow);
 
-    // Header actions only make sense on tracker (optional)
     if (screen === "tracker") headerActions?.classList.remove("hidden");
     else headerActions?.classList.add("hidden");
+
+    // ✅ NEW — Double fines header visibility
+    if (doubleHeader) {
+      const show = (screen === "results");
+      doubleHeader.classList.toggle("hidden", !show);
+    }
+
+    // Persist current screen
+    store.game = store.game || {};
+    store.game.screen = screen;
+    store.game.updatedAt = nowIso();
+    saveStore(store);
   }
+
+
+  function resumeGameFromStore() {
+    const g = store.game;
+    if (!g || !Array.isArray(g.players) || g.players.length === 0) return false;
+
+    // Restore core state
+    players = g.players.map(name => ({
+      name,
+      totalPence: store.totalsByName[name] ?? 0
+    }));
+
+    selectedPlayerIndex =
+      Number.isInteger(g.selectedPlayerIndex) ? g.selectedPlayerIndex : 0;
+
+    excludedFromWheel = new Set(Array.isArray(g.excludedFromWheel) ? g.excludedFromWheel : []);
+    doubleWinnerName = g.doubleWinnerName ?? null;
+    doubleBatchId = g.doubleBatchId ?? null;
+    doubleFromPence = Number.isInteger(g.doubleFromPence) ? g.doubleFromPence : null;
+    doubleToPence = Number.isInteger(g.doubleToPence) ? g.doubleToPence : null;
+
+    // Clear any half-selected fine UI state (safer UX)
+    selectedFine = null;
+    selectedSpecial = null;
+    customValueText = "";
+
+    // Move UI to the right screen
+    const targetScreen = g.screen || "tracker";
+    showScreen(targetScreen);
+
+    // Re-render everything for that screen
+    renderPlayers();
+    renderFines();
+
+    updateSubmitState();
+
+    // If resuming results/final, rebuild those UIs too
+    if (targetScreen === "results") {
+      renderResultsList();
+      drawWheel(getWheelNames());
+      updateSpinButtons();
+      updateConfirmResultButton();
+    }
+    if (targetScreen === "final") {
+      renderFinalList();
+      updateSpinButtons();
+    }
+
+    return true;
+  }
+
 
 
 
@@ -183,14 +518,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function loadStore() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { totalsByName: {}, history: [] };
+      if (!raw) return { totalsByName: {}, history: [], game: null };
+
       const parsed = JSON.parse(raw);
       return {
         totalsByName: parsed?.totalsByName ?? {},
-        history: Array.isArray(parsed?.history) ? parsed.history : []
+        history: Array.isArray(parsed?.history) ? parsed.history : [],
+        game: parsed?.game ?? null
       };
     } catch {
-      return { totalsByName: {}, history: [] };
+      return { totalsByName: {}, history: [], game: null };
     }
   }
 
@@ -198,10 +535,12 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
 
+
   // ---- DOM ----
   const setupGrid = document.getElementById("setupGrid");
   const setupCard = document.getElementById("setupCard");
   const trackerCard = document.getElementById("trackerCard");
+  const winnerMathEl = document.getElementById("winnerMath");
 
   const playersGrid = document.getElementById("playersGrid");
   const fineGrid = document.getElementById("fineGrid");
@@ -213,6 +552,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const openHistoryBtn = document.getElementById("openHistoryBtn");
   const openFinesBtn = document.getElementById("openFinesBtn");
+  const openDoubleInfoBtn = document.getElementById("openDoubleInfoBtn");
 
   const modalOverlay = document.getElementById("modalOverlay");
   const modalTitle = document.getElementById("modalTitle");
@@ -231,9 +571,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const wheelWinner = document.getElementById("wheelWinner");
 
   const appHeader = document.getElementById("appHeader");
+  const doubleHeader = document.getElementById("doubleHeader");
+
 
   const finalCard = document.getElementById("finalCard");
   const finalList = document.getElementById("finalList");
+
+  const resumeGameBtnInline = document.getElementById("resumeGameBtnInline");
+
 
   // Winner popup
   const winnerOverlay = document.getElementById("winnerOverlay");
@@ -250,6 +595,39 @@ document.addEventListener("DOMContentLoaded", () => {
   const confirmResultBtn = document.getElementById("confirmResultBtn");
 
 
+  submitFineBtn?.addEventListener("click", () => {
+    if (selectedPlayerIndex === null) return;
+
+    // If a special was chosen via the Specials modal, run that flow
+    if (selectedSpecial) {
+      submitSpecialFlow();
+      return;
+    }
+
+    // Otherwise do normal fines
+    const selectedName = players[selectedPlayerIndex].name;
+
+    let penceToAdd = null;
+    if (selectedFine === "CUSTOM") penceToAdd = parseCustomToPence(customValueText);
+    else penceToAdd = selectedFine;
+
+    if (!Number.isInteger(penceToAdd) || penceToAdd <= 0) {
+      showToast("Enter a valid fine amount.");
+      updateSubmitState();
+      return;
+    }
+
+    const res = applyFine(selectedName, penceToAdd, nowIso());
+    if (res.capped) showToast("Maximum fine amount reached");
+    else showToast(`Added ${fmtGBP(res.appliedPence)} to ${selectedName}`);
+
+    clearFineSelection();
+  });
+
+  function makeBatchId() {
+    return "b_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
+  }
+
 
 
 
@@ -264,6 +642,84 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---- State ----
   let store = loadStore(); // { totalsByName, history }
+
+  function updateResumeButtonVisibility() {
+    const hasSavedGame = Array.isArray(store.game?.players) && store.game.players.length > 0;
+    resumeGameBtnInline?.classList.toggle("hidden", !hasSavedGame);
+  }
+
+  updateResumeButtonVisibility();
+
+  resumeGameBtnInline?.addEventListener("click", () => {
+    if (!store.game?.players?.length) {
+      showToast("No saved game found.");
+      return;
+    }
+
+    openModal("Resume game?", resumeModalHtml(store.game));
+
+    const resumeBtn = document.getElementById("resumeGameBtn");
+    const resetBtn2 = document.getElementById("resetSavedGameBtn");
+
+    resumeBtn?.addEventListener("click", () => {
+      closeModal();
+      const ok = restoreGameFromStore();
+      if (!ok) showToast("Couldn't restore game.");
+    });
+
+    resetBtn2?.addEventListener("click", () => {
+      openConfirmModal({
+        title: "Reset saved game",
+        bodyHtml: `<div>Are you sure you want to reset this saved game?</div>
+                 <div class="muted" style="margin-top:6px;">
+                 This will clear players, totals and history.</div>`,
+        confirmText: "Yes, reset",
+        cancelText: "Cancel",
+        onConfirm: () => {
+          hardResetAll();
+          showToast("Saved game cleared");
+        }
+
+      });
+    });
+  });
+
+
+
+  // ✅ If we have a saved game snapshot but no in-memory players (fresh reload),
+  // show a resume popup.
+  if (store.game?.players?.length) {
+    // Only show this if we're currently on setup (i.e., page reset)
+    // Your initial UI is setup by default.
+    openModal("Resume game?", resumeModalHtml(store.game));
+
+    const resumeBtn = document.getElementById("resumeGameBtn");
+    const resetBtn2 = document.getElementById("resetSavedGameBtn");
+
+    resumeBtn?.addEventListener("click", () => {
+      closeModal();
+      const ok = restoreGameFromStore();
+      if (!ok) showToast("Couldn't restore game.");
+    });
+
+
+    resetBtn2?.addEventListener("click", () => {
+      // confirmation like your existing reset
+      openConfirmModal({
+        title: "Reset saved game",
+        bodyHtml: `<div>Are you sure you want to reset this saved game?</div><div class="muted" style="margin-top:6px;">This will clear players, totals and history.</div>`,
+        confirmText: "Yes, reset",
+        cancelText: "Cancel",
+        onConfirm: () => {
+          hardResetAll();
+          showToast("Reset.");
+        }
+      });
+    });
+  }
+
+
+
   let players = [];        // { name, totalPence }
   let selectedPlayerIndex = null;
   let selectedFine = null; // number pence OR "CUSTOM"
@@ -272,6 +728,71 @@ document.addEventListener("DOMContentLoaded", () => {
   let doubleBatchId = null;
   let doubleFromPence = null;
   let doubleToPence = null;
+
+  let currentScreen = "setup"; // "setup" | "tracker" | "results" | "final"
+
+  function hardResetAll({ clearNameInputs = true } = {}) {
+    // clear storage
+    store = { totalsByName: {}, history: [], game: null };
+    saveStore(store);
+
+    // wipe in-memory state
+    players = [];
+    excludedFromWheel = new Set();
+    selectedPlayerIndex = null;
+    selectedFine = null;
+    selectedSpecial = null;
+    customValueText = "";
+
+    doubleWinnerName = null;
+    doubleBatchId = null;
+    doubleFromPence = null;
+    doubleToPence = null;
+
+    // clear inputs on setup screen
+    if (clearNameInputs) {
+      for (let i = 1; i <= 6; i++) {
+        const el = document.getElementById(`p${i}`);
+        if (el) el.value = "";
+      }
+    }
+
+    // UI
+    updateResumeButtonVisibility();
+    updateConfirmResultButton?.();
+    wheelAngle = 0;
+
+    closeModal?.();       // harmless if modal not open
+    showScreen("setup");
+  }
+
+
+  function saveGameSnapshot() {
+    // ✅ If there is no active game, remove any old saved snapshot
+    if (!players || !players.length) {
+      store.game = null;
+      saveStore(store);
+      return;
+    }
+
+    store.game = {
+      createdAt: store.game?.createdAt || nowIso(),
+      updatedAt: nowIso(),
+      screen: currentScreen,
+      players: players.map(p => p.name),
+      selectedPlayerIndex: selectedPlayerIndex ?? 0,
+      excludedFromWheel: Array.from(excludedFromWheel || []),
+
+      // Persist double-fines context
+      doubleWinnerName: doubleWinnerName ?? null,
+      doubleBatchId: doubleBatchId ?? null,
+      doubleFromPence: doubleFromPence ?? null,
+      doubleToPence: doubleToPence ?? null
+    };
+
+    saveStore(store);
+  }
+
 
 
 
@@ -289,7 +810,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       box.innerHTML = `
       <div class="playerName">${escapeHtml(p.name)}</div>
-      <div class="playerTotal">Total:<strong>${fmtGBP(p.totalPence)}</strong></div>
+      <div class="playerTotal"><strong>${fmtGBP(p.totalPence)}</strong></div>
+
     `;
 
       box.addEventListener("click", () => {
@@ -306,73 +828,111 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderFines() {
     fineGrid.innerHTML = "";
 
+    // 1) Normal preset buttons
     fineOptions.forEach((opt) => {
       const isCustom = opt.pence === null;
+      if (isCustom) return;
 
-      if (!isCustom) {
-        const isSelected = opt.pence === selectedFine;
+      const isSelected = opt.pence === selectedFine;
 
-        const box = document.createElement("div");
-        box.className = "fineBox" + (isSelected ? " selected" : "");
-        box.textContent = opt.label;
+      const box = document.createElement("div");
+      box.className = "fineBox" + (isSelected ? " selected" : "");
+      box.textContent = opt.label;
 
-        box.addEventListener("click", () => {
-          selectedFine = opt.pence;
-          selectedSpecial = null;        // selecting normal fine clears specials
-          renderFines();
-          renderSpecials();
-          updateSubmitState();
-        });
+      box.addEventListener("click", () => {
+        selectedFine = opt.pence;
+        selectedSpecial = null;
+        customValueText = "";            // optional: clears custom when picking preset
+        renderFines();                   // ✅ re-render so other selections clear
+        updateSubmitState();
+      });
 
-        fineGrid.appendChild(box);
+      fineGrid.appendChild(box);
+    });
+
+    // 2) Custom box
+    const customSelected = selectedFine === "CUSTOM";
+
+    const customBox = document.createElement("div");
+    customBox.className = "fineBox custom" + (customSelected ? " selected" : "");
+    customBox.innerHTML = `
+  <div style="font-weight:900;">Custom</div>
+  <input id="inlineCustomInput" type="text" inputmode="decimal"
+    placeholder="£" value="${escapeHtml(customValueText)}" />
+`;
+
+    fineGrid.appendChild(customBox);
+
+    const input = customBox.querySelector("#inlineCustomInput");
+
+    const selectCustomOnce = () => {
+      // Only do work if we’re not already on custom
+      if (selectedFine !== "CUSTOM") {
+        selectedFine = "CUSTOM";
+        selectedSpecial = null;
+
+        // Re-render ONCE so the yellow selected style applies
+        renderFines();
+        updateSubmitState();
+
+        // Refocus new input after re-render
+        setTimeout(() => document.getElementById("inlineCustomInput")?.focus(), 0);
         return;
       }
 
-      // Custom box with inline input
-      const customSelected = selectedFine === "CUSTOM";
+      // If already selected, just ensure submit state is updated
+      updateSubmitState();
+    };
 
-      const customBox = document.createElement("div");
-      customBox.className = "fineBox custom" + (customSelected ? " selected" : "");
-      customBox.innerHTML = `
-      <div style="font-weight:900;">Custom</div>
-      <input id="inlineCustomInput" type="text" inputmode="decimal" placeholder="£" value="${escapeHtml(customValueText)}" />
-    `;
-
-      customBox.addEventListener("click", (e) => {
-        // allow clicking anywhere to select, but don't steal typing
-        selectedFine = "CUSTOM";
-        selectedSpecial = null;
-        renderSpecials();
-        updateSubmitState();
-
-        const input = customBox.querySelector("#inlineCustomInput");
-        if (e.target !== input) input.focus();
-      });
-
-      // attach input handler after insert
-      fineGrid.appendChild(customBox);
-
-      const input = customBox.querySelector("#inlineCustomInput");
-      input.addEventListener("focus", () => {
-        selectedFine = "CUSTOM";
-        selectedSpecial = null;
-        renderSpecials();
-        updateSubmitState();
-        customBox.classList.add("selected");
-      });
-
-      input.addEventListener("input", () => {
-        customValueText = input.value;
-        updateSubmitState();
-      });
-
-      input.addEventListener("click", () => {
-        selectedFine = "CUSTOM";
-        selectedSpecial = null;
-        updateSubmitState();
-      });
+    // Click anywhere on the custom box selects custom and focuses input
+    customBox.addEventListener("click", (e) => {
+      // If user clicked directly in the input, don't trigger an extra re-render here
+      if (e.target?.id === "inlineCustomInput") return;
+      selectCustomOnce();
+      setTimeout(() => document.getElementById("inlineCustomInput")?.focus(), 0);
     });
+
+    // If user taps into the input, select custom (but ONLY re-render if not already selected)
+    input.addEventListener("focus", selectCustomOnce);
+    input.addEventListener("click", (e) => {
+      e.stopPropagation(); // prevent bubbling to box click (double fire)
+      selectCustomOnce();
+    });
+
+    // Typing should NEVER re-render, or it will “fight” the user
+    input.addEventListener("input", () => {
+      customValueText = input.value;
+      updateSubmitState();
+    });
+
+
+
+    // 3) Specials launcher button
+    const specialsSelected = specialsPickerOpen; // ONLY highlight while picker is open
+
+    const specialsBox = document.createElement("div");
+    specialsBox.className = "fineBox" + (specialsSelected ? " selected" : "");
+    specialsBox.textContent = "Specials";
+
+    specialsBox.addEventListener("click", () => {
+      // show highlight immediately behind the modal
+      specialsPickerOpen = true;
+
+      // deselect presets/custom when opening specials
+      selectedFine = null;
+      customValueText = "";
+
+      renderFines();
+      updateSubmitState();
+
+      openSpecialsPicker();
+    });
+
+    fineGrid.appendChild(specialsBox);
+
   }
+
+
 
 
   function updateSubmitState() {
@@ -407,7 +967,7 @@ document.addEventListener("DOMContentLoaded", () => {
     selectedSpecial = null;
     customValueText = "";
     renderFines();
-    renderSpecials();
+
     updateSubmitState();
   }
 
@@ -426,20 +986,25 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---- Apply fine with cap ----
   function applyFine(playerName, penceToAdd, timestampIso, batchId = null) {
     const current = store.totalsByName[playerName] ?? 0;
+
+    // Winner can go up to £50 AFTER doubling; everyone else is capped at £25
+    const cap = (playerName === doubleWinnerName)
+      ? MAX_AFTER_DOUBLE_PENCE
+      : MAX_BEFORE_DOUBLE_PENCE;
+
     const attempted = current + penceToAdd;
 
     let applied = penceToAdd;
     let capped = false;
 
-    if (attempted >= MAX_TOTAL_PENCE) {
-      applied = Math.max(0, MAX_TOTAL_PENCE - current);
+    if (attempted >= cap) {
+      applied = Math.max(0, cap - current);
       capped = true;
     }
 
     // Update totals
-    store.totalsByName[playerName] = Math.min(MAX_TOTAL_PENCE, attempted);
+    store.totalsByName[playerName] = Math.min(cap, attempted);
 
-    // Log only if anything was actually applied
     if (applied > 0) {
       store.history.push({
         t: timestampIso,
@@ -449,11 +1014,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    saveGameSnapshot();
     saveStore(store);
     syncPlayersFromStore();
 
     return { appliedPence: applied, capped };
   }
+
 
   function syncPlayersFromStore() {
     players = players.map(p => ({
@@ -496,20 +1063,42 @@ document.addEventListener("DOMContentLoaded", () => {
     else showToast(`Undid ${fmtGBP(toUndo[0].delta)} from ${toUndo[0].name}`);
   }
 
+  modalBody?.addEventListener("touchmove", (e) => {
+    e.stopPropagation();
+  }, { passive: true });
 
   // ---- Modal ----
   function openModal(title, bodyHtml) {
     modalTitle.textContent = title;
     modalBody.innerHTML = bodyHtml;
+
     modalOverlay.classList.remove("hidden");
     modalOverlay.setAttribute("aria-hidden", "false");
+
+    // ✅ lock page behind
+    document.body.classList.add("modal-open");
+
+    // ✅ ensure scroll starts at top
+    modalBody.scrollTop = 0;
   }
 
   function closeModal() {
+    // ✅ If we are closing the Specials picker, remove the yellow highlight behind it
+    if (modalTitle?.textContent === "Specials") {
+      specialsPickerOpen = false;
+      // renderFines() will remove the yellow border behind the modal
+      renderFines();
+      updateSubmitState();
+    }
+
     modalOverlay.classList.add("hidden");
     modalOverlay.setAttribute("aria-hidden", "true");
     modalBody.innerHTML = "";
+
+    document.body.classList.remove("modal-open");
   }
+
+
 
   function openConfirmModal({ title, bodyHtml, confirmText = "Confirm", cancelText = "Cancel", onConfirm }) {
     const html = `
@@ -573,17 +1162,45 @@ document.addEventListener("DOMContentLoaded", () => {
       const count = (seen.get(key) ?? 0) + 1;
       seen.set(key, count);
       const finalName = count > 1 ? `${n} (${count})` : n;
-      return { name: finalName, totalPence: store.totalsByName[finalName] ?? 0 };
+      return { name: finalName, totalPence: 0 };
     });
+
+    // ✅ NEW GAME: force these players to start at £0
+    players.forEach(p => {
+      store.totalsByName[p.name] = 0;
+    });
+
+    // Optional but recommended: clear history too so Undo/History are for this game only
+    store.history = [];
+
+    // Mark a fresh game snapshot
+    store.game = {
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+      screen: "tracker",
+      players: players.map(p => p.name),
+      selectedPlayerIndex: 0,
+      excludedFromWheel: [],
+      doubleWinnerName: null,
+      doubleBatchId: null,
+      doubleFromPence: null,
+      doubleToPence: null
+    };
+
+    saveStore(store);
+    updateResumeButtonVisibility();
+
+
 
     selectedPlayerIndex = 0;
     selectedFine = null;
     selectedSpecial = null;
 
+    saveGameSnapshot();
     showScreen("tracker");
     syncPlayersFromStore();
     renderFines();
-    renderSpecials();
+
     updateSubmitState();
     showToast("Players added!");
 
@@ -591,128 +1208,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   });
 
-  submitFineBtn.addEventListener("click", () => {
-    if (selectedPlayerIndex === null) return;
 
-    const selectedName = players[selectedPlayerIndex].name;
-    const otherNames = players.filter((_, i) => i !== selectedPlayerIndex).map(p => p.name);
-
-    // --- Specials ---
-    if (selectedSpecial === "S180") {
-      const penceEach = 180; // £1.80
-      const list = otherNames.map(n => `<li>${escapeHtml(n)} — <b>${fmtGBP(penceEach)}</b></li>`).join("");
-      openConfirmModal({
-        title: "Confirm Special",
-        bodyHtml: `
-        <div style="font-weight:900; font-size:14px; margin-bottom:8px;">${escapeHtml(selectedName)} — 180 Scored</div>
-        <div class="muted" style="margin-bottom:6px;">Fines for everyone else:</div>
-        <ul>${list}</ul>
-      `,
-        onConfirm: () => {
-          const { anyCapped } = applyFineToMany(otherNames, penceEach);
-          if (anyCapped) showToast("Maximum fine amount reached");
-          else showToast("Special applied");
-          // keep player selected, clear amount/special
-          clearFineSelection();
-        }
-      });
-      return;
-    }
-
-    if (selectedSpecial === "BULLOUT") {
-      const penceEach = 200; // £2.00
-      const list = otherNames.map(n => `<li>${escapeHtml(n)} — <b>${fmtGBP(penceEach)}</b></li>`).join("");
-      openConfirmModal({
-        title: "Confirm Special",
-        bodyHtml: `
-        <div style="font-weight:900; font-size:14px; margin-bottom:8px;">${escapeHtml(selectedName)} — Bull-Out</div>
-        <div class="muted" style="margin-bottom:6px;">Fines for everyone else:</div>
-        <ul>${list}</ul>
-      `,
-        onConfirm: () => {
-          const { anyCapped } = applyFineToMany(otherNames, penceEach);
-          if (anyCapped) showToast("Maximum fine amount reached");
-          else showToast("Special applied");
-          clearFineSelection();
-        }
-      });
-      return;
-    }
-
-    if (selectedSpecial === "TONOUT") {
-      openConfirmModal({
-        title: "Confirm Special",
-        bodyHtml: `
-        <div style="font-weight:900; font-size:14px; margin-bottom:8px;">${escapeHtml(selectedName)} — Ton+ Out</div>
-        <div class="muted" style="margin-bottom:10px;">Enter checkout score (e.g. 116 → £1.16 each):</div>
-        <input id="tonOutInput" type="text" inputmode="numeric"
-          style="width:100%; height:44px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
-                 background: rgba(0,0,0,.22); color: var(--text); padding:0 12px; font-weight:900;"
-          placeholder="Checkout score" />
-        <div id="tonOutPreview" class="muted" style="margin-top:10px;"></div>
-      `,
-        onConfirm: () => {
-          const input = document.getElementById("tonOutInput");
-          const raw = (input?.value ?? "").trim();
-          if (!/^\d{2,3}$/.test(raw)) {
-            showToast("Enter a valid checkout (e.g. 116)");
-            // keep modal open by throwing (openConfirmModal closes in finally, so we must stop close)
-            // easiest: just reopen by returning early and not applying:
-            return;
-          }
-          const score = Number(raw);
-          const penceEach = score; // 116 -> £1.16
-          const { anyCapped } = applyFineToMany(otherNames, penceEach);
-          if (anyCapped) showToast("Maximum fine amount reached");
-          else showToast(`Applied £${(penceEach / 100).toFixed(2)} to everyone else`);
-          clearFineSelection();
-        }
-      });
-
-      // live preview inside modal
-      setTimeout(() => {
-        const input = document.getElementById("tonOutInput");
-        const preview = document.getElementById("tonOutPreview");
-        if (!input || !preview) return;
-
-        const update = () => {
-          const raw = input.value.trim();
-          if (!/^\d{2,3}$/.test(raw)) {
-            preview.innerHTML = "";
-            return;
-          }
-          const penceEach = Number(raw);
-          const list = otherNames.map(n => `<li>${escapeHtml(n)} — <b>${fmtGBP(penceEach)}</b></li>`).join("");
-          preview.innerHTML = `
-          <div style="margin-bottom:6px;">Fines for everyone else:</div>
-          <ul>${list}</ul>
-        `;
-        };
-
-        input.addEventListener("input", update);
-        input.focus();
-      }, 0);
-
-      return;
-    }
-
-    // --- Normal fine ---
-    let penceToAdd = null;
-    if (selectedFine === "CUSTOM") penceToAdd = parseCustomToPence(customValueText);
-    else penceToAdd = selectedFine;
-
-    if (!Number.isInteger(penceToAdd) || penceToAdd <= 0) {
-      showToast("Enter a valid fine amount.");
-      updateSubmitState();
-      return;
-    }
-
-    const res = applyFine(selectedName, penceToAdd, nowIso());
-    if (res.capped) showToast("Maximum fine amount reached");
-    else showToast(`Added ${fmtGBP(res.appliedPence)} to ${selectedName}`);
-
-    clearFineSelection(); // keeps player selected as-is
-  });
 
 
   undoBtn.addEventListener("click", () => {
@@ -730,31 +1226,8 @@ document.addEventListener("DOMContentLoaded", () => {
       confirmText: "Yes, reset",
       cancelText: "Cancel",
       onConfirm: () => {
-        // wipe saved data
-        store = { totalsByName: {}, history: [] };
-        saveStore(store);
-
-        // wipe in-memory game state
-        players = [];
-        selectedPlayerIndex = null;
-        selectedFine = null;
-        selectedSpecial = null;
-        customValueText = "";
-
-        for (let i = 1; i <= 6; i++) {
-          const el = document.getElementById(`p${i}`);
-          if (el) el.value = "";
-        }
-
-        trackerCard.classList.add("hidden");
-        setupCard.classList.remove("hidden");
-
-        // hide top-right buttons on setup screen
-        headerActions?.classList.add("hidden");
-
+        hardResetAll();
         showToast("Reset.");
-        showScreen("setup");
-
       }
 
     });
@@ -766,6 +1239,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function drawWheel(labels) {
     if (!wheelCanvas) return;
     const ctx = wheelCanvas.getContext("2d");
+    if (!ctx) return; // <- add this guard
     const w = wheelCanvas.width;
     const h = wheelCanvas.height;
     const cx = w / 2;
@@ -813,76 +1287,119 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function pickWinnerIndex(labels) {
-    // Pointer is at the top (12 o’clock). We need the segment under that pointer.
     const n = labels.length;
     const arc = (Math.PI * 2) / n;
 
-    // Angle at top is -90deg (or 3π/2). Compute relative to wheelAngle.
-    const pointerAngle = (Math.PI * 3) / 2;
+    // ✅ Pointer at TOP (12 o’clock)
+    const pointerAngle = (Math.PI * 3) / 2; // same as -Math.PI/2
 
-    // Normalize wheelAngle
     let a = (pointerAngle - wheelAngle) % (Math.PI * 2);
     if (a < 0) a += Math.PI * 2;
 
-    const idx = Math.floor(a / arc);
-    return idx; // 0..n-1
+    return Math.floor(a / arc);
   }
+
+
 
   function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
   function spinWheel(labels, onDone) {
     if (wheelSpinning) return;
+
+    // Hard guard: must have a canvas + ctx
+    if (!wheelCanvas) {
+      console.error("wheelCanvas missing");
+      showToast("Wheel not ready");
+      return;
+    }
+    const ctx = wheelCanvas.getContext("2d");
+    if (!ctx) {
+      console.error("No 2D context available");
+      showToast("Wheel not supported");
+      return;
+    }
+
     wheelSpinning = true;
     spinBtn.disabled = true;
     spinBtn.className = "btn btnDisabled";
 
     const start = performance.now();
-    const duration = 3800; // ms
-    const spins = 6 + Math.random() * 4; // 6-10 spins
+    const duration = 3800;
+    const spins = 6 + Math.random() * 4;
     const finalOffset = Math.random() * Math.PI * 2;
     const startAngle = wheelAngle;
     const targetAngle = startAngle + spins * Math.PI * 2 + finalOffset;
 
+    const safeFail = (err) => {
+      console.error("Spin failed:", err);
+      wheelSpinning = false;
+      spinBtn.disabled = false;
+      spinBtn.className = "btn btnPrimary";
+      showToast("Spin failed (check console)");
+    };
+
     const tick = (now) => {
-      const t = Math.min(1, (now - start) / duration);
-      const eased = easeOutCubic(t);
-      wheelAngle = startAngle + (targetAngle - startAngle) * eased;
+      try {
+        const t = Math.min(1, (now - start) / duration);
+        const eased = easeOutCubic(t);
+        wheelAngle = startAngle + (targetAngle - startAngle) * eased;
 
-      drawWheel(labels);
+        drawWheel(labels); // if this throws, we'll recover
 
-      if (t < 1) {
-        requestAnimationFrame(tick);
-      } else {
-        wheelSpinning = false;
-        spinBtn.disabled = false;
-        spinBtn.className = "btn btnPrimary";
+        if (t < 1) {
+          requestAnimationFrame(tick);
+        } else {
+          wheelSpinning = false;
+          spinBtn.disabled = false;
+          spinBtn.className = "btn btnPrimary";
 
-        const winnerIdx = pickWinnerIndex(labels);
-        onDone?.(winnerIdx);
+          const winnerIdx = pickWinnerIndex(labels);
+          onDone?.(winnerIdx);
+        }
+      } catch (e) {
+        safeFail(e);
       }
     };
 
+    saveGameSnapshot();
     requestAnimationFrame(tick);
   }
 
+
   function openWinnerPopup(name, fromPence, toPence) {
+    if (!winnerOverlay || !winnerNameEl || !winnerAmountEl || !winnerMathEl) {
+      console.warn("Winner popup DOM missing", { winnerOverlay, winnerNameEl, winnerAmountEl, winnerMathEl });
+      showToast(`${name} doubled to ${fmtGBP(toPence)}`);
+      return;
+    }
+
     winnerOverlay.classList.remove("hidden");
     winnerOverlay.setAttribute("aria-hidden", "false");
     winnerNameEl.textContent = `${name}!`;
 
-    // Count-up animation
+    // Math line (same styling as your resultMath/toRed)
+    winnerMathEl.innerHTML = `
+    <span>${fmtGBP(fromPence)} × 2 =</span>
+    <span class="toRed">${fmtGBP(toPence)}</span>
+  `;
+
+    // Big number animation (same as you had)
     const start = performance.now();
     const dur = 900;
 
     const tick = (now) => {
       const t = Math.min(1, (now - start) / dur);
-      const eased = 1 - Math.pow(1 - t, 3); // easeOut
+      const eased = 1 - Math.pow(1 - t, 3);
       const v = Math.round(fromPence + (toPence - fromPence) * eased);
       winnerAmountEl.textContent = fmtGBP(v);
       if (t < 1) requestAnimationFrame(tick);
     };
+
     requestAnimationFrame(tick);
   }
+
+
+
 
   function closeWinnerPopup() {
     winnerOverlay.classList.add("hidden");
@@ -916,7 +1433,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const winnerName = labels[winnerIdx];
 
       const current = store.totalsByName[winnerName] ?? 0;
-      const doubled = Math.min(MAX_TOTAL_PENCE, current * 2);
+      const doubled = Math.min(MAX_AFTER_DOUBLE_PENCE, current * 2);
       const delta = doubled - current;
 
       doubleWinnerName = winnerName;
@@ -937,18 +1454,22 @@ document.addEventListener("DOMContentLoaded", () => {
         doubleBatchId = null;
       }
 
+      saveGameSnapshot();
       syncPlayersFromStore();
       renderResultsList();
       updateSpinButtons();
 
       openWinnerPopup(winnerName, current, doubled);
 
-      winnerContinueBtn.onclick = () => {
-        closeWinnerPopup();
-        renderFinalList();
-        updateSpinButtons();
-        showScreen("final");
-      };
+      if (winnerContinueBtn) {
+        winnerContinueBtn.onclick = () => {
+          closeWinnerPopup();
+          renderFinalList();
+          updateSpinButtons();
+          showScreen("final");
+        };
+      }
+
 
       if (doubled >= MAX_TOTAL_PENCE) showToast("Maximum fine amount reached");
     });
@@ -965,43 +1486,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   resetGameBtn?.addEventListener("click", () => {
-    // Undo any double-fine batch first
     if (doubleBatchId) undoBatch(doubleBatchId);
+    openConfirmModal({
+      title: "Reset saved game",
+      bodyHtml: `<div>Are you sure you want to reset this saved game?</div>
+                 <div class="muted" style="margin-top:6px;">
+                 This will clear players, totals and history.</div>`,
+      confirmText: "Yes, reset",
+      cancelText: "Cancel",
+      onConfirm: () => {
+        hardResetAll();
+        showToast("Saved game cleared");
+      }
 
-    // Fully clear storage
-    store = { totalsByName: {}, history: [] };
-    saveStore(store);
-
-    // Reset all in-memory state
-    players = [];
-    excludedFromWheel = new Set();
-    selectedPlayerIndex = null;
-    selectedFine = null;
-    selectedSpecial = null;
-    customValueText = "";
-
-    doubleWinnerName = null;
-    doubleBatchId = null;
-    doubleFromPence = null;
-    doubleToPence = null;
-
-    updateConfirmResultButton();
-
-
-    // Clear name inputs
-    for (let i = 1; i <= 6; i++) {
-      const el = document.getElementById(`p${i}`);
-      if (el) el.value = "";
-    }
-
-    // Reset wheel
-    wheelAngle = 0;
-
-    // Go back to setup screen
-    showScreen("setup");
-
-    showToast("Game reset");
+    });
   });
+
 
 
 
@@ -1015,35 +1515,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   function renderResultsList() {
-    resultsList.innerHTML = players.map(p => {
-      const excluded = excludedFromWheel.has(p.name);
-      const isWinner = (p.name === doubleWinnerName && doubleFromPence !== null && doubleToPence !== null);
+    if (!resultsList) return;
 
-      const amountHtml = isWinner
-        ? `<div class="resultMath">
-           <span>${fmtGBP(doubleFromPence)} x 2 =</span>
-           <span class="toRed">${fmtGBP(doubleToPence)}</span>
-         </div>`
-        : `<div class="amt">${fmtGBP(p.totalPence)}</div>`;
+    resultsList.innerHTML = players.map((p) => {
+      const excluded = excludedFromWheel.has(p.name);
+      const isWinner = (p.name === doubleWinnerName);
 
       return `
-      <div class="resultRow ${excluded ? "excluded" : ""}" data-name="${escapeHtml(p.name)}">
-        <div class="name">${escapeHtml(p.name)}</div>
-        ${amountHtml}
-        <button class="excludeBtn" type="button" aria-label="Toggle exclude">X</button>
+      <div class="playerBox ${excluded ? "resultExcluded" : ""} ${isWinner ? "resultWinner" : ""}"
+           data-name="${escapeHtml(p.name)}"
+           role="button"
+           aria-pressed="${excluded ? "true" : "false"}">
+        <div class="playerName">${escapeHtml(p.name)}</div>
+        <div class="playerTotal"><strong>${fmtGBP(p.totalPence)}</strong></div>
       </div>
     `;
     }).join("");
 
-    // attach handlers
-    resultsList.querySelectorAll(".resultRow").forEach(row => {
-      const name = row.getAttribute("data-name");
-      const btn = row.querySelector(".excludeBtn");
-      btn.addEventListener("click", () => {
+    resultsList.querySelectorAll(".playerBox").forEach((box) => {
+      box.addEventListener("click", () => {
+        const name = box.getAttribute("data-name");
         if (!name) return;
-
-        // Optional: prevent excluding the winner after spin
-        // if (doubleWinnerName) return;
 
         if (excludedFromWheel.has(name)) excludedFromWheel.delete(name);
         else excludedFromWheel.add(name);
@@ -1053,6 +1545,9 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   }
+
+
+
 
 
   function renderFinalList() {
@@ -1089,8 +1584,6 @@ document.addEventListener("DOMContentLoaded", () => {
     showScreen("final");
   });
 
-
-
   submitResultBtn?.addEventListener("click", () => {
     syncPlayersFromStore();
 
@@ -1108,17 +1601,9 @@ document.addEventListener("DOMContentLoaded", () => {
     showScreen("results");
   });
 
-
-
-
   backToGameBtn?.addEventListener("click", () => {
     showScreen("tracker");
   });
-
-
-
-
-
 
   openHistoryBtn?.addEventListener("click", () => {
     openModal("History", historyHtml());
@@ -1128,6 +1613,15 @@ document.addEventListener("DOMContentLoaded", () => {
     openModal("Fines list", finesListContent);
   });
 
+  openDoubleInfoBtn?.addEventListener("click", () => {
+    openModal("Info", `
+      <div class="muted" style="line-height:1.35;">
+        Spin the wheel to select a player for double fines.<br/>
+        Tap a player to exclude them from the wheel spinner.
+      </div>
+    `);
+  });
+
   closeModalBtn?.addEventListener("click", closeModal);
 
   modalOverlay?.addEventListener("click", (e) => {
@@ -1135,10 +1629,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 
+
+
   // Initial fine render
   updateSpinButtons();
   renderFines();
-  renderSpecials();
+
   updateSubmitState();
 });
 
