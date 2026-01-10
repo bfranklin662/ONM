@@ -4,10 +4,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Oche Ness Monsters | Players</title>
+  <title>Oche Ness Monsters | Fine Tracker</title>
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css">
-  <link rel="stylesheet" href="styles/fines.css"/>
+  <link rel="stylesheet" href="styles/fines.css" />
 </head>
 
 <body>
@@ -62,13 +62,17 @@
     </div>
 
     <!-- RESULTS SCREEN (Double fines setup) -->
-    <div id="resultsCard" class="card hidden">
-      <div class="resultsHeader">
-        <div class="sectionTitle" style="margin:0;">Double Fines Selector</div>
-      </div>
+    <div id="doubleHeader" class="screenHeader hidden">
+      <div class="screenTitle title">Double Fine Selector</div>
 
-      <div class="mutedSmall">Tap the X to exclude a player from the wheel.</div>
-      <div id="resultsList" class="resultsList"></div>
+      <div class="headerRight">
+        <button id="openDoubleInfoBtn" class="pillBtn">i</button>
+      </div>
+    </div>
+
+    <div id="resultsCard" class="card hidden">
+
+      <div id="resultsList" class="resultsGrid"></div>
 
       <div style="margin-top:14px;">
         <button id="spinBtn" class="btn btnPrimary">Spin for Double Fines</button>
@@ -112,8 +116,13 @@
         </div>
         <div class="modalBody">
           <div id="winnerName" style="font-weight:900; font-size:18px; margin-bottom:10px;"></div>
-          <div class="mutedSmall" style="margin-bottom:8px;">Total after doubling:</div>
+          <div class="mutedSmall" style="margin-bottom:8px;">Amount:</div>
+
+          <!-- NEW: shows £4.50 × 2 = £9.00 -->
+          <div id="winnerMath" class="resultMath" style="margin-bottom:10px;"></div>
+
           <div id="winnerAmount" style="font-weight:900; font-size:28px;"></div>
+
 
           <div style="display:flex; gap:10px; margin-top:14px;">
             <button id="winnerContinueBtn" class="btn btnPrimary" style="height:44px;">Submit Result</button>
@@ -130,27 +139,27 @@
       <div class="sectionTitle">Enter up to 6 players</div>
       <div class="setupGrid" id="setupGrid"></div>
       <button id="startBtn" class="btn btnPrimary" style="margin-top:12px;">Submit Players</button>
+      <button id="resumeGameBtnInline" class="btn btnGhost hidden" style="margin-top:10px;">
+        Resume Saved Game
+      </button>
       <div class="smallNote">Tip: leave blanks for fewer than 6.</div>
     </div>
 
     <!-- TRACKER SCREEN -->
     <div id="trackerCard" class="card hidden">
-      <div class="sectionTitle">Players</div>
+      <div class="sectionTitle players">Players</div>
       <div id="playersGrid" class="playersGrid"></div>
 
       <div class="sectionTitle" style="margin-top:10px;">Fine amount</div>
       <div class="fineGrid" id="fineGrid"></div>
 
-      <div class="sectionTitle" style="margin-top:10px;">Specials</div>
-      <div id="specialsGrid" class="specialsGrid"></div>
-
 
       <div class="hint">
-        Select a player, select an amount, then submit. After submitting:
-        the <b>amount clears</b> and the <b>player stays selected</b>.
+        Select a player, select an amount, then <b>"Submit Fine"</b>. Once finished select <b>"Double Fines →"</b> to
+        proceed.
       </div>
 
-      <div class="bottomBar">
+      <div class="bottomBar1">
         <button id="submitFineBtn" class="btn btnDisabled" disabled>Submit Fine</button>
 
         <div class="row">
