@@ -3,8 +3,10 @@
   --card: #171a21;
   --text: #f4f6fb;
   --muted: #a9b0c3;
-  --yellow: #f5c400;
+  --yellow: #FFD740;
   --greybtn: #3a4258;
+  --red: #ff4d4d;
+  --green: #44d17a;
   --radius: 14px;
   --shadow: 0 6px 24px rgba(0, 0, 0, .35);
   --tap: 52px;
@@ -89,10 +91,49 @@ body {
   display: none !important;
 }
 
+/* fines page only (since fines.css is only loaded here) */
+.subtitle {
+  display: none;
+}
+
+/* Header layout */
+#appHeader.header {
+  display: flex;
+  align-items: center;
+  /* ✅ vertical alignment */
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Remove any weird default spacing */
+#appHeader .title {
+  margin: 0;
+  line-height: 1;
+  /* ✅ keeps it centered */
+}
+
+/* If the buttons container has padding/margin pushing it down */
+#appHeader .headerActions {
+  margin: 0;
+  align-self: center;
+  /* ✅ forces same vertical alignment */
+}
+
+.playerTotal {
+  margin-top: 4px;
+  font-size: 14px;
+
+}
+
+
 .sectionTitle {
   font-weight: 900;
-  margin: 6px 2px 10px;
+  margin: 10px 0 10px;
   font-size: 14px;
+}
+
+.players {
+  margin-top: -2px;
 }
 
 /* Setup */
@@ -188,6 +229,8 @@ input[type="text"]::placeholder {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition: border .15s ease, background .15s ease, transform .05s ease;
+  font-size: 14px;
+  align-items: center;
 }
 
 .playerBox:active {
@@ -208,9 +251,10 @@ input[type="text"]::placeholder {
 }
 
 .playerTotal strong {
-  color: var(--text);
-  font-size: 18px;
-  margin-left: 4px;
+  font-size: 16px;
+  color: #f4f6fb;
+  align-items: center;
+  text-align: center;
 }
 
 .playerBox.selected {
@@ -234,7 +278,9 @@ input[type="text"]::placeholder {
   border: 1px solid rgba(255, 255, 255, .10);
   background: rgba(0, 0, 0, .22);
   font-weight: 900;
-  font-size: 16px;
+  min-height: 44px;
+  padding: 10px 10px;
+  font-size: 14px;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -325,8 +371,8 @@ input[type="text"]::placeholder {
 .bottomBar {
   position: sticky;
   bottom: 0;
-  padding-top: 12px;
-  margin-top: 14px;
+
+  margin-top: 0px;
   background: linear-gradient(180deg, rgba(15, 17, 21, 0) 0%, rgba(15, 17, 21, .85) 22%, rgba(15, 17, 21, 1) 55%);
 }
 
@@ -344,8 +390,8 @@ input[type="text"]::placeholder {
 .toast {
   position: fixed;
   left: 50%;
-  transform: translateX(-50%);
-  bottom: 18px;
+  transform: translate(-50%, -16px);
+  top: 18px;
   background: rgba(0, 0, 0, .75);
   border: 1px solid rgba(255, 255, 255, .12);
   padding: 10px 12px;
@@ -356,11 +402,16 @@ input[type="text"]::placeholder {
   opacity: 0;
   pointer-events: none;
   transition: opacity .18s ease, transform .18s ease;
+  z-index: 99999;
 }
 
 .toast.show {
   opacity: 1;
-  transform: translateX(-50%) translateY(-6px);
+  transform: translateX(-50%) translateY(6px);
+}
+
+body.modal-open {
+  overflow: hidden;
 }
 
 /* Modal */
@@ -372,7 +423,7 @@ input[type="text"]::placeholder {
   align-items: flex-end;
   justify-content: center;
   padding: 12px;
-  z-index: 999;
+  z-index: 9999;
 }
 
 .modalCard {
@@ -383,6 +434,10 @@ input[type="text"]::placeholder {
   border-radius: 18px;
   box-shadow: var(--shadow);
   overflow: hidden;
+
+  /* ✅ ADD THESE */
+  display: flex;
+  flex-direction: column;
 }
 
 .modalHeader {
@@ -392,6 +447,7 @@ input[type="text"]::placeholder {
   gap: 10px;
   padding: 12px 12px 8px;
   border-bottom: 1px solid rgba(255, 255, 255, .08);
+  flex: 0 0 auto;
 }
 
 .modalTitle {
@@ -416,6 +472,10 @@ input[type="text"]::placeholder {
   color: var(--text);
   font-size: 13px;
   line-height: 1.35;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
 }
 
 .modalBody h3 {
@@ -497,23 +557,24 @@ input[type="text"]::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 14px;
-  padding: 12px 0 6px;
+  margin-top: 8px;
+  padding: 0px 0 6px;
 }
 
 #wheelCanvas {
-  width: 320px;
-  height: 320px;
+  width: 280px;
+  height: 280px;
   max-width: 86vw;
   max-height: 86vw;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, .10);
   background: rgba(0, 0, 0, .15);
+  margin-top: 5px;
 }
 
 .wheelPointer {
   position: absolute;
-  top: 6px;
+  top: 2px;
   width: 0;
   height: 0;
   border-left: 12px solid transparent;
@@ -534,85 +595,88 @@ input[type="text"]::placeholder {
 }
 
 /* Small muted helper text */
-.mutedSmall{
-  font-size:12px;
+.mutedSmall {
+  font-size: 12px;
   color: var(--muted);
   margin: 4px 2px 10px;
 }
 
 /* Hide header entirely on double fines flow */
-.header.hiddenHeader{
-  display:none !important;
+.header.hiddenHeader {
+  display: none !important;
 }
 
 /* Results rows with exclude button */
-.resultRow{
+.resultRow {
   position: relative;
-  padding-right: 54px; /* room for X button */
+  padding-right: 54px;
+  /* room for X button */
 }
 
-.excludeBtn{
-  position:absolute;
-  right:10px;
-  top:50%;
+.excludeBtn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
   transform: translateY(-50%);
-  width:34px;
-  height:34px;
-  border-radius:10px;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.22);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(0, 0, 0, .22);
   color: var(--text);
-  font-weight:900;
-  cursor:pointer;
+  font-weight: 900;
+  cursor: pointer;
 }
 
-.resultRow.excluded{
+.resultRow.excluded {
   opacity: .45;
   filter: grayscale(1);
 }
 
-.resultRow.excluded .amt{
+.resultRow.excluded .amt {
   color: var(--muted);
 }
 
 /* Winner highlight on final page */
-.amt.winnerRed{
+.amt.winnerRed {
   color: #ff4d4d;
 }
 
 /* Result math display */
-.resultMath{
-  font-weight:900;
-  display:flex;
-  gap:8px;
-  align-items:baseline;
-  flex-wrap:wrap;
+.resultMath {
+  font-weight: 900;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
 }
 
-.resultMath .toRed{
-  color:#ff4d4d;
+.resultMath .toRed {
+  color: #ff4d4d;
 }
 
 /* Highlight the double-fines player on the main tracker screen */
-.playerBox.winner{
-  border:1px solid rgba(255,77,77,.75);
-  background: rgba(255,77,77,.10);
-}
-.playerBox.winner .playerTotal strong{
-  color:#ff4d4d;
+.playerBox.winner {
+  border: 1px solid rgba(255, 77, 77, .75);
+  background: rgba(255, 77, 77, .10);
 }
 
+
+
+
+
 /* Final page doesn't have the X exclude button, so remove its reserved padding */
-#finalCard .resultRow{
+#finalCard .resultRow {
   padding-right: 12px !important;
 }
 
-.btnReset{
+.btnReset {
   background: var(--yellow);
   color: #111;
   font-weight: 900;
 }
-.btnReset:hover{
+
+.btnReset:hover {
   filter: brightness(0.95);
 }
 
@@ -623,9 +687,172 @@ input[type="text"]::placeholder {
     min-width: 44px;
     font-size: 13px;
   }
+}
 
-  .fineBox.custom {
-    gap: 10px;
+@media (max-width: 420px) {
+  .fineBox {
+    min-height: 42px;
   }
 
+  .playerBox {
+    padding: 9px;
+  }
+
+  .playersGrid,
+  .fineGrid,
+  .specialsGrid {
+    gap: 8px;
+  }
+}
+
+.pageTitle {
+  margin: 0px 0 10px;
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.resultsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+/* Mobile: if you want it to breathe, use 2 columns on very small screens */
+@media (max-width: 380px) {
+  .resultsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.resultBox {
+  border-radius: 14px;
+  padding: 12px 10px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .04);
+  cursor: pointer;
+  user-select: none;
+}
+
+.resultBox .name {
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 1.1;
+}
+
+.resultBox .amt {
+  margin-top: 6px;
+  font-weight: 900;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.resultBox .math {
+  margin-top: 6px;
+  font-weight: 900;
+  font-size: 12px;
+  opacity: 0.95;
+}
+
+.resultBox.excluded {
+  opacity: 0.35;
+  filter: grayscale(1);
+  border-style: dashed;
+}
+
+.resultBox.winner {
+  border-color: rgba(255, 215, 0, .8);
+  /* your yellow */
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, .15) inset;
+}
+
+.infoRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.infoPill {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  border: 1px solid rgba(255, 255, 255, .14);
+  background: rgba(255, 255, 255, .06);
+  flex: 0 0 auto;
+}
+
+.resultsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+/* optional: small screens */
+@media (max-width: 380px) {
+  .resultsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* excluded state */
+.resultExcluded {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+/* optional winner highlight (if you want it) */
+.resultWinner {
+  border: 1px solid rgba(255, 77, 77, .75);
+  background: rgba(255, 77, 77, .10);
+}
+
+
+
+#wheelPointer,
+.wheelPointer,
+.pointerTriangle {
+  transform: rotate(180deg);
+  transform-origin: center;
+}
+
+
+
+.bottomBar1 {
+  margin-top: 10px;
+}
+
+#resultsCard .cardInner {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  /* IMPORTANT */
+  min-height: auto;
+}
+
+.screenHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.pillBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(0, 0, 0, .22);
+  color: var(--text);
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pillBtn:active {
+  transform: scale(.98);
 }
