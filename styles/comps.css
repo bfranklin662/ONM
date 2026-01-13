@@ -21,6 +21,28 @@ h1 {
   text-align: center;
 }
 
+h1 {
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  font-size: 1.3rem;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 10px 0 14px;
+  user-select: none;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+h1:after {
+  content: "";
+  display: block;
+  width: 90px;
+  height: 3px;
+  margin: 5px auto 0;
+  background: linear-gradient(to right, transparent, #00b894, transparent);
+  opacity: 0.6;
+}
+
 .competition-card {
   background: rgba(255, 255, 255, 0.05);
   /* semi-transparent glass look */
@@ -45,14 +67,20 @@ h1 {
 
 .competition-image {
   width: 100%;
-  height: 200px;
+  height: 240px;
   /* Fixed height for all images */
   object-fit: cover;
   flex-shrink: 0;
   display: block;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  filter:
+    grayscale(100%) contrast(1.15) brightness(1.0) saturate(0.1);
+  transition: filter 0.4s ease, transform 0.3s ease;
 }
+.competition-card:hover .competition-image {
 
+  transform: scale(1.03);
+}
 .banks-image {
   object-position: center 55%;
 }
@@ -74,17 +102,38 @@ h1 {
   margin: 10px 0 15px;
 }
 
+.competition-content h2 {
+  margin: 0 0 10px;
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  font-size: 1.5rem;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.95), rgba(190, 230, 255, 0.95));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+
+  text-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+
 .location {
   display: flex;
   align-items: center;
   margin-bottom: 15px;
   gap: 5px;
+
+}
+
+.location-label {
+  text-wrap: nowrap;
 }
 
 .location-value {
   font-size: 1rem;
   color: #c5c5c5;
 }
+
 .bold {
   font-weight: 600;
   font-size: 1.1rem;
@@ -102,18 +151,95 @@ h1 {
   font-weight: 500;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  transition: all 0.3s ease;
+  transition: all 0.5s ease;
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.1);
+  margin-bottom: 5px;
+}
+
+.competition-links a {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #eafcff;
+  text-decoration: none;
+  background: linear-gradient(180deg, #0e1b2c, #08131f91);
+  border: 1.8px solid rgba(0, 200, 255, 0.35);
+
 }
 
 .competition-links a:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #00ff88;
-  box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
+  background: rgba(63, 63, 63, 0.214);
+  box-shadow: 0 0 12px rgba(0, 64, 255, 0.3);
   transform: translateY(-1px);
 }
 
-@media (min-width: 768px) {
+.comp-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.comp-title-row h2 {
+  margin: 0;
+  min-width: 0;
+}
+
+.competition-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pwl-grid {
+  display: flex;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  position: absolute;
+  top: 0;
+  right: 0;
+  user-select: none;
+  margin-top: 3px;
+}
+
+.pwl-grid a {
+  text-decoration: none;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  color: white;
+  transition: transform 0.15s ease;
+}
+
+.pwl-grid a:hover {
+  transform: scale(1.05);
+}
+
+.pwl.played {
+  background: #77777729;
+  border: 1.5px solid #777;
+}
+
+.pwl.won {
+  background: rgba(7, 187, 76, 0.159);
+  border: 1.5px solid green;
+}
+
+.pwl.lost {
+  background: rgba(203, 15, 40, 0.352);
+  border: 1.5px solid red;
+}
+
+
+
+
+
+
+
+
+
+
+@media (min-width: 768px) and (max-width: 469px) {
   .competition-card {
     height: 300px;
     flex-direction: row;
@@ -127,10 +253,49 @@ h1 {
   .competition-content {
     width: 60%;
   }
+
+  .competition-links a {
+    padding: 8px 14px;
+    gap: 5px;
+  }
 }
 
 @media (max-width: 767px) {
   .competition-card {
     min-height: auto;
+  }
+}
+
+@media (max-width: 468px) {
+  .competition-links a {
+    padding: 8px 10px;
+    gap: 3px;
+    font-size: 1rem;
+    margin: 0px;
+  }
+
+  .pwl-grid {
+    gap: 3px;
+  }
+
+  .competition-content h2 {
+    font-size: 1.3rem;
+  }
+
+  .competition-content {
+    padding: 15px;
+  }
+
+  .pwl-grid a {
+    padding: 2px 6px;
+    font-size: 0.8rem;
+  }
+
+  .bold {
+    font-size: 1rem;
+  }
+
+  .competition-content p {
+    font-size: 0.95rem;
   }
 }
