@@ -1,0 +1,404 @@
+[
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "7th Oct 2025",
+    "Opponent": "Michaels",
+    "HA": "Away",
+    "Location": "The Brown Bear"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "8th Oct 2025",
+    "Opponent": "Black Arrows",
+    "HA": "Away",
+    "Location": "Nolans"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "15th Oct 2025",
+    "Opponent": "Orcs Shoe Inns",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "16th Oct 2025",
+    "Opponent": "Vikings",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "22nd Oct 2025",
+    "Opponent": "Horseshoe Mis-fits",
+    "HA": "Away",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "23rd Oct 2025",
+    "Opponent": "Barclays WE II",
+    "HA": "Away",
+    "Location": "Sir Sydney Smith"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "29th Oct 2025",
+    "Opponent": "Holland Club",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "30th Oct 2025",
+    "Opponent": "Standard Chartered",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks Cup",
+    "Day": "Tuesday",
+    "Date": "4th Nov 2025",
+    "Opponent": "Willis Old Boys",
+    "HA": "Away",
+    "Location": "The Artful Dodger"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "5th Nov 2025",
+    "Opponent": "Ordinary Punters",
+    "HA": "Away",
+    "Location": "Sheephaven Bay"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "12th Nov 2025",
+    "Opponent": "Feeleys",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "13th Nov 2025",
+    "Opponent": "British Library",
+    "HA": "Away",
+    "Location": "The Libertine"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "19th Nov 2025",
+    "Opponent": "Nolans Rawdogs",
+    "HA": "Away",
+    "Location": "Nolans"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "20th Nov 2025",
+    "Opponent": "NatWest Allstars",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "25th Nov 2025",
+    "Opponent": "Off Our Ed",
+    "HA": "Away",
+    "Location": "The Walrus & Carpenter"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "26th Nov 2025",
+    "Opponent": "XLT",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Tuesday",
+    "Date": "2nd Dec 2025",
+    "Opponent": "Silverbacks",
+    "HA": "Away",
+    "Location": "Nolans"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Wednesday",
+    "Date": "3rd Dec 2025",
+    "Opponent": "Vikings",
+    "HA": "Away",
+    "Location": "The Artful Dodger"
+  },
+
+
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "7th Jan 2026",
+    "Opponent": "Albany",
+    "HA": "Away",
+    "Location": "Sir Sydney Smith"
+  },
+  {
+    "League": "Banks Cup",
+    "Day": "Tuesday",
+    "Date": "13th Jan 2026",
+    "Opponent": "Newsom's Twosomes",
+    "HA": "Away",
+    "Location": "Sir Sydney Smith"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "14th Jan 2026",
+    "Opponent": "X-men",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "21st Jan 2026",
+    "Opponent": "The Panda's",
+    "HA": "Away",
+    "Location": "Nolans"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "22nd Jan 2026",
+    "Opponent": "Lloyds City",
+    "HA": "Away",
+    "Location": "The Artful Dodger"
+  },
+  {
+    "League": "Tournament",
+    "Day": "Wednesday",
+    "Date": "28th Jan 2026",
+    "Opponent": "Singles KO",
+    "HA": null,
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "29th Jan 2026",
+    "Opponent": "British Library",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Tournament",
+    "Day": "Wednesday",
+    "Date": "4th Feb 2026",
+    "Opponent": "Pairs KO",
+    "HA": null,
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "5th Feb 2026",
+    "Opponent": "Natwest Allstars",
+    "HA": "Away",
+    "Location": "The Artful Dodger"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "11th Feb 2026",
+    "Opponent": "Boomers",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "12th Feb 2026",
+    "Opponent": "Michaels",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "17th Feb 2026",
+    "Opponent": "Standard Chartered",
+    "HA": "Away",
+    "Location": "The Artful Dodger"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "18th Feb 2026",
+    "Opponent": "Black Arrows",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "25th Feb 2026",
+    "Opponent": "Orcs Shoe Inns",
+    "HA": "Away",
+    "Location": "The Libertine"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "26th Feb 2026",
+    "Opponent": "Off Our Ed",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks Cup",
+    "Day": "Monday",
+    "Date": "2nd Mar 2026",
+    "Opponent": "?",
+    "HA": null,
+    "Location": null
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "4th Mar 2026",
+    "Opponent": "Horseshoe Mis-fits",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar Cup",
+    "Day": "Wednesday",
+    "Date": "4th Mar 2026",
+    "Opponent": "Team/Jubilee Banks Cup",
+    "HA": null,
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "11th Mar 2026",
+    "Opponent": "Team KO Banks Cup + Jubilee Banks Cup KO",
+    "HA": null,
+    "Location": null
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "19th Mar 2026",
+    "Opponent": "Barclays",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "1st Apr 2026",
+    "Opponent": "Holland Club",
+    "HA": "Away",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "2nd Apr 2026",
+    "Opponent": "Lloyds City",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "8th Apr 2026",
+    "Opponent": "Ordinary Punters",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks Cup",
+    "Day": "Thursday",
+    "Date": "13th Apr 2026",
+    "Opponent": "Lloyds City",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "15th Apr 2026",
+    "Opponent": "Feeleys",
+    "HA": "Away",
+    "Location": "The Feeleys"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "22nd Apr 2026",
+    "Opponent": "Nolans Rawdogs",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "29th Apr 2026",
+    "Opponent": "XLT",
+    "HA": "Away",
+    "Location": "The Libertine"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "6th May 2026",
+    "Opponent": "Silverbacks",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "13th May 2026",
+    "Opponent": "Albany",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "20th May 2026",
+    "Opponent": "X-men",
+    "HA": "Away",
+    "Location": "Sheephaven Bay"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "27th May 2026",
+    "Opponent": "The Pandas",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "3rd Jun 2026",
+    "Opponent": "Boomers",
+    "HA": "Away",
+    "Location": "North Star"
+  }
+]
