@@ -1,7 +1,7 @@
 /* fixtures.js */
 (() => {
   const TEAM = "Oche Ness Monsters";
-  const FIXTURES_URL = "data/fixtures-25-26.json";
+  const FIXTURES_URL = "./data/fixtures-25-26.json";
   const RESULTS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=858987471&single=true&output=csv";
 
   // Change this to match your site:
