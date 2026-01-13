@@ -60,13 +60,15 @@ body {
   border-radius: 15px;
   display: block;
   margin: 40px auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+
   transition: all 0.4s ease-in-out;
+  filter:
+    grayscale(100%) contrast(1.15) brightness(1.0) saturate(0.1);
+  transition: filter 0.4s ease, transform 0.3s ease;
 }
 
 .about-image:hover {
   transform: translateY(-4px);
-  box-shadow: 0 0 35px rgba(0, 0, 0, 0.6);
 }
 
 .team-image {
@@ -98,21 +100,52 @@ body {
   text-align: center;
 }
 
-h1 {
-  color: white;
-  font-weight: 800;
-  font-size: 1.6rem;
-  margin-bottom: 25px;
-  letter-spacing: 1px;
+
+
+.h1 {
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 10px 0 14px;
+  user-select: none;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.h1:after {
+  content: "";
+  display: block;
+  width: 60px;
+  height: 2px;
+  margin: 5px auto 0;
+  background: linear-gradient(to right, transparent, #00b894, transparent);
+  opacity: 0.6;
 }
 
 .about-section h3 {
-  font-size: 1.25rem;
-  color: #ffca28;
-  margin-bottom: 12px;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 10px 0 14px;
+  user-select: none;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  opacity: 0.85;
 
+}
+
+
+.about-section h3::after {
+  content: "";
+  display: block;
+  width: 60px;
+  height: 2px;
+  margin: 5px auto 0;
+  background: linear-gradient(to right, transparent, #00b894, transparent);
+  opacity: 0.6;
 }
 
 .about-section p {
@@ -121,27 +154,9 @@ h1 {
   line-height: 1.8;
   color: #f3f3f3;
   font-size: 1.08rem;
-  /* paragraph shadow (subtle + readable) */
-  text-shadow:
-    0 1px 1px rgba(0, 0, 0, 0.92),
-    0 3px 10px rgba(0, 0, 0, 0.55);
 }
 
 
-/* responsive tweaks */
-@media (max-width: 640px) {
-  .title {
-    font-size: 1.8rem;
-  }
-
-  .about-section h3 {
-    font-size: 1.05rem;
-  }
-
-  .divider-img {
-    height: 160px;
-  }
-}
 
 a.forward {
   display: block;
