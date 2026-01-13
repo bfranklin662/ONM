@@ -1,3 +1,18 @@
+:root {
+  --bg: #0f1115;
+  --card: #171a21;
+  --text: #f4f6fb;
+  --muted: #a9b0c3;
+  --yellow: #FFD740;
+  --greybtn: #3a4258;
+  --red: #ff4d4d;
+  --green: #44d17a;
+  --radius: 14px;
+  --shadow: 0 6px 24px rgba(0, 0, 0, .35);
+  --tap: 52px;
+  --max: 520px;
+}
+
 .results-page {
   padding: 2rem;
   text-align: center;
@@ -402,7 +417,7 @@
 
 .pwl-grid a {
   text-decoration: none;
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 6px;
   font-weight: 600;
   color: white;
@@ -414,15 +429,19 @@
 }
 
 .pwl.played {
-  background-color: #777;
+  background: #77777729;
+  border: 1.5px solid #777;
+  padding: 2px 8px;
 }
 
 .pwl.won {
-  background-color: #1f8923;
+  background: rgba(7, 187, 76, 0.159);
+  border: 1.5px solid green;
 }
 
 .pwl.lost {
-  background-color: #d22522;
+  background: rgba(203, 15, 40, 0.352);
+  border: 1.5px solid red;
 }
 
 
@@ -1030,7 +1049,7 @@
 
 .gallery-meta {
   opacity: 0.8;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   user-select: none;
 }
 
@@ -1077,7 +1096,7 @@
 }
 
 .gallery-card h3 {
-  font-size: 14px
+  font-size: 20px
 }
 
 .gallery-result-label {
@@ -1094,13 +1113,13 @@
 }
 
 .gallery-card.won .gallery-result-label {
-  background: rgba(76, 175, 80, 0.25);
-  color: #4caf50;
+  background: rgba(7, 187, 76, 0.159);
+  border: 1.5px solid green;
 }
 
 .gallery-card.lost .gallery-result-label {
-  background: rgba(229, 57, 53, 0.25);
-  color: #e53935;
+  background: rgba(187, 7, 7, 0.231);
+  border: 1.5px solid rgb(197, 2, 2);
 }
 
 
@@ -1334,6 +1353,7 @@ td:first-child {
   color: #00ff7f;
 }
 
+
 /* === Headers === */
 .stats-grid h2 {
   text-align: center;
@@ -1376,11 +1396,11 @@ td:first-child {
 
 @container gallery-matchcard (max-width: 440px) and (min-width: 360px) {
   .gallery-card h3 {
-    font-size: 13px;
+    font-size: 17px;
   }
 
   .gallery-meta {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
   }
 
   .gallery-grid {
@@ -1395,13 +1415,7 @@ td:first-child {
 }
 
 @container gallery-matchcard (max-width: 360px) {
-  .gallery-card h3 {
-    font-size: 11px;
-  }
 
-  .gallery-meta {
-    font-size: 0.6rem;
-  }
 
   .gallery-grid {
     grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
@@ -1603,9 +1617,8 @@ td:first-child {
 
 @container leagueColumn (max-width: 400px) {
   .league-header h2 {
-    font-size: 1.05rem;
-    font-weight: 700;
-    margin-top: 0px;
+    font-size: 0.95rem;
+    margin-top: 2px;
   }
 
   .pwl-grid {
@@ -1708,4 +1721,20 @@ td:first-child {
   .stats-grid h2 {
     font-size: 1rem;
   }
+}
+
+@media (max-width: 468px) {
+
+  .pwl-grid {
+    gap: 3px;
+  }
+
+
+
+
+  .pwl-grid a {
+    padding: 2px 6px;
+    font-size: 0.8rem;
+  }
+
 }
