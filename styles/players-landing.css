@@ -291,16 +291,21 @@
   gap: 10px;
   color: white;
   font-weight: 600;
+  text-wrap: nowrap;
 }
 
 .sort-select {
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 8px 5px 8px 5px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   color: white;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  outline: none;
+}
+
+.sort-select:focus {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .sort-select option {
@@ -473,9 +478,7 @@
     font-size: 1.3rem;
   }
 
-  .sort-select {
-    padding: 7px 5px;
-  }
+ 
 
   .stats-header {
     padding: 0.4rem 0.8rem;
@@ -487,9 +490,7 @@
     font-size: 1.1rem;
   }
 
-  .sort-select {
-    padding: 4px 2px;
-  }
+
 
   .stats-header {
     padding: 0.3rem 0.5rem;
@@ -581,3 +582,41 @@
   opacity: 1;
 }
 
+/* Right side layout: search + sort */
+.stats-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.player-search {
+  width: 220px;
+  max-width: 40vw;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  outline: none;
+}
+
+.player-search::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.player-search:focus {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* Optional: on small screens stack nicely */
+@media (max-width: 520px) {
+  
+  .sort-label {
+    font-size: 14px;
+  }
+  .player-search {
+    width: 130px;
+  }
+}
