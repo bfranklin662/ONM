@@ -40,6 +40,24 @@ function parseDate(dateStr) {
   return new Date(part3, part2 - 1, part1);
 }
 
+function toISO(d) {
+  if (!(d instanceof Date) || isNaN(d)) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function normalizeName(s) {
+  return String(s || "")
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[’']/g, "")
+    .replace(/\s+/g, " ");
+}
+
+
 
 
 async function fetchLeagueStats(url) {
@@ -400,6 +418,18 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
                 { name: match.Player6, score: match.C6, fines: match.F6, doubleFines: match.D6, oneEightys: match.O6, bulls: match.B6, tonOuts: match.T6 },
               ].sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
 
+              const isoDate = toISO(parseDate(match.Date));
+              const teamN = normalizeName("Oche Ness Monsters");
+              const homeN = normalizeName(match.HomeTeam);
+              const awayN = normalizeName(match.AwayTeam);
+
+              // opponent is "the team that isn't us"
+              const opp = homeN === teamN ? match.AwayTeam : match.HomeTeam;
+              const ha = homeN === teamN ? "Home" : "Away";
+
+              const cardKey = `${isoDate}|${normalizeName(opp)}|${ha.toLowerCase()}`;
+
+
               // 🎞️ Fetch images
               let images = [];
               const folderUrl = match.IMGFOLDER?.trim();
@@ -573,7 +603,11 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
 
               // 🏁 Match card
               return `
-                <div class="result-card ${(match.Result || "").toLowerCase()}">
+                <div class="result-card ${(match.Result || "").toLowerCase()}"
+                  data-key="${cardKey}"
+                  data-date="${isoDate}"
+                  data-opp="${normalizeName(opp)}"
+                  data-ha="${ha.toLowerCase()}">
                   ${match["Cup?"]?.toLowerCase() === "true" ||
                   match["Cup?"]?.toLowerCase() === "yes"
                   ? `<img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/trophy.svg"
@@ -632,6 +666,8 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
 
     // 🎨 Render
     document.getElementById("resultsGrid").innerHTML = htmlMain;
+    requestAnimationFrame(() => openResultFromQuery());
+
 
   } catch (err) {
     console.error(err);
@@ -639,13 +675,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
   }
 }
 
-
-
-
-
 saveUserPrefs();
-
-
 
 function initPage() {
   // 1️⃣ Load saved preferences
@@ -1195,3 +1225,33 @@ function applyHashViewMode() {
   }
   return false;
 }
+
+function openResultFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const date = (params.get("date") || "").trim();           // YYYY-MM-DD
+  const opp = normalizeName(params.get("opp") || "");
+  const ha = (params.get("ha") || "").trim().toLowerCase(); // home/away
+
+  if (!date || !opp || !ha) return;
+
+  const key = `${date}|${opp}|${ha}`;
+  const card = document.querySelector(`.result-card[data-key="${CSS.escape(key)}"]`);
+  if (!card) return;
+
+  // scroll to it
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  // “open” it: click the toggle button if it exists
+  const btn = card.querySelector(".toggle-players");
+  if (btn) {
+    // Only open if currently closed
+    const playerData = card.querySelector(".player-data");
+    const isHidden = playerData && window.getComputedStyle(playerData).display === "none";
+    if (isHidden) btn.click();
+  }
+
+  // optional highlight flash
+  card.classList.add("deep-link-highlight");
+  setTimeout(() => card.classList.remove("deep-link-highlight"), 1600);
+}
+
