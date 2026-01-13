@@ -620,17 +620,17 @@
 }
 
 .result-win {
-  background: rgba(0, 200, 0, 0.25);
+  background: rgba(0, 200, 0, 0.145);
   border: 1px solid rgba(0, 200, 0, 0.6);
 }
 
 .result-loss {
-  background: rgba(255, 0, 0, 0.25);
+  background: rgba(255, 0, 0, 0.15);
   border: 1px solid rgba(255, 0, 0, 0.6);
 }
 
 .result-unknown {
-  background: rgba(200, 200, 200, 0.25);
+  background: rgba(200, 200, 200, 0.15);
   border: 1px solid rgba(180, 180, 180, 0.6);
 }
 
@@ -2695,22 +2695,24 @@
 /* Inline dropdown inside title */
 .player-selector-inline {
   font-size: 1.1rem;
-  background: #1a1a1a;
-  border: 1px solid #444;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   color: white;
-  margin-left: 6px;
-  padding: 4px 8px;
+  padding: 8px 5px 8px 5px;
   border-radius: 6px;
   width: 160px;
   /* ⬅ fixed width so it doesn’t jump */
   transition: all 0.4s ease-in-out;
+  outline: none;
 }
 
 .player-selector-inline:focus {
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 0 14px rgba(0, 255, 136, 0.35);
-  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.35);
 }
+
+
+
 
 /* Make main header aligned nicely */
 .main-profile-header .stats-header-middle {
