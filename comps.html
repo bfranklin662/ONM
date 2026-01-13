@@ -66,13 +66,23 @@
     <div class="competition-card">
       <img src="images/banks.jpg" alt="Banks League" class="competition-image banks-image">
       <div class="competition-content">
-        <h2>Banks League</h2>
+        <div class="competition-header">
+          <h2>Banks League</h2>
+
+          <div class="pwl-grid" data-league="Banks League">
+            <a class="pwl played">P: <span id="banks-p">–</span></a>
+            <a class="pwl won">W: <span id="banks-w">–</span></a>
+            <a class="pwl lost">L: <span id="banks-l">–</span></a>
+          </div>
+        </div>
+
+
         <p class="bold">⭐ Division 2 Champions 2024/25</p>
         <p>We're proud to have been promoted from Division 2 in the 2024/25 season. The Banks League is ongoing and
           highly competitive.</p>
         <div class="location">
           <span class="location-label">Home Pub:</span>
-          <span class="location-value">📍 The Horseshoe, Clerkenwell</span>
+          <span class="location-value">📍 The Horseshoe</span>
         </div>
         <div class="competition-links">
           <a href="results.html#results">Results</a>
@@ -87,13 +97,23 @@
     <div class="competition-card">
       <img src="images/trafalgar.jpg" alt="Trafalgar League" class="competition-image trafalgar-image">
       <div class="competition-content">
-        <h2>Trafalgar League</h2>
+        <div class="competition-header">
+          <h2>Trafalgar League</h2>
+
+          <div class="pwl-grid" data-league="Trafalgar League">
+            <a class="pwl played">P: <span id="traf-p">–</span></a>
+            <a class="pwl won">W: <span id="traf-w">–</span></a>
+            <a class="pwl lost">L: <span id="traf-l">–</span></a>
+          </div>
+        </div>
+
+
         <p class="bold">🎯 Newcomers in the Trafalgar League</p>
         <p>New territory! A 14 team league featuring a different format from Banks, bringing
           fresh challenges including team legs, trebles, doubles and singles legs.</p>
         <div class="location">
           <span class="location-label">Home Pub:</span>
-          <span class="location-value">📍 The Horseshoe, Clerkenwell</span>
+          <span class="location-value">📍 The Horseshoe</span>
         </div>
         <div class="competition-links">
           <a href="results.html#results">Results</a>
@@ -117,7 +137,7 @@
           full force.</p>
         <div class="location">
           <span class="location-label">Location:</span>
-          <span class="location-value">📍 The Barley Mow, Baker St</span>
+          <span class="location-value">📍 The Barley Mow</span>
         </div>
         <div class="competition-links">
           <a href="https://thebarleymowmarylebone.com/the-darts-league" target="_blank">Website</a>
@@ -131,7 +151,8 @@
       <div class="competition-content">
         <h2>Monsters Premier League (MPL)</h2>
         <p class="bold">🏅 2025 Winner: Filip</p>
-        <p>The MPL is an internal, invite only, summer round-robin tournament featuring the best of the Oche Ness Monsters. </p>
+        <p>The MPL is an internal, invite only, summer round-robin tournament featuring the best of the Oche Ness
+          Monsters. </p>
         <div class="location">
           <span class="location-label">Location:</span>
           <span class="location-value">📍 London</span>
@@ -156,5 +177,9 @@
     });
   });
 </script>
+
+<script src="scripts/comps.js"></script>
+
+
 
 </html>
