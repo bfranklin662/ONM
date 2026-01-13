@@ -1,6 +1,10 @@
 
 // scripts/player-landing.js
 document.addEventListener("DOMContentLoaded", async () => {
+  if (!window.PlayerData) {
+    console.error("PlayerData not found. Is scripts/player-data.js loaded before player-landing.js?");
+    return;
+  }
   const {
     SHEETS,
     KEYS,
@@ -11,24 +15,86 @@ document.addEventListener("DOMContentLoaded", async () => {
   } = window.PlayerData;
 
   function applyFanAnimationDelays(sortedPlayers) {
+    if (!grid) return;
     sortedPlayers.forEach((p, i) => {
       const card = grid.querySelector(`.player-card[data-player-key="${p.key}"]`);
       if (!card) return;
-
-      // Set delay based on sorted position
       card.style.animationDelay = `${i * 0.05}s`;
-
-      // Optional: restart animation so new delays apply even if it already ran
       card.style.animation = "none";
-      card.offsetHeight; // force reflow
+      card.offsetHeight;
       card.style.animation = "";
     });
   }
 
 
+
   const titleEl = document.getElementById("playerProfileTitle");
   const select = document.getElementById("playerSelect");
   const grid = document.getElementById("playersGrid");
+  const playerSearch = document.getElementById("playerSearch");
+
+  function getCardName(card) {
+    // Prefer a stable attribute if present
+    const h3 = card.querySelector(".player-card-name");
+    if (!h3) return "";
+
+    // If you add data-name later, this will just work:
+    const dataName = h3.getAttribute("data-name");
+    if (dataName) return dataName.trim().toLowerCase();
+
+    // Otherwise take only the first text node (name), not nickname div
+    const firstTextNode = Array.from(h3.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
+    return (firstTextNode?.textContent || h3.textContent || "").trim().toLowerCase();
+  }
+
+  function searchSortCards() {
+    if (!grid) return;
+    const q = (playerSearch?.value || "").trim().toLowerCase();
+
+    const cards = Array.from(grid.querySelectorAll(".player-card"));
+
+    cards.forEach(card => {
+      const name = getCardName(card);
+
+      const match = !q || name.includes(q);
+      card.style.display = match ? "" : "none";
+
+
+      // used for sorting
+      card._searchName = name;
+      card._matchIndex = q ? name.indexOf(q) : 0;
+    });
+
+    // Sort visible first, then best match, then alpha
+    cards.sort((a, b) => {
+      const ah = a.style.display === "none" ? 1 : 0;
+      const bh = b.style.display === "none" ? 1 : 0;
+
+      if (ah !== bh) return ah - bh;
+
+      if (a.style.display !== "none" && b.style.display !== "none" && q) {
+        if (a._matchIndex !== b._matchIndex) return a._matchIndex - b._matchIndex;
+      }
+
+      return (a._searchName || "").localeCompare(b._searchName || "", undefined, { sensitivity: "base" });
+    });
+
+    const frag = document.createDocumentFragment();
+    cards.forEach(c => frag.appendChild(c));
+    grid.appendChild(frag);
+  }
+
+  function applySearchIfActive() {
+    const q = (playerSearch?.value || "").trim();
+    if (q) searchSortCards();
+  }
+
+
+
+  playerSearch?.addEventListener("input", searchSortCards);
+
+
+
 
   if (titleEl) titleEl.textContent = "Players";
 
@@ -268,7 +334,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
 
 
-        <h3 class="player-card-name">
+        <h3 class="player-card-name" data-name="${escapeHtml(name)}">
           ${escapeHtml(name)}
           ${profile.nickname ? `<div class="player-card-nickname">"${escapeHtml(profile.nickname)}"</div>` : ""}
         </h3>
@@ -306,6 +372,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
     .join("");
 
+
+
+  searchSortCards();
 
   /* -------------------------------------------
      HELPER: index rows once (avoid O(N^2) scanning)
@@ -533,6 +602,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Re-apply fan delays based on sorted order
     applyFanAnimationDelays(playersWithStats);
+    applySearchIfActive();
+
 
   } catch (err) {
     console.error("renderPlayersLandingPage error:", err);
