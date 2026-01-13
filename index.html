@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width initial-scale=1">
   <link rel="stylesheet" href="styles/index.css">
   <link rel="stylesheet" href="styles/header.css">
+  <link rel="stylesheet" href="styles/fixtures.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="icon" type="image/png" href="/graphics/favicon1.png" sizes="32x32">
   <meta property="og:title" content="Oche Ness Monsters">
@@ -53,11 +54,25 @@
     <a href="fines.html">Fine Tracker</a>
   </div>
 
+  <div class="fixturesContainer">
+    <div class="fixturesGlass">
+      <div class="fixturesTitle">FIXTURES</div>
+
+      <div id="fixturesBanner" class="fixturesBanner" aria-label="Fixtures">
+        <!-- Carousel -->
+        <div id="fixturesCarousel" class="carouselWrap">
+          <button id="fixturesPrev" class="navArrow" type="button" aria-label="Previous fixture">‹</button>
+          <div id="fixturesStage" tabindex="0"></div>
+          <button id="fixturesNext" class="navArrow" type="button" aria-label="Next fixture">›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ABOUT SECTION -->
   <div class="page-wrap">
     <div class="about-container">
       <section class="about-section">
-        <h1>Welcome to the Oche Ness Monsters</h1>
         <h3>About Us</h3>
         <p>
           We are The Oche Ness Monsters, a fiercely competitive and wildly fun darts team based in the heart of London.
@@ -104,6 +119,8 @@
       </div>
     </div>
 
+
+
 </body>
 <script>
   function toggleSidebar() {
@@ -116,5 +133,6 @@
     });
   });
 </script>
+<script src="scripts/fixtures.js"></script>
 
 </html>
