@@ -100,6 +100,7 @@ function expandImage(src) {
   overlay.onclick = () => overlay.remove();
   document.body.appendChild(overlay);
 }
+
 let currentIndex = 0;
 let lightboxImages = [];
 let matchInfo = {};
@@ -114,28 +115,100 @@ function openLightbox(images, startIndex = 0, event, info = {}) {
   const lightbox = document.querySelector(".lightbox");
   const img = lightbox.querySelector(".lightbox-img");
 
-  updateLightboxInfo(); // sets title text (teams, date, venue)
-  img.src = images[startIndex];
+  updateLightboxInfo();
+
+  // Show spinner until the first image loads
+  setLightboxLoading(true);
+  preloadImage(images[startIndex])
+    .then(() => {
+      img.src = images[startIndex];
+    })
+    .catch(console.error)
+    .finally(() => {
+      setLightboxLoading(false);
+
+      // Preload neighbors
+      const after = images[(startIndex + 1) % images.length];
+      const before = images[(startIndex - 1 + images.length) % images.length];
+      preloadImage(after).catch(() => { });
+      preloadImage(before).catch(() => { });
+    });
 
   lightbox.classList.add("open");
   document.body.classList.add("no-scroll");
 }
 
-function showImage(index) {
-  const img = document.querySelector(".lightbox-img");
-  if (!img) return;
 
-  // Fade animation
-  img.classList.add("fade-out");
-  setTimeout(() => {
-    currentIndex = (index + lightboxImages.length) % lightboxImages.length;
-    img.src = lightboxImages[currentIndex];
-    updateLightboxInfo();
+let isSwitching = false;
+const imageCache = new Map(); // url -> true when loaded
 
-    img.classList.remove("fade-out");
-    img.classList.add("fade-in");
-    setTimeout(() => img.classList.remove("fade-in"), 200);
-  }, 200);
+function setLightboxLoading(isLoading) {
+  const spinner = document.querySelector(".lightbox-spinner");
+  if (!spinner) return;
+  spinner.classList.toggle("is-loading", isLoading);
+}
+
+function preloadImage(url) {
+  if (!url) return Promise.reject(new Error("Missing URL"));
+  if (imageCache.get(url)) return Promise.resolve(url);
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      imageCache.set(url, true);
+      resolve(url);
+    };
+    img.onerror = () => reject(new Error("Failed to load image: " + url));
+    img.src = url;
+  });
+}
+
+async function showImage(index) {
+  const imgEl = document.querySelector(".lightbox-img");
+  if (!imgEl || !lightboxImages.length) return;
+
+  // prevent spam-click race conditions
+  if (isSwitching) return;
+  isSwitching = true;
+
+  const nextIndex = (index + lightboxImages.length) % lightboxImages.length;
+  const nextUrl = lightboxImages[nextIndex];
+
+  // Update state immediately so UI (counter/title) advances right away
+  currentIndex = nextIndex;
+  updateLightboxInfo();
+
+  // Show spinner while loading
+  setLightboxLoading(true);
+
+  // Optional: fade current image slightly while loading
+  imgEl.classList.add("fade-out");
+
+  try {
+    await preloadImage(nextUrl);
+
+    // Swap to the new image only after it’s loaded
+    imgEl.src = nextUrl;
+
+    // Fade-in
+    imgEl.classList.remove("fade-out");
+    imgEl.classList.add("fade-in");
+    setTimeout(() => imgEl.classList.remove("fade-in"), 200);
+
+  } catch (err) {
+    console.error(err);
+    // If load fails, you can revert index or show an error message
+    // For now: just stop loading spinner.
+  } finally {
+    setLightboxLoading(false);
+    isSwitching = false;
+
+    // Preload neighbors to make navigation instant
+    const after = lightboxImages[(currentIndex + 1) % lightboxImages.length];
+    const before = lightboxImages[(currentIndex - 1 + lightboxImages.length) % lightboxImages.length];
+    preloadImage(after).catch(() => { });
+    preloadImage(before).catch(() => { });
+  }
 }
 
 function nextImage() {
@@ -145,13 +218,18 @@ function prevImage() {
   showImage(currentIndex - 1);
 }
 
+
+
 function closeLightbox() {
   document.querySelector(".lightbox").classList.remove("open");
   document.body.classList.remove("no-scroll");
 }
 function handleLightboxClick(event) {
-  // Only close if you clicked the dark background — not the image or buttons
-  if (event.target.classList.contains("lightbox")) {
+  // close if you clicked the backdrop (or the overlay itself)
+  if (
+    event.target.classList.contains("lightbox-backdrop") ||
+    event.target.classList.contains("lightbox")
+  ) {
     closeLightbox();
   }
 }
@@ -214,7 +292,7 @@ async function fetchDriveImages(folderId) {
     }
     const data = await res.json();
     if (!data.files || !data.files.length) return [];
-    return data.files.map((f) => `https://drive.google.com/thumbnail?id=${f.id}&sz=w800`);
+    return data.files.map((f) => `https://drive.google.com/thumbnail?id=${f.id}&sz=w400`);
   } catch (err) {
     console.error("fetchDriveImages error", err);
     return [];
@@ -342,20 +420,33 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
           }
 
 
+          const matchInfo = {
+            homeTeam: match.HomeTeam || "",
+            awayTeam: match.AwayTeam || "",
+            date: match.Date || "",
+            venue: match.Venue || "",
+          };
+
+          // ✅ JSON-safe for inline onclick (prevents apostrophe breaking)
+          const matchInfoJson = JSON.stringify(matchInfo)
+            .replace(/</g, "\\u003c")
+            .replace(/'/g, "\\u0027");
+
           const galleryImages = images.length
             ? `<div class="gallery-grid">${images
               .map(
                 (src, i) =>
-                  `<img src="${src}" alt="Match ${i + 1}" class="gallery-thumb"
-                       onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, {
-                         homeTeam: "${match.HomeTeam || ""}",
-                         awayTeam: "${match.AwayTeam || ""}",
-                         date: "${match.Date || ""}",
-                         venue: "${match.Venue || ""}"
-                       })'>`
+                  `<img src="${src}"
+                    data-drive-thumb="1"
+                    loading="lazy"
+                    decoding="async"
+                    alt="Match ${i + 1}"
+                    class="gallery-thumb"
+                onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'>`
               )
               .join("")}</div>`
             : `<div class="no-images">No photos available.</div>`;
+
 
           return `
             <div class="gallery-card ${(match.Result || "").toLowerCase()} ${match.Competition}">
@@ -441,7 +532,10 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
                   date: match.Date || "",
                   venue: match.Venue || "",
                 };
-                const matchInfoJson = JSON.stringify(matchInfo).replace(/</g, "\\u003c");
+                const matchInfoJson = JSON.stringify(matchInfo)
+                  .replace(/</g, "\\u003c")
+                  .replace(/'/g, "\\u0027"); // ✅ escape apostrophes for inline onclick
+
 
                 const galleryImages = images.length
                   ? `
@@ -494,7 +588,10 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
                 date: match.Date || "",
                 venue: match.Venue || "",
               };
-              const matchInfoJson = JSON.stringify(matchInfo).replace(/</g, "\\u003c");
+              const matchInfoJson = JSON.stringify(matchInfo)
+                .replace(/</g, "\\u003c")
+                .replace(/'/g, "\\u0027"); // ✅ escape apostrophes for inline onclick
+
 
               // 🧱 Build image grid
               const imageGrid = images.length
@@ -513,7 +610,11 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
                         )}, ${i}, event, ${matchInfoJson})'`
                         : ""
                       }>
-                        <img src="${src}" alt="Match photo ${i + 1}"
+                        <img src="${src}"
+                          data-drive-thumb="1"
+                          loading="lazy"
+                          decoding="async"
+                          alt="Match photo ${i + 1}"
                             onclick='openLightbox(${JSON.stringify(
                         images
                       )}, ${i}, event, ${matchInfoJson})'>
@@ -624,7 +725,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
                     ${images.length
                   ? `
                         <div class="result-images-corner"
-                            onclick='openLightbox(${JSON.stringify(
+                          onclick='event.stopPropagation(); openLightbox(${JSON.stringify(
                     images
                   )}, 0, event, ${matchInfoJson})'
                             title="Match photos">
@@ -676,6 +777,67 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
 }
 
 saveUserPrefs();
+
+// ✅ Robust thumbnail fallback + retry (for Drive thumbnails)
+(function setupImageFallbacks() {
+  // Captures image load errors anywhere on the page
+  document.addEventListener(
+    "error",
+    (e) => {
+      const img = e.target;
+      if (!(img instanceof HTMLImageElement)) return;
+
+      // Only handle images we mark
+      if (!img.dataset.driveThumb) return;
+
+      const tries = Number(img.dataset.tries || "0");
+      if (tries >= 2) return; // stop after 2 attempts
+
+      img.dataset.tries = String(tries + 1);
+
+      const orig = img.dataset.srcOrig || img.src;
+      img.dataset.srcOrig = orig;
+
+      // 1) First retry: same URL with cache-buster
+      if (tries === 0) {
+        img.src = addCacheBust(orig);
+        return;
+      }
+
+      // 2) Second retry: swap to an alternate URL format
+      // Works well when thumbnail endpoint is flaky
+      const alt = driveThumbToUc(orig);
+      if (alt && alt !== img.src) {
+        img.src = addCacheBust(alt);
+      }
+    },
+    true // IMPORTANT: capture phase to catch image load errors
+  );
+
+  function addCacheBust(url) {
+    try {
+      const u = new URL(url, window.location.href);
+      u.searchParams.set("cb", Date.now().toString());
+      return u.toString();
+    } catch {
+      // fallback if URL() fails
+      const sep = url.includes("?") ? "&" : "?";
+      return url + sep + "cb=" + Date.now();
+    }
+  }
+
+  function driveThumbToUc(url) {
+    // from: https://drive.google.com/thumbnail?id=FILEID&sz=w800
+    // to:   https://drive.google.com/uc?export=view&id=FILEID
+    const m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (!m) return "";
+    const id = m[1];
+    return `https://drive.google.com/uc?export=view&id=${id}`;
+  }
+})();
+
+
+
 
 function initPage() {
   // 1️⃣ Load saved preferences
@@ -1033,41 +1195,7 @@ function setupLeagueToggle(viewMode) {
 
 
 
-document.addEventListener("click", (e) => {
-  const card = e.target.closest(".result-card");
-  if (!card) return;
 
-  const btn = card.querySelector(".toggle-players");
-  const playerData = card.querySelector(".player-data");
-
-  if (!playerData || !btn) return;
-
-  // Stop click from triggering on nested elements
-  e.stopPropagation();
-
-  const isExpanded = playerData.classList.contains("expanded");
-  playerData.classList.toggle("expanded", !isExpanded);
-
-  // Toggle arrow direction
-  btn.textContent = isExpanded ? "▽" : "△";
-  btn.setAttribute("aria-expanded", !isExpanded);
-
-  // Handle image icon visibility
-  const imageIcon = card.querySelector(".result-images-corner");
-  if (imageIcon) {
-    if (!isExpanded) {
-      imageIcon.style.opacity = "0";
-      imageIcon.style.pointerEvents = "none";
-      setTimeout(() => (imageIcon.style.display = "none"), 300);
-    } else {
-      imageIcon.style.display = "flex";
-      requestAnimationFrame(() => {
-        imageIcon.style.opacity = "1";
-        imageIcon.style.pointerEvents = "auto";
-      });
-    }
-  }
-});
 
 
 const SLIDE_DURATION = 260; // ms
@@ -1109,20 +1237,26 @@ function cancelAndGetCurrentHeight(el) {
   return current;
 }
 
-// Delegated click listener
 document.addEventListener("click", (e) => {
+  // ✅ if user clicked an image (or image icon), don't toggle the card
+  if (e.target.closest(".result-images-corner, .match-image-grid, .gallery-thumb")) {
+    return;
+  }
+
   const card = e.target.closest(".result-card");
   if (!card) return;
 
   const btn = card.querySelector(".toggle-players");
   const playerData = card.querySelector(".player-data");
+  const imageIcon = card.querySelector(".result-images-corner"); // ✅ ADD THIS
 
   if (!playerData || !btn) return;
 
   btn.disabled = true;
 
   const isHidden = window.getComputedStyle(playerData).display === "none";
-  const imageIcon = card.querySelector(".result-images-corner");
+
+  // ✅ Hide image icon when opening, show when closing
   if (imageIcon) {
     imageIcon.style.display = isHidden ? "none" : "flex";
   }
@@ -1136,27 +1270,26 @@ document.addEventListener("click", (e) => {
   });
 });
 
+
 function animateOpen(el, duration = SLIDE_DURATION) {
   if (!el) return Promise.resolve();
+
+  // ✅ make sure CSS switches to "open" rules
+  el.classList.add("expanded");
 
   const wasHidden = window.getComputedStyle(el).display === "none";
   const prevHeight = cancelAndGetCurrentHeight(el);
 
-  if (wasHidden) {
-    el.style.display = "block";
-  }
+  if (wasHidden) el.style.display = "block";
 
-  const startHeight = (prevHeight != null && prevHeight > 0) ? prevHeight : (wasHidden ? 0 : el.getBoundingClientRect().height);
+  const startHeight = (prevHeight > 0) ? prevHeight : 0;
   const targetHeight = el.scrollHeight;
 
   el.style.overflow = "hidden";
   el.style.height = startHeight + "px";
 
   const anim = el.animate(
-    [
-      { height: startHeight + "px", opacity: 0 },
-      { height: targetHeight + "px", opacity: 1 }
-    ],
+    [{ height: startHeight + "px", opacity: 0 }, { height: targetHeight + "px", opacity: 1 }],
     { duration, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" }
   );
 
@@ -1167,7 +1300,6 @@ function animateOpen(el, duration = SLIDE_DURATION) {
       el.style.removeProperty("height");
       el.style.removeProperty("overflow");
       el.style.removeProperty("opacity");
-      el.classList.add("is-open");
       el._slideAnim = null;
       resolve();
     };
@@ -1181,17 +1313,13 @@ function animateOpen(el, duration = SLIDE_DURATION) {
 function animateClose(el, duration = SLIDE_DURATION) {
   if (!el) return Promise.resolve();
 
-  const prevHeight = cancelAndGetCurrentHeight(el);
-  const startHeight = (prevHeight != null && prevHeight > 0) ? prevHeight : el.getBoundingClientRect().height;
+  const startHeight = cancelAndGetCurrentHeight(el) || el.getBoundingClientRect().height;
 
   el.style.overflow = "hidden";
   el.style.height = startHeight + "px";
 
   const anim = el.animate(
-    [
-      { height: startHeight + "px", opacity: 1 },
-      { height: "0px", opacity: 0 }
-    ],
+    [{ height: startHeight + "px", opacity: 1 }, { height: "0px", opacity: 0 }],
     { duration, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" }
   );
 
@@ -1203,7 +1331,10 @@ function animateClose(el, duration = SLIDE_DURATION) {
       el.style.removeProperty("height");
       el.style.removeProperty("overflow");
       el.style.removeProperty("opacity");
-      el.classList.remove("is-open");
+
+      // ✅ remove the CSS "open" rules
+      el.classList.remove("expanded");
+
       el._slideAnim = null;
       resolve();
     };
@@ -1213,6 +1344,8 @@ function animateClose(el, duration = SLIDE_DURATION) {
     };
   });
 }
+
+
 
 function applyHashViewMode() {
   const hash = (window.location.hash || "").replace("#", "").toLowerCase();
