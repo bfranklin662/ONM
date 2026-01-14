@@ -4,6 +4,10 @@ let selectedSeason = "all";
 let selectedLeague = "all";
 let overallTotals = null;
 
+if (!window.PlayerData) {
+  console.error("PlayerData not found. Is scripts/player-data.js loaded before player-profile.js?");
+}
+
 const {
   SHEETS,
   KEYS,
@@ -17,10 +21,8 @@ const {
   safeParseDate,
   formatPrettyDate,
   countWinsAndLosses,
-  fetchPlayerPhotosFromDrive // ✅ ADD THIS
-} = window.PlayerData;
-
-
+  fetchPlayerPhotosFromDrive
+} = window.PlayerData || {};
 
 // ---------- ANIMATION HELPERS ----------
 
@@ -902,7 +904,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     playerSelect.addEventListener("change", e => {
       const v = e.target.value;
       if (!v) return;
-      window.location.href = `player.html?name=${encodeURIComponent(v)}`;
+      window.location.href = `player-profile.html?name=${encodeURIComponent(v)}`;
     });
   }
 
@@ -946,7 +948,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       accolades: Array.isArray(src.accolades) ? src.accolades : [],
       role: src.role || "",
       song: src.song || "",
-      photo: drivePhotos[key] || "images/default.jpg"
+      photo: drivePhotos[key] || "images/default.jpg",
+
+      // ✅ NEW
+      highestCheckout: (src["highest-checkout"] || "").toString().trim(),
+      gooch: (src.gooch || "").toString().trim().toLowerCase()
     };
   });
 
@@ -957,6 +963,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     const profileData =
       window.playerProfiles[playerName] ||
       { nickname: "", bio: "", photo: "images/default.jpg", accolades: [], role: "" };
+
+    const highestEl = document.getElementById("playerHighestCheckout");
+    if (highestEl) {
+      const hc = (profileData.highestCheckout || "").trim();
+      highestEl.innerHTML = `
+    <span class="meta-label">Highest checkout:</span>
+    <span class="meta-value">${hc ? escapeHtml(hc) : "No ton+ outs"}</span>
+  `;
+    }
+
+    const goochEl = document.getElementById("playerGooch");
+    if (goochEl) {
+      const isYes = profileData.gooch === "yes" || profileData.gooch === "true";
+
+      goochEl.innerHTML = `
+    <div class="gooch-wrap">
+      <div class="gooch-item">
+        <span class="meta-label">Gooch:</span>
+        <span class="gooch-checkbox ${isYes ? "is-yes" : ""}" aria-label="Gooch"></span>
+      </div>
+
+      <div class="bagel-item">
+        <span class="meta-label">Bagels:</span>
+        <span class="meta-value" id="playerBagels">—</span>
+      </div>
+    </div>
+  `;
+    }
+
 
 
     function toSpotifyEmbedUrl(url) {
@@ -1112,7 +1147,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 // Back button → go to All Players landing
 document.addEventListener("click", e => {
   if (e.target.id === "backToPlayers") {
-    window.location.href = "players.html"; // shows landing page
+    window.location.href = "players-profile.html"; // shows landing page
   }
 });
 
@@ -1304,6 +1339,13 @@ async function loadSeasonData(season) {
     };
 
     updateStatsTable(payload);
+
+    // ✅ Update Bagels in profile header
+    const bagelsEl = document.getElementById("playerBagels");
+    if (bagelsEl && payload?.overall?.Bagels != null) {
+      bagelsEl.textContent = payload.overall.Bagels;
+    }
+
     const statRows = document.querySelectorAll(".player-stats-table .stats-row");
     statRows.forEach((row, i) => {
       row.style.animationDelay = `${i * 0.07}s`;
