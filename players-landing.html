@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oche Ness Monsters | Players</title>
+  <link rel="stylesheet" href="styles/header.css">
+  <link rel="stylesheet" href="styles/buttons.css">
+  <link rel="stylesheet" href="styles/index.css">
+
+  <link rel="stylesheet" href="styles/players-landing.css">
+  <link rel="icon" type="image/png" href="/graphics/favicon1.png" sizes="32x32">
+  <meta property="og:title" content="Oche Ness Monsters">
+  <meta property="og:description" content="London based darts team">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ochenessmonsters.com">
+  <meta property="og:image" content="https://i.ibb.co/FbGDQDjq/ONMmeta.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="logo-container">
+      <img class="logo" src="graphics/onmLogoWhiteFit.png">
+    </div>
+    <div class="logo-container">
+      <a href="/">
+        <img class="top-left-logo" src="graphics/logoWText.png">
+      </a>
+    </div>
+    <nav class="nav-links desktop-nav">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="comps.html">Comps</a></li>
+        <li><a href="results.html">Results & Stats</a></li>
+        <li><a href="players-landing.html" class="active">Players</a></li>
+        <li><a href="fines.html">Fine Tracker</a></li>
+      </ul>
+    </nav>
+    <!-- Hamburger Menu Icon -->
+    <div class="hamburger" onclick="toggleSidebar()">
+      ☰
+    </div>
+
+  </header>
+
+  <!-- Sidebar (Mobile Nav) -->
+  <div id="sidebar" class="sidebar">
+    <div class="close-btn" onclick="toggleSidebar()">✖</div>
+    <a href="/">Home</a>
+    <a href="comps.html">Comps</a>
+    <a href="results.html">Results & Stats</a>
+    <a href="players-landing.html">Players</a>
+    <a href="fines.html">Fine Tracker</a>
+  </div>
+
+  <main>
+
+    <div class="player-stats-container">
+      <!-- Shared-style header, but landing-only behaviour -->
+      <div class="stats-header main-profile-header">
+
+        <!-- LEFT -->
+        <div class="stats-header-left">
+          
+          <label class="sort-label" for="sortBySelect">
+            Sort by:
+            <select id="sortBySelect" class="sort-select">
+              <option value="checkouts" selected>Checkouts</option>
+              <option value="coRatio">Checkout Ratio</option>
+              <option value="played">Games played</option>
+              <option value="wins">Wins</option>
+              <option value="fines">Fines</option>
+              <option value="fineRatio">Fine Ratio</option>
+              <option value="one80s">180 Count</option>
+              <option value="bulls">Bull-Outs</option>
+              <option value="tonPlus">Ton+ Outs</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- MIDDLE -->
+        <div class="stats-header-middle">
+          <h2 class="profile-title title-middle only-desktop">
+            Players
+          </h2>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="stats-header-right">
+          <div class="players-search">
+            <input id="playerSearch" class="player-search" type="search" placeholder="Search players…"
+              autocomplete="off" />
+          </div>
+        </div>
+
+
+      </div>
+
+
+      <section id="playersLanding">
+        <div class="players-landing-wrapper">
+          <div id="playersGrid" class="players-grid"></div>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <script src="scripts/player-data.js"></script>
+  <script src="scripts/player-landing.js"></script>
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("active");
+    }
+    document.querySelectorAll("#sidebar a").forEach(a => {
+      a.addEventListener("click", () => {
+        document.getElementById("sidebar").classList.remove("active");
+      });
+    });
+  </script>
+</body>
+
+</html>
