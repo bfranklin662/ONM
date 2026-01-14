@@ -151,7 +151,7 @@ h1:after {
   font-weight: 500;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  transition: all 0.5s ease;
+  transition: all 0.2s ease;
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.1);
   margin-bottom: 5px;
 }
@@ -164,6 +164,7 @@ h1:after {
   text-decoration: none;
   background: linear-gradient(180deg, #0e1b2c, #08131f91);
   border: 1.8px solid rgba(0, 200, 255, 0.35);
+  transition: all 0.2s ease;
 
 }
 
