@@ -33,7 +33,7 @@
         <li><a href="/">Home</a></li>
         <li><a href="comps.html">Comps</a></li>
         <li><a href="results.html" class="active">Results & Stats</a></li>
-        <li><a href="players.html">Players</a></li>
+        <li><a href="players-landing.html">Players</a></li>
         <li><a href="fines.html">Fine Tracker</a></li>
       </ul>
     </nav>
@@ -50,7 +50,7 @@
     <a href="/">Home</a>
     <a href="comps.html">Comps</a>
     <a href="results.html">Results & Stats</a>
-    <a href="players.html">Players</a>
+    <a href="players-landing.html">Players</a>
     <a href="fines.html">Fine Tracker</a>
   </div>
 
@@ -101,13 +101,14 @@
     <div class="lightbox-content">
       <button class="lightbox-prev" onclick="prevImage()">❮</button>
       <div class="lightbox-info-top"></div>
+
       <img class="lightbox-img" src="" alt="Match image">
+      <div class="lightbox-spinner" aria-hidden="true"></div> <!-- ✅ ADD THIS -->
+
       <div class="lightbox-info-bottom"></div>
       <button class="lightbox-next" onclick="nextImage()">❯</button>
     </div>
   </div>
-
-
 </body>
 
 </html>
