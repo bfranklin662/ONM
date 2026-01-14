@@ -88,8 +88,6 @@
   z-index: 100000;
 }
 
-
-
 [data-tooltip]:hover::before {
   content: "";
   position: absolute;
@@ -651,35 +649,6 @@
   justify-content: center;
 }
 
-.stat-badge {
-  display: inline-block;
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 2px 3px;
-  border-radius: 6px;
-  color: #fff;
-  text-transform: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
-  white-space: nowrap;
-}
-
-/* active/colour rules you already have - repeat/ensure these exist */
-.stat-badge.active.badge-180 {
-  background: linear-gradient(135deg, #ff6b6b, #ff1e1e);
-}
-
-.stat-badge.active.badge-bull {
-  background: linear-gradient(135deg, #00d084, #009e60);
-}
-
-.stat-badge.active.badge-ton {
-  background: linear-gradient(135deg, #1e90ff, #007bff);
-}
-
-.stat-badge.inactive {
-  background: #8a8a8ab5;
-  color: #c1c1c1;
-}
 
 
 
@@ -811,10 +780,7 @@
   align-items: center;
 }
 
-.specials-cell .stat-badge {
-  margin: 0 2px;
-  line-height: 1.2;
-}
+
 
 
 .badge {
@@ -830,17 +796,7 @@
   display: inline-flex;
 }
 
-.badge-180 {
-  background: linear-gradient(135deg, #ff6b6b, #ff1e1e);
-}
 
-.badge-bull {
-  background: linear-gradient(135deg, #00d084, #009e60);
-}
-
-.badge-ton {
-  background: linear-gradient(135deg, #1e90ff, #007bff);
-}
 
 .league-name.banks {
   color: #007bff;
@@ -969,52 +925,7 @@
   margin-top: 10px;
 }
 
-.stat-badge {
-  display: inline-block;
-  min-width: 48px;
-  text-align: center;
-  font-size: 0.75rem;
-  padding: 4px 6px;
-  border-radius: 6px;
-  font-weight: 600;
-  text-transform: uppercase;
-  transition: 0.2s ease;
-}
 
-.stat-badge[title] {
-  pointer-events: none;
-}
-
-/* Active badge styles (already provided) */
-
-
-
-/* Inactive stays grey */
-.stat-badge.inactive {
-  background: #8a8a8ab5;
-  color: #c1c1c1;
-  opacity: 0.6;
-}
-
-
-/* ACTIVE badges (player achieved at least 1) */
-.stat-badge.active.badge-180 {
-  background: linear-gradient(135deg, #ff6b6b, #ff1e1e);
-}
-
-.stat-badge.active.badge-bull {
-  background: linear-gradient(135deg, #00d084, #009e60);
-}
-
-.stat-badge.active.badge-ton {
-  background: linear-gradient(135deg, #1e90ff, #007bff);
-}
-
-/* INACTIVE (0) */
-.stat-badge.inactive {
-  background: #8a8a8ab5;
-  color: #c1c1c1;
-}
 
 /* Tooltip styling */
 .stat-badge[data-tooltip] {
@@ -1581,20 +1492,7 @@
   gap: 6px;
 }
 
-/* Badge styling reused */
-.stat-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  padding: 2px 6px;
-  border-radius: 6px;
-  color: #fff;
-  opacity: 0.9;
-}
 
-.stat-badge.inactive {
-  background: #8a8a8ab5;
-  color: #c1c1c1;
-}
 
 /* ============================================================
    FULL OVERRIDE: PLAYER STATS TABLE = APPEARANCES TABLE STYLE
@@ -1859,9 +1757,6 @@
   margin: 0 2px;
 }
 
-.appearances-table-simple .stat-badge.inactive {
-  opacity: 0.3;
-}
 
 /* Season block spacing */
 .appearance-season-block {
@@ -1883,17 +1778,6 @@
   border-left: 5px solid #ff7b00;
 }
 
-
-
-
-
-
-
-
-/* If your badges already have colours elsewhere, these will just help alignment */
-.player-stats-table .stat-badge.inactive {
-  opacity: 0.35;
-}
 
 .player-stats-header {
   display: flex;
@@ -2306,6 +2190,8 @@
   white-space: nowrap;
 }
 
+
+
 /* Active badges */
 .stat-badge.active.badge-180 {
   background: #ffd9002a;
@@ -2327,6 +2213,48 @@
   background: #8a8a8a44;
   border: 1px solid #8a8a8ad3;
   color: #c1c1c1;
+}
+
+/* === OVERALL SPECIALS (fix badge sizing + alignment) === */
+#overall-specials {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+/* Hard-lock badge size so text never changes box width */
+#overall-specials .stat-badge {
+  display: flex;
+  /* so justify-content works */
+  align-items: center;
+  justify-content: center;
+
+  width: 70px;
+  /* ✅ fixed width */
+  flex: 0 0 70px;
+  /* ✅ don't grow, don't shrink, stay 70px */
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* ✅ if text too long, show ... */
+}
+
+/* If you want them slightly smaller on smaller screens */
+@media (max-width: 1110px) {
+  #overall-specials .stat-badge {
+    width: 60px;
+    flex-basis: 60px;
+  }
+}
+
+@media (max-width: 420px) {
+  #overall-specials {
+    flex-wrap: nowrap;
+  }
 }
 
 
@@ -2711,6 +2639,111 @@
   background: rgba(0, 0, 0, 0.35);
 }
 
+
+
+.info-item {
+  color: #fff;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.info-bio {
+  grid-column: 1 / -1;
+}
+
+.info-item .meta-label {
+  opacity: .8;
+  font-weight: 600;
+  margin-right: 6px;
+  white-space: nowrap;
+}
+
+.info-item .meta-value {
+  opacity: .95;
+  font-weight: 600;
+}
+
+.gooch-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  gap: 32px;
+}
+
+.gooch-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, .35);
+  background: rgba(0, 0, 0, .25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.gooch-item,
+.bagel-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+
+
+.gooch-checkbox.is-yes::after {
+  content: "✓";
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.player-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 28px;
+  margin-top: 8px;
+  align-items: start;
+}
+
+/* Force the 2x2 placement (prevents 3-left/1-right) */
+.player-info-grid #playerNickname {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.player-info-grid .player-meta {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.player-info-grid #playerHighestCheckout {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.player-info-grid #playerGooch {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+/* Make sure nothing inside the grid is spanning both columns */
+.player-info-grid>* {
+  min-width: 0;
+  width: auto;
+}
+
+@media (max-width: 700px) {
+
+  /* On mobile let them flow naturally */
+  .player-info-grid #playerNickname,
+  .player-info-grid .player-meta,
+  .player-info-grid #playerHighestCheckout,
+  .player-info-grid #playerGooch {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
 
 
 
@@ -3114,14 +3147,6 @@
   z-index: 3;
 }
 
-.stats-header.main-profile-header {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  /* left | middle | right */
-  align-items: center;
-  column-gap: 12px;
-}
-
 
 
 /* 1) Make the header layout deterministic */
@@ -3141,6 +3166,9 @@
   justify-self: center;
 }
 
+.info-bio {
+  max-width: 690px;
+}
 
 /* TABLET / SMALL DESKTOP: designed layout (not just "stack everything") */
 @media (max-width: 1110px) {
@@ -3159,6 +3187,29 @@
     text-align: center;
   }
 
+  .player-info-grid {
+    grid-template-columns: 1fr;
+    /* stack */
+    gap: 7px;
+  }
+
+  .info-bio {
+    margin-bottom: 17px !important;
+  }
+
+  /* remove any forced grid placement you added earlier */
+  .player-info-grid #playerNickname,
+  .player-info-grid .player-meta,
+  .player-info-grid #playerHighestCheckout,
+  .player-info-grid #playerGooch {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  /* Make Gooch checkbox sit on the right like other values */
+  .gooch-wrap {
+    justify-content: center;
+  }
 
   /* Make each column behave like a centered block of same width */
   .col-photo {
@@ -3202,7 +3253,6 @@
     max-width: 560px;
     /* tweak to taste */
     margin: 0 auto;
-    margin-bottom: 15px;
   }
 
   /* --- Bottom row layout: walkout bottom-left, last5/medals bottom-right --- */
@@ -3493,12 +3543,24 @@
     padding: 2px 3px;
   }
 
+  .appearance-season-title {
+    font-size: 0.8rem;
+  }
+
   .profile-stats-row {
     gap: 5px;
   }
 
   .profile-stats-grid {
     gap: 5px;
+  }
+
+  .player-stats-table td {
+    font-size: 0.8rem !important;
+  }
+
+  .player-stats-table th {
+    font-size: 0.8rem !important;
   }
 
   .profile-stat-box .value {
@@ -3538,30 +3600,7 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   }
 
-  #overall-specials {
-    display: flex;
-    flex-wrap: nowrap;
-    /* ✅ no wrapping */
-    overflow: hidden;
-    /* ✅ no overflow */
-    gap: 6px;
-    min-width: 0;
-    /* ✅ allows flex children to shrink */
-    justify-content: center;
-    /* or flex-end / flex-start */
-  }
 
-  #overall-specials .stat-badge {
-    flex: 1 1 0;
-    /* ✅ badges share space */
-    min-width: 0;
-    /* ✅ allow text to shrink */
-    white-space: nowrap;
-    /* ✅ keep badge text single-line */
-    overflow: hidden;
-    /* ✅ prevent text overflow */
-
-  }
 }
 
 /*season stats */
@@ -3576,6 +3615,7 @@
     /* full width */
     gap: 8px;
   }
+
 
   .season-btn,
   .league-btn {
@@ -3669,4 +3709,8 @@
 
 .profile-photo-frame.is-loading .photo-loader {
   opacity: 1;
+}
+
+.stats-title {
+  margin: 0 auto;
 }
