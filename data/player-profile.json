@@ -2,8 +2,9 @@
     "Ricky": {
       "nickname": "Captain Curfew",
       "photo": "images/players/ricky.jpg",
-      "bio": "Co-founder and captain. Loves the armband, Argyle till he dies, dry January survivor, failed to keep his bike accident a secret.",
+      "bio": "Co-founder and captain. Loves the armband, Argyle till he dies, dry January survivor, don't mention the bike.",
       "accolades": ["banks_winner_24_25", "alex_beckett_winner_25"],
+      "song": "https://open.spotify.com/track/7x8dCjCr0x6x2lXKujYD34?si=0a48cbc12f664492",
       "role": "captain"
     },
     "Nick": {
@@ -12,25 +13,33 @@
       "bio": "Co-founder and captain. Gym lover with chaotic darts technique. Autistically dedicated to websites, data, and immaculate spreadsheets.",
       "accolades": ["banks_winner_24_25", "alex_beckett_winner_25"],
       "role": "captain",
-      "song": "https://open.spotify.com/track/2ihCaVdNZmnHZWt0fvAM7B?si=37c651c44c57476a"
+      "song": "https://open.spotify.com/track/2ihCaVdNZmnHZWt0fvAM7B?si=37c651c44c57476a",
+      "highest-checkout": "122",
+      "gooch": "yes"
     },
     "Phil L": {
       "nickname": "The Unmute Button",
       "photo": "images/players/philL.jpg",
       "bio": "OG Monster and vice-captain. Software dev by day, unstoppable chatterbox by night, fuelled by beer and dog stories.",
-      "accolades": ["banks_winner_24_25", "alex_beckett_winner_25"]
+      "accolades": ["banks_winner_24_25", "alex_beckett_winner_25"],
+      "song": "https://open.spotify.com/track/4GvIHtWAavGmq5WkWpvroZ?si=9d6e16f2f9f34b77",
+      "gooch": "yes"
     },
     "Rob": {
-      "nickname": "One-Eighty Wonder",
+      "nickname": "The Loud Mouse",
       "photo": "images/players/rob.jpg",
-      "bio": "Opened his Monsters career with a 180 and retired the trick immediately. Builds kids’ games, occasionally plays cricket.",
-      "accolades": ["banks_winner_24_25"]
+      "bio": "Tiny stature, massive chat. Fired a debut 180, then ghosted the treble for a year. Fast thrower, AI image addict.",
+      "accolades": ["banks_winner_24_25"],
+      "song": "https://open.spotify.com/track/7oHymG8r14Iv9zn5hFTNax?si=ec3d60f370994618",
+      "highest-checkout": "100",
+      "gooch": "yes"
     },
     "Filip": {
       "nickname": "Average Merchant",
       "photo": "images/players/filip.jpg",
       "bio": "Obsessed with posting averages, never quiet, always up for DC. Passionate, emotional, and prone to losing his head mid-match.",
-      "accolades": ["banks_winner_24_25", "alex_beckett_winner_25", "mpl_winner_25"]
+      "accolades": ["banks_winner_24_25", "alex_beckett_winner_25", "mpl_winner_25"],
+      "highest-checkout": "140"
     },
     "James B": {
       "nickname": "Vegas Missing",
@@ -41,12 +50,14 @@
       "nickname": "The Fine Collector",
       "photo": "images/players/george.jpg",
       "bio": "Welsh countryside export. Fined very often, missed the board plenty. Runs a glove company, dodges HMRC rumours.",
-      "accolades": ["banks_winner_24_25"]
+      "accolades": ["banks_winner_24_25"],
+      "gooch": "yes"
     },
     "Jack": {
       "nickname": "The Aussie Import",
       "photo": "images/players/jack.jpg",
-      "bio": "Scouted from the Alex Beckett league. 180 machine from down under, premium signing, usually found in the smoking area."
+      "bio": "Scouted from the Alex Beckett league. 180 machine from down under, premium signing, usually found in the smoking area.",
+      "gooch": "yes"
     },
     "Paddy": {
       "nickname": "Baby Guinness Bandit",
@@ -64,12 +75,14 @@
       "nickname": "The Annual Appearance",
       "photo": "images/players/simon.jpg",
       "bio": "Appears once a season, usually injured. Throws nothing straight but remains strangely optimistic every single year.",
-      "accolades": ["banks_winner_24_25"]
+      "accolades": ["banks_winner_24_25"],
+      "gooch": "yes"
     },
     "Andre": {
       "nickname": "Round-The-Board Royalty",
       "photo": "images/players/andre.jpg",
-      "bio": "Alex Beckett legend and record-holder. First Monster to nail a ton-plus bull finish. Dreadlocked, calm, quietly deadly."
+      "bio": "Alex Beckett legend and record-holder. First Monster to nail a ton-plus bull finish. Dreadlocked, calm, quietly deadly.",
+      "highest-checkout": "117"
     },
     "Fraser": {
       "nickname": "The Translator Required",
@@ -105,7 +118,8 @@
     "Luke": {
       "nickname": "The Budget Littler",
       "photo": "images/players/luke.jpg",
-      "bio": "Young gun and Exeter City fan. Loves a Paddy Power board, confident thrower, and showing flashes of serious potential."
+      "bio": "Young gun and Exeter City fan. Loves a Paddy Power board, confident thrower, and showing flashes of serious potential.",
+      "gooch": "yes"
     },
     "Magnus": {
       "nickname": "The Traitorous Baker",
