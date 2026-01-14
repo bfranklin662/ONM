@@ -294,7 +294,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     select.addEventListener("change", e => {
       const value = e.target.value;
       if (value === "All") return;
-      location.href = `player.html?name=${encodeURIComponent(value)}`;
+      location.href = `player-profile.html?name=${encodeURIComponent(value)}`;
     });
   }
 
@@ -364,7 +364,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         
 
         <button class="btn player-card-btn"
-          onclick="location.href='player.html?name=${encodeURIComponent(name)}'">
+          onclick="location.href='player-profile.html?name=${encodeURIComponent(name)}'">
           Player Profile
         </button>
       </article>
@@ -381,16 +381,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   -------------------------------------------- */
   const makeIndex = (rows) => {
     const map = new Map();
-    if (!Array.isArray(rows)) return map;
+    if (!Array.isArray(rows) || !rows.length) return map;
+
+    // Try to find the player column in a tolerant way
+    const cols = Object.keys(rows[0] || {});
+    const playerCol =
+      cols.find(c => c.trim().toLowerCase() === "player") ||
+      cols.find(c => c.trim().toLowerCase() === "name") ||
+      cols.find(c => c.trim().toLowerCase().includes("player")) ||
+      cols.find(c => c.trim().toLowerCase().includes("name"));
+
+    if (!playerCol) {
+      console.warn("makeIndex: could not find player/name column in rows. Columns:", cols);
+      return map;
+    }
 
     for (const r of rows) {
-      const key = ((r.Player || r.Name || "") + "")
-        .trim()
-        .toLowerCase();
+      const raw = (r[playerCol] ?? "").toString();
+      const key = raw.trim().toLowerCase();
       if (key) map.set(key, r);
     }
     return map;
   };
+
 
   /* -------------------------------------------
      LOAD STATS (already in-flight) & update UI
@@ -403,6 +416,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       apps25Promise,
       apps24Promise
     ]);
+    console.log("Traf URL:", SHEETS?.traf?.["25-26"]);
+    console.log("traf25 type:", Array.isArray(traf25) ? "array" : typeof traf25, "len:", Array.isArray(traf25) ? traf25.length : "n/a");
+    console.log("traf25 first row:", Array.isArray(traf25) ? traf25[0] : traf25);
+
 
     const allAppsRows = [
       ...(Array.isArray(apps25) ? apps25 : []),
@@ -433,6 +450,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const b25Index = makeIndex(banks25);
     const t25Index = makeIndex(traf25);
+
     const b24Index = makeIndex(banks24);
 
     const playersWithStats = allPlayers.map(name => {
@@ -622,6 +640,118 @@ document.addEventListener("DOMContentLoaded", async () => {
     msg.textContent = "Error loading player stats";
     grid.prepend(msg);
   }
-  initTooltips();
+
+  // ✅ One tooltip system: hover on desktop, tap on mobile (no initTooltips)
+  (function enableUnifiedTooltips() {
+    const tooltip = document.createElement("div");
+    tooltip.className = "tap-tooltip";
+    document.body.appendChild(tooltip);
+
+    let hideTimer = null;
+    let lastTarget = null;
+
+    function hide() {
+      tooltip.classList.remove("show");
+      tooltip.textContent = "";
+      lastTarget = null;
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = null;
+    }
+
+    function positionFor(el) {
+      const r = el.getBoundingClientRect();
+      const pad = 10;
+
+      // make sure it has dimensions before positioning
+      tooltip.style.top = "0px";
+      tooltip.style.left = "0px";
+
+      const top = Math.max(pad, r.top + window.scrollY - tooltip.offsetHeight - 10);
+      const left = Math.min(
+        window.innerWidth - tooltip.offsetWidth - pad,
+        Math.max(pad, r.left + window.scrollX + (r.width / 2) - (tooltip.offsetWidth / 2))
+      );
+
+      tooltip.style.top = `${top}px`;
+      tooltip.style.left = `${left}px`;
+    }
+
+    function showFor(el, { autoHide = false } = {}) {
+      const text = el.getAttribute("data-tooltip");
+      if (!text) return;
+
+      tooltip.textContent = text;
+      tooltip.classList.add("show");
+      lastTarget = el;
+
+      // Wait a tick so tooltip has width/height
+      requestAnimationFrame(() => positionFor(el));
+
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = null;
+
+      if (autoHide) {
+        hideTimer = setTimeout(hide, 2200);
+      }
+    }
+
+    // Detect if we should treat input as touch
+    const isTouch = () =>
+      window.matchMedia?.("(hover: none)").matches ||
+      window.matchMedia?.("(pointer: coarse)").matches;
+
+    // --- TAP (mobile) ---
+    document.addEventListener("pointerdown", (e) => {
+      const target = e.target.closest("[data-tooltip]");
+      if (!target) {
+        // tap outside closes
+        hide();
+        return;
+      }
+
+      // Only "tap behavior" for touch devices
+      if (!isTouch()) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Toggle on same target
+      if (lastTarget === target && tooltip.classList.contains("show")) {
+        hide();
+      } else {
+        showFor(target, { autoHide: true });
+      }
+    }, { passive: false });
+
+    // --- HOVER (desktop mouse) ---
+    document.addEventListener("mouseenter", (e) => {
+      const target = e.target.closest?.("[data-tooltip]");
+      if (!target) return;
+
+      // Only hover behavior for non-touch environments
+      if (isTouch()) return;
+
+      showFor(target, { autoHide: false });
+    }, true);
+
+    document.addEventListener("mousemove", (e) => {
+      if (!tooltip.classList.contains("show")) return;
+      if (!lastTarget) return;
+      if (isTouch()) return;
+      positionFor(lastTarget);
+    }, { passive: true });
+
+    document.addEventListener("mouseleave", (e) => {
+      const target = e.target.closest?.("[data-tooltip]");
+      if (!target) return;
+      if (isTouch()) return;
+
+      hide();
+    }, true);
+
+    window.addEventListener("scroll", hide, { passive: true });
+    window.addEventListener("resize", hide);
+  })();
+
 
 });
