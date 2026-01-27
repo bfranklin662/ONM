@@ -69,7 +69,9 @@
       "nickname": "Billie Arrows",
       "photo": "images/players/billiams.jpg",
       "bio": "OG Monster. Accident-prone, scruffy, vanished for three days in 2023. Loves late nights, no first name, endless stories.",
-      "accolades": ["banks_winner_24_25"]
+      "accolades": ["banks_winner_24_25"],
+      "song": "https://open.spotify.com/track/6myDPrp86x4Lhyp5aqU0EV?si=c267f9f8dfc04a62",
+      "gooch": "yes"
     },
     "Simon": {
       "nickname": "The Annual Appearance",
@@ -87,13 +89,15 @@
     "Fraser": {
       "nickname": "The Translator Required",
       "photo": "images/players/fraser.jpg",
-      "bio": "Glaswegian Trainline alumni. Impossible to understand, always smoking, louder after beers, somehow still effective at the oche."
+      "bio": "Glaswegian Trainline alumni. Impossible to understand, always smoking, louder after beers, somehow still effective at the oche.",
+      "gooch": "yes"
     },
     "Phil A": {
       "nickname": "Fancy Dress Phil",
       "photo": "images/players/philA.jpg",
       "bio": "Not actually named Argyle, just obsessed with them. Puts alarming effort into fancy dress and Plymouth loyalty.",
-      "accolades": ["banks_winner_24_25"]
+      "accolades": ["banks_winner_24_25"],
+      "gooch": "yes"
     },
     "James R": {
       "nickname": "Warm-Up Wizard",
@@ -141,6 +145,10 @@
     "Bobby": {
       "nickname": "Smeagol With Delts",
       "photo": "images/players/bobby.jpg",
-      "bio": "Shockingly muscly, suspiciously bald. Looks like Gollum, throws with menace, and never remove the cap under any circumstances."
+      "bio": "Shockingly muscly, suspiciously bald. Looks like Gollum, throws with menace, and never remove the cap under any circumstances.",
+      "gooch": "yes"
+    },
+    "Nick B": {
+      "photo": "images/players/nickB.JPG"
     }
 }
