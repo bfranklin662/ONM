@@ -119,50 +119,76 @@
     }[c]));
   }
 
-  function playerAppearsInRow(row = {}, player) {
-    if (!row || !player) return false;
-    const target = player.trim().toLowerCase();
+  function normName(s) {
+    return (s || "")
+      .toString()
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+  }
 
-    // strict Player1..Player20
-    for (let i = 1; i <= 20; i++) {
-      const keys = [
-        `Player${i}`,
-        `Player ${i}`,
-        `P${i}`,
-        `P ${i}`
-      ];
-      for (const k of keys) {
-        if (row[k] != null) {
-          const val = String(row[k]).trim().toLowerCase();
-          if (val === target) return true;
-        }
-      }
+  function cellHasPlayer(cellValue, playerName) {
+    const target = normName(playerName);
+    const cell = normName(cellValue);
+    if (!cell) return false;
+
+    // If the cell is just one name: require exact equality
+    if (!cell.includes(",") && !cell.includes("&") && !cell.includes("/") && !cell.includes(" and ")) {
+      return cell === target;
     }
 
-    // loose scan
-    for (const k of Object.keys(row)) {
-      const v = row[k];
-      if (typeof v === "string" && v.toLowerCase().includes(target)) {
-        return true;
-      }
+    // If multiple players are packed in a cell, split and match exact token
+    const parts = cell
+      .split(/,|&|\/|\band\b/gi)
+      .map(p => normName(p))
+      .filter(Boolean);
+
+    return parts.includes(target);
+  }
+
+  function playerAppearsInRow(row = {}, playerName) {
+    // Look through all columns and only consider ones that look like player name columns
+    // e.g. Player1, Player 1, P1, P 1, etc.
+    for (const key of Object.keys(row)) {
+      const k = key.trim().toLowerCase();
+
+      const isPlayerCol =
+        /^player\s*\d+$/.test(k) ||   // Player1 / Player 1
+        /^p\s*\d+$/.test(k);          // P1 / P 1
+
+      if (!isPlayerCol) continue;
+
+      if (cellHasPlayer(row[key], playerName)) return true;
     }
+
     return false;
   }
 
+
+
   function findPlayerIndexInRow(row = {}, player) {
-    const target = player.trim().toLowerCase();
     for (const key of Object.keys(row)) {
-      const lower = key.toLowerCase();
-      if (lower.startsWith("player")) {
-        const value = String(row[key]).trim().toLowerCase();
-        if (value === target) {
-          const num = parseInt(lower.replace("player", ""), 10);
-          return num;
+      const k = key.trim().toLowerCase();
+
+      // Player1 / Player 1
+      if (/^player\s*\d+$/.test(k)) {
+        if (cellHasPlayer(row[key], player)) {
+          const num = parseInt(k.replace("player", ""), 10);
+          return isNaN(num) ? null : num;
+        }
+      }
+
+      // P1 / P 1 (if your sheet ever uses these)
+      if (/^p\s*\d+$/.test(k)) {
+        if (cellHasPlayer(row[key], player)) {
+          const num = parseInt(k.replace("p", ""), 10);
+          return isNaN(num) ? null : num;
         }
       }
     }
     return null;
   }
+
 
   function extractPlayerMatchStatsFromRow(row = {}, player) {
     const idx = findPlayerIndexInRow(row, player);
