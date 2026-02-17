@@ -217,14 +217,7 @@
     "HA": "Home",
     "Location": "The Horseshoe"
   },
-  {
-    "League": "Banks League",
-    "Day": "Tuesday",
-    "Date": "17th Feb 2026",
-    "Opponent": "Standard Chartered",
-    "HA": "Away",
-    "Location": "The Artful Dodger"
-  },
+  
   {
     "League": "Trafalgar League",
     "Day": "Wednesday",
@@ -304,6 +297,14 @@
     "Opponent": "Lloyds City",
     "HA": "Home",
     "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "7th Apr 2026",
+    "Opponent": "Standard Chartered",
+    "HA": "Away",
+    "Location": "The Artful Dodger"
   },
   {
     "League": "Trafalgar League",
