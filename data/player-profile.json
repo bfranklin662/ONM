@@ -107,7 +107,9 @@
     "Brad": {
       "nickname": "Mr Available",
       "photo": "images/players/brad.jpg",
-      "bio": "Always marked available, always up for it. Consistently enthusiastic, occasionally dangerous, and never misses a chance to throw darts."
+      "bio": "Always marked available, always up for it. Consistently enthusiastic, occasionally dangerous, and never misses a chance to throw darts.",
+      "highest-checkout": "108",
+      "gooch": "yes"
     },
     "Codon": {
       "nickname": "The Colda Ghost",
@@ -151,4 +153,5 @@
     "Nick B": {
       "photo": "images/players/nickB.JPG"
     }
+
 }
