@@ -217,7 +217,6 @@
     "HA": "Home",
     "Location": "The Horseshoe"
   },
-  
   {
     "League": "Trafalgar League",
     "Day": "Wednesday",
@@ -251,26 +250,10 @@
     "Location": "The Horseshoe"
   },
   {
-    "League": "Trafalgar Cup",
-    "Day": "Wednesday",
-    "Date": "4th Mar 2026",
-    "Opponent": "Team/Jubilee Banks Cup",
-    "HA": null,
-    "Location": "The Horseshoe"
-  },
-  {
-    "League": "Trafalgar League",
-    "Day": "Wednesday",
-    "Date": "11th Mar 2026",
-    "Opponent": "Team KO Banks Cup + Jubilee Banks Cup KO",
-    "HA": null,
-    "Location": null
-  },
-  {
-    "League": "Banks League",
-    "Day": "Thursday",
-    "Date": "19th Mar 2026",
-    "Opponent": "Barclays",
+    "League": "Banks Cup",
+    "Day": "Tuesday",
+    "Date": "10th Mar 2026",
+    "Opponent": "The Vikings",
     "HA": "Home",
     "Location": "The Horseshoe"
   },
@@ -307,10 +290,18 @@
     "Location": "The Horseshoe"
   },
   {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "9th Apr 2026",
+    "Opponent": "Barclays",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
     "League": "Banks Cup",
     "Day": "Thursday",
-    "Date": "13th Apr 2026",
-    "Opponent": "Lloyds City",
+    "Date": "14th Apr 2026",
+    "Opponent": "Michaels",
     "HA": "Home",
     "Location": "The Horseshoe"
   },
