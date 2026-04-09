@@ -151,7 +151,26 @@
       "gooch": "yes"
     },
     "Nick B": {
+      "nickname": "The one and done",
+      "bio": "Played one game and unfortunately drew £20 double fines and hasn't been seen since.",
       "photo": "images/players/nickB.JPG"
+    },
+    "Andy": {
+      "nickname": "Crofty",
+      "photo": "images/players/andy.jpg"
+    },
+    "AP": {
+      "nickname": "Pendlebury",
+      "photo": "images/players/ap.jpg",
+      "gooch": "yes"
+    },
+    "Remzi": {
+      "nickname": "The Turkish Warrior",
+      "photo": "images/players/remzi.jpg",
+      "gooch": "yes"
+    },
+    "Rob G": {
+      "nickname": "Creepy Rob",
+      "photo": "images/players/robg.jpg"
     }
-
 }
