@@ -11,7 +11,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     fetchCSV,
     getAllPlayersFromSheets,
     getStatFromRow,
-    escapeHtml
+    escapeHtml,
+    photoKey
   } = window.PlayerData;
 
   function applyFanAnimationDelays(sortedPlayers) {
@@ -259,7 +260,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.playerProfiles = {};
   allPlayers.forEach(name => {
     const src = manualProfiles[name] || {};
-    const key = name.trim().toLowerCase();
+    const key = photoKey(name);
 
     window.playerProfiles[name] = {
       nickname: src.nickname || "",
@@ -267,7 +268,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       accolades: Array.isArray(src.accolades) ? src.accolades : [],
       role: src.role || "",
       song: src.song || "",
-      photo: drivePhotos[key] || "images/default.jpg"
+      photo: drivePhotos[key] || src.photo || "images/default.jpg"
     };
   });
 
@@ -310,7 +311,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   grid.innerHTML = allPlayers
     .map((name, i) => {
       const profile = window.playerProfiles[name];
-      const key = name.trim().toLowerCase();
+      const key = window.PlayerData.photoKey(name);
 
 
       return `
@@ -507,7 +508,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         coRatio,
         fineRatio,
         specials,
-        key: name.trim().toLowerCase()
+        key: photoKey(name)
 
       };
     });

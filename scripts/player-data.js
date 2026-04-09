@@ -288,11 +288,22 @@
 
   // ---- DRIVE PHOTO FETCH (CACHED) ----
 
+
   const DRIVE_API_KEY = "AIzaSyDlAZ7wv_8BNA1Nes1uBMrbZWhL0aaz1xw";
   const PLAYER_PHOTO_FOLDER_ID = "1wIsRGnYOvD_v0QGc3nEPraoHSqj62pNc";
 
   const DRIVE_CACHE_KEY = "playerDrivePhotos";
   let drivePhotoMemoryCache = null;
+
+  function photoKey(s) {
+    return (s || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/\.[^/.]+$/, "")   // remove extension
+      .replace(/\s+/g, "")        // remove spaces
+      .replace(/[^a-z0-9]/g, ""); // remove punctuation
+  }
 
   async function fetchPlayerPhotosFromDrive() {
     // 1️⃣ In-memory cache (fastest)
@@ -330,11 +341,7 @@
 
       const map = {};
       (data.files || []).forEach(f => {
-        const key = (f.name || "")
-          .replace(/\.[^/.]+$/, "")
-          .trim()
-          .toLowerCase();
-
+        const key = photoKey(f.name);
         if (key) {
           map[key] = `https://drive.google.com/thumbnail?id=${f.id}&sz=w800`;
         }
@@ -372,7 +379,8 @@
     safeParseDate,
     formatPrettyDate,
     countWinsAndLosses,
-    fetchPlayerPhotosFromDrive // ✅ added
+    fetchPlayerPhotosFromDrive,
+    photoKey
   };
 
 })();

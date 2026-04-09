@@ -21,7 +21,8 @@ const {
   safeParseDate,
   formatPrettyDate,
   countWinsAndLosses,
-  fetchPlayerPhotosFromDrive
+  fetchPlayerPhotosFromDrive,
+  photoKey
 } = window.PlayerData || {};
 
 // ---------- ANIMATION HELPERS ----------
@@ -939,7 +940,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   window.playerProfiles = {};
   fullList.forEach(name => {
-    const key = name.trim().toLowerCase();
+    const key = photoKey(name);
     const src = manualProfiles[name] || {};
 
     window.playerProfiles[name] = {
@@ -948,7 +949,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       accolades: Array.isArray(src.accolades) ? src.accolades : [],
       role: src.role || "",
       song: src.song || "",
-      photo: drivePhotos[key] || "images/default.jpg",
+      photo: drivePhotos[key] || src.photo || "images/default.jpg",
 
       // ✅ NEW
       highestCheckout: (src["highest-checkout"] || "").toString().trim(),
@@ -1147,7 +1148,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 // Back button → go to All Players landing
 document.addEventListener("click", e => {
   if (e.target.id === "backToPlayers") {
-    window.location.href = "players-profile.html"; // shows landing page
+    window.location.href = "players-landing.html"; // shows landing page
   }
 });
 

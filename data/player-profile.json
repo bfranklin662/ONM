@@ -141,7 +141,6 @@
     },
     "Rhino": {
       "nickname": "The Outstanding Balance",
-      "photo": "images/players/rhino.jpg",
       "bio": "South African smoker who vanished after 2023. Still owes fines, hasn’t been seen since, but remains legend-adjacent."
     },
     "Bobby": {
@@ -160,7 +159,7 @@
       "photo": "images/players/andy.jpg"
     },
     "AP": {
-      "nickname": "Pendlebury",
+      "nickname": "Autistic Pendlebury",
       "photo": "images/players/ap.jpg",
       "gooch": "yes"
     },
