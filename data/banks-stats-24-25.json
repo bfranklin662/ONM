@@ -145,5 +145,12 @@
     "Checkouts": 0,
     "Fines": "£31.60",
     "180 Count": 0
+  },
+  {
+    "Player": "Scott",
+    "Played": 1,
+    "Checkouts": 0,
+    "Fines": "",
+    "180 Count": 0
   }
 ]
