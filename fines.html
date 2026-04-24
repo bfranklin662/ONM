@@ -144,13 +144,22 @@
 
     <!-- SETUP SCREEN -->
     <div id="setupCard" class="card">
-      <div class="sectionTitle">Enter up to 6 players</div>
+      <div class="sectionTitle">Enter players</div>
+
       <div class="setupGrid" id="setupGrid"></div>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="addPlayerBtn" class="btn btnGhost" type="button">Add Player</button>
+        <button id="removePlayerBtn" class="btn btnGhost" type="button">Remove Player</button>
+      </div>
+
       <button id="startBtn" class="btn btnPrimary" style="margin-top:12px;">Submit Players</button>
+
       <button id="resumeGameBtnInline" class="btn btnGhost hidden" style="margin-top:10px;">
         Resume Saved Game
       </button>
-      <div class="smallNote">Tip: leave blanks for fewer than 6.</div>
+
+      <div class="smallNote">Starts with 6 players. Add up to 12, or remove unused rows.</div>
     </div>
 
     <!-- TRACKER SCREEN -->

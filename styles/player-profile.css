@@ -3714,3 +3714,268 @@
 .stats-title {
   margin: 0 auto;
 }
+
+.form-fines-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+.last5-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.outstanding-fines-card {
+  border: 1px solid rgba(255, 220, 60, 0.55);
+  background: rgba(255, 220, 60, 0.08);
+  border-radius: 12px;
+  padding: 5px 12px;
+  min-width: 105px;
+  text-align: center;
+}
+
+.outstanding-label {
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #bfc3cf;
+}
+
+.outstanding-value {
+  font-size: 18px;
+  font-weight: 900;
+  color: #ff4d4d;
+  margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+  .form-fines-row {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .last5-block {
+    align-items: center;
+  }
+}
+
+.outstanding-fines-card.no-outstanding {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.outstanding-fines-card.no-outstanding .outstanding-value {
+  color: #ffffff;
+}
+
+.outstanding-fines-card.has-outstanding {
+  border-color: rgba(255, 220, 60, 0.55);
+  background: rgba(255, 220, 60, 0.08);
+}
+
+.outstanding-fines-card.has-outstanding .outstanding-value {
+  color: #ff4d4d;
+}
+
+.outstanding-fines-card {
+  cursor: pointer;
+}
+
+.outstanding-fines-card:hover {
+  transform: translateY(-1px);
+}
+
+
+.payment-modal.hidden {
+  display: none;
+}
+
+.payment-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.payment-modal-card {
+  position: relative;
+  width: min(500px, 94vw);
+  background: #15171f;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 20px;
+  padding: 26px 22px 22px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .5);
+}
+
+.payment-modal-title {
+  margin: 0 0 18px;
+  text-align: center;
+  color: #ffd91a;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.payment-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.payment-details-panel {
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .025);
+}
+
+.payment-amount,
+.payment-row {
+  padding: 13px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, .10);
+}
+
+.payment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.payment-row:last-child {
+  border-bottom: 0;
+}
+
+.payment-amount {
+  background: rgba(255, 0, 0, 0.08);
+}
+
+.payment-details-panel .label {
+  color: #b7b7bd;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.payment-details-panel .value {
+  margin-top: 3px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.payment-amount .value {
+  color: #ff4d4d;
+  font-size: 28px;
+}
+
+.copy-btn {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .10);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.copy-icon {
+  width: 18px;
+  height: 18px;
+  position: relative;
+  display: block;
+}
+
+.copy-icon::before,
+.copy-icon::after {
+  content: "";
+  position: absolute;
+  border: 2px solid #fff;
+  border-radius: 3px;
+  width: 11px;
+  height: 13px;
+}
+
+.copy-icon::before {
+  left: 1px;
+  top: 1px;
+}
+
+.copy-icon::after {
+  left: 5px;
+  top: 5px;
+  background: transparent;
+}
+
+.copy-btn.copied .copy-icon::before,
+.copy-btn.copied .copy-icon::after {
+  display: none;
+}
+
+.copy-btn.copied .copy-icon::before {
+  display: block;
+  content: "✓";
+  border: 0;
+  color: #111;
+  font-size: 20px;
+  font-weight: 900;
+  width: auto;
+  height: auto;
+  left: 0;
+  top: -3px;
+}
+
+
+.copy-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: 0.2s ease;
+}
+
+.copy-btn:hover {
+  background: rgba(255,255,255,0.18);
+}
+
+/* ICON CONTROL */
+.icon-copy {
+  display: block;
+}
+
+.icon-tick {
+  display: none;
+}
+
+/* When copied */
+.copy-btn.copied {
+  color: #0b1f14;
+}
+
+.copy-btn.copied .icon-copy {
+  display: none;
+}
+
+.copy-btn.copied .icon-tick {
+  display: block;
+}

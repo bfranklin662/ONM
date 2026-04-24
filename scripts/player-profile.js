@@ -8,6 +8,8 @@ if (!window.PlayerData) {
   console.error("PlayerData not found. Is scripts/player-data.js loaded before player-profile.js?");
 }
 
+const FINES_26_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1227331675&single=true&output=csv";
+
 const {
   SHEETS,
   KEYS,
@@ -46,7 +48,69 @@ function makeProfileAccoladesHtml(profile) {
     .join("");
 }
 
+async function loadOutstandingFines() {
+  const el = document.getElementById("playerOutstandingFines");
+  const card = document.querySelector(".outstanding-fines-card");
 
+  if (!el || !playerName) return;
+
+  // Loading state
+  el.textContent = "";
+  el.classList.add("loading-dots");
+  card?.classList.remove("has-outstanding", "no-outstanding");
+
+  try {
+    const res = await fetch(`${FINES_26_CSV_URL}&t=${Date.now()}`);
+    const csv = await res.text();
+
+    const rows = csv
+      .trim()
+      .split("\n")
+      .map(row => row.split(",").map(cell => cell.trim()));
+
+    let owedValue = "£0.00";
+
+    rows.forEach(row => {
+      const name = row[0]; // Column A
+      const owed = row[6]; // Column G
+
+      if (name && name.toLowerCase() === playerName.toLowerCase()) {
+        owedValue = owed || "£0.00";
+      }
+    });
+
+    const amount = Number(String(owedValue).replace(/[£,\s]/g, "")) || 0;
+
+    el.classList.remove("loading-dots");
+    el.textContent = `£${amount.toFixed(2)}`;
+
+    if (card) {
+      card.classList.toggle("has-outstanding", amount > 0);
+      card.classList.toggle("no-outstanding", amount <= 0);
+    }
+
+  } catch (err) {
+    console.warn("Could not load outstanding fines", err);
+
+    el.classList.remove("loading-dots");
+    el.textContent = "Unavailable";
+
+    if (card) {
+      card.classList.remove("has-outstanding");
+      card.classList.add("no-outstanding");
+    }
+  }
+}
+
+function formatCurrencyText(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "£0.00";
+
+  const num = Number(raw.replace(/[£,\s]/g, ""));
+  if (isNaN(num)) return raw;
+
+  return `£${num.toFixed(2)}`;
+}
 
 function animateNumber(el, end, duration = 900) {
   if (!el) return;
@@ -822,6 +886,42 @@ document.addEventListener("DOMContentLoaded", async () => {
   const quickStatsEl = document.getElementById("playerQuickStats");
   const appsWrapper = document.getElementById("playerAppearancesWrapper");
 
+  const outstandingCard = document.getElementById("outstandingFinesCard");
+  const paymentModal = document.getElementById("paymentModal");
+  const closePaymentModal = document.getElementById("closePaymentModal");
+
+  function openPaymentModal() {
+    const modalAmount = document.getElementById("modalAmountOwed");
+    const cardAmount = document.getElementById("playerOutstandingFines");
+
+    if (modalAmount && cardAmount) {
+      modalAmount.textContent = cardAmount.textContent;
+    }
+
+    paymentModal?.classList.remove("hidden");
+    paymentModal?.setAttribute("aria-hidden", "false");
+  }
+
+  function closePaymentDetailsModal() {
+    paymentModal?.classList.add("hidden");
+    paymentModal?.setAttribute("aria-hidden", "true");
+  }
+
+  outstandingCard?.addEventListener("click", openPaymentModal);
+
+  outstandingCard?.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      openPaymentModal();
+    }
+  });
+
+  closePaymentModal?.addEventListener("click", closePaymentDetailsModal);
+
+  paymentModal?.addEventListener("click", e => {
+    if (e.target === paymentModal) closePaymentDetailsModal();
+  });
+
   const isProfileMode = !!playerName; // instead of playerName !== "All"
 
   const last5Title = document.querySelector(".last5-title");
@@ -845,7 +945,27 @@ document.addEventListener("DOMContentLoaded", async () => {
   const medalsSection = document.getElementById("medalsSection");
   if (medalsSection) medalsSection.style.display = "none";
 
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".copy-btn");
+    if (!btn) return;
 
+    const value = btn.getAttribute("data-copy");
+    if (!value) return;
+
+    try {
+      await navigator.clipboard.writeText(value);
+
+      // toggle class → swaps icons
+      btn.classList.add("copied");
+
+      setTimeout(() => {
+        btn.classList.remove("copied");
+      }, 1200);
+
+    } catch (err) {
+      console.error("Copy failed", err);
+    }
+  });
 
 
   // --- 1. Instant layout: landing vs profile ---
@@ -1141,6 +1261,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (isProfileMode) {
     await loadOverallTotals();
     await loadSeasonData("all");
+    await loadOutstandingFines();
     await updateMedals(overallTotals);
   }
 });

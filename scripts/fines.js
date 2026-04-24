@@ -4,8 +4,13 @@ console.log("✅ fines.js loaded");
 document.addEventListener("DOMContentLoaded", () => {
   // ---- Constants ----
   const STORAGE_KEY = "darts_fines_tracker_v1";
+  const MAX_PLAYERS = 12;
   const MAX_BEFORE_DOUBLE_PENCE = 2500; // £25
   const MAX_AFTER_DOUBLE_PENCE = 5000; // £50
+
+  const MIN_PLAYERS = 1;
+  const DEFAULT_PLAYER_INPUTS = 6;
+  let playerInputCount = DEFAULT_PLAYER_INPUTS;
 
 
   const fineOptions = [
@@ -593,7 +598,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const wheelBackBtn = document.getElementById("wheelBackBtn");
   const confirmResultBtn = document.getElementById("confirmResultBtn");
-
+  const addPlayerBtn = document.getElementById("addPlayerBtn");
+  const removePlayerBtn = document.getElementById("removePlayerBtn");
 
   submitFineBtn?.addEventListener("click", () => {
     if (selectedPlayerIndex === null) return;
@@ -629,15 +635,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 
+  function renderSetupInputs() {
+    const existingValues = [];
 
+    for (let i = 1; i <= playerInputCount; i++) {
+      existingValues[i] = document.getElementById(`p${i}`)?.value || "";
+    }
 
+    setupGrid.innerHTML = "";
 
-  // ---- Setup screen inputs ----
-  for (let i = 1; i <= 6; i++) {
-    const row = document.createElement("div");
-    row.className = "nameRow";
-    row.innerHTML = `<input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="18" />`;
-    setupGrid.appendChild(row);
+    for (let i = 1; i <= playerInputCount; i++) {
+      const row = document.createElement("div");
+      row.className = "nameRow";
+      row.innerHTML = `
+      <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="18" value="${escapeHtml(existingValues[i] || "")}" />
+    `;
+      setupGrid.appendChild(row);
+    }
+
+    if (addPlayerBtn) addPlayerBtn.disabled = playerInputCount >= MAX_PLAYERS;
+    if (removePlayerBtn) removePlayerBtn.disabled = playerInputCount <= MIN_PLAYERS;
   }
 
   // ---- State ----
@@ -750,12 +767,8 @@ document.addEventListener("DOMContentLoaded", () => {
     doubleToPence = null;
 
     // clear inputs on setup screen
-    if (clearNameInputs) {
-      for (let i = 1; i <= 6; i++) {
-        const el = document.getElementById(`p${i}`);
-        if (el) el.value = "";
-      }
-    }
+    playerInputCount = DEFAULT_PLAYER_INPUTS;
+    renderSetupInputs();
 
     // UI
     updateResumeButtonVisibility();
@@ -1146,8 +1159,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   startBtn.addEventListener("click", () => {
     const names = [];
-    for (let i = 1; i <= 6; i++) {
-      const v = document.getElementById(`p${i}`).value.trim();
+    for (let i = 1; i <= playerInputCount; i++) {
+      const v = document.getElementById(`p${i}`)?.value.trim();
       if (v) names.push(v);
     }
     if (names.length === 0) {
@@ -1503,8 +1516,18 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 
+  addPlayerBtn?.addEventListener("click", () => {
+    if (playerInputCount >= MAX_PLAYERS) return;
+    playerInputCount++;
+    renderSetupInputs();
+    document.getElementById(`p${playerInputCount}`)?.focus();
+  });
 
-
+  removePlayerBtn?.addEventListener("click", () => {
+    if (playerInputCount <= MIN_PLAYERS) return;
+    playerInputCount--;
+    renderSetupInputs();
+  });
 
 
   function getWheelNames() {
@@ -1632,9 +1655,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   // Initial fine render
+  renderSetupInputs();
   updateSpinButtons();
   renderFines();
-
   updateSubmitState();
 });
 

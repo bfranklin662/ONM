@@ -148,8 +148,17 @@
 
 
                 <div class="form-medals-bottom">
-                  <div class="last5-title">Last 5 →</div>
-                  <div id="playerFormGraph" class="form-dots"></div>
+                  <div class="form-fines-row">
+                    <div class="last5-block">
+                      <div class="last5-title">Last 5 →</div>
+                      <div id="playerFormGraph" class="form-dots"></div>
+                    </div>
+
+                    <div class="outstanding-fines-card" id="outstandingFinesCard" role="button" tabindex="0">
+                      <div class="outstanding-label">Outstanding fines</div>
+                      <div id="playerOutstandingFines" class="outstanding-value loading-dots">...</div>
+                    </div>
+                  </div>
 
                   <div class="medals-title">Medals</div>
                   <div id="playerMedals" class="medals-row"></div>
@@ -283,6 +292,105 @@
           </div>
         </div>
       </section>
+    </div>
+
+    <div id="paymentModal" class="payment-modal hidden" aria-hidden="true">
+      <div class="payment-modal-card">
+        <button id="closePaymentModal" class="payment-modal-close">✕</button>
+
+        <h3 class="payment-modal-title">Payment Details</h3>
+
+        <div class="payment-details-panel">
+          <div class="payment-amount">
+            <div class="label">Amount owed</div>
+            <div class="value" id="modalAmountOwed">£0.00</div>
+          </div>
+
+          <div class="payment-row">
+            <div>
+              <div class="label">Name</div>
+              <div class="value">Ricky Plows</div>
+            </div>
+            <button class="copy-btn" data-copy="Ricky Plows" aria-label="Copy name">
+              <span class="icon">
+                <!-- COPY ICON (default) -->
+                <svg class="icon-copy" viewBox="0 0 24 24" width="18" height="18">
+                  <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                  <rect x="5" y="5" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                </svg>
+
+                <!-- TICK ICON -->
+                <svg class="icon-tick" viewBox="0 0 24 24" width="18" height="18">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </span>
+            </button>
+          </div>
+
+          <div class="payment-row">
+            <div>
+              <div class="label">Bank</div>
+              <div class="value">Monzo Bank</div>
+            </div>
+            <button class="copy-btn" data-copy="Monzo Bank" aria-label="Copy bank">
+              <span class="icon">
+                <!-- COPY ICON (default) -->
+                <svg class="icon-copy" viewBox="0 0 24 24" width="18" height="18">
+                  <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                  <rect x="5" y="5" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                </svg>
+
+                <!-- TICK ICON -->
+                <svg class="icon-tick" viewBox="0 0 24 24" width="18" height="18">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </span>
+            </button>
+          </div>
+
+          <div class="payment-row">
+            <div>
+              <div class="label">Account number</div>
+              <div class="value">96997984</div>
+            </div>
+            <button class="copy-btn" data-copy="96997984" aria-label="Copy account number">
+              <span class="icon">
+                <!-- COPY ICON (default) -->
+                <svg class="icon-copy" viewBox="0 0 24 24" width="18" height="18">
+                  <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                  <rect x="5" y="5" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                </svg>
+
+                <!-- TICK ICON -->
+                <svg class="icon-tick" viewBox="0 0 24 24" width="18" height="18">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </span>
+            </button>
+          </div>
+
+          <div class="payment-row">
+            <div>
+              <div class="label">Sort code</div>
+              <div class="value">04-00-03</div>
+            </div>
+            <button class="copy-btn" data-copy="04-00-03" aria-label="Copy sort code">
+              <span class="icon">
+                <!-- COPY ICON (default) -->
+                <svg class="icon-copy" viewBox="0 0 24 24" width="18" height="18">
+                  <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                  <rect x="5" y="5" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                </svg>
+
+                <!-- TICK ICON -->
+                <svg class="icon-tick" viewBox="0 0 24 24" width="18" height="18">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
   </main>

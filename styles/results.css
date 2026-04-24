@@ -561,18 +561,6 @@
 }
 
 
-
-
-.player-link {
-  color: #fff;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.player-link:hover {
-  color: #ffd700;
-}
-
 .match-images {
   display: flex;
   gap: 6px;

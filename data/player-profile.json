@@ -5,7 +5,8 @@
       "bio": "Co-founder and captain. Loves the armband, Argyle till he dies, dry January survivor, don't mention the bike.",
       "accolades": ["banks_winner_24_25", "alex_beckett_winner_25"],
       "song": "https://open.spotify.com/track/7x8dCjCr0x6x2lXKujYD34?si=0a48cbc12f664492",
-      "role": "captain"
+      "role": "captain",
+      "gooch": "yes"
     },
     "Nick": {
       "nickname": "The Spreadsheet General",
@@ -46,7 +47,7 @@
       "photo": "images/players/jamesB.jpg",
       "bio": "Pub-based darting specialist. Loves a session, Millwall fan, vanished mid-season for Vegas and never fully recovered."
     },
-    "George": {
+    "George T": {
       "nickname": "The Fine Collector",
       "photo": "images/players/george.jpg",
       "bio": "Welsh countryside export. Fined very often, missed the board plenty. Runs a glove company, dodges HMRC rumours.",

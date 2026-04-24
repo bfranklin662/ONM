@@ -57,8 +57,9 @@ function normalizeName(s) {
     .replace(/\s+/g, " ");
 }
 
-
-
+function getMatchValue(match, key) {
+  return match[key] ?? match[key.replace(/(\D+)(\d+)/, "$1 $2")] ?? "";
+}
 
 async function fetchLeagueStats(url) {
   const noCacheUrl = `${url}&t=${Date.now()}`;
@@ -345,7 +346,12 @@ function csvToStyledTable(csv) {
   return html;
 }
 
+function formatCurrency(value) {
+  const num = Number(value);
+  if (isNaN(num) || num === 0) return value || "";
 
+  return `£${num.toFixed(2)}`;
+}
 
 
 async function fetchResults(season = currentSeason, viewMode = currentViewMode) {
@@ -500,14 +506,21 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
           // 🧮 Build HTML for each match (existing logic unchanged)
           const matchHTMLs = await Promise.all(
             matches.map(async (match) => {
-              const players = [
-                { name: match.Player1, score: match.C1, fines: match.F1, doubleFines: match.D1, oneEightys: match.O1, bulls: match.B1, tonOuts: match.T1 },
-                { name: match.Player2, score: match.C2, fines: match.F2, doubleFines: match.D2, oneEightys: match.O2, bulls: match.B2, tonOuts: match.T2 },
-                { name: match.Player3, score: match.C3, fines: match.F3, doubleFines: match.D3, oneEightys: match.O3, bulls: match.B3, tonOuts: match.T3 },
-                { name: match.Player4, score: match.C4, fines: match.F4, doubleFines: match.D4, oneEightys: match.O4, bulls: match.B4, tonOuts: match.T4 },
-                { name: match.Player5, score: match.C5, fines: match.F5, doubleFines: match.D5, oneEightys: match.O5, bulls: match.B5, tonOuts: match.T5 },
-                { name: match.Player6, score: match.C6, fines: match.F6, doubleFines: match.D6, oneEightys: match.O6, bulls: match.B6, tonOuts: match.T6 },
-              ].sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+              const players = Array.from({ length: 10 }, (_, i) => {
+                const n = i + 1;
+
+                return {
+                  name: getMatchValue(match, `Player${n}`),
+                  score: getMatchValue(match, `C${n}`),
+                  fines: getMatchValue(match, `F${n}`),
+                  doubleFines: getMatchValue(match, `D${n}`),
+                  oneEightys: getMatchValue(match, `O${n}`),
+                  bulls: getMatchValue(match, `B${n}`),
+                  tonOuts: getMatchValue(match, `T${n}`),
+                };
+              })
+                .filter((p) => String(p.name || "").trim() !== "")
+                .sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
 
               const isoDate = toISO(parseDate(match.Date));
               const teamN = normalizeName("Oche Ness Monsters");
@@ -679,7 +692,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
                         ? `<span class="bagel" title="No checkouts">🥯</span>`
                         : p.score || ""
                       }</td>
-                                  <td class="${fineClass}">${p.fines || ""}</td>
+                                  <td class="${fineClass}">${formatCurrency(p.fines)}</td>
                                   <td><div class="specials-container">${specials.join(
                         " "
                       )}</div></td>
