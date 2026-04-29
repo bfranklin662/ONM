@@ -1,0 +1,379 @@
+.profileModalCard {
+  width: min(500px, calc(100vw - 28px));
+  max-width: 500px;
+}
+
+.profileModalImage {
+  width: 100%;
+  max-height: 340px;
+  object-fit: cover;
+  border-radius: 18px;
+  margin-bottom: 16px;
+}
+
+.profileInfoRow {
+  display: grid;
+  grid-template-columns: 105px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.profileInfoLabel {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.profileInfoValue {
+  font-weight: 800;
+  word-break: break-word;
+}
+
+.profileField {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.profileField label {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+
+.profileFieldView {
+  display: grid;
+  grid-template-columns: 1fr 36px;
+  align-items: center;
+  gap: 10px;
+}
+
+.profileFieldValue {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.profileEditBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: var(--yellow);
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.profileEditInput,
+.profileEditTextarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.28);
+  color: white;
+  font-size: 15px;
+  font-weight: 800;
+  padding: 12px;
+  outline: none;
+}
+
+.profileEditInput {
+  height: 46px;
+}
+
+.profileEditTextarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.profileEditActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.profileModalImage {
+  width: 100%;
+  max-height: 330px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.profileFieldView {
+  grid-template-columns: minmax(0, 1fr) 36px;
+}
+
+.profileFieldValue {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.profileEditBtn {
+  justify-self: end;
+  flex-shrink: 0;
+}
+
+.profileField {
+  min-width: 0;
+}
+
+.profileTopCard {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.profileTopImage {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--yellow);
+}
+
+.profileTopName {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.profileTopNickname {
+  color: var(--muted);
+  font-weight: 800;
+  margin-top: 4px;
+}
+
+.profileTopAverage {
+  color: var(--yellow);
+  font-size: 22px;
+  font-weight: 900;
+  margin-top: 8px;
+}
+
+.profileSwitch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 4px;
+  margin-bottom: 14px;
+}
+
+.profileSwitchBtn {
+  height: 44px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.profileSwitchBtn.active {
+  background: rgba(255,255,255,.16);
+  color: white;
+}
+
+.profileSearchRow {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.profileSearchRow input {
+  height: 52px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.25);
+  color: white;
+  padding: 0 14px;
+  font-weight: 800;
+}
+
+.profileStatGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.profileStatItem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.profileStatItem span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.profileStatItem strong {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 900;
+  text-align: right;
+}
+
+.loggedOutProfile {
+  text-align: center;
+  padding: 18px 4px 8px;
+}
+
+.loggedOutIcon {
+  width: 78px;
+  height: 78px;
+  margin: 0 auto 14px;
+  border-radius: 18px;
+  border: 2px solid var(--yellow);
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+}
+
+.profileAuthActions {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.authCard {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .02));
+  border: 1px solid rgba(255, 255, 255, .06);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.authBrand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.authTitle {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.authSub {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.authForm {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.authForm label {
+  display: grid;
+  gap: 6px;
+}
+
+.authForm label span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.authForm input,
+.authForm select {
+  width: 100%;
+  height: var(--tap);
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .10);
+  outline: none;
+  background: rgba(0, 0, 0, .25);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.authForm select {
+  appearance: none;
+}
+
+.authForm small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.authMsg {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.authBrandRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 8px 0 22px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.authLogo {
+  width: 80px;
+  height: 80px;
+  flex: 0 0 70px;
+  object-fit: contain;
+}
+
+.authTitleImage {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  max-height: 90px;
+  object-fit: contain;
+  margin-left: -12px;
+  padding-right: 10px;
+}
+
+.profileAuthActions .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.authProfileBtn.isProfileLoading::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #FFD740;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.authProfileBtn.isProfileLoading img,
+.authProfileBtn.isProfileLoading .authProfileInitial {
+  opacity: 0.35;
+}

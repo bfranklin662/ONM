@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="styles/index.css">
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/fixtures.css">
+  <link rel="stylesheet" href="styles/profile.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="icon" type="image/png" href="/graphics/favicon1.png" sizes="32x32">
   <meta property="og:title" content="Oche Ness Monsters">
@@ -20,38 +21,37 @@
 
 <body>
   <header class="site-header">
-    <div class="logo-container">
-      <img class="logo" src="graphics/onmLogoWhiteFit.png">
-    </div>
-    <div class="logo-container">
-      <a href="/">
-        <img class="top-left-logo" src="graphics/logoWText.png">
-      </a>
-    </div>
+    <a href="/" class="brand-left">
+      <img class="top-left-logo" src="graphics/logoWText.png" alt="Oche Ness Monsters">
+    </a>
+
+    <img class="logo" src="graphics/onmLogoWhiteFit.png" alt="Oche Ness Monsters">
+
     <nav class="nav-links desktop-nav">
       <ul>
         <li><a href="/" class="active">Home</a></li>
         <li><a href="comps.html">Comps</a></li>
         <li><a href="results.html">Results & Stats</a></li>
         <li><a href="players-landing.html">Players</a></li>
-        <li><a href="fines.html">Fine Tracker</a></li>
+        <li><a href="games.html">Games</a></li>
       </ul>
     </nav>
-    <!-- Hamburger Menu Icon -->
-    <div class="hamburger" onclick="toggleSidebar()">
-      ☰
-    </div>
 
+    <button id="authNavBtn" type="button" class="authProfileBtn">
+      <span class="authProfileInitial">👤</span>
+    </button>
+
+    <button class="hamburger" type="button" onclick="toggleSidebar()">☰</button>
   </header>
 
-  <!-- Sidebar (Mobile Nav) -->
   <div id="sidebar" class="sidebar">
-    <div class="close-btn" onclick="toggleSidebar()">✖</div>
-    <a href="/">Home</a>
+    <button class="close-btn" type="button" onclick="toggleSidebar()">✖</button>
+
+    <a href="/" class="active">Home</a>
     <a href="comps.html">Comps</a>
     <a href="results.html">Results & Stats</a>
     <a href="players-landing.html">Players</a>
-    <a href="fines.html">Fine Tracker</a>
+    <a href="games.html">Games</a>
   </div>
 
   <div class="fixturesContainer">
@@ -129,7 +129,100 @@
       </div>
     </div>
 
+    <div id="paymentModal" class="payment-modal hidden" aria-hidden="true">
+      <div class="payment-modal-card">
+        <button id="closePaymentModal" class="payment-modal-close">✕</button>
 
+        <h3 class="payment-modal-title">Payment Details</h3>
+
+        <div class="payment-details-panel">
+
+          <div class="payment-row">
+            <div>
+              <div class="label">Name</div>
+              <div class="value">Ricky Plows</div>
+            </div>
+            <button class="copy-btn" data-copy="Ricky Plows" aria-label="Copy name">
+              <span class="icon">
+                <!-- COPY ICON (default) -->
+                <svg class="icon-copy" viewBox="0 0 24 24" width="18" height="18">
+                  <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                  <rect x="5" y="5" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                </svg>
+
+                <!-- TICK ICON -->
+                <svg class="icon-tick" viewBox="0 0 24 24" width="18" height="18">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </span>
+            </button>
+          </div>
+
+          <div class="payment-row">
+            <div>
+              <div class="label">Bank</div>
+              <div class="value">Monzo Bank</div>
+            </div>
+            <button class="copy-btn" data-copy="Monzo Bank" aria-label="Copy bank">
+              <span class="icon">
+                <!-- COPY ICON (default) -->
+                <svg class="icon-copy" viewBox="0 0 24 24" width="18" height="18">
+                  <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                  <rect x="5" y="5" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                </svg>
+
+                <!-- TICK ICON -->
+                <svg class="icon-tick" viewBox="0 0 24 24" width="18" height="18">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </span>
+            </button>
+          </div>
+
+          <div class="payment-row">
+            <div>
+              <div class="label">Account number</div>
+              <div class="value">96997984</div>
+            </div>
+            <button class="copy-btn" data-copy="96997984" aria-label="Copy account number">
+              <span class="icon">
+                <!-- COPY ICON (default) -->
+                <svg class="icon-copy" viewBox="0 0 24 24" width="18" height="18">
+                  <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                  <rect x="5" y="5" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                </svg>
+
+                <!-- TICK ICON -->
+                <svg class="icon-tick" viewBox="0 0 24 24" width="18" height="18">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </span>
+            </button>
+          </div>
+
+          <div class="payment-row">
+            <div>
+              <div class="label">Sort code</div>
+              <div class="value">04-00-03</div>
+            </div>
+            <button class="copy-btn" data-copy="04-00-03" aria-label="Copy sort code">
+              <span class="icon">
+                <!-- COPY ICON (default) -->
+                <svg class="icon-copy" viewBox="0 0 24 24" width="18" height="18">
+                  <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                  <rect x="5" y="5" width="10" height="10" rx="2" stroke="currentColor" fill="none" stroke-width="2" />
+                </svg>
+
+                <!-- TICK ICON -->
+                <svg class="icon-tick" viewBox="0 0 24 24" width="18" height="18">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
 </body>
 <script>
@@ -143,6 +236,9 @@
     });
   });
 </script>
+<script src="scripts/player-data.js"></script>
+<script src="scripts/session.js"></script>
+<script src="scripts/profile.js"></script>
 <script src="scripts/fixtures.js"></script>
 <script src="scripts/index.js"></script>
 

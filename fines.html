@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css">
   <link rel="stylesheet" href="styles/fines.css" />
+  <link rel="stylesheet" href="styles/profile.css" />
   <link rel="icon" type="image/png" href="/graphics/favicon1.png" sizes="32x32">
   <meta property="og:title" content="Oche Ness Monsters">
   <meta property="og:description" content="London based darts team">
@@ -20,66 +21,58 @@
 
 <body>
   <header class="site-header">
-    <div class="logo-container">
-      <img class="logo" src="graphics/onmLogoWhiteFit.png">
-    </div>
-    <div class="logo-container">
-      <a href="/">
-        <img class="top-left-logo" src="graphics/logoWText.png">
-      </a>
-    </div>
+    <a href="/" class="brand-left">
+      <img class="top-left-logo" src="graphics/logoWText.png" alt="Oche Ness Monsters">
+    </a>
+
+    <img class="logo" src="graphics/onmLogoWhiteFit.png" alt="Oche Ness Monsters">
+
     <nav class="nav-links desktop-nav">
       <ul>
         <li><a href="/">Home</a></li>
         <li><a href="comps.html">Comps</a></li>
         <li><a href="results.html">Results & Stats</a></li>
         <li><a href="players-landing.html">Players</a></li>
-        <li><a href="fines.html" class="active">Fine Tracker</a></li>
+        <li><a href="games.html" class="active">Games</a></li>
       </ul>
     </nav>
-    <!-- Hamburger Menu Icon -->
-    <div class="hamburger" onclick="toggleSidebar()">
-      ☰
-    </div>
 
+    <button id="authNavBtn" type="button" class="authProfileBtn">
+      <span class="authProfileInitial">👤</span>
+    </button>
+
+    <button class="hamburger" type="button" onclick="toggleSidebar()">☰</button>
   </header>
 
-  <!-- Sidebar (Mobile Nav) -->
   <div id="sidebar" class="sidebar">
-    <div class="close-btn" onclick="toggleSidebar()">✖</div>
+    <button class="close-btn" type="button" onclick="toggleSidebar()">✖</button>
+
     <a href="/">Home</a>
     <a href="comps.html">Comps</a>
     <a href="results.html">Results & Stats</a>
     <a href="players-landing.html">Players</a>
-    <a href="fines.html">Fine Tracker</a>
+    <a href="games.html" class="active">Games</a>
   </div>
 
   <div class="wrap">
-    <div class="header" id="appHeader">
+    <div class="header appSwitcher" id="appHeader">
       <div>
-        <div class="title">Fines Tracker</div>
-        <div class="subtitle">Mobile-friendly fines for your darts game</div>
+        <div class="title" id="screenTitleText">Fine Tracker</div>
       </div>
 
-      <div class="headerActions hidden" id="headerActions">
-        <button id="openHistoryBtn" class="iconSquare" title="History">H</button>
-        <button id="openFinesBtn" class="iconSquare" title="Fines List">£</button>
-        <button id="submitResultBtn" class="resultBtn" title="Double Fines">Double Fines →</button>
-
-      </div>
-    </div>
-
-    <!-- RESULTS SCREEN (Double fines setup) -->
-    <div id="doubleHeader" class="screenHeader hidden">
-      <div class="screenTitle title">Double Fine Selector</div>
-
-      <div class="headerRight">
-        <button id="openDoubleInfoBtn" class="pillBtn">i</button>
+      <div class="screenSwitch" id="screenSwitch">
+        <button type="button" class="screenSwitchBtn" data-screen-target="setup" title="Players">👥</button>
+        <button type="button" class="screenSwitchBtn active" data-screen-target="tracker"
+          title="Fine Tracker">💸</button>
+        <button type="button" class="screenSwitchBtn" data-screen-target="results" title="Double Fines">🎰</button>
+        <button type="button" class="screenSwitchBtn" data-screen-target="resultStats" title="Player Stats">📊</button>
+        <button type="button" class="screenSwitchBtn" data-screen-target="matchInfo" title="Match Info">📝</button>
+        <button type="button" class="screenSwitchBtn" data-screen-target="reviewResult" title="Result Submit">✅</button>
       </div>
     </div>
 
     <div id="resultsCard" class="card hidden">
-
+      <div class="sectionTitle">Double Fine Spinner</div>
       <div id="resultsList" class="resultsGrid"></div>
 
       <div style="margin-top:14px;">
@@ -94,7 +87,7 @@
       <div class="bottomBar">
         <div class="row">
           <button id="wheelBackBtn" class="btn btnGhost">Back</button>
-          <button id="confirmResultBtn" class="btn btnDisabled" disabled>Submit Result</button>
+          <button id="confirmResultBtn" class="btn btnDisabled" disabled>Next</button>
         </div>
       </div>
 
@@ -107,9 +100,151 @@
       <div id="finalList" class="resultsList"></div>
 
       <div class="bottomBar">
-        <div class="row">
+        <button id="continueResultSubmitBtn" class="btn btnPrimary fullWidthBtn">
+          Continue to Result Submit
+        </button>
+
+        <div class="row" style="margin-top:10px;">
           <button id="finalBackBtn" class="btn btnGhost">Back</button>
           <button id="resetGameBtn" class="btn btnGhost">Reset Game</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT STATS SCREEN -->
+    <div id="resultStatsCard" class="card hidden">
+      <div class="sectionTitle">Player Match Stats</div>
+      <div id="resultStatsList" class="resultsList"></div>
+
+      <div class="bottomBar">
+
+        <div class="row" style="margin-top:10px;">
+          <button id="resultStatsBackBtn" class="btn btnGhost">Back</button>
+          <button id="resultStatsNextBtn" class="btn btnPrimary">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MATCH INFO SCREEN -->
+    <div id="matchInfoCard" class="card hidden">
+      <div class="sectionTitle">Match Info</div>
+
+      <div class="matchGrid">
+        <div class="field leagueField">
+          <label>League</label>
+          <div class="inputWithArrow">
+            <select id="matchLeague">
+              <option value="Banks League">Banks League</option>
+              <option value="Trafalgar League">Trafalgar League</option>
+            </select>
+            <span class="selectArrow">▾</span>
+          </div>
+        </div>
+
+        <div id="homeAwayToggle" class="homeAwayToggle">
+          <div class="toggleSlider"></div>
+          <button id="onmHomeBtn" type="button" class="toggleBtn active">Home</button>
+          <button id="onmAwayBtn" type="button" class="toggleBtn">Away</button>
+        </div>
+
+        <datalist id="leagueTeamsList"></datalist>
+
+        <div class="field">
+          <label>Home team</label>
+          <div class="inputWithArrow">
+            <input id="matchHomeTeam" type="text" list="leagueTeamsList">
+            <span class="selectArrow">▾</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Away team</label>
+          <div class="inputWithArrow">
+            <input id="matchAwayTeam" type="text" list="leagueTeamsList">
+            <span class="selectArrow">▾</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Home score</label>
+          <input id="matchHomeScore" type="number" min="0">
+        </div>
+
+        <div class="field">
+          <label>Away score</label>
+          <input id="matchAwayScore" type="number" min="0">
+        </div>
+
+        <div class="field">
+          <label>Result</label>
+          <div class="inputWithArrow">
+            <select id="matchResult">
+              <option value="Won">Won</option>
+              <option value="Lost">Lost</option>
+            </select>
+            <span class="selectArrow">▾</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Date</label>
+          <input id="matchDate" type="date">
+        </div>
+
+        <div class="field">
+          <label>Venue</label>
+          <input id="matchVenue" type="text">
+        </div>
+
+        <div class="field imageField">
+          <label>Images</label>
+
+          <div class="imageUploadBox" id="openImagesBox">
+            <span id="imageText">📷 Add images</span>
+            <button id="openImagesBtn" type="button" class="imagePlusBtn">+</button>
+          </div>
+
+          <input id="matchImageInput" type="file" accept="image/*" multiple hidden>
+        </div>
+
+        <div class="field">
+          <label>Cup?</label>
+          <div id="cupToggle" class="homeAwayToggle cupSwitch">
+            <div class="toggleSlider"></div>
+            <button id="cupNoBtn" type="button" class="toggleBtn active">No</button>
+            <button id="cupYesBtn" type="button" class="toggleBtn">Yes</button>
+          </div>
+          <input id="matchCup" type="checkbox" hidden>
+        </div>
+
+        <div class="field">
+          <label>Stage</label>
+          <input id="matchStage" type="text" placeholder="Group / Quarter-Final / Final">
+        </div>
+      </div>
+
+      <div class="bottomBar">
+        <div class="row" style="margin-top:10px;">
+          <button id="matchInfoBackBtn" class="btn btnGhost">Back</button>
+          <button id="matchInfoNextBtn" class="btn btnPrimary">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REVIEW RESULT SCREEN -->
+    <div id="reviewResultCard" class="card hidden">
+
+      <div id="reviewLeagueTitle" class="fixturesTitle"></div>
+      <div id="reviewResultBody" class="resultsList"></div>
+
+      <div class="bottomBar">
+        <div class="row">
+          <button id="reviewBackBtn" class="btn btnGhost">Back</button>
+          <button id="reviewSubmitBtn" class="btn btnPrimary">Confirm Result</button>
+        </div>
+        <div id="submittedActions" class="row hidden">
+          <button id="resetAfterSubmitBtn" type="button" class="btn btnGhost">Reset game</button>
+          <button id="shareResultBtn" type="button" class="btn btnPrimary">Share</button>
         </div>
       </div>
     </div>
@@ -133,8 +268,7 @@
 
 
           <div style="display:flex; gap:10px; margin-top:14px;">
-            <button id="winnerContinueBtn" class="btn btnPrimary" style="height:44px;">Submit Result</button>
-
+            <button id="winnerContinueBtn" class="btn btnPrimary" style="height:44px;">Next</button>
           </div>
         </div>
       </div>
@@ -144,27 +278,36 @@
 
     <!-- SETUP SCREEN -->
     <div id="setupCard" class="card">
-      <div class="sectionTitle">Enter players</div>
+      <div class="sectionHeaderRow">
+        <div class="sectionTitle">Enter players</div>
+        <div class="miniActions">
+          <button id="addPlayerBtn" class="iconSquare" type="button">+</button>
+          <button id="removePlayerBtn" class="iconSquare" type="button">−</button>
+        </div>
+      </div>
 
       <div class="setupGrid" id="setupGrid"></div>
 
-      <div class="row" style="margin-top:10px;">
-        <button id="addPlayerBtn" class="btn btnGhost" type="button">Add Player</button>
-        <button id="removePlayerBtn" class="btn btnGhost" type="button">Remove Player</button>
-      </div>
-
       <button id="startBtn" class="btn btnPrimary" style="margin-top:12px;">Submit Players</button>
 
-      <button id="resumeGameBtnInline" class="btn btnGhost hidden" style="margin-top:10px;">
-        Resume Saved Game
-      </button>
+      <div id="setupGameActions" class="row hidden" style="margin-top:12px;">
+        <button id="setupResetBtn" class="btn btnGhost" type="button">Reset game</button>
+        <button id="setupNextBtn" class="btn btnPrimary" type="button">Next</button>
+      </div>
 
       <div class="smallNote">Starts with 6 players. Add up to 12, or remove unused rows.</div>
     </div>
 
     <!-- TRACKER SCREEN -->
     <div id="trackerCard" class="card hidden">
-      <div class="sectionTitle players">Players</div>
+      <div class="sectionHeaderRow">
+        <div class="sectionTitle">Players</div>
+        <div class="miniActions">
+          <button id="undoBtn" class="iconSquare" type="button">⬅</button>
+          <button id="openHistoryBtn" class="iconSquare" type="button">H</button>
+          <button id="openFinesBtn" class="iconSquare" type="button">£</button>
+        </div>
+      </div>
       <div id="playersGrid" class="playersGrid"></div>
 
       <div class="sectionTitle" style="margin-top:10px;">Fine amount</div>
@@ -172,7 +315,7 @@
 
 
       <div class="hint">
-        Select a player, select an amount, then <b>"Submit Fine"</b>. Once finished select <b>"Double Fines →"</b> to
+        Select a player, select an amount, then <b>"Submit Fine"</b>. Once finished select <b>"Next"</b> to
         proceed.
       </div>
 
@@ -180,8 +323,8 @@
         <button id="submitFineBtn" class="btn btnDisabled" disabled>Submit Fine</button>
 
         <div class="row">
-          <button id="undoBtn" class="btn btnGhost">Undo last fine</button>
-          <button id="resetBtn" class="btn btnGhost">Reset game</button>
+          <button id="fineBackBtn" class="btn btnGhost" type="button">Back</button>
+          <button id="fineNextBtn" class="btn btnPrimary" type="button">Next</button>
         </div>
       </div>
     </div>
@@ -211,6 +354,10 @@
       });
     });
   </script>
+  <script src="scripts/player-data.js"></script>
+  <script src="scripts/session.js"></script>
+  <script src="scripts/profile.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </body>
 
 </html>

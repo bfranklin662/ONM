@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oche Ness Monsters | Dart Scorer</title>
+  <link rel="stylesheet" href="styles/buttons.css">
+  <link rel="stylesheet" href="styles/profile.css">
+  <link rel="stylesheet" href="styles/dart-scorer.css" />
+  <link rel="icon" type="image/png" href="/graphics/favicon1.png" sizes="32x32">
+  <meta property="og:title" content="Oche Ness Monsters">
+  <meta property="og:description" content="London based darts team">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ochenessmonsters.com">
+  <meta property="og:image" content="https://i.ibb.co/FbGDQDjq/ONMmeta.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+</head>
+
+<body>
+
+
+
+  <div class="wrap">
+    <section id="authCard" class="authCard">
+      <div class="authBrand authBrandCentered">
+        <img class="authLogo" src="graphics/logoWoText.png" alt="Oche Ness Monsters">
+        <img class="authTitleImage" src="graphics/onmLogoWhiteFit.png" alt="Oche Ness Monsters">
+      </div>
+
+      <div id="authToggle" class="homeAwayToggle">
+        <div class="toggleSlider"></div>
+        <button id="showRegisterBtn" type="button" class="toggleBtn active">Register</button>
+        <button id="showLoginBtn" type="button" class="toggleBtn">Login</button>
+      </div>
+
+      <form id="registerForm" class="authForm" novalidate>
+        <div class="grid2">
+          <label>
+            <span>First name</span>
+            <input name="firstName" autocomplete="given-name" required>
+          </label>
+
+          <label>
+            <span>Surname</span>
+            <input name="surname" autocomplete="family-name" required>
+          </label>
+        </div>
+
+        <label>
+          <span>Email</span>
+          <input name="email" type="email" autocomplete="email" required>
+        </label>
+
+        <label>
+          <span>Team</span>
+          <div class="selectWrap">
+            <select id="teamSelect" name="team" required>
+              <option value="Oche Ness Monsters" selected>Oche Ness Monsters</option>
+              <option value="Other">Other</option>
+              <option value="None">I don't have a team</option>
+            </select>
+            <span class="selectArrow">▾</span>
+          </div>
+        </label>
+
+        <div id="customTeamWrap" class="hidden">
+          <label>
+            <span>Team name</span>
+            <input id="customTeamInput" name="customTeam" type="text" placeholder="Enter team name">
+          </label>
+        </div>
+
+        <label>
+          <span>Password</span>
+          <input name="password" type="password" minlength="6" autocomplete="new-password" required>
+          <small>Minimum 6 characters.</small>
+        </label>
+
+        <button id="registerSubmitBtn" type="submit" class="btn btnPrimary">Create account</button>
+      </form>
+
+      <form id="loginForm" class="authForm hidden" novalidate>
+        <label>
+          <span>Email</span>
+          <input name="email" type="email" autocomplete="email" required>
+        </label>
+
+        <label>
+          <span>Password</span>
+          <input name="password" type="password" autocomplete="current-password" required>
+        </label>
+
+        <button id="loginSubmitBtn" type="submit" class="btn btnPrimary">Login</button>
+      </form>
+
+      <div id="authMsg" class="authMsg hidden"></div>
+    </section>
+
+    <div id="linkPlayerOverlay" class="modalOverlay hidden" aria-hidden="true">
+      <div class="modalCard">
+        <div class="modalHeader">
+          <div class="modalTitle">Account created</div>
+          <button id="closeLinkPlayerBtn" class="modalClose" type="button">✕</button>
+        </div>
+
+        <div class="modalBody">
+          <p class="muted">
+            Link your account to your player profile.
+          </p>
+
+          <div class="sectionTitle">Linked players</div>
+          <div id="linkPlayerList" class="linkPlayerList"></div>
+
+          <div id="linkPlayerMsg" class="msg hidden"></div>
+
+          <button id="skipLinkPlayerBtn" type="button" class="btn btnGhost" style="margin-top:12px;">
+            Skip for now
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="scripts/player-data.js"></script>
+  <script src="scripts/auth.js"></script>
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("active");
+    }
+
+    document.querySelectorAll("#sidebar a").forEach(a => {
+      a.addEventListener("click", () => {
+        document.getElementById("sidebar").classList.remove("active");
+      });
+    });
+  </script>
+</body>

@@ -51,6 +51,7 @@ function cancelAndGetCurrentHeight(el) {
   return current;
 }
 
+
 function animateOpen(el, duration = LB_SLIDE_DURATION) {
   if (!el) return Promise.resolve();
 
@@ -252,7 +253,10 @@ function makeLeaderboardCard({ title, rows, key, formatter }) {
 
   return `
     <article class="leaderboard-card leaderboard-${key}">
-      <h3>${title}</h3>
+      <h3>
+        ${title}
+        ${key === "owed" ? `<button class="leaderboard-info-btn" type="button" aria-label="Payment details">i</button>` : ""}
+      </h3>
 
       <div class="leaderboard-list">
         ${topFive.length ? makeRows(topFive, 1) : `<div class="leaderboard-empty">No data yet</div>`}
@@ -380,5 +384,55 @@ async function loadHomeLeaderboards() {
     grid.innerHTML = `<div class="leaderboard-empty">Could not load leaderboards.</div>`;
   }
 }
+
+function openPaymentModal() {
+  const paymentModal = document.getElementById("paymentModal");
+  paymentModal?.classList.remove("hidden");
+  paymentModal?.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+}
+
+function closePaymentDetailsModal() {
+  const paymentModal = document.getElementById("paymentModal");
+  paymentModal?.classList.add("hidden");
+  paymentModal?.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+}
+
+document.addEventListener("click", async (e) => {
+  const infoBtn = e.target.closest(".leaderboard-info-btn");
+  const closeBtn = e.target.closest("#closePaymentModal");
+  const copyBtn = e.target.closest(".copy-btn");
+  const paymentModal = document.getElementById("paymentModal");
+
+  if (infoBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    openPaymentModal();
+    return;
+  }
+
+  if (closeBtn) {
+    closePaymentDetailsModal();
+    return;
+  }
+
+  if (paymentModal && e.target === paymentModal) {
+    closePaymentDetailsModal();
+    return;
+  }
+
+  if (copyBtn) {
+    const value = copyBtn.getAttribute("data-copy");
+    if (!value) return;
+
+    await navigator.clipboard.writeText(value);
+    copyBtn.classList.add("copied");
+
+    setTimeout(() => {
+      copyBtn.classList.remove("copied");
+    }, 1200);
+  }
+});
 
 document.addEventListener("DOMContentLoaded", loadHomeLeaderboards);

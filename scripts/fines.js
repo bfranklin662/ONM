@@ -1,6 +1,5 @@
 console.log("✅ fines.js loaded");
 
-
 document.addEventListener("DOMContentLoaded", () => {
   // ---- Constants ----
   const STORAGE_KEY = "darts_fines_tracker_v1";
@@ -12,6 +11,127 @@ document.addEventListener("DOMContentLoaded", () => {
   const DEFAULT_PLAYER_INPUTS = 6;
   let playerInputCount = DEFAULT_PLAYER_INPUTS;
 
+  let resultSubmitData = {
+    players: [],
+    match: {}
+  };
+
+  // ---- DOM ----
+  const setupGrid = document.getElementById("setupGrid");
+  const setupCard = document.getElementById("setupCard");
+  const trackerCard = document.getElementById("trackerCard");
+  const winnerMathEl = document.getElementById("winnerMath");
+
+  const playersGrid = document.getElementById("playersGrid");
+  const fineGrid = document.getElementById("fineGrid");
+
+  const startBtn = document.getElementById("startBtn");
+  const submitFineBtn = document.getElementById("submitFineBtn");
+  const undoBtn = document.getElementById("undoBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  const openHistoryBtn = document.getElementById("openHistoryBtn");
+  const openFinesBtn = document.getElementById("openFinesBtn");
+
+  const modalOverlay = document.getElementById("modalOverlay");
+  const modalTitle = document.getElementById("modalTitle");
+  const modalBody = document.getElementById("modalBody");
+  const closeModalBtn = document.getElementById("closeModalBtn");
+
+  const specialsGrid = document.getElementById("specialsGrid");
+  const headerActions = document.getElementById("headerActions");
+
+  const resultsCard = document.getElementById("resultsCard");
+  const resultsList = document.getElementById("resultsList");
+  const spinBtn = document.getElementById("spinBtn");
+  const wheelCanvas = document.getElementById("wheelCanvas");
+  const wheelWinner = document.getElementById("wheelWinner");
+
+  const appHeader = document.getElementById("appHeader");
+  const doubleHeader = document.getElementById("doubleHeader");
+
+
+  const finalCard = document.getElementById("finalCard");
+  const finalList = document.getElementById("finalList");
+
+  const resultStatsCard = document.getElementById("resultStatsCard");
+  const resultStatsList = document.getElementById("resultStatsList");
+  const resultStatsBackBtn = document.getElementById("resultStatsBackBtn");
+  const resultStatsNextBtn = document.getElementById("resultStatsNextBtn");
+
+  const matchInfoCard = document.getElementById("matchInfoCard");
+  const matchInfoBackBtn = document.getElementById("matchInfoBackBtn");
+  const matchInfoNextBtn = document.getElementById("matchInfoNextBtn");
+
+  const reviewResultCard = document.getElementById("reviewResultCard");
+  const reviewResultBody = document.getElementById("reviewResultBody");
+  const reviewBackBtn = document.getElementById("reviewBackBtn");
+  const reviewSubmitBtn = document.getElementById("reviewSubmitBtn");
+
+  const continueResultSubmitBtn = document.getElementById("continueResultSubmitBtn");
+
+  const resumeGameBtnInline = document.getElementById("resumeGameBtnInline");
+
+  const setupGameActions = document.getElementById("setupGameActions");
+  const setupResetBtn = document.getElementById("setupResetBtn");
+  const setupNextBtn = document.getElementById("setupNextBtn");
+  const fineNextBtn = document.getElementById("fineNextBtn");
+  const fineBackBtn = document.getElementById("fineBackBtn");
+
+
+  // Winner popup
+  const winnerOverlay = document.getElementById("winnerOverlay");
+  const closeWinnerBtn = document.getElementById("closeWinnerBtn");
+  const winnerContinueBtn = document.getElementById("winnerContinueBtn");
+  const winnerNameEl = document.getElementById("winnerName");
+  const winnerAmountEl = document.getElementById("winnerAmount");
+
+  const finalBackBtn = document.getElementById("finalBackBtn");
+
+  const resetGameBtn = document.getElementById("resetGameBtn");
+
+  const wheelBackBtn = document.getElementById("wheelBackBtn");
+  const confirmResultBtn = document.getElementById("confirmResultBtn");
+  const addPlayerBtn = document.getElementById("addPlayerBtn");
+  const removePlayerBtn = document.getElementById("removePlayerBtn");
+
+  const matchLeague = document.getElementById("matchLeague");
+  const matchHomeTeam = document.getElementById("matchHomeTeam");
+  const matchAwayTeam = document.getElementById("matchAwayTeam");
+  const matchHomeScore = document.getElementById("matchHomeScore");
+  const matchAwayScore = document.getElementById("matchAwayScore");
+  const matchVenue = document.getElementById("matchVenue");
+  const matchCup = document.getElementById("matchCup");
+  const matchDate = document.getElementById("matchDate");
+  const leagueTeamsList = document.getElementById("leagueTeamsList");
+
+  const openImagesBtn = document.getElementById("openImagesBtn");
+  const matchImageInput = document.getElementById("matchImageInput");
+  const imageSummaryText = document.getElementById("imageSummaryText");
+
+  const onmHomeBtn = document.getElementById("onmHomeBtn");
+  const onmAwayBtn = document.getElementById("onmAwayBtn");
+  const homeAwayToggle = document.getElementById("homeAwayToggle");
+  let onmSide = resultSubmitData.match?.onmSide || "home";
+
+  const cupToggle = document.getElementById("cupToggle");
+  const cupNoBtn = document.getElementById("cupNoBtn");
+  const cupYesBtn = document.getElementById("cupYesBtn");
+
+  const imagePlusBtn = document.getElementById("imagePlusBtn");
+  const imageCountText = document.getElementById("imageCountText");
+
+  const imageText = document.getElementById("imageText");
+
+
+  cupNoBtn?.addEventListener("click", () => setCup(false));
+  cupYesBtn?.addEventListener("click", () => setCup(true));
+
+  const matchInfoStatsBtn = document.getElementById("matchInfoStatsBtn");
+  const resultStatsSubmitBtn = document.getElementById("resultStatsSubmitBtn");
+
+  const screenTitleText = document.getElementById("screenTitleText");
+  const screenSwitch = document.getElementById("screenSwitch");
 
   const fineOptions = [
     { label: "50p", pence: 50 },
@@ -20,6 +140,12 @@ document.addEventListener("DOMContentLoaded", () => {
     { label: "£5", pence: 500 },
     { label: "Custom", pence: null }
   ];
+
+  // ---- State ----
+  let store = loadStore(); // { totalsByName, history }
+
+  let localLightboxUrls = [];
+  let localLightboxIndex = 0;
 
   let customValueText = "";
 
@@ -31,6 +157,403 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let selectedSpecial = null; // "S180" | "BULLOUT" | "TONOUT" | null
   let specialsPickerOpen = false; // <-- NEW: purely for UI highlight while modal is open
+
+
+
+  const MAX_MATCH_IMAGES = 30;
+  let selectedMatchImages = [];
+
+  let reviewImageUrls = [];
+
+  let leagueTeamsData = null;
+
+  async function loadLeagueTeamsData() {
+    try {
+      const res = await fetch(`data/league-teams.json?v=${Date.now()}`, {
+        cache: "no-store"
+      });
+      leagueTeamsData = await res.json();
+    } catch (err) {
+      console.warn("Could not load league teams data", err);
+      leagueTeamsData = null;
+    }
+  }
+
+  function setCup(isCup) {
+    matchCup.checked = isCup;
+
+    cupNoBtn?.classList.toggle("active", !isCup);
+    cupYesBtn?.classList.toggle("active", isCup);
+    cupToggle?.classList.toggle("away", isCup);
+
+    readMatchInfo();
+    saveGameSnapshot();
+  }
+
+  function todayInputValue() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function renderResultStatsScreen() {
+    resultSubmitData.players = players.map(p => {
+      const existing = resultSubmitData.players.find(x => x.name === p.name);
+
+      return {
+        name: p.name,
+        finesPence: p.totalPence,
+        doubleFine: p.name === doubleWinnerName,
+        checkouts: existing?.checkouts ?? 0,
+        oneEightys: existing?.oneEightys ?? 0,
+        bulls: existing?.bulls ?? 0,
+        tonOuts: existing?.tonOuts ?? 0
+      };
+    });
+
+    resultStatsList.innerHTML = resultSubmitData.players.map((p, i) => `
+    <div class="resultRow result-submit-row">
+      <div class="name">
+        ${escapeHtml(p.name)}
+        ${p.doubleFine ? '<span class="x2-badge">X2</span>' : ''}
+      </div>
+
+      <div class="result-submit-grid">
+        <label>
+          Checkouts
+          <div class="step-input">
+            <input class="result-input" data-index="${i}" data-field="checkouts" type="number" min="0" value="${p.checkouts}">
+            <button type="button" class="step-plus" data-index="${i}" data-field="checkouts">+</button>
+          </div>
+        </label>
+
+        <label>
+          Fines
+          <div class="step-input">
+            <span class="currency">£</span>
+            <input
+              class="result-input ${p.doubleFine ? "double-fine-input" : ""}"
+              data-index="${i}"
+              data-field="finesPence"
+              type="number"
+              inputmode="decimal"
+              step="0.01"
+              min="0"
+              value="${(p.finesPence / 100).toFixed(2)}"
+            />
+          </div>
+        </label>
+
+        <label>
+          180s
+          <div class="step-input">
+            <input class="result-input" data-index="${i}" data-field="oneEightys" type="number" min="0" value="${p.oneEightys}">
+            <button type="button" class="step-plus" data-index="${i}" data-field="oneEightys">+</button>
+          </div>
+        </label>
+
+        <label>
+          Bulls
+          <div class="step-input">
+            <input class="result-input" data-index="${i}" data-field="bulls" type="number" min="0" value="${p.bulls}">
+            <button type="button" class="step-plus" data-index="${i}" data-field="bulls">+</button>
+          </div>
+        </label>
+
+        <label>
+          Ton+ Outs
+          <div class="step-input">
+            <input class="result-input" data-index="${i}" data-field="tonOuts" type="number" min="0" value="${p.tonOuts}">
+            <button type="button" class="step-plus" data-index="${i}" data-field="tonOuts">+</button>
+          </div>
+        </label>
+      </div>
+    </div>
+  `).join("");
+
+    resultStatsList.querySelectorAll(".result-input").forEach(input => {
+      input.addEventListener("input", () => {
+        const index = Number(input.dataset.index);
+        const field = input.dataset.field;
+        if (field === "finesPence") {
+          const num = Number(input.value || 0);
+          resultSubmitData.players[index][field] = Math.round(num * 100);
+        } else {
+          resultSubmitData.players[index][field] = Number(input.value || 0);
+        }
+        saveGameSnapshot();
+      });
+    });
+
+    resultStatsList.querySelectorAll('[data-field="finesPence"]').forEach(input => {
+      input.addEventListener("focus", () => {
+        input.value = input.value.replace("£", "");
+      });
+
+      input.addEventListener("blur", () => {
+        const num = Number(input.value.replace("£", "").trim() || 0);
+        input.value = `£${num.toFixed(2)}`;
+        input.dispatchEvent(new Event("input"));
+      });
+    });
+
+    resultStatsList.querySelectorAll(".step-plus").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const index = Number(btn.dataset.index);
+        const field = btn.dataset.field;
+        resultSubmitData.players[index][field] = Number(resultSubmitData.players[index][field] || 0) + 1;
+        renderResultStatsScreen();
+        saveGameSnapshot();
+      });
+    });
+
+    resultStatsList.querySelectorAll('.result-input:not([data-field="finesPence"])').forEach(input => {
+      input.addEventListener('focus', () => {
+        if (input.value === "0") input.value = "";
+      });
+
+      input.addEventListener('blur', () => {
+        input.value = String(Number(input.value || 0));
+        input.dispatchEvent(new Event("input"));
+      });
+    });
+  }
+
+  function incrementPlayerSpecial(playerName, field) {
+    const existing = resultSubmitData.players.find(p => p.name === playerName);
+
+    if (existing) {
+      existing[field] = Number(existing[field] || 0) + 1;
+    } else {
+      resultSubmitData.players.push({
+        name: playerName,
+        finesPence: store.totalsByName[playerName] ?? 0,
+        doubleFine: playerName === doubleWinnerName,
+        checkouts: 0,
+        oneEightys: field === "oneEightys" ? 1 : 0,
+        bulls: field === "bulls" ? 1 : 0,
+        tonOuts: field === "tonOuts" ? 1 : 0
+      });
+    }
+
+    saveGameSnapshot();
+  }
+
+  function openLocalLightbox(startIndex = 0) {
+    localLightboxUrls.forEach(URL.revokeObjectURL);
+    localLightboxUrls = selectedMatchImages.map(file => URL.createObjectURL(file));
+    localLightboxIndex = startIndex;
+
+    openModal("Match Photos", `
+    <div class="localLightbox">
+      <button id="localPrevBtn" class="lightboxNav">‹</button>
+      <img id="localLightboxImg" src="${localLightboxUrls[localLightboxIndex]}" alt="Match photo">
+      <button id="localNextBtn" class="lightboxNav">›</button>
+    </div>
+    <div class="lightboxCounter">
+      Image ${localLightboxIndex + 1} / ${localLightboxUrls.length}
+    </div>
+  `);
+
+    document.getElementById("localPrevBtn")?.addEventListener("click", () => showLocalLightboxImage(localLightboxIndex - 1));
+    document.getElementById("localNextBtn")?.addEventListener("click", () => showLocalLightboxImage(localLightboxIndex + 1));
+  }
+
+  function showLocalLightboxImage(index) {
+    if (!localLightboxUrls.length) return;
+
+    localLightboxIndex = (index + localLightboxUrls.length) % localLightboxUrls.length;
+
+    const img = document.getElementById("localLightboxImg");
+    const counter = document.querySelector(".lightboxCounter");
+
+    if (img) img.src = localLightboxUrls[localLightboxIndex];
+    if (counter) counter.textContent = `Image ${localLightboxIndex + 1} / ${localLightboxUrls.length}`;
+  }
+
+  window.openLocalLightbox = openLocalLightbox;
+
+  function buildResultsRow() {
+    const m = resultSubmitData.match;
+    const row = [
+      m.league,
+      formatReviewDate(m.date),
+      m.homeTeam,
+      m.awayTeam,
+      m.homeScore,
+      m.awayScore,
+      m.result
+    ];
+
+    for (let i = 0; i < 10; i++) {
+      const p = resultSubmitData.players[i];
+
+      row.push(
+        p?.name || "",
+        p?.checkouts || "",
+        p?.finesPence != null ? (p.finesPence / 100).toFixed(2) : "",
+        p?.doubleFine ? "TRUE" : "FALSE",
+        p?.oneEightys || "",
+        p?.bulls || "",
+        p?.tonOuts || ""
+      );
+    }
+
+    row.push(
+      "", // IMGFOLDER gets filled after Drive upload
+      m.venue || "",
+      m.cup ? "TRUE" : "FALSE",
+      m.stage || ""
+    );
+
+    return row;
+  }
+
+  function hydrateMatchInfoDefaults() {
+    const dateEl = document.getElementById("matchDate");
+    if (dateEl && !dateEl.value) dateEl.value = todayInputValue();
+  }
+
+  function readMatchInfo() {
+    resultSubmitData.match = {
+      league: document.getElementById("matchLeague")?.value || "",
+      homeTeam: document.getElementById("matchHomeTeam")?.value.trim() || "",
+      awayTeam: document.getElementById("matchAwayTeam")?.value.trim() || "",
+      homeScore: Number(document.getElementById("matchHomeScore")?.value || 0),
+      awayScore: Number(document.getElementById("matchAwayScore")?.value || 0),
+      result: document.getElementById("matchResult")?.value || "",
+      date: document.getElementById("matchDate")?.value || "",
+      venue: document.getElementById("matchVenue")?.value.trim() || "",
+      imagesCount: selectedMatchImages.length,
+      cup: document.getElementById("matchCup")?.checked || false,
+      stage: document.getElementById("matchStage")?.value.trim() || "",
+      onmSide
+    };
+  }
+
+  function formatReviewDate(dateStr) {
+    if (!dateStr) return "";
+
+    const [part1, part2, part3] = String(dateStr).split(/[\/\-]/).map(Number);
+    if (!part1 || !part2 || !part3) return dateStr;
+
+    let d;
+
+    // YYYY-MM-DD
+    if (part1 > 1900) {
+      d = new Date(part1, part2 - 1, part3);
+    } else {
+      // DD/MM/YYYY
+      d = new Date(part3, part2 - 1, part1);
+    }
+
+    if (isNaN(d)) return dateStr;
+
+    return d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+  }
+
+  function renderReviewResult() {
+    const m = resultSubmitData.match;
+    const reviewLeagueTitle = document.getElementById("reviewLeagueTitle");
+    if (reviewLeagueTitle) reviewLeagueTitle.textContent = m.league || "";
+    const resultClass = String(m.result || "").toLowerCase();
+
+    const playersHtml = resultSubmitData.players.map(p => {
+      const specials = [];
+
+      if (p.oneEightys > 0) {
+        specials.push(`<span class="badge badge-180">180${p.oneEightys > 1 ? `×${p.oneEightys}` : ""}</span>`);
+      }
+
+      if (p.bulls > 0) {
+        specials.push(`<span class="badge badge-bull">Bull${p.bulls > 1 ? `×${p.bulls}` : ""}</span>`);
+      }
+
+      if (p.tonOuts > 0) {
+        specials.push(`<span class="badge badge-ton">Ton+${p.tonOuts > 1 ? `×${p.tonOuts}` : ""}</span>`);
+      }
+
+      return `
+        <tr>
+          <td>${escapeHtml(p.name)}</td>
+          <td>${p.checkouts === 0 ? "🥯" : p.checkouts}</td>
+          <td class="${p.doubleFine ? "fine-highlight" : ""}">${fmtGBP(p.finesPence)}</td>
+          <td>
+            <div class="specials-container">
+              ${specials.join("") || "-"}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    reviewImageUrls.forEach(url => URL.revokeObjectURL(url));
+    reviewImageUrls = selectedMatchImages.map(file => URL.createObjectURL(file));
+    const reviewImages = reviewImageUrls;
+    const visibleImages = reviewImages.slice(0, 4);
+    const extraCount = Math.max(0, reviewImages.length - visibleImages.length);
+
+    const imageGrid = reviewImages.length
+      ? `
+        <div class="match-image-grid review-image-grid">
+          ${visibleImages.map((src, i) => `
+            <div class="${i === 3 && extraCount > 0 ? "image-count-overlay" : ""}"
+                data-extra="${i === 3 && extraCount > 0 ? "+" + extraCount : ""}"
+                onclick="openLocalLightbox(${i})">
+              <img src="${src}" alt="Match image ${i + 1}">
+            </div>
+          `).join("")}
+        </div>
+      `
+      : "";
+
+    reviewResultBody.innerHTML = `
+      <div class="result-card review-submit-card ${resultClass}">
+        ${m.cup ? `
+          <img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/trophy.svg"
+              alt="Cup Match"
+              class="cup-icon"
+              title="Cup Match">
+        ` : ""}
+
+        <div class="teams">
+          <span class="team home">${escapeHtml(m.homeTeam)}</span>
+          <span class="score">${m.homeScore} – ${m.awayScore}</span>
+          <span class="team away">${escapeHtml(m.awayTeam)}</span>
+        </div>
+
+        <p class="date">${escapeHtml(formatReviewDate(m.date))}</p>
+
+        <table class="player-table review-player-table">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Checkouts</th>
+              <th>Fines</th>
+              <th>Specials</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${playersHtml}
+          </tbody>
+        </table>
+        ${imageGrid}
+        <div class="match-venue">
+          <span class="venue-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 21s-6-5.33-6-10a6 6 0 0 1 12 0c0 4.67-6 10-6 10z"></path>
+              <circle cx="12" cy="11" r="2"></circle>
+            </svg>
+          </span>
+          <span>${escapeHtml(m.venue || "Venue TBA")}</span>
+        </div>
+
+        <span class="result-label">${escapeHtml(m.result)}</span>
+      </div>
+    `;
+  }
 
 
   // Fines rules list (for modal)
@@ -126,6 +649,7 @@ document.addEventListener("DOMContentLoaded", () => {
       `,
         onConfirm: () => {
           const { anyCapped } = applyFineToMany(otherNames, penceEach);
+          incrementPlayerSpecial(selectedName, "oneEightys");
           if (anyCapped) showToast("Maximum fine amount reached");
           else showToast("Special applied");
           clearFineSelection();
@@ -147,6 +671,7 @@ document.addEventListener("DOMContentLoaded", () => {
       `,
         onConfirm: () => {
           const { anyCapped } = applyFineToMany(otherNames, penceEach);
+          incrementPlayerSpecial(selectedName, "bulls");
           if (anyCapped) showToast("Maximum fine amount reached");
           else showToast("Special applied");
           clearFineSelection();
@@ -177,6 +702,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           const penceEach = Number(raw);
           const { anyCapped } = applyFineToMany(otherNames, penceEach);
+          incrementPlayerSpecial(selectedName, "tonOuts");
           if (anyCapped) showToast("Maximum fine amount reached");
           else showToast(`Applied £${(penceEach / 100).toFixed(2)} to everyone else`);
           clearFineSelection();
@@ -209,10 +735,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
   }
-
-
-
-
 
   function openSpecialsPicker() {
     if (selectedPlayerIndex === null) {
@@ -292,7 +814,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
 
+  function goBack() {
+    const order = ["setup", "tracker", "results", "resultStats", "matchInfo", "reviewResult"];
+    const i = order.indexOf(currentScreen);
 
+    if (i > 0) {
+      showScreen(order[i - 1]);
+    }
+  }
 
   function updateSpinButtons() {
     const hasWinner = !!doubleWinnerName;
@@ -302,11 +831,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateConfirmResultButton() {
-    const enabled = !!doubleWinnerName;
     if (!confirmResultBtn) return;
 
-    confirmResultBtn.disabled = !enabled;
-    confirmResultBtn.className = "btn " + (enabled ? "btnPrimary" : "btnDisabled");
+    const hasWinner = !!doubleWinnerName;
+
+    confirmResultBtn.textContent = hasWinner ? "Next" : "Skip";
+
+    confirmResultBtn.disabled = false;
+    confirmResultBtn.className = "btn btnPrimary";
   }
 
   function fmtGameDate(iso) {
@@ -318,48 +850,171 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${date} • ${time}`;
   }
 
-  function resumeModalHtml(game) {
-    const created = fmtGameDate(game?.createdAt);
-    const updated = fmtGameDate(game?.updatedAt);
+  function openResumeGameModal() {
+    openModal("Resume game?", resumeModalHtml(store.game));
 
+    document.getElementById("resumeGameBtn")?.addEventListener("click", () => {
+      closeModal();
+      restoreGameFromStore();
+    });
+
+    document.getElementById("resetSavedGameBtn")?.addEventListener("click", () => {
+      closeModal();
+      confirmResetGame();
+    });
+  }
+
+  function resumeModalHtml(game) {
     const names = Array.isArray(game?.players) ? game.players : [];
-    const rows = names.map(n => {
-      const total = store.totalsByName?.[n] ?? 0;
-      return `
-      <div style="display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.08);">
-        <div style="font-weight:900;">${escapeHtml(n)}</div>
-        <div style="font-weight:900;">${fmtGBP(total)}</div>
-      </div>
-    `;
-    }).join("");
+    const m = game?.resultSubmitData?.match || {};
+
+    const titleText =
+      m.homeTeam && m.awayTeam
+        ? `${escapeHtml(m.homeTeam)} vs ${escapeHtml(m.awayTeam)}`
+        : "Resume Game";
+
+    const rows = names.map(name => `
+    <tr>
+      <td>${escapeHtml(name)}</td>
+      <td>${fmtGBP(store.totalsByName?.[name] ?? 0)}</td>
+    </tr>
+  `).join("");
 
     return `
-    <div class="muted" style="margin-bottom:10px;">
-      A saved game was found.
-    </div>
+    <div class="result-card review-submit-card">
 
-    <div style="margin-bottom:10px;">
-      <div><b>Started:</b> ${escapeHtml(created || "Unknown")}</div>
-      <div class="muted" style="margin-top:4px;"><b>Last updated:</b> ${escapeHtml(updated || "Unknown")}</div>
-    </div>
+      <div style="font-weight:900; font-size:16px; margin-bottom:10px;">
+        ${titleText}
+      </div>
 
-    <div style="margin-top:10px; font-weight:900;">Players</div>
-    <div style="margin-top:6px;">
-      ${rows || `<div class="muted">No players found.</div>`}
-    </div>
+      <table class="player-table review-player-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Fines</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
 
-    <div style="display:flex; gap:10px; margin-top:14px;">
-      <button id="resumeGameBtn" class="btn btnPrimary" style="height:44px;">Continue game</button>
-      <button id="resetSavedGameBtn" class="btn btnGhost" style="height:44px;">Reset game</button>
+      <div class="row" style="margin-top:12px;">
+        <button id="resetSavedGameBtn" class="btn btnGhost">Reset Game</button>
+        <button id="resumeGameBtn" class="btn btnPrimary">Resume Game</button>
+      </div>
     </div>
   `;
+  }
+
+  function goToPlayerStats() {
+    renderResultStatsScreen();
+    showScreen("resultStats");
+    saveGameSnapshot();
+  }
+
+  function goToMatchInfo() {
+    renderResultStatsScreen();
+    hydrateMatchInfoDefaults();
+    hydrateMatchInfoFromStore();
+    showScreen("matchInfo");
+    saveGameSnapshot();
+  }
+
+  function goToReviewResult() {
+    readMatchInfo();
+    renderReviewResult();
+    showScreen("reviewResult");
+    saveGameSnapshot();
+  }
+
+  function goToScreenFromSwitch(target) {
+    if (!players.length && target !== "setup") {
+      showToast("Start or resume a game first.");
+      return;
+    }
+
+    if (target === "setup") {
+      showScreen("setup");
+      return;
+    }
+
+    if (target === "tracker") {
+      showScreen("tracker");
+      return;
+    }
+
+    if (target === "results") {
+      syncPlayersFromStore();
+      excludedFromWheel = new Set();
+      renderResultsList();
+      drawWheel(getWheelNames());
+      updateSpinButtons();
+      updateConfirmResultButton();
+      showScreen("results");
+      return;
+    }
+
+    if (target === "resultStats") {
+      goToPlayerStats();
+      return;
+    }
+
+    if (target === "matchInfo") {
+      goToMatchInfo();
+      return;
+    }
+
+    if (target === "reviewResult") {
+      readMatchInfo();
+
+      if (!resultSubmitData.match.awayTeam) {
+        showToast("Add match info first.");
+        goToMatchInfo();
+        return;
+      }
+
+      goToReviewResult();
+    }
+  }
+
+  function hydrateMatchInfoFromStore() {
+    const m = resultSubmitData.match || {};
+
+    const set = (id, value) => {
+      const el = document.getElementById(id);
+      if (el && value !== undefined && value !== null) el.value = value;
+    };
+
+    set("matchLeague", m.league);
+    set("matchHomeTeam", m.homeTeam);
+    set("matchAwayTeam", m.awayTeam);
+    set("matchHomeScore", m.homeScore);
+    set("matchAwayScore", m.awayScore);
+    set("matchResult", m.result);
+    set("matchDate", m.date);
+    set("matchVenue", m.venue);
+    set("matchImageFolder", m.imageFolder);
+    set("matchStage", m.stage);
+
+    onmSide = m.onmSide || "home";
+    onmHomeBtn?.classList.toggle("active", onmSide === "home");
+    onmAwayBtn?.classList.toggle("active", onmSide === "away");
+    homeAwayToggle?.classList.toggle("away", onmSide === "away");
+
+    const cup = document.getElementById("matchCup");
+    if (cup) cup.checked = !!m.cup;
+    cupNoBtn?.classList.toggle("active", !m.cup);
+    cupYesBtn?.classList.toggle("active", !!m.cup);
+    cupToggle?.classList.toggle("away", !!m.cup);
   }
 
   function restoreGameFromStore() {
     const g = store.game;
     if (!g || !Array.isArray(g.players) || !g.players.length) return false;
 
-    // Restore players + totals
+    const targetScreen = g.screen || "tracker";
+
     players = g.players.map(name => ({
       name,
       totalPence: store.totalsByName?.[name] ?? 0
@@ -370,124 +1025,109 @@ document.addEventListener("DOMContentLoaded", () => {
 
     excludedFromWheel = new Set(Array.isArray(g.excludedFromWheel) ? g.excludedFromWheel : []);
 
-    // ✅ Restore double-fines context
+    resultSubmitData = g.resultSubmitData || { players: [], match: {} };
+
     doubleWinnerName = g.doubleWinnerName ?? null;
     doubleBatchId = g.doubleBatchId ?? null;
     doubleFromPence = Number.isInteger(g.doubleFromPence) ? g.doubleFromPence : null;
     doubleToPence = Number.isInteger(g.doubleToPence) ? g.doubleToPence : null;
 
-    // Clear transient UI selections
     selectedFine = null;
     selectedSpecial = null;
     customValueText = "";
 
-    // Restore screen
-    const targetScreen = g.screen || "tracker";
     showScreen(targetScreen);
 
-    // Re-render base UI
     renderPlayers();
     renderFines();
     updateSubmitState();
     updateSpinButtons();
     updateConfirmResultButton();
 
-    // Restore screen-specific UI
     if (targetScreen === "results") {
-      renderResultsList();
-      drawWheel(getWheelNames());
-    }
-
-    if (targetScreen === "final") {
-      renderFinalList();
-    }
-
-    return true;
-  }
-
-
-  const doubleTitle = document.getElementById("doubleTitle");
-
-  function showScreen(screen) {
-    currentScreen = screen;
-
-    setupCard.classList.toggle("hidden", screen !== "setup");
-    trackerCard.classList.toggle("hidden", screen !== "tracker");
-    resultsCard.classList.toggle("hidden", screen !== "results");
-    finalCard.classList.toggle("hidden", screen !== "final");
-
-    // Header visibility logic
-    const headerShouldShow = (screen === "setup" || screen === "tracker");
-    appHeader?.classList.toggle("hiddenHeader", !headerShouldShow);
-
-    if (screen === "tracker") headerActions?.classList.remove("hidden");
-    else headerActions?.classList.add("hidden");
-
-    // ✅ NEW — Double fines header visibility
-    if (doubleHeader) {
-      const show = (screen === "results");
-      doubleHeader.classList.toggle("hidden", !show);
-    }
-
-    // Persist current screen
-    store.game = store.game || {};
-    store.game.screen = screen;
-    store.game.updatedAt = nowIso();
-    saveStore(store);
-  }
-
-
-  function resumeGameFromStore() {
-    const g = store.game;
-    if (!g || !Array.isArray(g.players) || g.players.length === 0) return false;
-
-    // Restore core state
-    players = g.players.map(name => ({
-      name,
-      totalPence: store.totalsByName[name] ?? 0
-    }));
-
-    selectedPlayerIndex =
-      Number.isInteger(g.selectedPlayerIndex) ? g.selectedPlayerIndex : 0;
-
-    excludedFromWheel = new Set(Array.isArray(g.excludedFromWheel) ? g.excludedFromWheel : []);
-    doubleWinnerName = g.doubleWinnerName ?? null;
-    doubleBatchId = g.doubleBatchId ?? null;
-    doubleFromPence = Number.isInteger(g.doubleFromPence) ? g.doubleFromPence : null;
-    doubleToPence = Number.isInteger(g.doubleToPence) ? g.doubleToPence : null;
-
-    // Clear any half-selected fine UI state (safer UX)
-    selectedFine = null;
-    selectedSpecial = null;
-    customValueText = "";
-
-    // Move UI to the right screen
-    const targetScreen = g.screen || "tracker";
-    showScreen(targetScreen);
-
-    // Re-render everything for that screen
-    renderPlayers();
-    renderFines();
-
-    updateSubmitState();
-
-    // If resuming results/final, rebuild those UIs too
-    if (targetScreen === "results") {
+      syncPlayersFromStore();
       renderResultsList();
       drawWheel(getWheelNames());
       updateSpinButtons();
       updateConfirmResultButton();
     }
+
     if (targetScreen === "final") {
       renderFinalList();
-      updateSpinButtons();
+    }
+
+    if (targetScreen === "resultStats") {
+      renderResultStatsScreen();
+    }
+
+    if (targetScreen === "matchInfo") {
+      renderResultStatsScreen();
+      hydrateMatchInfoDefaults();
+      hydrateMatchInfoFromStore();
+    }
+
+    if (targetScreen === "reviewResult") {
+      hydrateMatchInfoFromStore();
+      renderReviewResult();
     }
 
     return true;
   }
 
+  function showScreen(screen) {
+    currentScreen = screen;
 
+    setupCard?.classList.toggle("hidden", screen !== "setup");
+    trackerCard?.classList.toggle("hidden", screen !== "tracker");
+    resultsCard?.classList.toggle("hidden", screen !== "results");
+    finalCard?.classList.toggle("hidden", screen !== "final");
+    resultStatsCard?.classList.toggle("hidden", screen !== "resultStats");
+    matchInfoCard?.classList.toggle("hidden", screen !== "matchInfo");
+    reviewResultCard?.classList.toggle("hidden", screen !== "reviewResult");
 
+    const titles = {
+      setup: "Players",
+      tracker: "Fine Tracker",
+      results: "Double Fines",
+      final: "Match Result",
+      resultStats: "Player Stats",
+      matchInfo: "Match Info",
+      reviewResult: "Result Submit"
+    };
+
+    if (screenTitleText) {
+      screenTitleText.textContent = titles[screen] || "Fine Tracker";
+    }
+
+    const hasGame = players.length > 0;
+
+    // Player screen: Submit Players for new game, Reset/Next for existing game
+    startBtn?.classList.toggle("hidden", screen === "setup" && hasGame);
+    setupGameActions?.classList.toggle("hidden", !(screen === "setup" && hasGame));
+
+    if (setupNextBtn) {
+      setupNextBtn.textContent = hasGame ? "Resume game" : "Next";
+    }
+
+    appHeader?.classList.remove("hiddenHeader");
+
+    document.querySelectorAll(".screenSwitchBtn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.screenTarget === screen);
+    });
+
+    if (store.game) {
+      store.game.screen = screen;
+      store.game.updatedAt = nowIso();
+      saveStore(store);
+    }
+    if (screen === "results") {
+      syncPlayersFromStore();
+      renderResultsList();
+      drawWheel(getWheelNames());
+      updateSpinButtons();
+      updateConfirmResultButton();
+    }
+  }
 
   function showToast(msg) {
     const el = document.getElementById("toast");
@@ -529,10 +1169,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return {
         totalsByName: parsed?.totalsByName ?? {},
         history: Array.isArray(parsed?.history) ? parsed.history : [],
-        game: parsed?.game ?? null
+        game: parsed?.game ?? null,
+        setupNames: Array.isArray(parsed?.setupNames) ? parsed.setupNames : []
       };
     } catch {
-      return { totalsByName: {}, history: [], game: null };
+      return { totalsByName: {}, history: [], game: null, setupNames: [] };
     }
   }
 
@@ -541,65 +1182,228 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 
-  // ---- DOM ----
-  const setupGrid = document.getElementById("setupGrid");
-  const setupCard = document.getElementById("setupCard");
-  const trackerCard = document.getElementById("trackerCard");
-  const winnerMathEl = document.getElementById("winnerMath");
-
-  const playersGrid = document.getElementById("playersGrid");
-  const fineGrid = document.getElementById("fineGrid");
-
-  const startBtn = document.getElementById("startBtn");
-  const submitFineBtn = document.getElementById("submitFineBtn");
-  const undoBtn = document.getElementById("undoBtn");
-  const resetBtn = document.getElementById("resetBtn");
-
-  const openHistoryBtn = document.getElementById("openHistoryBtn");
-  const openFinesBtn = document.getElementById("openFinesBtn");
-  const openDoubleInfoBtn = document.getElementById("openDoubleInfoBtn");
-
-  const modalOverlay = document.getElementById("modalOverlay");
-  const modalTitle = document.getElementById("modalTitle");
-  const modalBody = document.getElementById("modalBody");
-  const closeModalBtn = document.getElementById("closeModalBtn");
-
-  const specialsGrid = document.getElementById("specialsGrid");
-  const headerActions = document.getElementById("headerActions");
-
-  const resultsCard = document.getElementById("resultsCard");
-  const resultsList = document.getElementById("resultsList");
-  const submitResultBtn = document.getElementById("submitResultBtn");
-  const backToGameBtn = document.getElementById("backToGameBtn");
-  const spinBtn = document.getElementById("spinBtn");
-  const wheelCanvas = document.getElementById("wheelCanvas");
-  const wheelWinner = document.getElementById("wheelWinner");
-
-  const appHeader = document.getElementById("appHeader");
-  const doubleHeader = document.getElementById("doubleHeader");
 
 
-  const finalCard = document.getElementById("finalCard");
-  const finalList = document.getElementById("finalList");
+  function getCurrentLeagueConfig() {
+    const leagueName = (matchLeague?.value || "Trafalgar League").trim();
+    return leagueTeamsData?.leagues?.[leagueName] || null;
+  }
 
-  const resumeGameBtnInline = document.getElementById("resumeGameBtnInline");
+  function getLeagueTeamNames() {
+    const league = getCurrentLeagueConfig();
+    const teams = league?.teams?.map(t => t.name) || [];
+    return teams;
+  }
 
+  function populateLeagueTeamSuggestions() {
+    if (!leagueTeamsList) return;
 
-  // Winner popup
-  const winnerOverlay = document.getElementById("winnerOverlay");
-  const closeWinnerBtn = document.getElementById("closeWinnerBtn");
-  const winnerContinueBtn = document.getElementById("winnerContinueBtn");
-  const winnerNameEl = document.getElementById("winnerName");
-  const winnerAmountEl = document.getElementById("winnerAmount");
+    leagueTeamsList.replaceChildren();
 
-  const finalBackBtn = document.getElementById("finalBackBtn");
+    getLeagueTeamNames().forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      leagueTeamsList.appendChild(opt);
+    });
 
-  const resetGameBtn = document.getElementById("resetGameBtn");
+    console.log("Dropdown league:", matchLeague.value, getLeagueTeamNames());
+  }
 
-  const wheelBackBtn = document.getElementById("wheelBackBtn");
-  const confirmResultBtn = document.getElementById("confirmResultBtn");
-  const addPlayerBtn = document.getElementById("addPlayerBtn");
-  const removePlayerBtn = document.getElementById("removePlayerBtn");
+  function getTeamVenue(teamName) {
+    if (teamName === "Oche Ness Monsters") return "The Horseshoe";
+
+    const league = getCurrentLeagueConfig();
+    if (!league) return "";
+
+    const team = league.teams.find(t =>
+      t.name.toLowerCase() === String(teamName || "").trim().toLowerCase()
+    );
+
+    return team?.venue || "";
+  }
+
+  function updateVenueFromHomeTeam() {
+    matchVenue.value = getTeamVenue(matchHomeTeam.value) || "";
+  }
+
+  function updateScoreAutofill(changedSide) {
+    const league = getCurrentLeagueConfig();
+    if (!league || matchCup?.checked) return;
+
+    const totalLegs = Number(league.legs || 0);
+    if (!totalLegs) return;
+
+    if (changedSide === "home") {
+      if (matchHomeScore.value === "") {
+        matchAwayScore.value = "";
+        readMatchInfo();
+        saveGameSnapshot();
+        return;
+      }
+
+      const home = Number(matchHomeScore.value);
+      matchAwayScore.value = Math.max(0, totalLegs - home);
+    }
+
+    if (changedSide === "away") {
+      if (matchAwayScore.value === "") {
+        matchHomeScore.value = "";
+        readMatchInfo();
+        saveGameSnapshot();
+        return;
+      }
+
+      const away = Number(matchAwayScore.value);
+      matchHomeScore.value = Math.max(0, totalLegs - away);
+    }
+
+    updateResultFromScore();
+    readMatchInfo();
+    saveGameSnapshot();
+  }
+
+  function updateResultFromScore() {
+    const resultEl = document.getElementById("matchResult");
+    if (!resultEl || matchHomeScore.value === "" || matchAwayScore.value === "") return;
+
+    const home = Number(matchHomeScore.value);
+    const away = Number(matchAwayScore.value);
+
+    const onmScore = onmSide === "home" ? home : away;
+    const oppScore = onmSide === "home" ? away : home;
+
+    resultEl.value = onmScore > oppScore ? "Won" : "Lost";
+  }
+
+  function setDefaultLeague() {
+    if (matchLeague && !matchLeague.value) {
+      matchLeague.value = "Trafalgar League";
+    }
+
+    if (matchHomeTeam && !matchHomeTeam.value) {
+      matchHomeTeam.value = "Oche Ness Monsters";
+    }
+
+    if (matchAwayTeam && matchAwayTeam.value === "Oche Ness Monsters") {
+      matchAwayTeam.value = "";
+    }
+
+    onmSide = "home";
+    onmHomeBtn?.classList.add("active");
+    onmAwayBtn?.classList.remove("active");
+    homeAwayToggle?.classList.remove("away");
+  }
+
+  function autofillFixtureForDate(dateValue = matchDate?.value) {
+    if (!dateValue || !leagueTeamsData?.fixtures?.length) return;
+
+    const fixture = leagueTeamsData.fixtures.find(f => f.date === dateValue);
+    if (!fixture) return;
+
+    matchLeague.value = fixture.league;
+    matchHomeTeam.value = fixture.homeTeam;
+    matchAwayTeam.value = fixture.awayTeam;
+
+    onmSide = fixture.homeTeam === "Oche Ness Monsters" ? "home" : "away";
+
+    onmHomeBtn?.classList.toggle("active", onmSide === "home");
+    onmAwayBtn?.classList.toggle("active", onmSide === "away");
+    homeAwayToggle?.classList.toggle("away", onmSide === "away");
+
+    populateLeagueTeamSuggestions();
+    updateVenueFromHomeTeam();
+    readMatchInfo();
+    saveGameSnapshot();
+  }
+
+  function applyHomeAwaySide(side = onmSide) {
+    if (side === onmSide) return;
+
+    const oldHome = matchHomeTeam.value.trim();
+    const oldAway = matchAwayTeam.value.trim();
+
+    onmSide = side;
+
+    onmHomeBtn?.classList.toggle("active", side === "home");
+    onmAwayBtn?.classList.toggle("active", side === "away");
+    homeAwayToggle?.classList.toggle("away", side === "away");
+
+    if (side === "home") {
+      matchHomeTeam.value = "Oche Ness Monsters";
+      matchAwayTeam.value = oldHome && oldHome !== "Oche Ness Monsters" ? oldHome : "";
+    } else {
+      matchAwayTeam.value = "Oche Ness Monsters";
+      matchHomeTeam.value = oldAway && oldAway !== "Oche Ness Monsters" ? oldAway : "";
+    }
+
+    populateLeagueTeamSuggestions();
+    updateVenueFromHomeTeam();
+    updateResultFromScore();
+    readMatchInfo();
+    saveGameSnapshot();
+  }
+
+  function applyTeamChange() {
+    updateVenueFromHomeTeam();
+    readMatchInfo();
+    saveGameSnapshot();
+  }
+
+  function makeDatalistShowAll(input) {
+    let previousValue = "";
+
+    input?.addEventListener("mousedown", () => {
+      previousValue = input.value;
+      input.value = "";
+    });
+
+    input?.addEventListener("blur", () => {
+      if (!input.value) input.value = previousValue;
+    });
+  }
+
+  makeDatalistShowAll(matchHomeTeam);
+  makeDatalistShowAll(matchAwayTeam);
+
+  matchLeague?.addEventListener("change", () => {
+    populateLeagueTeamSuggestions();
+
+    matchHomeTeam.value = onmSide === "home" ? "Oche Ness Monsters" : "";
+    matchAwayTeam.value = onmSide === "away" ? "Oche Ness Monsters" : "";
+
+    matchHomeScore.value = "";
+    matchAwayScore.value = "";
+
+    updateVenueFromHomeTeam();
+    readMatchInfo();
+    saveGameSnapshot();
+  });
+
+  onmHomeBtn?.addEventListener("click", () => applyHomeAwaySide("home"));
+  onmAwayBtn?.addEventListener("click", () => applyHomeAwaySide("away"));
+
+  matchHomeTeam?.addEventListener("change", applyTeamChange);
+  matchAwayTeam?.addEventListener("change", applyTeamChange);
+
+  matchHomeScore?.addEventListener("input", () => updateScoreAutofill("home"));
+  matchAwayScore?.addEventListener("input", () => updateScoreAutofill("away"));
+
+  matchCup?.addEventListener("change", () => {
+    readMatchInfo();
+    saveGameSnapshot();
+  });
+
+  [matchHomeScore, matchAwayScore].forEach(el => {
+    el?.addEventListener("focus", () => {
+      el.value = "";
+    });
+
+    el?.addEventListener("blur", () => {
+      if (el.value !== "") el.value = String(Number(el.value));
+    });
+  });
+
+  setDefaultLeague();
 
   submitFineBtn?.addEventListener("click", () => {
     if (selectedPlayerIndex === null) return;
@@ -639,7 +1443,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const existingValues = [];
 
     for (let i = 1; i <= playerInputCount; i++) {
-      existingValues[i] = document.getElementById(`p${i}`)?.value || "";
+      existingValues[i] =
+        document.getElementById(`p${i}`)?.value ||
+        store.setupNames?.[i - 1] ||
+        "";
     }
 
     setupGrid.innerHTML = "";
@@ -648,17 +1455,91 @@ document.addEventListener("DOMContentLoaded", () => {
       const row = document.createElement("div");
       row.className = "nameRow";
       row.innerHTML = `
-      <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="18" value="${escapeHtml(existingValues[i] || "")}" />
+      <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="18" value="${escapeHtml(existingValues[i] || store.setupNames?.[i - 1] || "")}" />
     `;
       setupGrid.appendChild(row);
+      const input = row.querySelector("input");
+      input?.addEventListener("input", () => {
+        const names = [];
+
+        for (let j = 1; j <= playerInputCount; j++) {
+          const val = document.getElementById(`p${j}`)?.value || "";
+          names.push(val);
+        }
+
+        store.setupNames = names;
+        saveStore(store);
+
+        if (players.length) {
+          applySetupNamesToGame({ silent: true });
+        }
+      });
     }
 
     if (addPlayerBtn) addPlayerBtn.disabled = playerInputCount >= MAX_PLAYERS;
     if (removePlayerBtn) removePlayerBtn.disabled = playerInputCount <= MIN_PLAYERS;
   }
 
-  // ---- State ----
-  let store = loadStore(); // { totalsByName, history }
+  function saveSetupNamesToStore() {
+    const setupNames = [];
+
+    for (let i = 1; i <= playerInputCount; i++) {
+      const value = document.getElementById(`p${i}`)?.value.trim() || "";
+      setupNames.push(value);
+    }
+
+    store.setupNames = setupNames;
+    saveStore(store);
+  }
+
+  function applySetupNamesToGame({ silent = false } = {}) {
+    const names = [];
+
+    for (let i = 1; i <= playerInputCount; i++) {
+      const value = document.getElementById(`p${i}`)?.value.trim();
+      if (value) names.push(value);
+    }
+
+    if (!names.length) {
+      if (!silent) showToast("Add at least 1 player name.");
+      return false;
+    }
+
+    const oldPlayers = [...players];
+
+    players = names.map((name, index) => {
+      const old = oldPlayers[index];
+      const oldName = old?.name;
+
+      if (oldName && oldName !== name) {
+        store.totalsByName[name] = store.totalsByName[oldName] ?? 0;
+        delete store.totalsByName[oldName];
+
+        store.history.forEach(h => {
+          if (h.name === oldName) h.name = name;
+        });
+
+        resultSubmitData.players.forEach(p => {
+          if (p.name === oldName) p.name = name;
+        });
+
+        if (doubleWinnerName === oldName) doubleWinnerName = name;
+      }
+
+      return {
+        name,
+        totalPence: store.totalsByName[name] ?? old?.totalPence ?? 0
+      };
+    });
+
+    saveSetupNamesToStore();
+    saveGameSnapshot();
+    syncPlayersFromStore();
+
+    return true;
+  }
+
+
 
   function updateResumeButtonVisibility() {
     const hasSavedGame = Array.isArray(store.game?.players) && store.game.players.length > 0;
@@ -702,41 +1583,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 
-
-  // ✅ If we have a saved game snapshot but no in-memory players (fresh reload),
-  // show a resume popup.
-  if (store.game?.players?.length) {
-    // Only show this if we're currently on setup (i.e., page reset)
-    // Your initial UI is setup by default.
-    openModal("Resume game?", resumeModalHtml(store.game));
-
-    const resumeBtn = document.getElementById("resumeGameBtn");
-    const resetBtn2 = document.getElementById("resetSavedGameBtn");
-
-    resumeBtn?.addEventListener("click", () => {
-      closeModal();
-      const ok = restoreGameFromStore();
-      if (!ok) showToast("Couldn't restore game.");
-    });
-
-
-    resetBtn2?.addEventListener("click", () => {
-      // confirmation like your existing reset
-      openConfirmModal({
-        title: "Reset saved game",
-        bodyHtml: `<div>Are you sure you want to reset this saved game?</div><div class="muted" style="margin-top:6px;">This will clear players, totals and history.</div>`,
-        confirmText: "Yes, reset",
-        cancelText: "Cancel",
-        onConfirm: () => {
-          hardResetAll();
-          showToast("Reset.");
-        }
-      });
-    });
-  }
-
-
-
   let players = [];        // { name, totalPence }
   let selectedPlayerIndex = null;
   let selectedFine = null; // number pence OR "CUSTOM"
@@ -748,12 +1594,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let currentScreen = "setup"; // "setup" | "tracker" | "results" | "final"
 
-  function hardResetAll({ clearNameInputs = true } = {}) {
-    // clear storage
-    store = { totalsByName: {}, history: [], game: null };
+  function hardResetAll() {
+    store = { totalsByName: {}, history: [], game: null, setupNames: [] };
     saveStore(store);
 
-    // wipe in-memory state
     players = [];
     excludedFromWheel = new Set();
     selectedPlayerIndex = null;
@@ -766,16 +1610,73 @@ document.addEventListener("DOMContentLoaded", () => {
     doubleFromPence = null;
     doubleToPence = null;
 
-    // clear inputs on setup screen
+    resultSubmitData = {
+      players: [],
+      match: {}
+    };
+
+    selectedMatchImages = [];
+    reviewImageUrls.forEach(url => URL.revokeObjectURL(url));
+    reviewImageUrls = [];
+
+    localLightboxUrls.forEach(url => URL.revokeObjectURL(url));
+    localLightboxUrls = [];
+    localLightboxIndex = 0;
+
+    onmSide = "home";
+
     playerInputCount = DEFAULT_PLAYER_INPUTS;
     renderSetupInputs();
+    for (let i = 1; i <= playerInputCount; i++) {
+      const input = document.getElementById(`p${i}`);
+      if (input) input.value = "";
+    }
 
-    // UI
-    updateResumeButtonVisibility();
-    updateConfirmResultButton?.();
+    [
+      "matchHomeTeam",
+      "matchAwayTeam",
+      "matchHomeScore",
+      "matchAwayScore",
+      "matchVenue",
+      "matchStage",
+      "matchDate"
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+
+    if (matchLeague) matchLeague.value = "Trafalgar League";
+    if (document.getElementById("matchResult")) {
+      document.getElementById("matchResult").value = "Won";
+    }
+
+    if (matchCup) matchCup.checked = false;
+
+    onmHomeBtn?.classList.add("active");
+    onmAwayBtn?.classList.remove("active");
+    homeAwayToggle?.classList.remove("away");
+
+    cupNoBtn?.classList.add("active");
+    cupYesBtn?.classList.remove("active");
+    cupToggle?.classList.remove("away");
+
+    if (imageText) imageText.textContent = "📷 Add images";
+
+    if (resultStatsList) resultStatsList.innerHTML = "";
+    if (reviewResultBody) reviewResultBody.innerHTML = "";
+    if (reviewLeagueTitle) reviewLeagueTitle.textContent = "";
+    if (resultsList) resultsList.innerHTML = "";
+    if (finalList) finalList.innerHTML = "";
+
     wheelAngle = 0;
 
-    closeModal?.();       // harmless if modal not open
+    updateResumeButtonVisibility();
+    updateSpinButtons();
+    updateConfirmResultButton();
+    renderFines();
+    updateSubmitState();
+
+    closeModal?.();
     showScreen("setup");
   }
 
@@ -800,7 +1701,9 @@ document.addEventListener("DOMContentLoaded", () => {
       doubleWinnerName: doubleWinnerName ?? null,
       doubleBatchId: doubleBatchId ?? null,
       doubleFromPence: doubleFromPence ?? null,
-      doubleToPence: doubleToPence ?? null
+      doubleToPence: doubleToPence ?? null,
+
+      resultSubmitData
     };
 
     saveStore(store);
@@ -1111,6 +2014,98 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.remove("modal-open");
   }
 
+  function renderImageSummary() {
+    const count = selectedMatchImages.length;
+
+    if (imageText) {
+      imageText.textContent = count === 0
+        ? "📷 Add images"
+        : `📷 ${count} image${count === 1 ? "" : "s"}`;
+    }
+
+    resultSubmitData.match.imagesCount = count;
+    readMatchInfo();
+    saveGameSnapshot();
+  }
+
+  function openImagesModal() {
+    const thumbs = selectedMatchImages.map((file, index) => {
+      const url = URL.createObjectURL(file);
+
+      return `
+      <div class="imageThumb">
+        <img src="${url}" alt="">
+        <button type="button" class="removeImageBtn" data-index="${index}">×</button>
+      </div>
+    `;
+    }).join("");
+
+    openModal("Match Images", `
+    <div class="imageModalActions">
+      <button id="chooseImagesBtn" type="button" class="btn btnPrimary">
+        ${selectedMatchImages.length ? "Add more" : "Choose images"}
+      </button>
+      <button id="doneImagesBtn" type="button" class="btn btnGhost">Done</button>
+    </div>
+
+    <div class="imageThumbGrid">
+      ${thumbs || `<div class="muted">No images selected yet.</div>`}
+    </div>
+  `);
+
+    document.getElementById("chooseImagesBtn")?.addEventListener("click", () => {
+      const grid = modalBody.querySelector(".imageThumbGrid");
+      if (grid && selectedMatchImages.length === 0) {
+        grid.innerHTML = `<div class="muted">Opening image picker...</div>`;
+      }
+      matchImageInput?.click();
+    });
+
+    document.getElementById("doneImagesBtn")?.addEventListener("click", closeModal);
+
+    modalBody.querySelectorAll(".removeImageBtn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const index = Number(btn.dataset.index);
+        selectedMatchImages.splice(index, 1);
+        renderImageSummary();
+        openImagesModal();
+      });
+    });
+  }
+
+  const openImagesBox = document.getElementById("openImagesBox");
+
+  openImagesBox?.addEventListener("click", openImagesModal);
+
+  openImagesBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openImagesModal();
+  });
+
+  matchImageInput?.addEventListener("change", () => {
+    const newFiles = Array.from(matchImageInput.files || []);
+    const remainingSlots = MAX_MATCH_IMAGES - selectedMatchImages.length;
+
+    if (remainingSlots <= 0) {
+      showToast("Maximum 30 images.");
+      matchImageInput.value = "";
+      return;
+    }
+
+    selectedMatchImages = [
+      ...selectedMatchImages,
+      ...newFiles.slice(0, remainingSlots)
+    ];
+
+    if (newFiles.length > remainingSlots) {
+      showToast("Maximum 30 images.");
+    }
+
+    matchImageInput.value = "";
+    renderImageSummary();
+    openImagesModal();
+  });
+
 
 
   function openConfirmModal({ title, bodyHtml, confirmText = "Confirm", cancelText = "Cancel", onConfirm }) {
@@ -1168,6 +2163,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    saveSetupNamesToStore();
+
     // de-dupe (case-insensitive) by suffixing
     const seen = new Map();
     players = names.map((n) => {
@@ -1224,27 +2221,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-  undoBtn.addEventListener("click", () => {
+  undoBtn?.addEventListener("click", () => {
     undoLastFine();
-    doubleWinnerName = null;
-
-    // keep selected player as-is
     updateSubmitState();
+    updateConfirmResultButton();
+    updateSpinButtons();
   });
 
-  resetBtn.addEventListener("click", () => {
+  function confirmResetGame() {
     openConfirmModal({
       title: "Reset game",
-      bodyHtml: `<div>Are you sure you want to reset?</div><div class="muted" style="margin-top:6px;">You may lose your current screen progress.</div>`,
+      bodyHtml: `<div>Are you sure you want to reset?</div>
+              <div class="muted" style="margin-top:6px;">
+              This will clear players, totals, stats, match info and images.</div>`,
       confirmText: "Yes, reset",
       cancelText: "Cancel",
       onConfirm: () => {
         hardResetAll();
         showToast("Reset.");
       }
-
     });
-  });
+  }
+
+  resetBtn?.addEventListener("click", confirmResetGame);
+  setupResetBtn?.addEventListener("click", confirmResetGame);
+  resetGameBtn?.addEventListener("click", confirmResetGame);
 
   let wheelAngle = 0;
   let wheelSpinning = false;
@@ -1477,43 +2478,38 @@ document.addEventListener("DOMContentLoaded", () => {
       if (winnerContinueBtn) {
         winnerContinueBtn.onclick = () => {
           closeWinnerPopup();
-          renderFinalList();
-          updateSpinButtons();
-          showScreen("final");
+          goToPlayerStats();
         };
       }
 
 
-      if (doubled >= MAX_TOTAL_PENCE) showToast("Maximum fine amount reached");
+      if (doubled >= MAX_AFTER_DOUBLE_PENCE) showToast("Maximum fine amount reached");
     });
   });
 
-  finalBackBtn?.addEventListener("click", () => {
-    // Go back to the Double Fines screen
-    renderResultsList();
-    drawWheel(getWheelNames());
-    updateSpinButtons();
-    updateConfirmResultButton();
-    showScreen("results");
+  finalBackBtn?.addEventListener("click", goBack);
+
+  resultStatsBackBtn?.addEventListener("click", goBack);
+
+  matchInfoBackBtn?.addEventListener("click", goBack);
+
+  resultStatsNextBtn?.addEventListener("click", goToMatchInfo);
+
+  resultStatsSubmitBtn?.addEventListener("click", () => {
+    readMatchInfo();
+    goToReviewResult();
   });
 
 
-  resetGameBtn?.addEventListener("click", () => {
-    if (doubleBatchId) undoBatch(doubleBatchId);
-    openConfirmModal({
-      title: "Reset saved game",
-      bodyHtml: `<div>Are you sure you want to reset this saved game?</div>
-                 <div class="muted" style="margin-top:6px;">
-                 This will clear players, totals and history.</div>`,
-      confirmText: "Yes, reset",
-      cancelText: "Cancel",
-      onConfirm: () => {
-        hardResetAll();
-        showToast("Saved game cleared");
-      }
+  matchInfoNextBtn?.addEventListener("click", goToReviewResult);
 
-    });
+  setupNextBtn?.addEventListener("click", () => {
+    if (!applySetupNamesToGame()) return;
+    showScreen("tracker");
   });
+
+  fineBackBtn?.addEventListener("click", goBack);
+  fineNextBtn?.addEventListener("click", () => goToScreenFromSwitch("results"));
 
 
   addPlayerBtn?.addEventListener("click", () => {
@@ -1527,6 +2523,179 @@ document.addEventListener("DOMContentLoaded", () => {
     if (playerInputCount <= MIN_PLAYERS) return;
     playerInputCount--;
     renderSetupInputs();
+  });
+
+  screenSwitch?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-screen-target]");
+    if (!btn) return;
+
+    goToScreenFromSwitch(btn.dataset.screenTarget);
+  });
+
+  if (!continueResultSubmitBtn) {
+    console.error("Missing button: #continueResultSubmitBtn");
+  } else {
+    continueResultSubmitBtn.addEventListener("click", () => {
+      renderResultStatsScreen();
+      showScreen("resultStats");
+    });
+  }
+
+  matchDate?.addEventListener("change", () => {
+    autofillFixtureForDate(matchDate.value);
+  });
+
+  reviewBackBtn?.addEventListener("click", goBack);
+
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const base64 = String(reader.result).split(",")[1];
+
+        resolve({
+          name: file.name,
+          mimeType: file.type,
+          base64
+        });
+      };
+
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function shareStoryImage() {
+    const frame = document.getElementById("storyFrame");
+    if (!frame) return;
+
+    const canvas = await html2canvas(frame, {
+      backgroundColor: "#0f1115",
+      scale: 2,
+      useCORS: true,
+      allowTaint: true
+    });
+
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], "onm-result.png", { type: "image/png" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "ONM Result"
+        });
+      } else {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "onm-result.png";
+        link.click();
+      }
+    }, "image/png");
+  }
+
+  function showSubmittedActions() {
+    reviewSubmitBtn.classList.add("hidden");
+
+    const actions = document.getElementById("submittedActions");
+    if (actions) actions.classList.remove("hidden");
+  }
+
+  reviewSubmitBtn?.addEventListener("click", async () => {
+    try {
+      reviewSubmitBtn.disabled = true;
+      reviewSubmitBtn.textContent = "Confirming...";
+
+      openModal("Confirm result", `
+      <div class="loading-results">
+        <div class="spinner"></div>
+        <p>Uploading result and images...</p>
+      </div>
+    `);
+
+      readMatchInfo();
+
+      const images = await Promise.all(
+        selectedMatchImages.map(fileToBase64)
+      );
+
+      const payload = {
+        match: resultSubmitData.match,
+        players: resultSubmitData.players,
+        images
+      };
+
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Submit failed");
+      }
+
+      openModal("Result submitted", `
+      <div class="muted">✅ Result saved successfully.</div>
+    `);
+
+      showSubmittedActions();
+
+    } catch (err) {
+      console.error(err);
+      openModal("Submit failed", `
+      <div class="muted">Something went wrong. Check the console for details.</div>
+    `);
+    } finally {
+      reviewSubmitBtn.disabled = false;
+      reviewSubmitBtn.textContent = "Confirm Result";
+    }
+  });
+
+  document.getElementById("resetAfterSubmitBtn")?.addEventListener("click", () => {
+    hardResetAll();
+  });
+
+  document.getElementById("shareResultBtn")?.addEventListener("click", () => {
+    const cleanShareHtml = reviewResultBody.innerHTML
+      .replaceAll(/onclick="openLocalLightbox\(\d+\)"/g, "")
+      .replaceAll(/image-count-overlay/g, "")
+      .replaceAll(/data-extra="[^"]*"/g, "");
+
+    const temp = document.createElement("div");
+    temp.innerHTML = cleanShareHtml;
+
+    temp.querySelectorAll(".match-image-grid img").forEach(img => {
+      const src = img.src;
+      const wrapper = img.parentElement;
+
+      wrapper.innerHTML = "";
+      wrapper.style.backgroundImage = `url("${src}")`;
+      wrapper.style.backgroundSize = "cover";
+      wrapper.style.backgroundPosition = "center";
+      wrapper.style.backgroundRepeat = "no-repeat";
+    });
+
+    openModal("Share Result", `
+    <div class="storyFrame" id="storyFrame">
+      <div class="fixturesTitle">
+        ${escapeHtml(resultSubmitData.match.league || "")}
+      </div>
+
+      ${temp.innerHTML}
+    </div>
+
+    <button id="shareImageBtn" type="button" class="btn btnPrimary" style="margin-top:12px;">
+      Share image
+    </button>
+  `);
+
+    setTimeout(() => {
+      document.getElementById("shareImageBtn")?.addEventListener("click", shareStoryImage);
+    }, 0);
   });
 
 
@@ -1593,40 +2762,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }).join("");
   }
 
-  wheelBackBtn?.addEventListener("click", () => {
-    // IMPORTANT: do NOT clear doubleWinnerName / batch etc.
-    // Just go back and show highlight.
-    syncPlayersFromStore();  // ensures totals are current
-    showScreen("tracker");
-  });
+  wheelBackBtn?.addEventListener("click", goBack);
 
   confirmResultBtn?.addEventListener("click", () => {
-    if (!doubleWinnerName) return; // safety
+    // If skipped, just continue normally
     syncPlayersFromStore();
-    renderFinalList();
-    showScreen("final");
+    goToPlayerStats();
   });
 
-  submitResultBtn?.addEventListener("click", () => {
-    syncPlayersFromStore();
-
-    // don't wipe winner here; user might come back to respin from final, but usually OK either way.
-    // If you prefer always fresh: uncomment next 3 lines:
-    // doubleWinnerName = null; doubleBatchId = null; doubleFromPence = null; doubleToPence = null;
-
-    excludedFromWheel = new Set();
-
-    syncPlayersFromStore();
-    renderResultsList();
-    drawWheel(getWheelNames());
-    updateSpinButtons();
-    updateConfirmResultButton();
-    showScreen("results");
+  matchInfoStatsBtn?.addEventListener("click", () => {
+    readMatchInfo();
+    saveGameSnapshot();
+    goToPlayerStats();
   });
 
-  backToGameBtn?.addEventListener("click", () => {
-    showScreen("tracker");
-  });
 
   openHistoryBtn?.addEventListener("click", () => {
     openModal("History", historyHtml());
@@ -1636,15 +2785,6 @@ document.addEventListener("DOMContentLoaded", () => {
     openModal("Fines list", finesListContent);
   });
 
-  openDoubleInfoBtn?.addEventListener("click", () => {
-    openModal("Info", `
-      <div class="muted" style="line-height:1.35;">
-        Spin the wheel to select a player for double fines.<br/>
-        Tap a player to exclude them from the wheel spinner.
-      </div>
-    `);
-  });
-
   closeModalBtn?.addEventListener("click", closeModal);
 
   modalOverlay?.addEventListener("click", (e) => {
@@ -1652,15 +2792,20 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 
+  loadLeagueTeamsData().then(() => {
+    setDefaultLeague();
+    populateLeagueTeamSuggestions();
+    updateVenueFromHomeTeam();
+  });
 
-
-  // Initial fine render
   renderSetupInputs();
   updateSpinButtons();
   renderFines();
   updateSubmitState();
-});
 
-document.getElementById("headerActions")
-document.getElementById("openHistoryBtn")
-document.getElementById("openFinesBtn")
+  if (store.game?.players?.length) {
+    openResumeGameModal();
+  } else {
+    showScreen("setup");
+  }
+});

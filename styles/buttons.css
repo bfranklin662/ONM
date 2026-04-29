@@ -65,3 +65,78 @@ a.forward:hover {
   margin-left: -50px;
   margin-top: 30px;
 }
+
+.btn:disabled,
+.linkPlayerBtn.isLoading {
+  cursor: not-allowed;
+  opacity: .8;
+  pointer-events: none;
+}
+
+.btnSpinner,
+.inlineSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin .8s linear infinite;
+  vertical-align: -3px;
+}
+
+.linkPlayerBtn .btnSpinner {
+  color: #151515;
+}
+
+.loadingRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-weight: 800;
+  padding: 14px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.linkPlayerBtn.disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.linkPlayerBtn.isLoading {
+  pointer-events: none;
+}
+
+.linkSuccess {
+  text-align: center;
+  padding: 18px 8px;
+}
+
+.linkSuccessIcon {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 12px;
+  background: var(--green);
+  color: #07100b;
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.linkSuccessTitle {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.linkSuccessText {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+}

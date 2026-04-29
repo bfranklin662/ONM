@@ -1,0 +1,46 @@
+{
+  "homeTeam": "Oche Ness Monsters",
+  "homeVenue": "The Horseshoe",
+  "leagues": {
+    "Banks League": {
+      "legs": 9,
+      "teams": [
+        { "name": "Oche Ness Monsters", "venue": "The Horseshoe" },
+        { "name": "Michaels", "venue": "The Brown Bear" },
+        { "name": "Vikings", "venue": "The Artful Dodger" },
+        { "name": "Barclays", "venue": "Sir Sydney Smith" },
+        { "name": "Standard Chartered", "venue": "The Artful Dodger" },
+        { "name": "British Library", "venue": "The Libertine" },
+        { "name": "NatWest Allstars", "venue": "The Artful Dodger" },
+        { "name": "Off Our Ed", "venue": "The Walrus & Carpenter" },
+        { "name": "Lloyds City", "venue": "The Artful Dodger" },
+        { "name": "Willis Old Boys", "venue": "The Artful Dodger" },
+        { "name": "Slaters", "venue": "The Horseshoe" },
+        { "name": "Brown Bear", "venue": "The Brown Bear" },
+        { "name": "HSBC", "venue": "The Horseshoe" },
+        { "name": "Bank of England", "venue": "The Horseshoe" },
+        { "name": "Dartful Dodger", "venue": "The Artful Dodger" },
+        { "name": "Newsom's Twosomes", "venue": "Sir Sydney Smith" }
+      ]
+    },
+    "Trafalgar League": {
+      "legs": 13,
+      "teams": [
+        { "name": "Oche Ness Monsters", "venue": "The Horseshoe" },
+        { "name": "Black Arrows", "venue": "Nolans" },
+        { "name": "Orcs Shoe Inns", "venue": "The Libertine" },
+        { "name": "Horseshoe Mis-fits", "venue": "The Horseshoe" },
+        { "name": "Holland Club", "venue": "The Horseshoe" },
+        { "name": "Ordinary Punters", "venue": "Sheephaven Bay" },
+        { "name": "Feeleys", "venue": "The Feeleys" },
+        { "name": "Nolans Rawdogs", "venue": "Nolans" },
+        { "name": "XLT", "venue": "The Libertine" },
+        { "name": "Silverbacks", "venue": "Nolans" },
+        { "name": "Albany", "venue": "Sir Sydney Smith" },
+        { "name": "X-Men", "venue": "Sheephaven Bay" },
+        { "name": "The Panda's", "venue": "Nolans" },
+        { "name": "Boomers", "venue": "North Star" }
+      ]
+    }
+  }
+}

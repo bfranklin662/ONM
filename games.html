@@ -2,14 +2,17 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oche Ness Monsters | Results & Stats</title>
-  <link rel="stylesheet" href="styles/index.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oche Ness Monsters | Games</title>
+
   <link rel="stylesheet" href="styles/header.css">
-  <link rel="stylesheet" href="styles/results.css">
-  <link rel="stylesheet" href="styles/profile.css" />
+  <link rel="stylesheet" href="styles/buttons.css">
+  <link rel="stylesheet" href="styles/dart-scorer.css">
+  <link rel="stylesheet" href="styles/profile.css">
+  <link rel="stylesheet" href="styles/games.css">
   <link rel="icon" type="image/png" href="/graphics/favicon1.png" sizes="32x32">
+
   <meta property="og:title" content="Oche Ness Monsters">
   <meta property="og:description" content="London based darts team">
   <meta property="og:type" content="website">
@@ -31,9 +34,9 @@
       <ul>
         <li><a href="/">Home</a></li>
         <li><a href="comps.html">Comps</a></li>
-        <li><a href="results.html" class="active">Results & Stats</a></li>
+        <li><a href="results.html">Results & Stats</a></li>
         <li><a href="players-landing.html">Players</a></li>
-        <li><a href="games.html">Games</a></li>
+        <li><a href="games.html" class="active">Games</a></li>
       </ul>
     </nav>
 
@@ -49,60 +52,64 @@
 
     <a href="/">Home</a>
     <a href="comps.html">Comps</a>
-    <a href="results.html" class="active">Results & Stats</a>
+    <a href="results.html">Results & Stats</a>
     <a href="players-landing.html">Players</a>
-    <a href="games.html">Games</a>
+    <a href="games.html" class="active">Games</a>
   </div>
 
-  <section class="results-container">
-    <div class="results-header-bar">
-      <div class="season-selector">
-        <button class="season-tab active" data-season="25-26" title="25/26 season">25/26</button>
-        <button class="season-tab" data-season="24-25" title="24/25 season">24/25</button>
+  <main class="wrap">
+    <div class="header appSwitcher" id="appHeader">
+      <div>
+        <div class="title" id="screenTitleText">Games</div>
       </div>
-
-      <h2 class="results-title">Match Results 25/26</h2>
-
-      <div class="view-selector">
-        <button class="view-btn active" data-view="results" title="Result view">🧾</button>
-        <button class="view-btn" data-view="stats" title="Stats view">📊</button>
-        <button class="view-btn" data-view="gallery" title="Gallery view">🖼️</button>
-      </div>
-
-      <h2 class="results-title2">Match Results 25/26</h2>
     </div>
 
+    <section class="scorerSetupCard">
+      <div class="setupGrid">
+        <div class="sectionTitle">Choose a game</div>
 
-    <div id="resultsGrid" class="results-grid view active"></div>
-    <div id="galleryGrid" class="gallery-grid view" style="display:none;"></div>
-    <div id="statsGrid" class="stats-grid view" style="display:none;"></div>
+        <a href="dart-scorer.html" class="gameTile">
+          <div>
+            <h2>Dart Scorer</h2>
+            <p>Play and track legs, averages, checkouts, 180s and bull-outs.</p>
+          </div>
+          <span>Play →</span>
+        </a>
 
-
-  </section>
-
-  <div class="lightbox" onclick="handleLightboxClick(event)">
-    <div class="lightbox-content">
-      <button class="lightbox-prev" onclick="prevImage()">❮</button>
-      <div class="lightbox-info-top"></div>
-
-      <img class="lightbox-img" src="" alt="Match image">
-      <div class="lightbox-spinner" aria-hidden="true"></div> <!-- ✅ ADD THIS -->
-
-      <div class="lightbox-info-bottom"></div>
-      <button class="lightbox-next" onclick="nextImage()">❯</button>
-    </div>
-  </div>
-
+        <a href="fines.html" class="gameTile">
+          <div>
+            <h2>Fine Tracker</h2>
+            <p>Track match fines, 180s, bulls, ton-outs and weekly damage.</p>
+          </div>
+          <span>Open →</span>
+        </a>
+      </div>
+    </section>
   </main>
-  <script src="scripts/results.js"></script>
+
+  <div id="profileOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard profileModalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Profile</div>
+        <button id="closeProfileBtn" class="modalClose" type="button">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <div id="profileModalContent"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="scripts/player-data.js"></script>
   <script src="scripts/session.js"></script>
   <script src="scripts/profile.js"></script>
+
   <script>
     function toggleSidebar() {
       const sidebar = document.getElementById("sidebar");
       sidebar.classList.toggle("active");
     }
+
     document.querySelectorAll("#sidebar a").forEach(a => {
       a.addEventListener("click", () => {
         document.getElementById("sidebar").classList.remove("active");

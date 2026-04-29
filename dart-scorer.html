@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oche Ness Monsters | Dart Scorer</title>
+  <link rel="stylesheet" href="styles/header.css">
+  <link rel="stylesheet" href="styles/buttons.css">
+  <link rel="stylesheet" href="styles/dart-scorer.css" />
+  <link rel="stylesheet" href="styles/profile.css" />
+  <link rel="icon" type="image/png" href="/graphics/favicon1.png" sizes="32x32">
+  <meta property="og:title" content="Oche Ness Monsters">
+  <meta property="og:description" content="London based darts team">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ochenessmonsters.com">
+  <meta property="og:image" content="https://i.ibb.co/FbGDQDjq/ONMmeta.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+</head>
+
+<body>
+  <header class="site-header">
+    <a href="/" class="brand-left">
+      <img class="top-left-logo" src="graphics/logoWText.png" alt="Oche Ness Monsters">
+    </a>
+
+    <img class="logo" src="graphics/onmLogoWhiteFit.png" alt="Oche Ness Monsters">
+
+    <nav class="nav-links desktop-nav">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="comps.html">Comps</a></li>
+        <li><a href="results.html">Results & Stats</a></li>
+        <li><a href="players-landing.html">Players</a></li>
+        <li><a href="games.html" class="active">Games</a></li>
+      </ul>
+    </nav>
+
+    <button id="authNavBtn" type="button" class="authProfileBtn">
+      <span class="authProfileInitial">👤</span>
+    </button>
+
+    <button class="hamburger" type="button" onclick="toggleSidebar()">☰</button>
+  </header>
+
+  <div id="sidebar" class="sidebar">
+    <button class="close-btn" type="button" onclick="toggleSidebar()">✖</button>
+
+    <a href="/">Home</a>
+    <a href="comps.html">Comps</a>
+    <a href="results.html">Results & Stats</a>
+    <a href="players-landing.html">Players</a>
+    <a href="games.html" class="active">Games</a>
+  </div>
+
+  <div class="wrap">
+    <div class="header appSwitcher" id="appHeader">
+      <div>
+        <div class="title" id="screenTitleText">Dart Scorer</div>
+      </div>
+    </div>
+
+    <section id="scorerSetupCard" class="scorerSetupCard hidden">
+
+
+      <div class="setupGrid">
+
+
+        <div class="sectionTitle">Players</div>
+
+        <div class="setupPlayersPanel">
+          <div class="setupPlayerTile hasPlayer">
+            <div class="setupPlayerAvatarWrap">
+              <img id="setupPlayerOneImage" class="setupPlayerAvatar" src="graphics/logoWoText.png" alt="">
+              <button id="removePlayerOneBtn" type="button" class="removeSetupPlayerBtn">×</button>
+            </div>
+            <div id="setupPlayerOneDisplay" class="setupPlayerName">Player 1</div>
+          </div>
+
+          <div class="addPlayerTile">
+            <button id="addOpponentBtn" type="button" class="addOpponentBtn">
+              <span>+</span>
+            </button>
+            <div class="addPlayerLabel">Add a player</div>
+          </div>
+        </div>
+
+        <input id="setupPlayerOneName" type="hidden" value="Player 1">
+        <input id="setupPlayerTwoName" type="hidden" value="Player 2">
+
+        <div class="sectionTitle setupSectionTitle">Game Settings</div>
+
+        <div id="matchModeSwitch" class="homeAwayToggle twoOptionToggle">
+          <div class="toggleSlider"></div>
+          <button type="button" class="toggleBtn active" data-match-mode="local">Local</button>
+          <button type="button" class="toggleBtn" data-match-mode="online">Online</button>
+        </div>
+
+        <div id="statsModeSwitch" class="homeAwayToggle twoOptionToggle">
+          <div class="toggleSlider"></div>
+          <button type="button" class="toggleBtn active" data-stats-mode="competitive">Competitive</button>
+          <button type="button" class="toggleBtn" data-stats-mode="casual">Casual</button>
+        </div>
+
+        <div class="setupRow">
+          <div id="bestFirstToggle" class="homeAwayToggle">
+            <div class="toggleSlider"></div>
+            <button id="bestOfBtn" type="button" class="toggleBtn active">Best of</button>
+            <button id="firstToBtn" type="button" class="toggleBtn">First to</button>
+          </div>
+
+          <div class="legCounter">
+            <button id="legsUpBtn" type="button">+</button>
+            <strong id="legsCount">3</strong>
+            <button id="legsDownBtn" type="button">−</button>
+          </div>
+        </div>
+
+        <div id="startScoreSwitch" class="homeAwayToggle optionToggle fourOptionToggle">
+          <div class="toggleSlider"></div>
+          <button type="button" class="toggleBtn" data-start-score="301">301</button>
+          <button type="button" class="toggleBtn active" data-start-score="501">501</button>
+          <button type="button" class="toggleBtn" data-start-score="701">701</button>
+          <button type="button" class="toggleBtn customScoreToggle" id="customScoreBtn">
+            <span>Custom</span>
+            <strong>901</strong>
+          </button>
+        </div>
+
+        <div id="inModeSwitch" class="homeAwayToggle optionToggle twoOptionToggle">
+          <div class="toggleSlider"></div>
+          <button type="button" class="toggleBtn active" data-in-mode="straight">Straight in</button>
+          <button type="button" class="toggleBtn" data-in-mode="double">Double in</button>
+        </div>
+
+        <div id="statsModeText" class="statsModeText">
+          Stats/Data will be stored for this game.
+        </div>
+
+        <button id="startScorerGameBtn" type="button" class="btn btnPrimary">
+          Start game
+        </button>
+      </div>
+    </section>
+
+    <section class="scorerCard hidden">
+      <div class="gameBar">
+        <button id="quitGameBtn" type="button" class="pillBtn" title="Quit game">←</button>
+        <div id="gameTitleText" class="gameTitleText">501 · Best of 3 · Straight in</div>
+        <div class="gameBarActions">
+          <button id="statsBtn" type="button" class="pillBtn" title="Stats">📊</button>
+          <button id="gameSettingsBtn" type="button" class="pillBtn" title="Settings">⚙</button>
+        </div>
+      </div>
+
+      <div class="scoreboard">
+        <article id="playerOneCard" class="playerScoreCard activePlayer">
+          <div class="playerTop">
+            <span class="turnDot"></span>
+            <input id="playerOneName" class="playerNameInput" value="Player 1" aria-label="Player 1 name">
+            <span class="legs" id="playerOneLegs">0</span>
+          </div>
+
+          <div class="score" id="playerOneScore">501</div>
+          <div class="checkoutBox" id="playerOneCheckout"></div>
+
+          <div class="statsGrid">
+            <div>
+              <span>3-dart avg.</span>
+              <strong id="playerOneAvg">0.00</strong>
+            </div>
+            <div>
+              <span>Last score</span>
+              <strong id="playerOneLast">-</strong>
+            </div>
+            <div>
+              <span>Darts thrown</span>
+              <strong id="playerOneDarts">0</strong>
+            </div>
+          </div>
+        </article>
+
+        <article id="playerTwoCard" class="playerScoreCard">
+          <div class="playerTop">
+            <span class="turnDot"></span>
+            <input id="playerTwoName" class="playerNameInput" value="Player 2" aria-label="Player 2 name">
+            <span class="legs" id="playerTwoLegs">0</span>
+          </div>
+
+          <div class="score" id="playerTwoScore">501</div>
+          <div class="checkoutBox" id="playerTwoCheckout"></div>
+
+          <div class="statsGrid">
+            <div>
+              <span>3-dart avg.</span>
+              <strong id="playerTwoAvg">0.00</strong>
+            </div>
+            <div>
+              <span>Last score</span>
+              <strong id="playerTwoLast">-</strong>
+            </div>
+            <div>
+              <span>Darts thrown</span>
+              <strong id="playerTwoDarts">0</strong>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div id="turnMessage" class="turnMessage">Player 1's turn to throw!</div>
+
+      <div class="scoreEntry">
+        <input id="scoreInput" type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="180"
+          placeholder="Enter a score" autocomplete="off" autofocus>
+        <button id="submitScoreBtn" type="button" class="btn btnPrimary">Submit</button>
+      </div>
+
+      <div id="gameMessage" class="gameMessage" role="status" aria-live="polite"></div>
+
+      <div class="keypad" aria-label="Score keypad">
+        <button type="button" data-key="1">1</button>
+        <button type="button" data-key="2">2</button>
+        <button type="button" data-key="3">3</button>
+        <button type="button" data-key="4">4</button>
+        <button type="button" data-key="5">5</button>
+        <button type="button" data-key="6">6</button>
+        <button type="button" data-key="7">7</button>
+        <button type="button" data-key="8">8</button>
+        <button type="button" data-key="9">9</button>
+        <button type="button" data-action="undo">↩</button>
+        <button type="button" data-key="0">0</button>
+        <button type="button" data-action="clear">⌫</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="impossibleOverlay" class="checkoutOverlay hidden" aria-hidden="true">
+    <div class="impossibleModal">
+      <div class="impossibleIcon">✕</div>
+      <div id="impossibleText" class="impossibleText">Impossible</div>
+    </div>
+  </div>
+
+  <div id="checkoutOverlay" class="checkoutOverlay hidden" aria-hidden="true">
+    <div class="checkoutModal">
+
+      <div id="doublePromptBlock" class="checkoutPromptBlock hidden">
+        <div class="checkoutPromptLabel">Darts used on a double</div>
+        <div id="doublePromptOptions" class="checkoutPromptOptions"></div>
+      </div>
+
+      <div id="checkoutPromptBlock" class="checkoutPromptBlock hidden">
+        <div class="checkoutPromptLabel">Darts used for checkout</div>
+        <div id="checkoutPromptOptions" class="checkoutPromptOptions"></div>
+      </div>
+
+      <button id="confirmCheckoutPromptBtn" type="button" class="btn btnPrimary">
+        Confirm
+      </button>
+    </div>
+  </div>
+
+  <div id="customScoreOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard">
+
+      <div class="modalHeader">
+        <div class="modalTitle">Start score</div>
+        <button id="closeCustomScoreBtn" class="modalClose">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <label for="customScoreInput">Start score</label>
+        <input id="customScoreInput" type="number" min="2" max="5001" value="901">
+
+        <button id="confirmCustomScoreBtn" class="btn btnPrimary" style="margin-top:14px;">
+          Confirm
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="statsOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard statsModalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Match stats</div>
+        <button id="closeStatsBtn" class="modalClose" type="button">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <div class="statsHero">
+          <div id="statsMatchTitle" class="statsMatchTitle"></div>
+          <div id="statsMatchDate" class="statsMatchDate"></div>
+
+          <div class="statsScoreRow">
+            <div class="statsPlayerBlock">
+              <div class="statsPlayerName" id="statsPlayerOneName"></div>
+              <span id="statsPlayerOneWon" class="wonPill hidden">WON</span>
+            </div>
+
+            <div class="statsLegScore">
+              <span id="statsPlayerOneLegs">0</span>
+              <span>|</span>
+              <span id="statsPlayerTwoLegs">0</span>
+            </div>
+
+            <div class="statsPlayerBlock">
+              <div class="statsPlayerName" id="statsPlayerTwoName"></div>
+              <span id="statsPlayerTwoWon" class="wonPill hidden">WON</span>
+            </div>
+          </div>
+        </div>
+        <div class="statsRows" id="statsRows"></div>
+        <div id="matchCompleteActions" class="row hidden">
+          <button id="rematchBtn" type="button" class="btn btnGhost">Rematch</button>
+          <button id="continueAfterMatchBtn" type="button" class="btn btnPrimary">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="quitConfirmOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Quit game?</div>
+        <button id="closeQuitConfirmBtn" class="modalClose" type="button">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <p>Are you sure you want to close this game?</p>
+
+        <div class="row">
+          <button id="cancelQuitBtn" type="button" class="btn btnGhost">Cancel</button>
+          <button id="confirmQuitBtn" type="button" class="btn btnPrimary">Quit game</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="settingsOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Game settings</div>
+        <button id="closeSettingsBtn" class="modalClose" type="button">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <p>Settings will be added here.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="opponentOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Add opponent</div>
+        <button id="closeOpponentBtn" class="modalClose" type="button">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <button id="guestPlayerBtn" type="button" class="playerPickBtn">
+          Guest player
+        </button>
+
+        <div class="sectionTitle">Linked accounts</div>
+        <div id="linkedPlayersList" class="playerPickList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="guestPlayerOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Guest player</div>
+        <button id="closeGuestPlayerBtn" class="modalClose" type="button">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <label>Player name</label>
+        <input id="guestPlayerNameInput" type="text" placeholder="Opponent name">
+        <button id="confirmGuestPlayerBtn" type="button" class="btn btnPrimary" style="margin-top:14px;">
+          Add player
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="profileOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard profileModalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Profile</div>
+        <button id="closeProfileBtn" class="modalClose" type="button">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <div id="profileModalContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts/player-data.js"></script>
+  <script src="scripts/session.js"></script>
+  <script src="scripts/profile.js"></script>
+  <script src="scripts/dart-scorer.js"></script>
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("active");
+    }
+
+    document.querySelectorAll("#sidebar a").forEach(a => {
+      a.addEventListener("click", () => {
+        document.getElementById("sidebar").classList.remove("active");
+      });
+    });
+  </script>
+</body>
+
+</html>

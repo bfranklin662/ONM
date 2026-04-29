@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="styles/index.css">
   <link rel="stylesheet" href="styles/player-profile.css">
   <link rel="stylesheet" href="styles/players-landing.css">
+  <link rel="stylesheet" href="styles/profile.css" />
   <link rel="icon" type="image/png" href="/graphics/favicon1.png" sizes="32x32">
   <meta property="og:title" content="Oche Ness Monsters">
   <meta property="og:description" content="London based darts team">
@@ -22,38 +23,37 @@
 
 <body>
   <header class="site-header">
-    <div class="logo-container">
-      <img class="logo" src="graphics/onmLogoWhiteFit.png">
-    </div>
-    <div class="logo-container">
-      <a href="/">
-        <img class="top-left-logo" src="graphics/logoWText.png">
-      </a>
-    </div>
+    <a href="/" class="brand-left">
+      <img class="top-left-logo" src="graphics/logoWText.png" alt="Oche Ness Monsters">
+    </a>
+
+    <img class="logo" src="graphics/onmLogoWhiteFit.png" alt="Oche Ness Monsters">
+
     <nav class="nav-links desktop-nav">
       <ul>
         <li><a href="/">Home</a></li>
         <li><a href="comps.html">Comps</a></li>
         <li><a href="results.html">Results & Stats</a></li>
-        <li><a href="players-landing.html" class="active">Players</a></li>
-        <li><a href="fines.html">Fine Tracker</a></li>
+        <li><a href="players-landing.html">Players</a></li>
+        <li><a href="games.html" class="active">Games</a></li>
       </ul>
     </nav>
-    <!-- Hamburger Menu Icon -->
-    <div class="hamburger" onclick="toggleSidebar()">
-      ☰
-    </div>
 
+    <button id="authNavBtn" type="button" class="authProfileBtn">
+      <span class="authProfileInitial">👤</span>
+    </button>
+
+    <button class="hamburger" type="button" onclick="toggleSidebar()">☰</button>
   </header>
 
-  <!-- Sidebar (Mobile Nav) -->
   <div id="sidebar" class="sidebar">
-    <div class="close-btn" onclick="toggleSidebar()">✖</div>
+    <button class="close-btn" type="button" onclick="toggleSidebar()">✖</button>
+
     <a href="/">Home</a>
     <a href="comps.html">Comps</a>
     <a href="results.html">Results & Stats</a>
     <a href="players-landing.html">Players</a>
-    <a href="fines.html">Fine Tracker</a>
+    <a href="games.html" class="active">Games</a>
   </div>
 
   <main>
@@ -408,6 +408,9 @@
       });
     });
   </script>
+  <script src="scripts/player-data.js"></script>
+  <script src="scripts/session.js"></script>
+  <script src="scripts/profile.js"></script>
 </body>
 
 </html>
