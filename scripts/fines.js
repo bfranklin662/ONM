@@ -2629,26 +2629,43 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const res = await fetch(APPS_SCRIPT_URL, {
         method: "POST",
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        }
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      console.log("Apps Script raw response:", text);
+
+      let data;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(
+          "The server did not return a valid response. This often happens if the uploaded images are too large."
+        );
+      }
 
       if (!data.success) {
-        throw new Error(data.error || "Submit failed");
+        throw new Error(data.error || "Submit failed. The images may be too large.");
       }
 
       openModal("Result submitted", `
-      <div class="muted">✅ Result saved successfully.</div>
-    `);
+        <div class="muted">✅ Result saved successfully.</div>
+      `);
 
       showSubmittedActions();
 
     } catch (err) {
-      console.error(err);
+      console.error("Submit error:", err);
+
+      const message = err.message || "Something went wrong.";
+
       openModal("Submit failed", `
-      <div class="muted">Something went wrong. Check the console for details.</div>
-    `);
+        <div class="muted">${escapeHtml(message)}</div>
+      `);
     } finally {
       reviewSubmitBtn.disabled = false;
       reviewSubmitBtn.textContent = "Confirm Result";
