@@ -310,39 +310,8 @@ const els = {
   statsModeSwitch: document.getElementById("statsModeSwitch"),
   statsModeText: document.getElementById("statsModeText"),
   setupPlayerTwoTile: document.getElementById("setupPlayerTwoTile"),
-  fullscreenScorerBtn: document.getElementById("fullscreenScorerBtn"),
-  appHeader: document.getElementById("appHeader"),
-  siteHeader: document.querySelector(".site-header"),
+  fullscreenBtn: document.getElementById("fullscreenBtn"),
 };
-
-let wakeLock = null;
-
-async function requestWakeLock() {
-  try {
-    if ("wakeLock" in navigator) {
-      wakeLock = await navigator.wakeLock.request("screen");
-    }
-  } catch (err) {
-    console.warn("Wake lock failed:", err);
-  }
-}
-
-async function releaseWakeLock() {
-  try {
-    if (wakeLock) {
-      await wakeLock.release();
-      wakeLock = null;
-    }
-  } catch (err) {
-    console.warn("Wake lock release failed:", err);
-  }
-}
-
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && !els.scorerCard.classList.contains("hidden")) {
-    requestWakeLock();
-  }
-});
 
 
 function resetAddOpponentButton() {
@@ -625,7 +594,6 @@ els.confirmQuitBtn.addEventListener("click", () => {
   els.setupCard.classList.remove("hidden");
 
   exitScorerFullscreen();
-  els.fullscreenScorerBtn.textContent = "⛶";
 });
 
 els.quitGameBtn.addEventListener("click", () => {
@@ -662,9 +630,6 @@ els.startScorerGameBtn.addEventListener("click", () => {
 
   els.setupCard.classList.add("hidden");
   els.scorerCard.classList.remove("hidden");
-
-  lockScorerScreen();
-  requestWakeLock();
 });
 
 function render() {
@@ -1519,38 +1484,36 @@ if (els.newGame) {
   els.newGame.addEventListener("click", newGame);
 }
 
-function lockScorerScreen() {
-  document.body.classList.add("scorer-screen-locked");
-}
-
-function unlockScorerScreen() {
-  document.body.classList.remove("scorer-screen-locked");
-}
-
 function enterScorerFullscreen() {
   document.body.classList.add("scorer-fullscreen");
-  lockScorerScreen();
-  requestWakeLock();
+
+  if (els.fullscreenBtn) {
+    els.fullscreenBtn.textContent = "✕";
+  }
+
   els.input.blur();
+  requestWakeLock();
 }
 
 function exitScorerFullscreen() {
   document.body.classList.remove("scorer-fullscreen");
-  unlockScorerScreen();
+
+  if (els.fullscreenBtn) {
+    els.fullscreenBtn.textContent = "⛶";
+  }
+
   releaseWakeLock();
 }
 
-els.fullscreenScorerBtn?.addEventListener("click", () => {
-  const isFullscreen = document.body.classList.contains("scorer-fullscreen");
-
-  if (isFullscreen) {
+function toggleScorerFullscreen() {
+  if (document.body.classList.contains("scorer-fullscreen")) {
     exitScorerFullscreen();
-    els.fullscreenScorerBtn.textContent = "⛶";
   } else {
     enterScorerFullscreen();
-    els.fullscreenScorerBtn.textContent = "✕";
   }
-});
+}
+
+els.fullscreenBtn?.addEventListener("click", toggleScorerFullscreen);
 
 async function initDartScorerAuth() {
   els.setupCard.classList.remove("hidden");

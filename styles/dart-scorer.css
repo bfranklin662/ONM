@@ -1490,8 +1490,92 @@ body.scorer-fullscreen .scoreEntry input {
   pointer-events: none;
 }
 
-body.scorer-screen-locked {
+html,
+body {
+  touch-action: manipulation;
+}
+
+button,
+.keypad,
+.keypad button {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.scorer-fullscreen {
   overflow: hidden;
   height: 100dvh;
+  background: #0f1115;
   overscroll-behavior: none;
+}
+
+body.scorer-fullscreen .site-header,
+body.scorer-fullscreen #appHeader {
+  display: none !important;
+}
+
+body.scorer-fullscreen .wrap {
+  height: 100dvh;
+  max-width: none;
+  padding: 0;
+  margin: 0;
+}
+
+body.scorer-fullscreen .scorerCard {
+  height: 100dvh;
+  border-radius: 0;
+  border: 0;
+  padding: 8px;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto auto auto auto 1fr;
+  gap: 8px;
+}
+
+body.scorer-fullscreen .gameBar {
+  margin-bottom: 0;
+}
+
+body.scorer-fullscreen .scoreboard {
+  margin-bottom: 8px;
+}
+
+body.scorer-fullscreen .playerScoreCard {
+  min-height: 220px;
+  padding: 10px 9px;
+}
+
+body.scorer-fullscreen .score {
+  font-size: clamp(64px, 18vw, 96px);
+  margin: 12px 0 10px;
+  line-height: .9;
+}
+
+body.scorer-fullscreen .turnMessage {
+  margin: 8px 0 6px;
+}
+
+body.scorer-fullscreen .scoreEntry {
+  margin-bottom: 0;
+}
+
+body.scorer-fullscreen .gameMessage {
+  min-height: 16px;
+  margin: 0;
+}
+
+body.scorer-fullscreen .keypad {
+  min-height: 0;
+}
+
+body.scorer-fullscreen .keypad button {
+  min-height: 0;
+  height: 100%;
+  font-size: clamp(34px, 9vh, 54px);
+}
+
+body.scorer-fullscreen .scoreEntry input {
+  pointer-events: none;
 }
