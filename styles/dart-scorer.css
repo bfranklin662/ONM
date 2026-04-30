@@ -1284,49 +1284,6 @@ body {
 }
 
 
-
-.setupPlayersPanel {
-  min-height: 190px;
-  border-radius: 20px;
-  background: rgba(15, 34, 25, .72);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: center;
-  padding: 22px;
-  gap: 20px;
-}
-
-.setupPlayerTile {
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-}
-
-.setupPlayerAvatar {
-  width: 66px;
-  height: 66px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.setupPlayerName {
-  font-size: 20px;
-  font-weight: 900;
-}
-
-.addOpponentBtn {
-  width: 62px;
-  height: 62px;
-  margin: 0 auto;
-  border-radius: 50%;
-  border: 4px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.18);
-  color: #fff;
-  font-size: 36px;
-  line-height: 1;
-  cursor: pointer;
-}
-
 .playerPickList {
   display: grid;
   gap: 10px;
@@ -1416,110 +1373,24 @@ body {
   letter-spacing: 0.5px;
 }
 
-.addOpponentBtn {
-  position: relative;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.addOpponentBtn small {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--muted);
-}
-
-.removePlayerBtn {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 26px;
-  height: 26px;
-  border: 0;
-  border-radius: 999px;
-  background: #ff3b30;
-  color: white;
-  font-weight: 900;
-  cursor: pointer;
+.setupPlayersPanel {
+  min-height: 190px;
+  border-radius: 20px;
+  background: rgba(15, 34, 25, .72);
   display: grid;
-  place-items: center;
-}
-
-.setupPlayerTile {
-  position: relative;
-}
-
-.addOpponentBtn small {
-  display: block;
-  white-space: nowrap;
-  font-size: 13px;
-  font-weight: 900;
-  color: var(--muted);
-}
-
-.setupPlayerTile {
-  position: relative;
-}
-
-.removeSetupPlayerBtn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 26px;
-  height: 26px;
-  border: 0;
-  border-radius: 999px;
-  background: #ff3b30;
-  color: #fff;
-  font-weight: 900;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  z-index: 3;
-}
-
-.addOpponentBtn.hasPlayer img {
-  width: 66px;
-  height: 66px;
-  border-radius: 999px;
-  object-fit: cover;
-}
-
-.addOpponentBtn.hasPlayer {
-  flex-direction: column;
-  gap: 10px;
-}
-
-.addPlayerTile {
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: 1fr 1fr;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  padding: 22px;
+  gap: 20px;
 }
 
-.addPlayerLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.68);
-  line-height: 1;
-  text-align: center;
-}
-
-.addOpponentBtn {
-  position: relative;
-}
-
-.setUpPlayerTitle {
-  position: relative;
-}
-
-.setupPlayerTile,
-.addOpponentBtn.hasPlayer {
+.setupPlayerTile {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .setupPlayerAvatarWrap {
@@ -1528,8 +1399,7 @@ body {
   height: 82px;
 }
 
-.setupPlayerAvatar,
-.addOpponentBtn.hasPlayer .setupPlayerAvatar {
+.setupPlayerAvatar {
   width: 82px;
   height: 82px;
   border-radius: 50%;
@@ -1537,13 +1407,16 @@ body {
   display: block;
 }
 
-.setupPlayerName,
-.addOpponentBtn.hasPlayer .setupPlayerName {
+.setupPlayerName {
   font-size: 22px;
   font-weight: 900;
   color: #fff;
   line-height: 1;
   text-align: center;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .removeSetupPlayerBtn {
@@ -1555,10 +1428,10 @@ body {
   border: 0;
   border-radius: 50%;
   background: #ff3b30;
-  color: white;
+  color: #fff;
   font-size: 16px;
   font-weight: 900;
-  line-height: 26px;
+  line-height: 1;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -1566,7 +1439,59 @@ body {
   padding: 0;
 }
 
-.addOpponentBtn.hasPlayer > span,
-.addOpponentBtn.hasPlayer > small {
-  display: none;
+.addOpponentBtn {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, .14);
+  background: rgba(0, 0, 0, .18);
+  color: #fff;
+  font-size: 36px;
+  font-weight: 900;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.addOpponentBtn span {
+  transform: translateY(-2px);
+}
+
+body.scorer-fullscreen {
+  overflow: hidden;
+  height: 100dvh;
+  background: #0f1115;
+}
+
+body.scorer-fullscreen .site-header,
+body.scorer-fullscreen #appHeader {
+  display: none !important;
+}
+
+body.scorer-fullscreen .wrap {
+  height: 100dvh;
+  max-width: none;
+  padding: 0;
+  margin: 0;
+}
+
+body.scorer-fullscreen .scorerCard {
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+  border: 0;
+  overflow: hidden;
+  padding: 12px;
+}
+
+body.scorer-fullscreen .scoreEntry input {
+  pointer-events: none;
+}
+
+body.scorer-screen-locked {
+  overflow: hidden;
+  height: 100dvh;
+  overscroll-behavior: none;
 }

@@ -412,7 +412,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (dateEl && !dateEl.value) {
       dateEl.value = todayInputValue();
-      autofillFixtureForDate(dateEl.value);
     }
   }
 
@@ -915,6 +914,41 @@ document.addEventListener("DOMContentLoaded", () => {
   `;
   }
 
+  function validateMatchInfo() {
+    const homeTeam = matchHomeTeam?.value.trim();
+    const awayTeam = matchAwayTeam?.value.trim();
+    const homeScore = matchHomeScore?.value;
+    const awayScore = matchAwayScore?.value;
+    const date = matchDate?.value;
+
+    if (!homeTeam) {
+      showToast("Select home team");
+      return false;
+    }
+
+    if (!awayTeam) {
+      showToast("Select away team");
+      return false;
+    }
+
+    if (homeScore === "" || Number(homeScore) < 0) {
+      showToast("Enter home score");
+      return false;
+    }
+
+    if (awayScore === "" || Number(awayScore) < 0) {
+      showToast("Enter away score");
+      return false;
+    }
+
+    if (!date) {
+      showToast("Select match date");
+      return false;
+    }
+
+    return true;
+  }
+
   function goToPlayerStats() {
     renderResultStatsScreen();
     showScreen("resultStats");
@@ -1085,13 +1119,34 @@ document.addEventListener("DOMContentLoaded", () => {
   function showScreen(screen) {
     currentScreen = screen;
 
-    setupCard?.classList.toggle("hidden", screen !== "setup");
-    trackerCard?.classList.toggle("hidden", screen !== "tracker");
-    resultsCard?.classList.toggle("hidden", screen !== "results");
-    finalCard?.classList.toggle("hidden", screen !== "final");
-    resultStatsCard?.classList.toggle("hidden", screen !== "resultStats");
-    matchInfoCard?.classList.toggle("hidden", screen !== "matchInfo");
-    reviewResultCard?.classList.toggle("hidden", screen !== "reviewResult");
+    [
+      setupCard,
+      trackerCard,
+      resultsCard,
+      finalCard,
+      resultStatsCard,
+      matchInfoCard,
+      reviewResultCard
+    ].forEach(card => card?.classList.add("hidden"));
+
+    const screenMap = {
+      setup: setupCard,
+      tracker: trackerCard,
+      results: resultsCard,
+      final: finalCard,
+      resultStats: resultStatsCard,
+      matchInfo: matchInfoCard,
+      reviewResult: reviewResultCard
+    };
+
+    screenMap[screen]?.classList.remove("hidden");
+
+    console.log("showScreen:", screen, {
+      setupCard,
+      trackerCard,
+      setupClasses: setupCard?.className,
+      trackerClasses: trackerCard?.className
+    });
 
     const titles = {
       setup: "Players",
@@ -1109,7 +1164,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const hasGame = players.length > 0;
 
-    // Player screen: Submit Players for new game, Reset/Next for existing game
     startBtn?.classList.toggle("hidden", screen === "setup" && hasGame);
     setupGameActions?.classList.toggle("hidden", !(screen === "setup" && hasGame));
 
@@ -1128,6 +1182,7 @@ document.addEventListener("DOMContentLoaded", () => {
       store.game.updatedAt = nowIso();
       saveStore(store);
     }
+
     if (screen === "results") {
       syncPlayersFromStore();
       renderResultsList();
@@ -1204,17 +1259,55 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function populateLeagueTeamSuggestions() {
-    if (!leagueTeamsList) return;
+    const teams = getLeagueTeamNames();
 
-    leagueTeamsList.replaceChildren();
+    [matchHomeTeam, matchAwayTeam].forEach(select => {
+      if (!select) return;
 
-    getLeagueTeamNames().forEach(name => {
-      const opt = document.createElement("option");
-      opt.value = name;
-      leagueTeamsList.appendChild(opt);
+      const currentValue = select.value;
+      select.innerHTML = "";
+
+      teams.forEach(name => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+
+      if (teams.includes(currentValue)) {
+        select.value = currentValue;
+      }
     });
 
-    console.log("Dropdown league:", matchLeague.value, getLeagueTeamNames());
+    applyHomeAwayDefaults();
+  }
+
+  function applyHomeAwayDefaults() {
+    const teams = getLeagueTeamNames();
+
+    if (!teams.length) return;
+
+    if (onmSide === "home") {
+      matchHomeTeam.value = "Oche Ness Monsters";
+
+      if (!matchAwayTeam.value || matchAwayTeam.value === "Oche Ness Monsters") {
+        matchAwayTeam.value = teams.find(team => team !== "Oche Ness Monsters") || "";
+      }
+    } else {
+      matchAwayTeam.value = "Oche Ness Monsters";
+
+      if (!matchHomeTeam.value || matchHomeTeam.value === "Oche Ness Monsters") {
+        matchHomeTeam.value = teams.find(team => team !== "Oche Ness Monsters") || "";
+      }
+    }
+
+    updateVenueFromHomeTeam();
+    updateResultFromScore();
+    readMatchInfo();
+
+    if (players.length) {
+      saveGameSnapshot();
+    }
   }
 
   function getTeamVenue(teamName) {
@@ -1231,7 +1324,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateVenueFromHomeTeam() {
-    matchVenue.value = getTeamVenue(matchHomeTeam.value) || "";
+    if (matchVenue) {
+      matchVenue.value = getTeamVenue(matchHomeTeam.value) || "";
+    }
   }
 
   function updateScoreAutofill(changedSide) {
@@ -1369,9 +1464,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!input.value) input.value = previousValue;
     });
   }
-
-  makeDatalistShowAll(matchHomeTeam);
-  makeDatalistShowAll(matchAwayTeam);
 
   matchLeague?.addEventListener("change", () => {
     populateLeagueTeamSuggestions();
@@ -1690,10 +1782,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   function saveGameSnapshot() {
-    // ✅ If there is no active game, remove any old saved snapshot
     if (!players || !players.length) {
-      store.game = null;
-      saveStore(store);
       return;
     }
 
@@ -1705,7 +1794,6 @@ document.addEventListener("DOMContentLoaded", () => {
       selectedPlayerIndex: selectedPlayerIndex ?? 0,
       excludedFromWheel: Array.from(excludedFromWheel || []),
 
-      // Persist double-fines context
       doubleWinnerName: doubleWinnerName ?? null,
       doubleBatchId: doubleBatchId ?? null,
       doubleFromPence: doubleFromPence ?? null,
@@ -1716,9 +1804,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     saveStore(store);
   }
-
-
-
 
   // ---- Rendering ----
   function renderPlayers() {
@@ -2509,7 +2594,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 
-  matchInfoNextBtn?.addEventListener("click", goToReviewResult);
+  matchInfoNextBtn?.addEventListener("click", () => {
+    if (!validateMatchInfo()) return;
+
+    goToReviewResult();
+  });
 
   setupNextBtn?.addEventListener("click", () => {
     if (!applySetupNamesToGame()) return;
@@ -2851,6 +2940,10 @@ document.addEventListener("DOMContentLoaded", () => {
     setDefaultLeague();
     populateLeagueTeamSuggestions();
     updateVenueFromHomeTeam();
+
+    if (!store.game?.players?.length) {
+      hydrateMatchInfoDefaults();
+    }
   });
 
   renderSetupInputs();

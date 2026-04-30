@@ -2125,3 +2125,33 @@ textarea {
 .matchInfoCard .fieldGroup {
   min-width: 0;
 }
+
+.teamScoreRow {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(72px, 1fr);
+  gap: 8px;
+}
+
+.teamField,
+.scoreField {
+  min-width: 0;
+}
+
+.teamField select {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scoreField input {
+  text-align: center;
+  padding-inline: 8px;
+}
+
+/* White calendar icon */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 1;
+}

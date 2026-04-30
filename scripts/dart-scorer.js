@@ -309,17 +309,54 @@ const els = {
   checkoutModal: document.querySelector(".checkoutModal"),
   statsModeSwitch: document.getElementById("statsModeSwitch"),
   statsModeText: document.getElementById("statsModeText"),
+  setupPlayerTwoTile: document.getElementById("setupPlayerTwoTile"),
+  fullscreenScorerBtn: document.getElementById("fullscreenScorerBtn"),
+  appHeader: document.getElementById("appHeader"),
+  siteHeader: document.querySelector(".site-header"),
 };
+
+let wakeLock = null;
+
+async function requestWakeLock() {
+  try {
+    if ("wakeLock" in navigator) {
+      wakeLock = await navigator.wakeLock.request("screen");
+    }
+  } catch (err) {
+    console.warn("Wake lock failed:", err);
+  }
+}
+
+async function releaseWakeLock() {
+  try {
+    if (wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  } catch (err) {
+    console.warn("Wake lock release failed:", err);
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && !els.scorerCard.classList.contains("hidden")) {
+    requestWakeLock();
+  }
+});
 
 
 function resetAddOpponentButton() {
   els.setupPlayerTwoName.value = "Player 2";
 
-  els.addOpponentBtn.classList.remove("hasPlayer");
-  els.addOpponentBtn.innerHTML = `
-    <span>+</span>
-    <small>Add player</small>
+  els.setupPlayerTwoTile.className = "setupPlayerTile addPlayerTile";
+  els.setupPlayerTwoTile.innerHTML = `
+    <button id="addOpponentBtn" type="button" class="addOpponentBtn" aria-label="Add player">
+      <span>+</span>
+    </button>
   `;
+
+  els.addOpponentBtn = document.getElementById("addOpponentBtn");
+  els.addOpponentBtn.addEventListener("click", openOpponentModal);
 }
 
 async function getPlayerImageByName(name) {
@@ -342,8 +379,8 @@ async function setOpponent(name) {
   els.setupPlayerTwoName.value = name;
   const imageUrl = await getPlayerImageByName(name);
 
-  els.addOpponentBtn.classList.add("hasPlayer");
-  els.addOpponentBtn.innerHTML = `
+  els.setupPlayerTwoTile.className = "setupPlayerTile hasPlayer";
+  els.setupPlayerTwoTile.innerHTML = `
     <div class="setupPlayerAvatarWrap">
       <img class="setupPlayerAvatar" src="${imageUrl}" alt="${name}">
       <button type="button" class="removeSetupPlayerBtn" id="removeOpponentBtn">×</button>
@@ -360,15 +397,8 @@ async function setOpponent(name) {
 }
 
 function removeOpponent() {
-  els.setupPlayerTwoName.value = "Player 2";
-
-  els.addOpponentBtn.classList.remove("hasPlayer");
-  els.addOpponentBtn.innerHTML = `
-    <span>+</span>
-    <small>Add player</small>
-  `;
+  resetAddOpponentButton();
 }
-
 async function openOpponentModal() {
   els.opponentOverlay.classList.remove("hidden");
   els.opponentOverlay.setAttribute("aria-hidden", "false");
@@ -447,7 +477,7 @@ function closeOpponentModal() {
   els.opponentOverlay.setAttribute("aria-hidden", "true");
 }
 
-els.addOpponentBtn.addEventListener("click", openOpponentModal);
+els.addOpponentBtn?.addEventListener("click", openOpponentModal);
 els.closeOpponentBtn.addEventListener("click", closeOpponentModal);
 
 els.guestPlayerBtn.addEventListener("click", () => {
@@ -593,6 +623,9 @@ els.confirmQuitBtn.addEventListener("click", () => {
   newGame();
   els.scorerCard.classList.add("hidden");
   els.setupCard.classList.remove("hidden");
+
+  exitScorerFullscreen();
+  els.fullscreenScorerBtn.textContent = "⛶";
 });
 
 els.quitGameBtn.addEventListener("click", () => {
@@ -629,7 +662,9 @@ els.startScorerGameBtn.addEventListener("click", () => {
 
   els.setupCard.classList.add("hidden");
   els.scorerCard.classList.remove("hidden");
-  els.input.focus();
+
+  lockScorerScreen();
+  requestWakeLock();
 });
 
 function render() {
@@ -653,7 +688,9 @@ function render() {
 
   els.turnMessage.textContent = `${playerName(state.currentPlayer)}'s turn!`;
   els.turnMessage.classList.toggle("playerTwoTurn", state.currentPlayer === 1);
-  els.input.focus();
+  if (document.activeElement !== els.input) {
+    els.input.blur();
+  }
 }
 
 function switchPlayer() {
@@ -792,7 +829,7 @@ function showImpossibleMessage(message) {
     els.impossibleOverlay.classList.add("hidden");
     els.impossibleOverlay.setAttribute("aria-hidden", "true");
     els.input.value = "";
-    els.input.focus();
+    els.input.blur();
   }, 1200);
 }
 
@@ -1057,14 +1094,14 @@ function resetLeg() {
 function undoLastVisit() {
   if (state.legJustWon) {
     els.gameMessage.textContent = "Unable to undo";
-    els.input.focus();
+    els.input.blur();
     return;
   }
 
   const last = state.visitHistory.pop();
   if (!last) {
     els.gameMessage.textContent = "Unable to undo";
-    els.input.focus();
+    els.input.blur();
     return;
   }
 
@@ -1362,7 +1399,7 @@ els.checkoutOverlay.addEventListener("click", event => {
 
   closeCheckoutPrompt();
   els.input.value = "";
-  els.input.focus();
+  els.input.blur();
 });
 
 els.confirmCheckoutPromptBtn.addEventListener("click", () => {
@@ -1475,16 +1512,43 @@ els.keypad.addEventListener("click", event => {
     return;
   }
 
-  els.input.focus();
+  els.input.blur();
 });
 
 if (els.newGame) {
   els.newGame.addEventListener("click", newGame);
 }
 
-document.addEventListener("click", event => {
-  if (!event.target.matches("input")) {
-    setTimeout(() => els.input.focus(), 0);
+function lockScorerScreen() {
+  document.body.classList.add("scorer-screen-locked");
+}
+
+function unlockScorerScreen() {
+  document.body.classList.remove("scorer-screen-locked");
+}
+
+function enterScorerFullscreen() {
+  document.body.classList.add("scorer-fullscreen");
+  lockScorerScreen();
+  requestWakeLock();
+  els.input.blur();
+}
+
+function exitScorerFullscreen() {
+  document.body.classList.remove("scorer-fullscreen");
+  unlockScorerScreen();
+  releaseWakeLock();
+}
+
+els.fullscreenScorerBtn?.addEventListener("click", () => {
+  const isFullscreen = document.body.classList.contains("scorer-fullscreen");
+
+  if (isFullscreen) {
+    exitScorerFullscreen();
+    els.fullscreenScorerBtn.textContent = "⛶";
+  } else {
+    enterScorerFullscreen();
+    els.fullscreenScorerBtn.textContent = "✕";
   }
 });
 

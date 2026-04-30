@@ -134,8 +134,8 @@
           <label>League</label>
           <div class="inputWithArrow">
             <select id="matchLeague">
-              <option value="Banks League">Banks League</option>
               <option value="Trafalgar League">Trafalgar League</option>
+              <option value="Banks League">Banks League</option>
             </select>
             <span class="selectArrow">▾</span>
           </div>
@@ -147,63 +147,50 @@
           <button id="onmAwayBtn" type="button" class="toggleBtn">Away</button>
         </div>
 
-        <datalist id="leagueTeamsList"></datalist>
+        <div class="teamScoreRow">
+          <div class="field teamField">
+            <label>Home team</label>
+            <div class="inputWithArrow">
+              <select id="matchHomeTeam" spellcheck="false"></select>
+              <span class="selectArrow">▾</span>
+            </div>
+          </div>
 
-        <div class="field">
-          <label>Home team</label>
-          <div class="inputWithArrow">
-            <input id="matchHomeTeam" type="text" list="leagueTeamsList">
-            <span class="selectArrow">▾</span>
+          <div class="field scoreField">
+            <label>Score</label>
+            <input id="matchHomeScore" type="number" inputmode="numeric" min="0">
           </div>
         </div>
 
-        <div class="field">
-          <label>Away team</label>
-          <div class="inputWithArrow">
-            <input id="matchAwayTeam" type="text" list="leagueTeamsList">
-            <span class="selectArrow">▾</span>
+        <div class="teamScoreRow">
+          <div class="field teamField">
+            <label>Away team</label>
+            <div class="inputWithArrow">
+              <select id="matchAwayTeam" spellcheck="false"></select>
+              <span class="selectArrow">▾</span>
+            </div>
+          </div>
+
+          <div class="field scoreField">
+            <label>Score</label>
+            <input id="matchAwayScore" type="number" inputmode="numeric" min="0">
           </div>
         </div>
 
-        <div class="field">
-          <label>Home score</label>
-          <input id="matchHomeScore" type="number" min="0">
-        </div>
-
-        <div class="field">
-          <label>Away score</label>
-          <input id="matchAwayScore" type="number" min="0">
-        </div>
-
-        <div class="field">
-          <label>Result</label>
-          <div class="inputWithArrow">
-            <select id="matchResult">
-              <option value="Won">Won</option>
-              <option value="Lost">Lost</option>
-            </select>
-            <span class="selectArrow">▾</span>
-          </div>
-        </div>
+        <input id="matchResult" type="hidden" value="Won">
+        <input id="matchVenue" type="hidden">
 
         <div class="field">
           <label>Date</label>
           <input id="matchDate" type="date">
         </div>
 
-        <div class="field">
-          <label>Venue</label>
-          <input id="matchVenue" type="text">
-        </div>
-
         <div class="field imageField">
           <label>Images</label>
-
           <div class="imageUploadBox" id="openImagesBox">
             <span id="imageText">📷 Add images</span>
             <button id="openImagesBtn" type="button" class="imagePlusBtn">+</button>
           </div>
-
           <input id="matchImageInput" type="file" accept="image/*" multiple hidden>
         </div>
 
@@ -219,7 +206,7 @@
 
         <div class="field">
           <label>Stage</label>
-          <input id="matchStage" type="text" placeholder="Group / Quarter-Final / Final">
+          <input id="matchStage" type="text" placeholder="Group / Quarter-Final / Final" spellcheck="false">
         </div>
       </div>
 

@@ -70,7 +70,7 @@
         <div class="sectionTitle">Players</div>
 
         <div class="setupPlayersPanel">
-          <div class="setupPlayerTile hasPlayer">
+          <div id="setupPlayerOneTile" class="setupPlayerTile hasPlayer">
             <div class="setupPlayerAvatarWrap">
               <img id="setupPlayerOneImage" class="setupPlayerAvatar" src="graphics/logoWoText.png" alt="">
               <button id="removePlayerOneBtn" type="button" class="removeSetupPlayerBtn">×</button>
@@ -78,11 +78,10 @@
             <div id="setupPlayerOneDisplay" class="setupPlayerName">Player 1</div>
           </div>
 
-          <div class="addPlayerTile">
-            <button id="addOpponentBtn" type="button" class="addOpponentBtn">
+          <div id="setupPlayerTwoTile" class="setupPlayerTile addPlayerTile">
+            <button id="addOpponentBtn" type="button" class="addOpponentBtn" aria-label="Add player">
               <span>+</span>
             </button>
-            <div class="addPlayerLabel">Add a player</div>
           </div>
         </div>
 
@@ -151,6 +150,7 @@
         <div class="gameBarActions">
           <button id="statsBtn" type="button" class="pillBtn" title="Stats">📊</button>
           <button id="gameSettingsBtn" type="button" class="pillBtn" title="Settings">⚙</button>
+          <button id="fullscreenScorerBtn" type="button" class="pillBtn" title="Fullscreen">⛶</button>
         </div>
       </div>
 
@@ -211,9 +211,10 @@
       <div id="turnMessage" class="turnMessage">Player 1's turn to throw!</div>
 
       <div class="scoreEntry">
-        <input id="scoreInput" type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="180"
-          placeholder="Enter a score" autocomplete="off" autofocus>
-        <button id="submitScoreBtn" type="button" class="btn btnPrimary">Submit</button>
+        <input id="scoreInput" type="text" readonly placeholder="Enter a score" autocomplete="off">
+        <button id="submitScoreBtn" type="button" class="btn btnPrimary">
+          Submit
+        </button>
       </div>
 
       <div id="gameMessage" class="gameMessage" role="status" aria-live="polite"></div>
