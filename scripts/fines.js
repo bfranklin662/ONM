@@ -409,7 +409,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function hydrateMatchInfoDefaults() {
     const dateEl = document.getElementById("matchDate");
-    if (dateEl && !dateEl.value) dateEl.value = todayInputValue();
+
+    if (dateEl && !dateEl.value) {
+      dateEl.value = todayInputValue();
+      autofillFixtureForDate(dateEl.value);
+    }
   }
 
   function readMatchInfo() {
@@ -460,7 +464,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (reviewLeagueTitle) reviewLeagueTitle.textContent = m.league || "";
     const resultClass = String(m.result || "").toLowerCase();
 
-    const playersHtml = resultSubmitData.players.map(p => {
+    const sortedPlayers = [...resultSubmitData.players].sort((a, b) => {
+      return Number(b.checkouts || 0) - Number(a.checkouts || 0);
+    });
+
+    const playersHtml = sortedPlayers.map(p => {
       const specials = [];
 
       if (p.oneEightys > 0) {
@@ -2551,16 +2559,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function fileToBase64(file) {
     return new Promise((resolve, reject) => {
+      const img = new Image();
       const reader = new FileReader();
 
       reader.onload = () => {
-        const base64 = String(reader.result).split(",")[1];
+        img.src = reader.result;
+      };
 
-        resolve({
-          name: file.name,
-          mimeType: file.type,
-          base64
-        });
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+
+        const MAX_WIDTH = 1200;
+        const scale = Math.min(1, MAX_WIDTH / img.width);
+
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Convert EVERYTHING to JPEG
+        canvas.toBlob(
+          (blob) => {
+            const reader2 = new FileReader();
+
+            reader2.onloadend = () => {
+              const base64 = reader2.result.split(",")[1];
+
+              resolve({
+                name: file.name.replace(/\.\w+$/, ".jpg"),
+                mimeType: "image/jpeg",
+                base64
+              });
+            };
+
+            reader2.onerror = reject;
+            reader2.readAsDataURL(blob);
+          },
+          "image/jpeg",
+          0.7 // compression (0.6–0.8 is ideal)
+        );
       };
 
       reader.onerror = reject;
