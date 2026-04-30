@@ -337,15 +337,6 @@ body {
   font-weight: 900;
 }
 
-.gameMessage {
-  min-height: 22px;
-  color: #c9cfda;
-  font-size: 14px;
-  font-weight: 800;
-  text-align: center;
-  margin: 8px 0;
-}
-
 .keypad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1294,8 +1285,8 @@ body {
 .playerRow {
   min-height: 58px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(0, 0, 0, .22);
   color: #fff;
   font-weight: 900;
   display: grid;
@@ -1474,17 +1465,10 @@ button,
   -webkit-tap-highlight-color: transparent;
 }
 
-html,
-body,
-button,
-input {
-  touch-action: manipulation;
-}
-
 body.scorer-fullscreen {
-  width: 100vw;
+  width: 100%;
+  max-width: 100%;
   height: 100dvh;
-  margin: 0;
   overflow: hidden;
   background: #0f1115;
 }
@@ -1497,89 +1481,49 @@ body.scorer-fullscreen #appHeader {
 body.scorer-fullscreen .wrap {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  max-width: none;
+  width: 100%;
+  max-width: 100%;
   height: 100dvh;
-  margin: 0;
   padding: 0;
+  margin: 0;
   overflow: hidden;
 }
 
 body.scorer-fullscreen .scorerCard {
-  width: 100vw;
+  width: 100%;
+  max-width: 100%;
   height: 100dvh;
   border: 0;
   border-radius: 0;
   padding: 6px;
   overflow: hidden;
   display: grid;
-  grid-template-rows: 42px 240px 34px 52px 1fr;
+  grid-template-rows:
+    42px 240px 32px 52px 1fr !important;
   gap: 8px;
 }
 
-body.scorer-fullscreen .gameBar {
-  margin: 0;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-}
-
-body.scorer-fullscreen .pillBtn {
-  width: 42px;
-  height: 42px;
-}
-
-body.scorer-fullscreen .scoreboard {
-  width: 100%;
-  height: 240px;
-  margin: 0;
-  min-width: 0;
-}
-
-body.scorer-fullscreen .playerScoreCard {
-  min-width: 0;
-  min-height: 0;
-  height: 240px;
-  padding: 10px 9px;
-}
-
-body.scorer-fullscreen .score {
-  font-size: clamp(62px, 21vw, 86px);
-  line-height: .9;
-  margin: 8px 0 6px;
-}
-
-body.scorer-fullscreen .statsGrid div {
-  font-size: 12px;
-}
-
-body.scorer-fullscreen .turnMessage {
-  margin: 0;
-  align-self: center;
-}
-
 body.scorer-fullscreen .scoreEntry {
-  margin: 0;
-}
-
-body.scorer-fullscreen .scoreEntry input,
-body.scorer-fullscreen .scoreEntry button {
-  height: 52px;
-}
-
-body.scorer-fullscreen .gameMessage {
-  display: none;
-}
-
-body.scorer-fullscreen .keypad {
-  min-height: 0;
-  height: 100%;
-}
-
-body.scorer-fullscreen .keypad button {
-  min-height: 0;
-  height: 100%;
-  font-size: clamp(42px, 14vw, 64px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
 }
 
 body.scorer-fullscreen .scoreEntry input {
+  min-width: 0;
+  width: 100%;
   pointer-events: none;
+}
+
+body.scorer-fullscreen .scoreEntry button {
+  width: 104px;
+  min-width: 0;
+}
+
+body.scorer-fullscreen .scoreboard,
+body.scorer-fullscreen .keypad {
+  width: 100%;
+  min-width: 0;
 }

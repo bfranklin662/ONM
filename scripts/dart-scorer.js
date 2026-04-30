@@ -234,7 +234,6 @@ const els = {
   input: document.getElementById("scoreInput"),
   submit: document.getElementById("submitScoreBtn"),
   turnMessage: document.getElementById("turnMessage"),
-  gameMessage: document.getElementById("gameMessage"),
   keypad: document.querySelector(".keypad"),
   newGame: document.getElementById("newGameBtn"),
   impossibleOverlay: document.getElementById("impossibleOverlay"),
@@ -312,6 +311,11 @@ const els = {
   setupPlayerTwoTile: document.getElementById("setupPlayerTwoTile"),
   fullscreenBtn: document.getElementById("fullscreenBtn"),
 };
+
+// ✅ Hide fullscreen button on desktop/tablet
+if (window.innerWidth >= 500 && els.fullscreenBtn) {
+  els.fullscreenBtn.style.display = "none";
+}
 
 
 function resetAddOpponentButton() {
@@ -593,7 +597,9 @@ els.confirmQuitBtn.addEventListener("click", () => {
   els.scorerCard.classList.add("hidden");
   els.setupCard.classList.remove("hidden");
 
-  exitScorerFullscreen();
+  if (window.innerWidth < 500) {
+    exitScorerFullscreen();
+  }
 });
 
 els.quitGameBtn.addEventListener("click", () => {
@@ -630,6 +636,11 @@ els.startScorerGameBtn.addEventListener("click", () => {
 
   els.setupCard.classList.add("hidden");
   els.scorerCard.classList.remove("hidden");
+
+  // ✅ ONLY fullscreen on small screens
+  if (window.innerWidth < 500) {
+    enterScorerFullscreen();
+  }
 });
 
 function render() {
@@ -808,7 +819,6 @@ function submitScore() {
   const value = Number(els.input.value);
 
   if (!Number.isInteger(value) || value < 0 || value > MAX_VISIT) {
-    els.gameMessage.textContent = "Enter a whole number from 0 to 180.";
     els.input.select();
     return;
   }
@@ -1012,12 +1022,10 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
     player.legDarts.push(player.currentLegDarts);
     state.visitHistory = [];
     state.legJustWon = true;
-    els.gameMessage.textContent = `${playerName(playerIndex)} wins the leg!`;
     launchFireworks(playerIndex);
 
     if (player.legs >= LEGS_TO_WIN) {
       state.winnerIndex = playerIndex;
-      els.gameMessage.textContent = `${playerName(playerIndex)} wins the match!`;
       els.submit.disabled = true;
 
       setTimeout(() => {
@@ -1026,16 +1034,10 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
     } else {
       resetLeg();
     }
-  } else if (bust) {
-    els.gameMessage.textContent = `${playerName(playerIndex)} busts. Score stays at ${previousScore}.`;
-  } else {
+  } else if (!bust && doublesAttempted) {
     if (doublesAttempted) {
       player.checkoutAttempts += doublesAttempted;
     }
-
-    els.gameMessage.textContent = doublesAttempted
-      ? `${playerName(playerIndex)} had ${doublesAttempted} dart${doublesAttempted === 1 ? "" : "s"} at double.`
-      : "";
   }
 
   state.visitHistory.push(historyItem);
@@ -1058,14 +1060,12 @@ function resetLeg() {
 
 function undoLastVisit() {
   if (state.legJustWon) {
-    els.gameMessage.textContent = "Unable to undo";
     els.input.blur();
     return;
   }
 
   const last = state.visitHistory.pop();
   if (!last) {
-    els.gameMessage.textContent = "Unable to undo";
     els.input.blur();
     return;
   }
@@ -1079,7 +1079,6 @@ function undoLastVisit() {
 
   state.currentPlayer = last.playerIndex;
   els.submit.disabled = false;
-  els.gameMessage.textContent = "Last visit undone.";
   render();
 }
 
@@ -1254,7 +1253,6 @@ function newGame() {
 
   els.submit.disabled = false;
   els.input.value = "";
-  els.gameMessage.textContent = "";
   render();
 }
 
@@ -1483,6 +1481,38 @@ els.keypad.addEventListener("click", event => {
 if (els.newGame) {
   els.newGame.addEventListener("click", newGame);
 }
+
+let wakeLock = null;
+
+async function requestWakeLock() {
+  try {
+    if ("wakeLock" in navigator) {
+      wakeLock = await navigator.wakeLock.request("screen");
+    }
+  } catch (err) {
+    console.warn("Wake lock failed:", err);
+  }
+}
+
+async function releaseWakeLock() {
+  try {
+    if (wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  } catch (err) {
+    console.warn("Wake lock release failed:", err);
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (
+    document.visibilityState === "visible" &&
+    document.body.classList.contains("scorer-fullscreen")
+  ) {
+    requestWakeLock();
+  }
+});
 
 function enterScorerFullscreen() {
   document.body.classList.add("scorer-fullscreen");
