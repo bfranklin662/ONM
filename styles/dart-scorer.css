@@ -1527,3 +1527,17 @@ body.scorer-fullscreen .keypad {
   width: 100%;
   min-width: 0;
 }
+
+html:has(body.scorer-fullscreen),
+body.scorer-fullscreen {
+  overflow: hidden !important;
+  height: 100dvh !important;
+  overscroll-behavior: none !important;
+  touch-action: none;
+}
+
+body.scorer-fullscreen .scorerCard,
+body.scorer-fullscreen .keypad,
+body.scorer-fullscreen button {
+  touch-action: manipulation;
+}

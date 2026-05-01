@@ -652,7 +652,7 @@ function render() {
     els.scores[index].textContent = player.score;
     els.legs[index].textContent = player.legs;
     els.lasts[index].textContent = player.lastScore ?? "-";
-    els.darts[index].textContent = player.dartsThrown;
+    els.darts[index].textContent = player.currentLegDarts;
 
     const average = player.dartsThrown
       ? (player.totalScored / player.dartsThrown) * 3
@@ -1561,6 +1561,23 @@ async function initDartScorerAuth() {
 
   await loadLoggedInPlayer(user);
 }
+
+function preventFullscreenScroll(event) {
+  if (!document.body.classList.contains("scorer-fullscreen")) return;
+
+  if (
+    event.target.closest(".keypad") ||
+    event.target.closest("button") ||
+    event.target.closest(".modalOverlay") ||
+    event.target.closest(".checkoutOverlay")
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+}
+
+document.addEventListener("touchmove", preventFullscreenScroll, { passive: false });
 
 async function loadLoggedInPlayer(user) {
   const displayName = user.linkedPlayerName || user.firstName || "Player 1";
