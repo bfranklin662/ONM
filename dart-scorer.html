@@ -55,40 +55,11 @@
   </div>
 
   <div class="wrap">
-    <div class="header appSwitcher" id="appHeader">
-      <div>
-        <div class="title" id="screenTitleText">Dart Scorer</div>
-      </div>
-    </div>
 
     <section id="scorerSetupCard" class="scorerSetupCard hidden">
 
 
       <div class="setupGrid">
-
-
-        <div class="sectionTitle">Players</div>
-
-        <div class="setupPlayersPanel">
-          <div id="setupPlayerOneTile" class="setupPlayerTile hasPlayer">
-            <div class="setupPlayerAvatarWrap">
-              <img id="setupPlayerOneImage" class="setupPlayerAvatar" src="graphics/logoWoText.png" alt="">
-              <button id="removePlayerOneBtn" type="button" class="removeSetupPlayerBtn">×</button>
-            </div>
-            <div id="setupPlayerOneDisplay" class="setupPlayerName">Player 1</div>
-          </div>
-
-          <div id="setupPlayerTwoTile" class="setupPlayerTile addPlayerTile">
-            <button id="addOpponentBtn" type="button" class="addOpponentBtn" aria-label="Add player">
-              <span>+</span>
-            </button>
-          </div>
-        </div>
-
-        <input id="setupPlayerOneName" type="hidden" value="Player 1">
-        <input id="setupPlayerTwoName" type="hidden" value="Player 2">
-
-        <div class="sectionTitle setupSectionTitle">Game Settings</div>
 
         <div id="matchModeSwitch" class="homeAwayToggle twoOptionToggle">
           <div class="toggleSlider"></div>
@@ -96,11 +67,31 @@
           <button type="button" class="toggleBtn" data-match-mode="online">Online</button>
         </div>
 
-        <div id="statsModeSwitch" class="homeAwayToggle twoOptionToggle">
-          <div class="toggleSlider"></div>
-          <button type="button" class="toggleBtn active" data-stats-mode="competitive">Competitive</button>
-          <button type="button" class="toggleBtn" data-stats-mode="casual">Casual</button>
+        <div id="namePlayersSetup" class="guestPlayersSetup setupPlayersVersus">
+          <div class="setupPlayerSide" id="setupPlayerOneSide">
+            <div class="setupPlayerTop">
+              <span>Player 1</span>
+              <button id="removeSetupPlayerOneBtn" type="button" class="setupRemoveBtn hidden">×</button>
+            </div>
+            <div id="setupPlayerOneSlot" class="setupPlayerSlot"></div>
+          </div>
+
+          <div class="setupVs">vs</div>
+
+          <div class="setupPlayerSide" id="setupPlayerTwoSide">
+            <div class="setupPlayerTop">
+              <button id="removeSetupPlayerTwoBtn" type="button" class="setupRemoveBtn hidden">×</button>
+              <span>Player 2</span>
+            </div>
+            <div id="setupPlayerTwoSlot" class="setupPlayerSlot"></div>
+            <div id="setupPlayerErrorMsg" class="setupErrorMsg hidden"></div>
+          </div>
         </div>
+
+        <input id="setupPlayerOneName" type="hidden" value="Player 1">
+        <input id="setupPlayerTwoName" type="hidden" value="Player 2">
+
+        <div class="sectionTitle setupSectionTitle">Game Settings</div>
 
         <div class="setupRow">
           <div id="bestFirstToggle" class="homeAwayToggle">
@@ -134,7 +125,7 @@
         </div>
 
         <div id="statsModeText" class="statsModeText">
-          Stats/Data will be stored for this game.
+          Stats/Data won't be stored for this game.
         </div>
 
         <button id="startScorerGameBtn" type="button" class="btn btnPrimary">
@@ -143,9 +134,169 @@
       </div>
     </section>
 
+    <section id="leaderboardView" class="leaderboardView hidden">
+
+      <div class="leagueHero">
+        <div class="leagueHeroLeft">
+
+          <div class="leagueHeroTop">
+            <img class="leagueHeroBadge" src="graphics/logoWoText.png" alt="">
+
+            <div class="leagueHeroHeading">
+              <h2>Monsters Online League</h2>
+              <div class="leagueHeroSub">
+                Competitive darts • Leaderboard
+              </div>
+            </div>
+          </div>
+
+          <div class="leagueHeroMeta">
+            <span>
+              Rank
+              <strong id="myLeaderboardRank">-</strong>
+            </span>
+
+            <span>
+              Rating
+              <strong id="myLeaderboardRating">-</strong>
+            </span>
+
+            <span class="leagueLastFive">
+              Last 5
+              <div class="leagueFormDots" id="leagueLastFiveDots"></div>
+            </span>
+          </div>
+
+        </div>
+
+        <div class="leagueLastGameCard" id="leagueLastGameCard">
+          <div>
+            <div class="leagueResultText win" id="leagueLastResult">
+              Victory!
+            </div>
+
+            <div class="leagueRatingChange" id="leagueRatingChange">
+              +0 rating
+            </div>
+
+            <div class="leagueLastOpponent" id="leagueLastOpponent">
+              Last game
+            </div>
+          </div>
+
+          <div class="leagueLastActions">
+            <button type="button" class="leagueHistoryBtn" id="openLastGameStatsBtn">
+              Stats
+            </button>
+
+            <button type="button" class="leagueHistoryBtn secondary" id="openGameHistoryBtn">
+              History
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="leaderboardHeader">
+        <span>#</span>
+        <span>Name</span>
+        <span>Streak</span>
+        <span>Played</span>
+        <span>Wins</span>
+        <span>Rating</span>
+        <span></span>
+      </div>
+
+      <div id="leaderboardRows" class="leaderboardRows">
+        <div class="leaderboardLoading">
+          <span class="inlineSpinner"></span>
+          Loading leaderboard...
+        </div>
+      </div>
+
+      <div class="leaderboardBottomFade"></div>
+
+      <div class="leaderboardPlayDock">
+        <button id="leaderboardPlayDockBtn" type="button">
+          Play match
+        </button>
+      </div>
+    </section>
+
+    <section id="startDeciderScreen" class="startDeciderScreen hidden">
+      <div class="deciderShell">
+        <button id="deciderQuitBtn" type="button" class="pillBtn deciderQuitBtn" title="Quit">×</button>
+
+        <h1 class="deciderTitle">Who throws first?</h1>
+
+        <div id="deciderChoiceView" class="deciderChoiceView">
+          <button id="chooseBullBtn" type="button" class="deciderChoiceBtn selected" data-decider-choice="bull">
+            <span class="deciderIcon">🎯</span>
+            <strong>Throw for the bull</strong>
+          </button>
+
+          <button id="chooseCoinBtn" type="button" class="deciderChoiceBtn" data-decider-choice="coin">
+            <span class="deciderIcon">🪙</span>
+            <strong>Coin toss</strong>
+          </button>
+
+          <button id="skipDeciderBtn" type="button" class="deciderSkipBtn">
+            Skip and start
+          </button>
+
+          <button id="startDeciderBtn" type="button" class="btn btnPrimary">
+            Next
+          </button>
+        </div>
+
+        <div id="bullDeciderView" class="bullDeciderView hidden">
+          <div class="deciderPlayerBox">
+            <div class="deciderPlayerHalf active" id="bullPlayerOneBox">
+              <strong id="bullPlayerOneName">Player 1</strong>
+              <span id="bullPlayerOneStatus">Throw your dart</span>
+            </div>
+
+            <div class="deciderPlayerHalf" id="bullPlayerTwoBox">
+              <strong id="bullPlayerTwoName">Player 2</strong>
+              <span id="bullPlayerTwoStatus">Waiting</span>
+            </div>
+          </div>
+
+          <div id="bullDeciderPrompt" class="deciderPrompt">Tap where your dart landed</div>
+          <div id="bullBoard" class="bullBoard"></div>
+
+          <button id="confirmBullThrowBtn" type="button" class="btn btnPrimary hidden">
+            Confirm throw
+          </button>
+
+          <div id="bullWinnerText" class="deciderWinnerText"></div>
+        </div>
+
+        <div id="coinDeciderView" class="coinDeciderView hidden">
+          <div class="deciderPlayerBox">
+            <div class="deciderPlayerHalf" id="coinPlayerOneBox">
+              <strong id="coinPlayerOneName">Player 1</strong>
+              <span id="coinPlayerOneStatus">Waiting</span>
+            </div>
+
+            <div class="deciderPlayerHalf" id="coinPlayerTwoBox">
+              <strong id="coinPlayerTwoName">Player 2</strong>
+              <span id="coinPlayerTwoStatus">Waiting</span>
+            </div>
+          </div>
+
+          <div id="coinResultText" class="deciderPrompt">Tap to toss the coin</div>
+          <button id="coinBtn" type="button" class="coinBtn">
+            <span class="coinInitial">?</span>
+          </button>
+
+          <div id="coinWinnerText" class="deciderWinnerText"></div>
+        </div>
+      </div>
+    </section>
+
     <section class="scorerCard hidden">
       <div class="gameBar">
-        <button id="quitGameBtn" type="button" class="pillBtn" title="Quit game">←</button>
+        <button id="quitGameBtn" type="button" class="pillBtn" title="Quit game">×</button>
         <div id="gameTitleText" class="gameTitleText">501 · Best of 3 · Straight in</div>
         <div class="gameBarActions">
           <button id="statsBtn" type="button" class="pillBtn" title="Stats">📊</button>
@@ -210,26 +361,34 @@
 
       <div id="turnMessage" class="turnMessage">Player 1's turn to throw!</div>
 
-      <div class="scoreEntry">
-        <input id="scoreInput" type="text" readonly placeholder="Enter a score" autocomplete="off">
-        <button id="submitScoreBtn" type="button" class="btn btnPrimary">
-          Submit
-        </button>
-      </div>
+      <div class="scoreControlsWrap">
+        <div class="scoreEntry">
+          <input id="scoreInput" type="text" readonly placeholder="Enter a score" autocomplete="off">
+          <button id="submitScoreBtn" type="button" class="btn btnPrimary">
+            Submit
+          </button>
+        </div>
 
-      <div class="keypad" aria-label="Score keypad">
-        <button type="button" data-key="1">1</button>
-        <button type="button" data-key="2">2</button>
-        <button type="button" data-key="3">3</button>
-        <button type="button" data-key="4">4</button>
-        <button type="button" data-key="5">5</button>
-        <button type="button" data-key="6">6</button>
-        <button type="button" data-key="7">7</button>
-        <button type="button" data-key="8">8</button>
-        <button type="button" data-key="9">9</button>
-        <button type="button" data-action="undo">↩</button>
-        <button type="button" data-key="0">0</button>
-        <button type="button" data-action="clear">⌫</button>
+
+        <div class="keypad" aria-label="Score keypad">
+          <button type="button" data-key="1">1</button>
+          <button type="button" data-key="2">2</button>
+          <button type="button" data-key="3">3</button>
+          <button type="button" data-key="4">4</button>
+          <button type="button" data-key="5">5</button>
+          <button type="button" data-key="6">6</button>
+          <button type="button" data-key="7">7</button>
+          <button type="button" data-key="8">8</button>
+          <button type="button" data-key="9">9</button>
+          <button type="button" data-action="undo">↩</button>
+          <button type="button" data-key="0">0</button>
+          <button type="button" data-action="clear">⌫</button>
+        </div>
+
+        <div id="onlineTurnOverlay" class="onlineTurnOverlay hidden">
+          Waiting for opponent's score...
+        </div>
+
       </div>
     </section>
   </div>
@@ -358,11 +517,6 @@
       </div>
 
       <div class="modalBody">
-        <button id="guestPlayerBtn" type="button" class="playerPickBtn">
-          Guest player
-        </button>
-
-        <div class="sectionTitle">Linked accounts</div>
         <div id="linkedPlayersList" class="playerPickList"></div>
       </div>
     </div>
@@ -398,10 +552,143 @@
     </div>
   </div>
 
+  <div id="dartInviteOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Darts match invitation</div>
+      </div>
+
+      <div class="modalBody">
+        <p id="dartInviteText"></p>
+
+        <div class="row">
+          <button id="declineDartInviteBtn" type="button" class="btn btnGhost">Decline</button>
+          <button id="acceptDartInviteBtn" type="button" class="btn btnPrimary">Accept</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="waitingInviteOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Match invitation</div>
+      </div>
+
+      <div class="modalBody">
+        <p id="waitingInviteText">Waiting for player to accept match invitation...</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="competitiveReadyOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="competitiveReadyCard">
+      <button id="cancelReadyLobbyBtn" type="button" class="modalClose">×</button>
+
+      <div class="readyLeagueKicker">Monsters Online League</div>
+      <h2 id="readyMatchTitle">501 · Best of 3</h2>
+
+      <div class="readyPlayers">
+        <div class="readyPlayer">
+          <span id="readyHostFlag">🌍</span>
+          <img id="readyHostPhoto" src="graphics/logoWoText.png" alt="">
+          <strong id="readyHostName">Player 1</strong>
+          <span id="readyHostRank">Rank -</span>
+          <span id="readyHostRating">Rating -</span>
+          <div id="readyHostStatus" class="readyStatus pending">Pending</div>
+        </div>
+
+        <div class="readyVs">VS</div>
+
+        <div class="readyPlayer">
+          <span id="readyGuestFlag">🌍</span>
+          <img id="readyGuestPhoto" src="graphics/logoWoText.png" alt="">
+          <strong id="readyGuestName">Player 2</strong>
+          <span id="readyGuestRank">Rank -</span>
+          <span id="readyGuestRating">Rating -</span>
+          <div id="readyGuestStatus" class="readyStatus pending">Pending</div>
+        </div>
+      </div>
+
+      <div class="readyActions">
+        <button id="leaveReadyLobbyBtn" type="button" class="btn btnGhost">Cancel</button>
+        <button id="markReadyBtn" type="button" class="btn btnPrimary">Ready</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="molVictoryOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="competitiveReadyCard molVictoryCard">
+
+      <div class="readyLeagueKicker">
+        Monsters Online League
+      </div>
+
+      <h2 id="molVictoryTitle">
+        501 · Best of 5
+      </h2>
+
+      <div class="readyPlayersGrid molVictoryPlayers">
+        <div class="readyPlayerCard molVictoryPlayerCard">
+          <span id="molVictoryPlayerOneFlag" class="readyFlag"></span>
+          <img id="molVictoryPlayerOnePhoto" class="readyPlayerPhoto" src="graphics/logoWoText.png" alt="">
+          <strong id="molVictoryPlayerOneName"></strong>
+          <div id="molVictoryPlayerOneRank" class="readyPlayerMeta"></div>
+          <div id="molVictoryPlayerOneRating" class="readyPlayerMeta"></div>
+          <span id="molVictoryPlayerOneRematch" class="readyStatus pending">Rematch</span>
+          <span id="molVictoryPlayerOneWon" class="wonPill hidden">WINNER</span>
+        </div>
+
+        <div class="readyVs molVictoryVs">
+          <span id="molVictoryMiddleScore">0 | 0</span>
+        </div>
+
+        <div class="readyPlayerCard molVictoryPlayerCard">
+          <span id="molVictoryPlayerTwoFlag" class="readyFlag"></span>
+          <img id="molVictoryPlayerTwoPhoto" class="readyPlayerPhoto" src="graphics/logoWoText.png" alt="">
+          <strong id="molVictoryPlayerTwoName"></strong>
+          <div id="molVictoryPlayerTwoRank" class="readyPlayerMeta"></div>
+          <div id="molVictoryPlayerTwoRating" class="readyPlayerMeta"></div>
+          <span id="molVictoryPlayerTwoRematch" class="readyStatus pending">Rematch</span>
+          <span id="molVictoryPlayerTwoWon" class="wonPill hidden">WINNER</span>
+        </div>
+      </div>
+
+      <div class="molStatsCarousel">
+
+        <div class="molStatsTrack" id="molStatsTrack">
+
+          <div class="molStatsPage" id="molStatsPageOne"></div>
+
+          <div class="molStatsPage" id="molStatsPageTwo"></div>
+
+        </div>
+
+      </div>
+
+      <div class="molStatsDots">
+        <div class="molStatsDot active"></div>
+        <div class="molStatsDot"></div>
+      </div>
+
+      <div class="readyActions">
+        <button id="molVictoryRematchBtn" type="button" class="btn btnGhost">
+          Rematch
+        </button>
+
+        <button id="molVictoryCloseBtn" type="button" class="btn btnPrimary">
+          Continue
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <script src="scripts/player-data.js"></script>
   <script src="scripts/session.js"></script>
   <script src="scripts/profile.js"></script>
-  <script src="scripts/dart-scorer.js"></script>
+  <script type="module" defer src="scripts/firebase-live.js"></script>
+  <script defer src="scripts/dart-scorer.js"></script>
   <script>
     function toggleSidebar() {
       const sidebar = document.getElementById("sidebar");

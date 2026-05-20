@@ -8,6 +8,7 @@ const els = {
   loginForm: document.getElementById("loginForm"),
   authMsg: document.getElementById("authMsg"),
   teamSelect: document.getElementById("teamSelect"),
+  nationalitySelect: document.getElementById("registerNationality"),
   customTeamWrap: document.getElementById("customTeamWrap"),
   customTeamInput: document.getElementById("customTeamInput"),
   registerSubmitBtn: document.getElementById("registerSubmitBtn"),
@@ -268,6 +269,7 @@ els.registerForm.addEventListener("submit", async event => {
       firstName: formData.get("firstName"),
       surname: formData.get("surname"),
       email: formData.get("email"),
+      nationality: formData.get("nationality"),
       team: teamValue,
       password: formData.get("password")
     });
@@ -331,19 +333,8 @@ els.loginForm.addEventListener("submit", async event => {
   }
 });
 
-els.showRegisterBtn.addEventListener("click", () => {
-  setTogglePosition(els.authToggle, els.showRegisterBtn);
-  els.registerForm.classList.remove("hidden");
-  els.loginForm.classList.add("hidden");
-  els.authMsg.classList.add("hidden");
-});
-
-els.showLoginBtn.addEventListener("click", () => {
-  setTogglePosition(els.authToggle, els.showLoginBtn);
-  els.loginForm.classList.remove("hidden");
-  els.registerForm.classList.add("hidden");
-  els.authMsg.classList.add("hidden");
-});
+els.showRegisterBtn.addEventListener("click", showRegisterView);
+els.showLoginBtn.addEventListener("click", showLoginView);
 
 els.teamSelect.addEventListener("change", () => {
   if (els.teamSelect.value === "Other") {
@@ -363,8 +354,25 @@ els.linkPlayerOverlay.addEventListener("click", event => {
   continueAfterAuth();
 });
 
-setTogglePosition(
-  els.authToggle,
-  document.querySelector("#authToggle .toggleBtn.active")
-);
+const authParams = new URLSearchParams(window.location.search);
+const authMode = authParams.get("mode");
 
+if (authMode === "login") {
+  showLoginView();
+} else {
+  showRegisterView();
+}
+
+function showRegisterView() {
+  setTogglePosition(els.authToggle, els.showRegisterBtn);
+  els.registerForm.classList.remove("hidden");
+  els.loginForm.classList.add("hidden");
+  els.authMsg.classList.add("hidden");
+}
+
+function showLoginView() {
+  setTogglePosition(els.authToggle, els.showLoginBtn);
+  els.loginForm.classList.remove("hidden");
+  els.registerForm.classList.add("hidden");
+  els.authMsg.classList.add("hidden");
+}
