@@ -937,7 +937,29 @@ function openMolVictoryScreen(matchData) {
   updateMolResultPresence("viewing");
 }
 
+function updateLeaguePlayButton() {
+  const btn = document.getElementById("leaderboardPlayDockBtn");
+  if (!btn) return;
+
+  const currentUser =
+    window.ONMSession?.getUser?.() || loggedInUser;
+
+  btn.textContent = currentUser
+    ? "Play match"
+    : "Log in / Register";
+}
+
 function openCompetitiveInviteFlow() {
+
+  const currentUser =
+    window.ONMSession?.getUser?.() || loggedInUser;
+
+  if (!currentUser) {
+    window.location.href =
+      "auth.html?mode=register&redirect=dart-scorer.html";
+    return;
+  }
+
   competitiveLobbyMode = true;
   competitiveLegsCount = 3;
 
@@ -4114,12 +4136,17 @@ async function initDartScorerAuth() {
 
   if (!user) {
     loggedInUser = null;
+
+    updateLeaguePlayButton();
     updateSetupPlayerMode();
+
     console.warn("[DART DEBUG] No user, invite listener NOT started");
     return;
   }
 
   loggedInUser = user;
+
+  updateLeaguePlayButton();
 
   console.log("[DART DEBUG] setting presence for:", user.linkedPlayerKey);
   window.ONMLiveDarts?.setPlayerPresence?.(user);
@@ -5490,6 +5517,14 @@ els.molVictoryCloseBtn?.addEventListener("click", () => {
 });
 
 document.getElementById("leaderboardPlayDockBtn")?.addEventListener("click", () => {
+  const currentUser =
+    window.ONMSession?.getUser?.() || loggedInUser;
+
+  if (!currentUser) {
+    window.location.href = "auth.html?mode=login&redirect=dart-scorer.html";
+    return;
+  }
+
   openCompetitiveInviteFlow();
 });
 
