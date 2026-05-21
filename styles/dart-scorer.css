@@ -3885,3 +3885,32 @@ body.casualMode #matchModeSwitch {
   opacity: .45;
   pointer-events: none;
 }
+
+.dartVoiceToast {
+  position: fixed;
+  left: 50%;
+  bottom: 105px;
+  transform: translateX(-50%);
+  z-index: 9999;
+
+  padding: 9px 15px;
+  border-radius: 999px;
+
+  background: rgba(0,0,0,.78);
+  border: 1px solid rgba(255,215,64,.5);
+  color: #ffd740;
+
+  font-weight: 950;
+  font-size: .85rem;
+
+  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  pointer-events: none;
+
+  opacity: 1;
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+.dartVoiceToast.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+}

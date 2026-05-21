@@ -517,8 +517,15 @@ function clearDartAudioQueue() {
   dartActiveAudios = [];
 }
 
-function playDartCallout(fileName) {
-  dartAudioQueue.push(`audio/darts/${fileName}`);
+function playDartCallout(fileName, fallbackFileName = null) {
+  const credit = DART_VOICE_CREDITS[fileName];
+  if (credit) showDartVoiceToast(credit);
+
+  dartAudioQueue.push({
+    src: `audio/darts/${fileName}`,
+    fallbackSrc: fallbackFileName ? `audio/darts/${fallbackFileName}` : null
+  });
+
   playNextDartCallout();
 }
 
@@ -533,12 +540,209 @@ function playLayeredDartAudio(fileName, volume = 1) {
   return audio;
 }
 
+const DART_VOICE_CREDITS = {
+  "score-0.mp3": "Nick 🔊",
+  "score-1.mp3": "Simon 🔊",
+  "score-2.mp3": "Nick 🔊",
+  "score-3.mp3": "Jack 🔊",
+  "score-4.mp3": "Nick 🔊",
+  "score-5.mp3": "Nick 🔊",
+  "score-6.mp3": "Nick 🔊",
+  "score-7.mp3": "Nick 🔊",
+  "score-8.mp3": "Nick 🔊",
+  "score-9.mp3": "Andy 🔊",
+  "score-10.mp3": "Nick 🔊",
+  "score-11.mp3": "Nick 🔊",
+  "score-12.mp3": "Nick 🔊",
+  "score-13.mp3": "Nick 🔊",
+  "score-14.mp3": "Nick 🔊",
+  "score-15.mp3": "Nick 🔊",
+  "score-16.mp3": "Nick 🔊",
+  "score-17.mp3": "Nick 🔊",
+  "score-18.mp3": "Nick 🔊",
+  "score-19.mp3": "Nick 🔊",
+  "score-20.mp3": "Nick 🔊",
+  "score-21.mp3": "Nick 🔊",
+  "score-22.mp3": "Nick 🔊",
+  "score-23.mp3": "Nick 🔊",
+  "score-24.mp3": "Nick 🔊",
+  "score-25.mp3": "Nick 🔊",
+  "score-26.mp3": "Bobby 🔊",
+  "score-27.mp3": "Nick 🔊",
+  "score-28.mp3": "Nick 🔊",
+  "score-29.mp3": "Nick 🔊",
+  "score-30.mp3": "Nick 🔊",
+  "score-31.mp3": "Nick 🔊",
+  "score-32.mp3": "Nick 🔊",
+  "score-33.mp3": "Nick 🔊",
+  "score-34.mp3": "Nick 🔊",
+  "score-35.mp3": "Nick 🔊",
+  "score-36.mp3": "Nick 🔊",
+  "score-37.mp3": "Nick 🔊",
+  "score-38.mp3": "Nick 🔊",
+  "score-39.mp3": "Nick 🔊",
+  "score-40.mp3": "Nick 🔊",
+  "score-41.mp3": "Nick 🔊",
+  "score-42.mp3": "Nick 🔊",
+  "score-43.mp3": "Nick 🔊",
+  "score-44.mp3": "Nick 🔊",
+  "score-45.mp3": "Ricky 🔊",
+  "score-46.mp3": "Nick 🔊",
+  "score-47.mp3": "Nick 🔊",
+  "score-48.mp3": "Nick 🔊",
+  "score-49.mp3": "Nick 🔊",
+  "score-50.mp3": "Nick 🔊",
+  "score-51.mp3": "Nick 🔊",
+  "score-52.mp3": "Nick 🔊",
+  "score-53.mp3": "Nick 🔊",
+  "score-54.mp3": "Nick 🔊",
+  "score-55.mp3": "Nick 🔊",
+  "score-56.mp3": "Nick 🔊",
+  "score-57.mp3": "Nick 🔊",
+  "score-58.mp3": "Nick 🔊",
+  "score-59.mp3": "Nick 🔊",
+  "score-60.mp3": "Nick 🔊",
+  "score-61.mp3": "Nick 🔊",
+  "score-62.mp3": "Nick 🔊",
+  "score-63.mp3": "Nick 🔊",
+  "score-64.mp3": "Nick 🔊",
+  "score-65.mp3": "Nick 🔊",
+  "score-66.mp3": "Remzi 🔊",
+  "score-67.mp3": "Nick 🔊",
+  "score-68.mp3": "Nick 🔊",
+  "score-69.mp3": "Luke 🔊",
+  "score-70.mp3": "Nick 🔊",
+  "score-71.mp3": "Nick 🔊",
+  "score-72.mp3": "Nick 🔊",
+  "score-73.mp3": "Nick 🔊",
+  "score-74.mp3": "Nick 🔊",
+  "score-75.mp3": "Nick 🔊",
+  "score-76.mp3": "Nick 🔊",
+  "score-77.mp3": "Nick 🔊",
+  "score-78.mp3": "Nick 🔊",
+  "score-79.mp3": "Nick 🔊",
+  "score-80.mp3": "Nick 🔊",
+  "score-81.mp3": "Nick 🔊",
+  "score-82.mp3": "Nick 🔊",
+  "score-83.mp3": "Nick 🔊",
+  "score-84.mp3": "Nick 🔊",
+  "score-85.mp3": "Nick 🔊",
+  "score-86.mp3": "Nick 🔊",
+  "score-87.mp3": "Nick 🔊",
+  "score-88.mp3": "Nick 🔊",
+  "score-89.mp3": "Nick 🔊",
+  "score-90.mp3": "Nick 🔊",
+  "score-91.mp3": "Nick 🔊",
+  "score-92.mp3": "Nick 🔊",
+  "score-93.mp3": "Nick 🔊",
+  "score-94.mp3": "Nick 🔊",
+  "score-95.mp3": "Dan 🔊",
+  "score-96.mp3": "Nick 🔊",
+  "score-97.mp3": "Nick 🔊",
+  "score-98.mp3": "Nick 🔊",
+  "score-99.mp3": "Maryna 🔊",
+  "score-100.mp3": "Nick 🔊",
+  "score-101.mp3": "Nick 🔊",
+  "score-102.mp3": "Nick 🔊",
+  "score-103.mp3": "Nick 🔊",
+  "score-104.mp3": "Nick 🔊",
+  "score-105.mp3": "Nick 🔊",
+  "score-106.mp3": "Nick 🔊",
+  "score-107.mp3": "Nick 🔊",
+  "score-108.mp3": "Nick 🔊",
+  "score-109.mp3": "Nick 🔊",
+  "score-110.mp3": "Nick 🔊",
+  "score-111.mp3": "Nick 🔊",
+  "score-112.mp3": "Nick 🔊",
+  "score-113.mp3": "Nick 🔊",
+  "score-114.mp3": "Nick 🔊",
+  "score-115.mp3": "Nick 🔊",
+  "score-116.mp3": "Nick 🔊",
+  "score-117.mp3": "Nick 🔊",
+  "score-118.mp3": "Nick 🔊",
+  "score-119.mp3": "Nick 🔊",
+  "score-120.mp3": "Nick 🔊",
+  "score-121.mp3": "Nick 🔊",
+  "score-122.mp3": "Nick 🔊",
+  "score-123.mp3": "Nick 🔊",
+  "score-124.mp3": "Nick 🔊",
+  "score-125.mp3": "Nick 🔊",
+  "score-126.mp3": "Nick 🔊",
+  "score-127.mp3": "Nick 🔊",
+  "score-128.mp3": "Nick 🔊",
+  "score-129.mp3": "Nick 🔊",
+  "score-130.mp3": "Nick 🔊",
+  "score-131.mp3": "Nick 🔊",
+  "score-132.mp3": "Nick 🔊",
+  "score-133.mp3": "Nick 🔊",
+  "score-134.mp3": "Nick 🔊",
+  "score-135.mp3": "Nick 🔊",
+  "score-136.mp3": "Nick 🔊",
+  "score-137.mp3": "Nick 🔊",
+  "score-138.mp3": "Nick 🔊",
+  "score-139.mp3": "Nick 🔊",
+  "score-140.mp3": "Nick 🔊",
+  "score-141.mp3": "Nick 🔊",
+  "score-142.mp3": "Nick 🔊",
+  "score-143.mp3": "Nick 🔊",
+  "score-144.mp3": "Nick 🔊",
+  "score-145.mp3": "Nick 🔊",
+  "score-146.mp3": "Nick 🔊",
+  "score-147.mp3": "Nick 🔊",
+  "score-148.mp3": "Nick 🔊",
+  "score-149.mp3": "Nick 🔊",
+  "score-150.mp3": "Nick 🔊",
+  "score-151.mp3": "Nick 🔊",
+  "score-152.mp3": "Nick 🔊",
+  "score-153.mp3": "Nick 🔊",
+  "score-154.mp3": "Nick 🔊",
+  "score-155.mp3": "Nick 🔊",
+  "score-156.mp3": "Nick 🔊",
+  "score-157.mp3": "Nick 🔊",
+  "score-158.mp3": "Nick 🔊",
+  "score-159.mp3": "Filip 🔊",
+  "score-160.mp3": "Nick 🔊",
+  "score-161.mp3": "Nick 🔊",
+  "score-162.mp3": "Nick 🔊",
+  "score-163.mp3": "Nick 🔊",
+  "score-164.mp3": "Nick 🔊",
+  "score-165.mp3": "Nick 🔊",
+  "score-166.mp3": "Nick 🔊",
+  "score-167.mp3": "Nick 🔊",
+  "score-168.mp3": "Nick 🔊",
+  "score-169.mp3": "Nick 🔊",
+  "score-170.mp3": "Nick 🔊",
+  "score-171.mp3": "Nick 🔊",
+  "score-174.mp3": "Nick 🔊",
+  "score-177.mp3": "Nick 🔊",
+  "score-180.mp3": "Nick 🔊"
+};
+
+let dartVoiceToastTimer = null;
+
+function showDartVoiceToast(label) {
+  const toast = document.getElementById("dartVoiceToast");
+  if (!toast || !label) return;
+
+  clearTimeout(dartVoiceToastTimer);
+
+  toast.textContent = label;
+  toast.classList.remove("hidden");
+
+  dartVoiceToastTimer = setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 1000);
+}
+
 function playNextDartCallout() {
   if (dartAudioPlaying || !dartAudioQueue.length) return;
 
   dartAudioPlaying = true;
 
-  const src = dartAudioQueue.shift();
+  const item = dartAudioQueue.shift();
+  const src = typeof item === "string" ? item : item.src;
+  const fallbackSrc = typeof item === "string" ? null : item.fallbackSrc;
+
   const audio = new Audio(src);
   audio.volume = 1;
 
@@ -576,7 +780,15 @@ function playNextDartCallout() {
 
   audio.onerror = () => {
     console.warn("Could not load dart callout:", src);
+
     dartActiveAudios = dartActiveAudios.filter(item => item !== audio);
+
+    if (fallbackSrc) {
+      dartAudioQueue.unshift({
+        src: fallbackSrc,
+        fallbackSrc: null
+      });
+    }
 
     if (!nextStarted) {
       dartAudioPlaying = false;
@@ -612,7 +824,7 @@ function announceRequiredScore(requiredScore) {
     POSSIBLE_CHECKOUTS.has(required)
   ) {
     playDartCallout("you-require.mp3");
-    playDartCallout(`score-${required}.mp3`);
+    playDartCallout(`score-${required}-short.mp3`, `score-${required}.mp3`);
   }
 }
 
