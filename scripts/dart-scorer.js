@@ -641,26 +641,6 @@ function announceMatchResultForMe(winnerKey) {
   playDartCallout(winnerKey === myKey ? "victory.mp3" : "defeat.mp3");
 }
 
-function announceMatchFormatAudio(settings = null) {
-  const score = Number(settings?.startScore || STARTING_SCORE);
-  const legsCount = Number(settings?.legsCount || els.legsCount?.textContent || 3);
-
-  if ([301, 501, 701, 901].includes(score)) {
-    playDartCallout(`${score}.mp3`);
-  }
-
-  if ([3, 5, 7, 9].includes(legsCount)) {
-    playDartCallout(`bo${legsCount}.mp3`);
-  }
-}
-
-function announceThrowResultAudio(startingKey) {
-  const myKey = getCurrentPlayerKey();
-
-  playDartCallout(startingKey === myKey ? "you-throw.mp3" : "oppo-throw.mp3");
-  playDartCallout("game-on.mp3");
-}
-
 function shouldPlayFinishHim(player) {
   return (
     player &&
@@ -1946,7 +1926,6 @@ function openBullDecider() {
   els.bullDeciderPrompt.textContent = "Tap where your dart landed";
   els.bullWinnerText.textContent = "";
   pendingBullThrow = null;
-  announceMatchFormatAudio();
   els.confirmBullThrowBtn.classList.add("hidden");
 }
 
@@ -2115,7 +2094,6 @@ function openCoinDecider() {
   els.coinPlayerTwoStatus.textContent = "Waiting";
 
   els.coinResultText.textContent = "Coin toss starting...";
-  announceMatchFormatAudio();
   coinAutoTimer = setTimeout(runCoinToss, 1000);
   els.coinWinnerText.textContent = "";
 }
@@ -4777,7 +4755,6 @@ function openOnlineCoinDecider(match) {
   els.coinBtn.classList.add("coinFlipping");
   els.coinResultText.textContent = "Tossing...";
   playDartCallout("coin-flip.mp3");
-  announceMatchFormatAudio(match.settings);
 
   setTimeout(async () => {
     els.coinBtn.classList.remove("coinFlipping");
@@ -4798,7 +4775,7 @@ function openOnlineCoinDecider(match) {
     els.coinResultText.textContent = "Coin toss complete";
     els.coinWinnerText.textContent = `${winnerIndex === 0 ? match.hostName : match.guestName} throws first`;
     const keys = onlinePlayerKeys(match);
-    announceThrowResultAudio(keys[winnerIndex]);
+    announceGameOn();
 
     if (onlineRole === "host") {
       setTimeout(() => {
