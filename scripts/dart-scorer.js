@@ -504,86 +504,39 @@ let lastOnlineCalloutId = null;
 const dartAudioPageLoadedAt = Date.now();
 
 let dartAudioUnlocked = false;
-let dartAudioContext = null;
-const dartAudioBuffers = new Map();
-
+let dartAudioPlayer = null;
+let dartSfxPlayer = null;
 let dartAudioTimers = [];
 
-async function unlockDartAudio() {
-  try {
-    if (!dartAudioContext) {
-      dartAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-
-    if (dartAudioContext.state === "suspended") {
-      await dartAudioContext.resume();
-    }
-
-    dartAudioUnlocked = true;
-
-    warmDartAudio("notification.mp3");
-    warmDartAudio("you-require.mp3");
-
-    console.log("Dart audio unlocked");
-  } catch (err) {
-    console.warn("Could not unlock dart audio:", err);
-  }
+function createDartAudioElement() {
+  const audio = document.createElement("audio");
+  audio.preload = "auto";
+  audio.playsInline = true;
+  audio.setAttribute("playsinline", "");
+  audio.style.display = "none";
+  document.body.appendChild(audio);
+  return audio;
 }
 
-async function getDartAudioBuffer(fileName) {
-  if (!dartAudioContext) {
-    await unlockDartAudio();
-  }
+function unlockDartAudio() {
+  if (!dartAudioPlayer) dartAudioPlayer = createDartAudioElement();
+  if (!dartSfxPlayer) dartSfxPlayer = createDartAudioElement();
 
-  const src = `audio/darts/${fileName}`;
+  if (dartAudioUnlocked) return;
 
-  if (dartAudioBuffers.has(src)) {
-    return dartAudioBuffers.get(src);
-  }
+  dartAudioPlayer.src = "audio/darts/silence.mp3";
+  dartAudioPlayer.volume = 0.01;
 
-  const response = await fetch(src);
-
-  if (!response.ok) {
-    throw new Error(`Could not fetch audio file: ${src}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const audioBuffer = await dartAudioContext.decodeAudioData(arrayBuffer);
-
-  dartAudioBuffers.set(src, audioBuffer);
-
-  return audioBuffer;
-}
-
-function warmDartAudio(fileName) {
-  getDartAudioBuffer(fileName).catch(err => {
-    console.warn("Could not warm dart audio:", fileName, err);
-  });
-}
-
-async function playDartBuffer(fileName, volume = 1) {
-  await unlockDartAudio();
-
-  const buffer = await getDartAudioBuffer(fileName);
-
-  const source = dartAudioContext.createBufferSource();
-  const gain = dartAudioContext.createGain();
-
-  gain.gain.value = volume;
-
-  source.buffer = buffer;
-  source.connect(gain);
-  gain.connect(dartAudioContext.destination);
-
-  source.start(0);
-
-  dartActiveAudios.push(source);
-
-  source.onended = () => {
-    dartActiveAudios = dartActiveAudios.filter(item => item !== source);
-  };
-
-  return source;
+  dartAudioPlayer.play()
+    .then(() => {
+      dartAudioPlayer.pause();
+      dartAudioPlayer.currentTime = 0;
+      dartAudioUnlocked = true;
+      console.log("Dart audio unlocked");
+    })
+    .catch(err => {
+      console.warn("Could not unlock dart audio:", err);
+    });
 }
 
 function announceVisitAndRequire(visitScore, requiredScore) {
@@ -599,11 +552,11 @@ function announceVisitAndRequire(visitScore, requiredScore) {
   ) {
     dartAudioTimers.push(setTimeout(() => {
       playDartCallout("you-require.mp3");
-    }, 500));
+    }, 350));
 
     dartAudioTimers.push(setTimeout(() => {
       playDartCallout(`score-${required}-short.mp3`, `score-${required}.mp3`);
-    }, 950));
+    }, 700));
   }
 }
 
@@ -614,18 +567,12 @@ function clearDartAudioQueue() {
   dartAudioQueue = [];
   dartAudioPlaying = false;
 
-  dartActiveAudios.forEach(audio => {
+  if (dartAudioPlayer) {
     try {
-      if (typeof audio.stop === "function") {
-        audio.stop(0);
-      } else if (typeof audio.pause === "function") {
-        audio.pause();
-        audio.currentTime = 0;
-      }
+      dartAudioPlayer.pause();
+      dartAudioPlayer.currentTime = 0;
     } catch (err) { }
-  });
-
-  dartActiveAudios = [];
+  }
 }
 
 function playDartCallout(fileName, fallbackFileName = null) {
@@ -633,27 +580,41 @@ function playDartCallout(fileName, fallbackFileName = null) {
   if (credit) showDartVoiceToast(credit);
 
   dartAudioQueue.push({
-    fileName,
-    fallbackFileName
+    src: `audio/darts/${fileName}`,
+    fallbackSrc: fallbackFileName ? `audio/darts/${fallbackFileName}` : null
   });
 
   playNextDartCallout();
 }
 
 function playLayeredDartAudio(fileName, volume = 1) {
-  playDartBuffer(fileName, volume).catch(err => {
+  unlockDartAudio();
+
+  const audio = new Audio(`audio/darts/${fileName}`);
+  audio.preload = "auto";
+  audio.playsInline = true;
+  audio.volume = volume;
+
+  audio.play().catch(err => {
     console.warn("Could not play layered audio:", fileName, err);
   });
 
-  return null;
+  return audio;
 }
 
 function playInstantDartSfx(fileName, volume = 1) {
-  playDartBuffer(fileName, volume).catch(err => {
+  unlockDartAudio();
+
+  if (!dartSfxPlayer) dartSfxPlayer = createDartAudioElement();
+
+  dartSfxPlayer.pause();
+  dartSfxPlayer.currentTime = 0;
+  dartSfxPlayer.src = `audio/darts/${fileName}`;
+  dartSfxPlayer.volume = volume;
+
+  dartSfxPlayer.play().catch(err => {
     console.warn("Could not play instant dart sfx:", fileName, err);
   });
-
-  return null;
 }
 
 const DART_VOICE_CREDITS = {
@@ -853,33 +814,45 @@ function showDartVoiceToast(label) {
 function playNextDartCallout() {
   if (dartAudioPlaying || !dartAudioQueue.length) return;
 
+  unlockDartAudio();
+
+  if (!dartAudioPlayer) dartAudioPlayer = createDartAudioElement();
+
   dartAudioPlaying = true;
 
   const item = dartAudioQueue.shift();
-  const fileName = item.fileName;
-  const fallbackFileName = item.fallbackFileName;
+  const src = item.src;
+  const fallbackSrc = item.fallbackSrc;
 
-  playDartBuffer(fileName)
-    .then(source => {
-      source.onended = () => {
-        dartActiveAudios = dartActiveAudios.filter(item => item !== source);
-        dartAudioPlaying = false;
-        playNextDartCallout();
-      };
-    })
-    .catch(err => {
-      console.warn("Could not play dart callout:", fileName, err);
+  dartAudioPlayer.pause();
+  dartAudioPlayer.currentTime = 0;
+  dartAudioPlayer.src = src;
+  dartAudioPlayer.volume = 1;
 
-      if (fallbackFileName) {
-        dartAudioQueue.unshift({
-          fileName: fallbackFileName,
-          fallbackFileName: null
-        });
-      }
+  dartAudioPlayer.onended = () => {
+    dartAudioPlaying = false;
+    playNextDartCallout();
+  };
 
-      dartAudioPlaying = false;
-      playNextDartCallout();
-    });
+  dartAudioPlayer.onerror = () => {
+    console.warn("Could not load dart callout:", src);
+
+    if (fallbackSrc) {
+      dartAudioQueue.unshift({
+        src: fallbackSrc,
+        fallbackSrc: null
+      });
+    }
+
+    dartAudioPlaying = false;
+    playNextDartCallout();
+  };
+
+  dartAudioPlayer.play().catch(err => {
+    console.warn("Could not play dart callout:", src, err);
+    dartAudioPlaying = false;
+    playNextDartCallout();
+  });
 }
 
 function announceDartVisit(visitScore) {
