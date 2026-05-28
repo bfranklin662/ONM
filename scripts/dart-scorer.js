@@ -512,6 +512,12 @@ let dartAudioUnlocker = null;
 let dartAudioTimers = [];
 let dartOneShotAudios = [];
 
+let dartAudioSuppressedUntil = 0;
+
+function isDartAudioSuppressed() {
+  return Date.now() < dartAudioSuppressedUntil;
+}
+
 function createDartAudioElement() {
   const audio = document.createElement("audio");
   audio.preload = "auto";
@@ -550,8 +556,6 @@ function unlockDartAudio() {
 }
 
 function announceVisitAndRequire(visitScore, requiredScore) {
-  announceDartVisit(visitScore);
-
   const required = Number(requiredScore);
 
   if (
@@ -560,9 +564,22 @@ function announceVisitAndRequire(visitScore, requiredScore) {
     required <= 170 &&
     POSSIBLE_CHECKOUTS.has(required)
   ) {
-    playDartCallout("you-require.mp3");
-    playDartCallout(`score-${required}-short.mp3`, `score-${required}.mp3`);
+    clearDartAudioQueue();
+
+    playLayeredDartAudio(`score-${Number(visitScore)}.mp3`);
+
+    dartAudioTimers.push(setTimeout(() => {
+      playLayeredDartAudio("you-require.mp3");
+    }, 650));
+
+    dartAudioTimers.push(setTimeout(() => {
+      playLayeredDartAudio(`score-${required}-short.mp3`);
+    }, 1250));
+
+    return;
   }
+
+  announceDartVisit(visitScore);
 }
 
 function clearDartAudioQueue() {
@@ -572,15 +589,24 @@ function clearDartAudioQueue() {
   dartAudioQueue = [];
   dartAudioPlaying = false;
 
-  if (dartAudioPlayer) {
+  [
+    dartAudioPlayer,
+    dartAudioPlayerB,
+    dartSfxPlayer,
+    dartAudioUnlocker,
+    ...dartOneShotAudios
+  ].forEach(audio => {
+    if (!audio) return;
+
     try {
-      dartAudioPlayer.pause();
-      dartAudioPlayer.currentTime = 0;
+      audio.pause();
+      audio.currentTime = 0;
     } catch (err) { }
-  }
+  });
 }
 
 function fullyStopDartAudio() {
+  dartAudioSuppressedUntil = Date.now() + 5000;
   clearDartAudioQueue();
 
   [
@@ -620,12 +646,26 @@ function playDartCallout(fileName, fallbackFileName = null) {
 function playLayeredDartAudio(fileName, volume = 1) {
   unlockDartAudio();
 
+  if (isDartAudioSuppressed()) return;
+
   const audio = new Audio(`audio/darts/${fileName}`);
   audio.preload = "auto";
   audio.playsInline = true;
+  audio.setAttribute("playsinline", "");
+  audio.setAttribute("x-webkit-airplay", "deny");
+  audio.disableRemotePlayback = true;
+  audio.controls = false;
+  audio.removeAttribute("controls");
   audio.volume = volume;
 
+  dartOneShotAudios.push(audio);
+
+  audio.onended = () => {
+    dartOneShotAudios = dartOneShotAudios.filter(item => item !== audio);
+  };
+
   audio.play().catch(err => {
+    dartOneShotAudios = dartOneShotAudios.filter(item => item !== audio);
     console.warn("Could not play layered audio:", fileName, err);
   });
 
@@ -634,6 +674,8 @@ function playLayeredDartAudio(fileName, volume = 1) {
 
 function playInstantDartSfx(fileName, volume = 1) {
   unlockDartAudio();
+
+  if (isDartAudioSuppressed()) return;
 
   const audio = new Audio(`audio/darts/${fileName}`);
   audio.preload = "auto";
@@ -1897,6 +1939,7 @@ function leaveMolVictoryScreenLocally() {
   els.competitiveReadyOverlay?.classList.add("hidden");
   els.setupCard?.classList.add("hidden");
 
+  fullyStopDartAudio();
   syncMainViews("leaderboard");
   loadLeaderboard();
 
@@ -1906,6 +1949,7 @@ function leaveMolVictoryScreenLocally() {
 }
 
 els.molVictoryCloseBtn?.addEventListener("click", async () => {
+  fullyStopDartAudio();
   const matchId = getOnlineMatchId();
   const myKey = getCurrentPlayerKey();
   const match = window.currentOnlineMatch || {};
@@ -2268,6 +2312,7 @@ els.skipDeciderBtn.addEventListener("click", async () => {
 });
 
 els.deciderQuitBtn.addEventListener("click", () => {
+  fullyStopDartAudio();
   closeStartDecider();
   els.setupCard.classList.remove("hidden");
 
@@ -3959,11 +4004,13 @@ els.markReadyBtn?.addEventListener("click", async () => {
 });
 
 els.leaveReadyLobbyBtn?.addEventListener("click", () => {
+  fullyStopDartAudio();
   leaveOnlineMatch("cancelled");
   els.competitiveReadyOverlay?.classList.add("hidden");
 });
 
 els.cancelReadyLobbyBtn?.addEventListener("click", () => {
+  fullyStopDartAudio();
   leaveOnlineMatch("cancelled");
   els.competitiveReadyOverlay?.classList.add("hidden");
 });
@@ -4867,6 +4914,7 @@ function listenToOnlineMatch(matchId) {
       els.competitiveReadyOverlay?.classList.add("hidden");
       els.setupCard?.classList.add("hidden");
 
+      fullyStopDartAudio();
       syncMainViews("leaderboard");
       loadLeaderboard();
 
@@ -5597,6 +5645,8 @@ function applyOnlineGame(match) {
 function playOnlineCallout(lastCallout) {
   clearDartAudioQueue();
 
+  if (isDartAudioSuppressed()) return;
+
   if (lastCallout.type === "gameShot") {
     announceLegWon(false, Boolean(lastCallout.bullOut));
   } else if (lastCallout.type === "matchShot") {
@@ -5836,7 +5886,6 @@ function returnToCorrectDartHome() {
 }
 
 function showPlayTab() {
-  unlockDartAudio();
 
   els.playTabBtn?.classList.add("active");
   els.leaderboardTabBtn?.classList.remove("active");
@@ -5851,12 +5900,12 @@ function showPlayTab() {
     return;
   }
 
+  fullyStopDartAudio();
   syncMainViews("setup");
 }
 
 
 function showLeaderboardTab() {
-  unlockDartAudio();
   document.getElementById("leaderboardView")
     ?.classList.remove("hidden");
 
@@ -5876,6 +5925,7 @@ els.molVictoryCloseBtn?.addEventListener("click", () => {
   MATCH_MODE = "online";
   STATS_MODE = "competitive";
 
+  fullyStopDartAudio();
   syncMainViews("leaderboard");
 
   loadLeaderboard();
@@ -5911,6 +5961,7 @@ function initialisePageModeView() {
     STATS_MODE = "casual";
     window.STATS_MODE = STATS_MODE;
 
+    fullyStopDartAudio();
     syncMainViews("setup");
     document.getElementById("leaderboardLoginPrompt")?.classList.add("hidden");
 
@@ -5924,6 +5975,7 @@ function initialisePageModeView() {
   STATS_MODE = "competitive";
   window.STATS_MODE = STATS_MODE;
 
+  fullyStopDartAudio();
   syncMainViews("leaderboard");
   document.getElementById("leaderboardLoginPrompt")?.classList.add("hidden");
 
