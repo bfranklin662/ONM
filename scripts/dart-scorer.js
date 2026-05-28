@@ -510,6 +510,7 @@ let dartUsePlayerB = false;
 let dartSfxPlayer = null;
 let dartAudioUnlocker = null;
 let dartAudioTimers = [];
+let dartOneShotAudios = [];
 
 function createDartAudioElement() {
   const audio = document.createElement("audio");
@@ -582,16 +583,25 @@ function clearDartAudioQueue() {
 function fullyStopDartAudio() {
   clearDartAudioQueue();
 
-  [dartAudioPlayer, dartAudioPlayerB, dartSfxPlayer, dartAudioUnlocker].forEach(audio => {
+  [
+    dartAudioPlayer,
+    dartAudioPlayerB,
+    dartSfxPlayer,
+    dartAudioUnlocker,
+    ...dartOneShotAudios
+  ].forEach(audio => {
     if (!audio) return;
 
     try {
       audio.pause();
+      audio.currentTime = 0;
       audio.removeAttribute("src");
+      audio.src = "";
       audio.load();
     } catch (err) { }
   });
 
+  dartOneShotAudios = [];
   dartAudioUnlocked = false;
 }
 
@@ -635,7 +645,14 @@ function playInstantDartSfx(fileName, volume = 1) {
   audio.removeAttribute("controls");
   audio.volume = volume;
 
+  dartOneShotAudios.push(audio);
+
+  audio.onended = () => {
+    dartOneShotAudios = dartOneShotAudios.filter(item => item !== audio);
+  };
+
   audio.play().catch(err => {
+    dartOneShotAudios = dartOneShotAudios.filter(item => item !== audio);
     console.warn("Could not play instant dart sfx:", fileName, err);
   });
 
@@ -854,6 +871,8 @@ function playNextDartCallout() {
   const fallbackSrc = item.fallbackSrc;
   const fileName = src.split("/").pop();
 
+  let earlyStartedNext = false;
+
   player.pause();
   player.currentTime = 0;
   player.src = src;
@@ -861,12 +880,15 @@ function playNextDartCallout() {
 
   player.onended = () => {
     player.ontimeupdate = null;
+
+    if (earlyStartedNext) return;
+
     dartAudioPlaying = false;
     playNextDartCallout();
   };
 
   player.ontimeupdate = () => {
-    if (!player.duration) return;
+    if (!player.duration || earlyStartedNext) return;
 
     const nextItem = dartAudioQueue[0];
     const nextFile = nextItem?.src?.split("/").pop();
@@ -880,6 +902,7 @@ function playNextDartCallout() {
     const remaining = player.duration - player.currentTime;
 
     if (remaining <= 0.35 && dartAudioQueue.length) {
+      earlyStartedNext = true;
       player.ontimeupdate = null;
       dartAudioPlaying = false;
       playNextDartCallout();
