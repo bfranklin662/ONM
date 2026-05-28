@@ -504,26 +504,86 @@ let lastOnlineCalloutId = null;
 const dartAudioPageLoadedAt = Date.now();
 
 let dartAudioUnlocked = false;
-let dartAudioUnlocker = null;
+let dartAudioContext = null;
+const dartAudioBuffers = new Map();
 
 let dartAudioTimers = [];
 
-function unlockDartAudio() {
-  if (dartAudioUnlocked) return;
+async function unlockDartAudio() {
+  try {
+    if (!dartAudioContext) {
+      dartAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
 
-  dartAudioUnlocker = new Audio("audio/darts/silence.mp3");
-  dartAudioUnlocker.preload = "auto";
-  dartAudioUnlocker.playsInline = true;
-  dartAudioUnlocker.volume = 0.01;
+    if (dartAudioContext.state === "suspended") {
+      await dartAudioContext.resume();
+    }
 
-  dartAudioUnlocker.play()
-    .then(() => {
-      dartAudioUnlocked = true;
-      console.log("Dart audio unlocked");
-    })
-    .catch(err => {
-      console.warn("Could not unlock dart audio:", err);
-    });
+    dartAudioUnlocked = true;
+
+    warmDartAudio("notification.mp3");
+    warmDartAudio("you-require.mp3");
+
+    console.log("Dart audio unlocked");
+  } catch (err) {
+    console.warn("Could not unlock dart audio:", err);
+  }
+}
+
+async function getDartAudioBuffer(fileName) {
+  if (!dartAudioContext) {
+    await unlockDartAudio();
+  }
+
+  const src = `audio/darts/${fileName}`;
+
+  if (dartAudioBuffers.has(src)) {
+    return dartAudioBuffers.get(src);
+  }
+
+  const response = await fetch(src);
+
+  if (!response.ok) {
+    throw new Error(`Could not fetch audio file: ${src}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  const audioBuffer = await dartAudioContext.decodeAudioData(arrayBuffer);
+
+  dartAudioBuffers.set(src, audioBuffer);
+
+  return audioBuffer;
+}
+
+function warmDartAudio(fileName) {
+  getDartAudioBuffer(fileName).catch(err => {
+    console.warn("Could not warm dart audio:", fileName, err);
+  });
+}
+
+async function playDartBuffer(fileName, volume = 1) {
+  await unlockDartAudio();
+
+  const buffer = await getDartAudioBuffer(fileName);
+
+  const source = dartAudioContext.createBufferSource();
+  const gain = dartAudioContext.createGain();
+
+  gain.gain.value = volume;
+
+  source.buffer = buffer;
+  source.connect(gain);
+  gain.connect(dartAudioContext.destination);
+
+  source.start(0);
+
+  dartActiveAudios.push(source);
+
+  source.onended = () => {
+    dartActiveAudios = dartActiveAudios.filter(item => item !== source);
+  };
+
+  return source;
 }
 
 function announceVisitAndRequire(visitScore, requiredScore) {
@@ -550,14 +610,18 @@ function announceVisitAndRequire(visitScore, requiredScore) {
 function clearDartAudioQueue() {
   dartAudioTimers.forEach(clearTimeout);
   dartAudioTimers = [];
-  
+
   dartAudioQueue = [];
   dartAudioPlaying = false;
 
   dartActiveAudios.forEach(audio => {
     try {
-      audio.pause();
-      audio.currentTime = 0;
+      if (typeof audio.stop === "function") {
+        audio.stop(0);
+      } else if (typeof audio.pause === "function") {
+        audio.pause();
+        audio.currentTime = 0;
+      }
     } catch (err) { }
   });
 
@@ -569,37 +633,27 @@ function playDartCallout(fileName, fallbackFileName = null) {
   if (credit) showDartVoiceToast(credit);
 
   dartAudioQueue.push({
-    src: `audio/darts/${fileName}`,
-    fallbackSrc: fallbackFileName ? `audio/darts/${fallbackFileName}` : null
+    fileName,
+    fallbackFileName
   });
 
   playNextDartCallout();
 }
 
 function playLayeredDartAudio(fileName, volume = 1) {
-  const audio = new Audio(`audio/darts/${fileName}`);
-  audio.preload = "auto";
-  audio.playsInline = true;
-  audio.volume = volume;
-
-  audio.play().catch(err => {
-    console.warn("Could not play layered audio:", err);
+  playDartBuffer(fileName, volume).catch(err => {
+    console.warn("Could not play layered audio:", fileName, err);
   });
 
-  return audio;
+  return null;
 }
 
 function playInstantDartSfx(fileName, volume = 1) {
-  const audio = new Audio(`audio/darts/${fileName}`);
-  audio.preload = "auto";
-  audio.playsInline = true;
-  audio.volume = volume;
-
-  audio.play().catch(err => {
+  playDartBuffer(fileName, volume).catch(err => {
     console.warn("Could not play instant dart sfx:", fileName, err);
   });
 
-  return audio;
+  return null;
 }
 
 const DART_VOICE_CREDITS = {
