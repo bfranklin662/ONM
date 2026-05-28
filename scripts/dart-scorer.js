@@ -550,10 +550,17 @@ function primeNotificationAudio() {
 }
 
 function unlockDartAudio() {
-  if (!dartAudioPlayer) dartAudioPlayer = createDartAudioElement();
-  if (!dartAudioPlayerB) dartAudioPlayerB = createDartAudioElement();
-  if (!dartSfxPlayer) dartSfxPlayer = createDartAudioElement();
-  if (!dartAudioUnlocker) dartAudioUnlocker = createDartAudioElement();
+  if (!dartAudioPlayer) {
+    dartAudioPlayer = createDartAudioElement();
+  }
+
+  if (!dartSfxPlayer) {
+    dartSfxPlayer = createDartAudioElement();
+  }
+
+  if (!dartAudioUnlocker) {
+    dartAudioUnlocker = createDartAudioElement();
+  }
 
   if (dartAudioUnlocked) return;
 
@@ -564,8 +571,11 @@ function unlockDartAudio() {
     .then(() => {
       dartAudioUnlocker.pause();
       dartAudioUnlocker.currentTime = 0;
+
       dartAudioUnlocked = true;
+
       console.log("Dart audio unlocked");
+
       primeNotificationAudio();
     })
     .catch(err => {
@@ -879,29 +889,7 @@ function showDartVoiceToast(label) {
   }, 1000);
 }
 
-function unlockDartAudio() {
-  if (!dartAudioPlayer) dartAudioPlayer = createDartAudioElement();
-  if (!dartAudioPlayerB) dartAudioPlayerB = createDartAudioElement();
-  if (!dartSfxPlayer) dartSfxPlayer = createDartAudioElement();
-  if (!dartAudioUnlocker) dartAudioUnlocker = createDartAudioElement();
 
-  if (dartAudioUnlocked) return;
-
-  dartAudioUnlocker.src = "audio/darts/silence.mp3";
-  dartAudioUnlocker.volume = 0.01;
-
-  dartAudioUnlocker.play()
-    .then(() => {
-      dartAudioUnlocker.pause();
-      dartAudioUnlocker.currentTime = 0;
-      dartAudioUnlocked = true;
-      console.log("Dart audio unlocked");
-      primeNotificationAudio();
-    })
-    .catch(err => {
-      console.warn("Could not unlock dart audio:", err);
-    });
-}
 
 
 function playNextDartCallout() {
