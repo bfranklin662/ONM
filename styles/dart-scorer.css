@@ -2767,7 +2767,7 @@ body.scorer-fullscreen .startDeciderScreen {
   height: 54px;
   object-fit: contain;
   flex-shrink: 0;
-  filter: drop-shadow(0 8px 18px rgba(0,0,0,.35));
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .35));
 }
 
 .leagueHero h2 {
@@ -2867,10 +2867,10 @@ body.scorer-fullscreen .startDeciderScreen {
   padding: 10px 14px;
   border-radius: 999px;
 
-  background: rgba(0,0,0,.24);
-  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(0, 0, 0, .24);
+  border: 1px solid rgba(255, 255, 255, .1);
 
-  color: rgba(255,255,255,.92);
+  color: rgba(255, 255, 255, .92);
   font-size: .9rem;
   font-weight: 900;
 }
@@ -3285,8 +3285,8 @@ body.scorer-fullscreen .startDeciderScreen {
   margin-bottom: 14px;
   padding: 12px;
   border-radius: 14px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(255, 255, 255, .1);
 }
 
 .competitiveLegsToggle {
@@ -3296,10 +3296,10 @@ body.scorer-fullscreen .startDeciderScreen {
 }
 
 .competitiveLegsToggle button {
-  border: 1px solid rgba(255,255,255,.12);
+  border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 999px;
   padding: 10px;
-  background: rgba(255,255,255,.08);
+  background: rgba(255, 255, 255, .08);
   color: #fff;
   font-weight: 950;
   cursor: pointer;
@@ -3318,7 +3318,7 @@ body.scorer-fullscreen .startDeciderScreen {
   background:
     radial-gradient(circle at 50% 0%, rgba(60, 145, 55, .32), transparent 42%),
     linear-gradient(135deg, rgba(24, 48, 22, .98), rgba(14, 18, 24, .98));
-  border: 1px solid rgba(255,255,255,.14);
+  border: 1px solid rgba(255, 255, 255, .14);
   color: #fff;
   position: relative;
 }
@@ -3336,7 +3336,7 @@ body.scorer-fullscreen .startDeciderScreen {
   margin: 6px 0 22px;
   text-align: center;
   font-size: 1.1rem;
-  color: rgba(255,255,255,.78);
+  color: rgba(255, 255, 255, .78);
 }
 
 .readyPlayers {
@@ -3352,8 +3352,8 @@ body.scorer-fullscreen .startDeciderScreen {
   gap: 7px;
   padding: 16px 10px;
   border-radius: 18px;
-  background: rgba(0,0,0,.22);
-  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(0, 0, 0, .22);
+  border: 1px solid rgba(255, 255, 255, .1);
 }
 
 .readyPlayer img {
@@ -3370,7 +3370,7 @@ body.scorer-fullscreen .startDeciderScreen {
 .readyPlayer span {
   font-size: .75rem;
   font-weight: 900;
-  color: rgba(255,255,255,.72);
+  color: rgba(255, 255, 255, .72);
 }
 
 .readyVs {
@@ -3388,8 +3388,8 @@ body.scorer-fullscreen .startDeciderScreen {
 }
 
 .readyStatus.pending {
-  background: rgba(255,255,255,.1);
-  color: rgba(255,255,255,.65);
+  background: rgba(255, 255, 255, .1);
+  color: rgba(255, 255, 255, .65);
 }
 
 .readyStatus.ready {
@@ -3443,8 +3443,8 @@ body.scorer-fullscreen .startDeciderScreen {
   gap: 12px;
   padding: 16px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(33,80,29,.96), rgba(18,48,25,.96));
-  border: 1px solid rgba(255,255,255,.12);
+  background: linear-gradient(135deg, rgba(33, 80, 29, .96), rgba(18, 48, 25, .96));
+  border: 1px solid rgba(255, 255, 255, .12);
 }
 
 .molInviteHead img {
@@ -3472,8 +3472,8 @@ body.scorer-fullscreen .startDeciderScreen {
 .molInviteSettings {
   padding: 14px;
   border-radius: 16px;
-  background: rgba(255,255,255,.055);
-  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255, 255, 255, .055);
+  border: 1px solid rgba(255, 255, 255, .1);
 }
 
 .molLegButtons {
@@ -3484,8 +3484,8 @@ body.scorer-fullscreen .startDeciderScreen {
 }
 
 .molLegButtons button {
-  border: 1px solid rgba(255,255,255,.18);
-  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .1);
   color: #fff;
   border-radius: 999px;
   padding: 10px;
@@ -3505,14 +3505,14 @@ body.scorer-fullscreen .startDeciderScreen {
 }
 
 .molInvitePlayersTop span {
-  color: rgba(255,255,255,.55);
+  color: rgba(255, 255, 255, .55);
   font-size: .75rem;
   font-weight: 800;
 }
 
 #molRefreshPlayersBtn {
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255, 255, 255, .14);
+  background: rgba(255, 255, 255, .07);
   color: #fff;
   border-radius: 14px;
   padding: 10px 14px;
@@ -3532,8 +3532,8 @@ body.scorer-fullscreen .startDeciderScreen {
   gap: 10px;
   padding: 10px;
   border-radius: 16px;
-  background: rgba(255,255,255,.045);
-  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255, 255, 255, .045);
+  border: 1px solid rgba(255, 255, 255, .1);
 }
 
 .molInvitePlayerRow img {
@@ -3567,7 +3567,7 @@ body.scorer-fullscreen .startDeciderScreen {
 }
 
 .molPresenceText.offline {
-  color: rgba(255,255,255,.42);
+  color: rgba(255, 255, 255, .42);
 }
 
 .molPresenceText.playing {
@@ -3588,13 +3588,13 @@ body.scorer-fullscreen .startDeciderScreen {
 }
 
 .molInviteStatusBtn.offline {
-  background: rgba(0,0,0,.38);
-  color: rgba(255,255,255,.45);
+  background: rgba(0, 0, 0, .38);
+  color: rgba(255, 255, 255, .45);
   cursor: not-allowed;
 }
 
 .molInviteStatusBtn.playing {
-  background: rgba(98,84,255,.35);
+  background: rgba(98, 84, 255, .35);
   color: #fff;
   cursor: not-allowed;
 }
@@ -3623,7 +3623,7 @@ body.scorer-fullscreen .startDeciderScreen {
   font-weight: 1000;
   font-size: 1rem;
   cursor: pointer;
-  box-shadow: 0 14px 32px rgba(0,0,0,.45);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, .45);
   pointer-events: auto;
 }
 
@@ -3635,12 +3635,10 @@ body.scorer-fullscreen .startDeciderScreen {
   height: 130px;
   z-index: 70;
   pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    rgba(13,15,20,0),
-    rgba(13,15,20,.86) 45%,
-    rgba(13,15,20,1)
-  );
+  background: linear-gradient(to bottom,
+      rgba(13, 15, 20, 0),
+      rgba(13, 15, 20, .86) 45%,
+      rgba(13, 15, 20, 1));
 }
 
 #leaderboardView.hidden .leaderboardPlayDock,
@@ -3683,24 +3681,42 @@ body.casualMode #matchModeSwitch {
 }
 
 .molVictoryPlayerCard {
+  position: relative;
   display: grid;
   justify-items: center;
   align-content: center;
   gap: 7px;
-  min-height: 225px;
-  padding: 16px 10px;
+  min-height: 155px;
+  padding: 12px 10px;
   border-radius: 18px;
-  background: rgba(0,0,0,.22);
-  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(0, 0, 0, .22);
+  border: 1px solid rgba(255, 255, 255, .1);
   text-align: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .molVictoryPlayerCard.winner {
   background:
     radial-gradient(circle at 50% 0%, rgba(32, 142, 75, .32), transparent 55%),
-    rgba(0,0,0,.22);
-  border-color: rgba(255,215,64,.45);
+    rgba(0, 0, 0, .22);
+  border-color: rgba(255, 215, 64, .45);
+}
+
+.molVictoryPlayerCard .winnerPill,
+.molVictoryPlayerCard .winnerBadge {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  margin: 0;
+  background: #ffd93d;
+  color: #061006;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .molVictoryPlayerCard .readyPlayerPhoto {
@@ -3718,7 +3734,7 @@ body.casualMode #matchModeSwitch {
 }
 
 .molVictoryPlayerCard .readyPlayerMeta {
-  color: rgba(255,255,255,.72);
+  color: rgba(255, 255, 255, .72);
   font-size: .78rem;
   font-weight: 900;
   line-height: 1.15;
@@ -3770,7 +3786,7 @@ body.casualMode #matchModeSwitch {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: rgba(255,255,255,.22);
+  background: rgba(255, 255, 255, .22);
 }
 
 .molStatsDot.active {
@@ -3782,9 +3798,6 @@ body.casualMode #matchModeSwitch {
   overflow-y: auto;
 }
 
-.molVictoryPlayerCard {
-  min-height: 170px;
-}
 
 .molStatsCarousel {
   display: block;
@@ -3802,15 +3815,12 @@ body.casualMode #matchModeSwitch {
   min-width: 64px;
   padding: 7px 13px;
   border-radius: 999px;
-  background: rgba(0,0,0,.32);
-  border: 1px solid rgba(255,215,64,.38);
+  background: rgba(0, 0, 0, .32);
+  border: 1px solid rgba(255, 215, 64, .38);
   color: #ffd740;
 }
 
-.molVictoryPlayerCard {
-  padding-top: 12px;
-  min-height: 155px;
-}
+
 .molStatsDot {
   cursor: pointer;
 }
@@ -3824,6 +3834,7 @@ body.casualMode #matchModeSwitch {
   .molVictoryPlayerCard {
     min-height: 190px;
     padding: 12px 8px;
+    overflow: visible;
   }
 
   .molVictoryPlayerCard .readyPlayerPhoto {
@@ -3845,8 +3856,8 @@ body.casualMode #matchModeSwitch {
 }
 
 .readyStatus.pending {
-  background: rgba(255,255,255,.12);
-  color: rgba(255,255,255,.72);
+  background: rgba(255, 255, 255, .12);
+  color: rgba(255, 255, 255, .72);
 }
 
 .readyStatus.ready {
@@ -3857,12 +3868,12 @@ body.casualMode #matchModeSwitch {
 #molVictoryRematchBtn.active {
   background: #198f3f;
   color: #fff;
-  border-color: rgba(255,255,255,.18);
+  border-color: rgba(255, 255, 255, .18);
 }
 
 .readyStatus.pending {
-  background: rgba(255,255,255,.12);
-  color: rgba(255,255,255,.72);
+  background: rgba(255, 255, 255, .12);
+  color: rgba(255, 255, 255, .72);
 }
 
 .readyStatus.ready {
@@ -3871,14 +3882,14 @@ body.casualMode #matchModeSwitch {
 }
 
 .readyStatus.declined {
-  background: rgba(255,70,70,.18);
+  background: rgba(255, 70, 70, .18);
   color: #ff5c5c;
 }
 
 #molVictoryRematchBtn.active {
   background: #198f3f;
   color: #fff;
-  border-color: rgba(255,255,255,.18);
+  border-color: rgba(255, 255, 255, .18);
 }
 
 #molVictoryCloseBtn:disabled {
@@ -3896,14 +3907,14 @@ body.casualMode #matchModeSwitch {
   padding: 9px 15px;
   border-radius: 999px;
 
-  background: rgba(0,0,0,.78);
-  border: 1px solid rgba(255,215,64,.5);
+  background: rgba(0, 0, 0, .78);
+  border: 1px solid rgba(255, 215, 64, .5);
   color: #ffd740;
 
   font-weight: 950;
   font-size: .85rem;
 
-  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .35);
   pointer-events: none;
 
   opacity: 1;

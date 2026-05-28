@@ -500,8 +500,14 @@ let dartAudioQueue = [];
 let dartAudioPlaying = false;
 let dartActiveAudios = [];
 let lastOnlineCalloutAt = null;
+let lastOnlineCalloutId = null;
 const dartAudioPageLoadedAt = Date.now();
 const DART_AUDIO_OVERLAP_SECONDS = 0.3;
+
+function announceVisitAndRequire(visitScore, requiredScore) {
+  announceDartVisit(visitScore);
+  announceRequiredScore(requiredScore);
+}
 
 function clearDartAudioQueue() {
   dartAudioQueue = [];
@@ -2739,6 +2745,7 @@ async function submitOnlineScore() {
   if (match.game.currentPlayerKey !== myKey) return;
 
   const player = match.game.players[myKey];
+  const calloutId = `${Date.now()}-${myKey}-${Math.random().toString(36).slice(2)}`;
   const previousScore = player.score;
   const newScore = previousScore - value;
 
@@ -3068,6 +3075,7 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
     const isMatchShot = newLegs >= legsToWin;
 
     updates[`game/lastCallout/type`] = isMatchShot ? "matchShot" : "gameShot";
+    updates[`game/lastCallout/winnerKey`] = myKey;
 
     updates[`game/players/${myKey}/legs`] = newLegs;
     updates[`game/players/${myKey}/checkoutHits`] = (player.checkoutHits || 0) + 1;
@@ -3805,8 +3813,12 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
 });
 
 els.markReadyBtn?.addEventListener("click", async () => {
-  if (!onlineMatchId) return;
+  if (window.innerWidth < 500) {
+    enterScorerFullscreen();
+    document.documentElement.requestFullscreen?.().catch(() => { });
+  }
 
+  if (!onlineMatchId) return;
   const { db, ref, update } = window.ONMLiveDarts;
   const myKey = getCurrentPlayerKey();
 
@@ -5351,6 +5363,11 @@ function applyOnlineLobby(match) {
 function applyOnlineGame(match) {
   applyMatchSettings(match.settings);
   syncMainViews("game");
+
+  if (window.innerWidth < 500) {
+    enterScorerFullscreen();
+  }
+
   MATCH_MODE = "online";
   onlineMatchId = match.matchId || onlineMatchId;
 
@@ -5430,36 +5447,38 @@ function applyOnlineGame(match) {
 
   const lastCallout = match.game?.lastCallout;
 
-  if (
-    lastCallout &&
-    lastCallout.createdAt &&
-    lastCallout.createdAt !== lastOnlineCalloutAt
-  ) {
+  if (lastCallout?.createdAt && lastCallout.createdAt !== lastOnlineCalloutAt) {
+    const shouldPlayCallout = lastOnlineCalloutAt !== null;
+
     lastOnlineCalloutAt = lastCallout.createdAt;
 
-    // Do not replay old Firebase audio after refresh/reconnect.
-    if (lastCallout.createdAt <= dartAudioPageLoadedAt) {
-      render();
-      els.turnMessage.textContent = `${throwingName}'s turn`;
-      return;
-    }
-
-    if (lastCallout.type === "gameShot") {
-      announceLegWon(false, Boolean(lastCallout.bullOut));
-    } else if (lastCallout.type === "matchShot") {
-      announceLegWon(true, Boolean(lastCallout.bullOut));
-    } else {
-      announceDartVisit(lastCallout.visitScore);
-      announceRequiredScore(lastCallout.requiredScore);
-
-      if (lastCallout.finishHim) {
-        playDartCallout("finish-him.mp3");
-      }
+    if (shouldPlayCallout) {
+      playOnlineCallout(lastCallout);
     }
   }
 
   render();
-  els.turnMessage.textContent = `${throwingName}'s turn`;
+}
+
+function playOnlineCallout(lastCallout) {
+  if (lastCallout.type === "gameShot") {
+    announceLegWon(false, Boolean(lastCallout.bullOut));
+  } else if (lastCallout.type === "matchShot") {
+    announceLegWon(true, Boolean(lastCallout.bullOut));
+
+    if (lastCallout.winnerKey) {
+      announceMatchResultForMe(lastCallout.winnerKey);
+    }
+  } else {
+    announceVisitAndRequire(
+      lastCallout.visitScore,
+      lastCallout.requiredScore
+    );
+
+    if (lastCallout.finishHim) {
+      playDartCallout("finish-him.mp3");
+    }
+  }
 }
 
 function lockLobbySettings(locked) {
