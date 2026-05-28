@@ -505,6 +505,8 @@ const dartAudioPageLoadedAt = Date.now();
 
 let dartAudioUnlocked = false;
 let dartAudioPlayer = null;
+let dartAudioPlayerB = null;
+let dartUsePlayerB = false;
 let dartSfxPlayer = null;
 let dartAudioUnlocker = null;
 let dartAudioTimers = [];
@@ -514,6 +516,10 @@ function createDartAudioElement() {
   audio.preload = "auto";
   audio.playsInline = true;
   audio.setAttribute("playsinline", "");
+  audio.setAttribute("x-webkit-airplay", "deny");
+  audio.disableRemotePlayback = true;
+  audio.controls = false;
+  audio.removeAttribute("controls");
   audio.style.display = "none";
   document.body.appendChild(audio);
   return audio;
@@ -521,6 +527,7 @@ function createDartAudioElement() {
 
 function unlockDartAudio() {
   if (!dartAudioPlayer) dartAudioPlayer = createDartAudioElement();
+  if (!dartAudioPlayerB) dartAudioPlayerB = createDartAudioElement();
   if (!dartSfxPlayer) dartSfxPlayer = createDartAudioElement();
   if (!dartAudioUnlocker) dartAudioUnlocker = createDartAudioElement();
 
@@ -605,6 +612,11 @@ function playInstantDartSfx(fileName, volume = 1) {
   const audio = new Audio(`audio/darts/${fileName}`);
   audio.preload = "auto";
   audio.playsInline = true;
+  audio.setAttribute("playsinline", "");
+  audio.setAttribute("x-webkit-airplay", "deny");
+  audio.disableRemotePlayback = true;
+  audio.controls = false;
+  audio.removeAttribute("controls");
   audio.volume = volume;
 
   audio.play().catch(err => {
@@ -814,6 +826,10 @@ function playNextDartCallout() {
   unlockDartAudio();
 
   if (!dartAudioPlayer) dartAudioPlayer = createDartAudioElement();
+  if (!dartAudioPlayerB) dartAudioPlayerB = createDartAudioElement();
+
+  const player = dartUsePlayerB ? dartAudioPlayerB : dartAudioPlayer;
+  dartUsePlayerB = !dartUsePlayerB;
 
   dartAudioPlaying = true;
 
@@ -821,29 +837,31 @@ function playNextDartCallout() {
   const src = item.src;
   const fallbackSrc = item.fallbackSrc;
 
-  dartAudioPlayer.pause();
-  dartAudioPlayer.currentTime = 0;
-  dartAudioPlayer.src = src;
-  dartAudioPlayer.volume = 1;
+  player.pause();
+  player.currentTime = 0;
+  player.src = src;
+  player.volume = 1;
 
-  dartAudioPlayer.onended = () => {
+  player.onended = () => {
+    player.ontimeupdate = null;
     dartAudioPlaying = false;
     playNextDartCallout();
   };
 
-  dartAudioPlayer.ontimeupdate = () => {
-    if (!dartAudioPlayer.duration) return;
+  player.ontimeupdate = () => {
+    if (!player.duration) return;
 
-    const remaining = dartAudioPlayer.duration - dartAudioPlayer.currentTime;
+    const remaining = player.duration - player.currentTime;
 
     if (remaining <= 0.5 && dartAudioQueue.length) {
-      dartAudioPlayer.ontimeupdate = null;
+      player.ontimeupdate = null;
       dartAudioPlaying = false;
       playNextDartCallout();
     }
   };
 
-  dartAudioPlayer.onerror = () => {
+  player.onerror = () => {
+    player.ontimeupdate = null;
     console.warn("Could not load dart callout:", src);
 
     if (fallbackSrc) {
@@ -857,7 +875,8 @@ function playNextDartCallout() {
     playNextDartCallout();
   };
 
-  dartAudioPlayer.play().catch(err => {
+  player.play().catch(err => {
+    player.ontimeupdate = null;
     console.warn("Could not play dart callout:", src, err);
     dartAudioPlaying = false;
     playNextDartCallout();
