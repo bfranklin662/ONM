@@ -579,6 +579,22 @@ function clearDartAudioQueue() {
   }
 }
 
+function fullyStopDartAudio() {
+  clearDartAudioQueue();
+
+  [dartAudioPlayer, dartAudioPlayerB, dartSfxPlayer, dartAudioUnlocker].forEach(audio => {
+    if (!audio) return;
+
+    try {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+    } catch (err) { }
+  });
+
+  dartAudioUnlocked = false;
+}
+
 function playDartCallout(fileName, fallbackFileName = null) {
   const credit = DART_VOICE_CREDITS[fileName];
   if (credit) showDartVoiceToast(credit);
@@ -836,6 +852,7 @@ function playNextDartCallout() {
   const item = dartAudioQueue.shift();
   const src = item.src;
   const fallbackSrc = item.fallbackSrc;
+  const fileName = src.split("/").pop();
 
   player.pause();
   player.currentTime = 0;
@@ -851,9 +868,18 @@ function playNextDartCallout() {
   player.ontimeupdate = () => {
     if (!player.duration) return;
 
+    const nextItem = dartAudioQueue[0];
+    const nextFile = nextItem?.src?.split("/").pop();
+
+    const canOverlap =
+      fileName.startsWith("score-") &&
+      nextFile === "you-require.mp3";
+
+    if (!canOverlap) return;
+
     const remaining = player.duration - player.currentTime;
 
-    if (remaining <= 0.5 && dartAudioQueue.length) {
+    if (remaining <= 0.35 && dartAudioQueue.length) {
       player.ontimeupdate = null;
       dartAudioPlaying = false;
       playNextDartCallout();
@@ -1442,6 +1468,7 @@ async function openOpponentModal() {
 
     document.querySelectorAll("#molInvitePlayersList [data-player]").forEach(button => {
       button.addEventListener("click", async () => {
+        unlockDartAudio();
         const player = players.find(p => getLinkedPlayerFullName(p) === button.dataset.player);
         if (!player) return;
 
@@ -1974,6 +2001,8 @@ document.addEventListener("pointerdown", () => {
   unlockDartAudio();
 }, { once: true });
 
+window.addEventListener("pagehide", fullyStopDartAudio);
+
 function closeQuitConfirm() {
   els.quitConfirmOverlay.classList.add("hidden");
   els.quitConfirmOverlay.setAttribute("aria-hidden", "true");
@@ -1988,6 +2017,7 @@ els.quitConfirmOverlay.addEventListener("click", event => {
 });
 
 els.confirmQuitBtn.addEventListener("click", async () => {
+  fullyStopDartAudio();
   const wasMOLGame =
     MATCH_MODE === "online" ||
     STATS_MODE === "competitive" ||
@@ -3635,6 +3665,7 @@ function openStatsModal(isMatchComplete = false) {
     });
 
     document.getElementById("continueAfterMatchBtn")?.addEventListener("click", async () => {
+      fullyStopDartAudio();
       closeStatsModal();
 
       if (MATCH_MODE === "online" && onlineMatchId) {
@@ -4588,6 +4619,7 @@ async function declineDartInvite(invite) {
 }
 
 els.acceptDartInviteBtn?.addEventListener("click", async () => {
+  unlockDartAudio();
   if (!activeDartInvite) return;
 
   await acceptDartInvite(activeDartInvite);
@@ -5170,6 +5202,7 @@ async function restoreOnlineSession() {
 }
 
 async function leaveOnlineMatch(reason = "left") {
+  fullyStopDartAudio();
   if (!onlineMatchId || !window.ONMLiveDarts) return;
 
   const { db, ref, update, remove, setPresenceStatus } = window.ONMLiveDarts;
@@ -5780,6 +5813,8 @@ function returnToCorrectDartHome() {
 }
 
 function showPlayTab() {
+  unlockDartAudio();
+
   els.playTabBtn?.classList.add("active");
   els.leaderboardTabBtn?.classList.remove("active");
 
@@ -5798,7 +5833,7 @@ function showPlayTab() {
 
 
 function showLeaderboardTab() {
-
+  unlockDartAudio();
   document.getElementById("leaderboardView")
     ?.classList.remove("hidden");
 
