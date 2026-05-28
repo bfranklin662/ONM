@@ -504,18 +504,20 @@ let lastOnlineCalloutId = null;
 const dartAudioPageLoadedAt = Date.now();
 
 let dartAudioUnlocked = false;
+let dartAudioUnlocker = null;
 
 function unlockDartAudio() {
   if (dartAudioUnlocked) return;
 
-  const audio = new Audio("audio/darts/silence.mp3");
-  audio.preload = "auto";
-  audio.playsInline = true;
-  audio.volume = 0.01;
+  dartAudioUnlocker = new Audio("audio/darts/silence.mp3");
+  dartAudioUnlocker.preload = "auto";
+  dartAudioUnlocker.playsInline = true;
+  dartAudioUnlocker.volume = 0.01;
 
-  audio.play()
+  dartAudioUnlocker.play()
     .then(() => {
       dartAudioUnlocked = true;
+      console.log("Dart audio unlocked");
     })
     .catch(err => {
       console.warn("Could not unlock dart audio:", err);
@@ -555,6 +557,8 @@ function playDartCallout(fileName, fallbackFileName = null) {
 
 function playLayeredDartAudio(fileName, volume = 1) {
   const audio = new Audio(`audio/darts/${fileName}`);
+  audio.preload = "auto";
+  audio.playsInline = true;
   audio.volume = volume;
 
   audio.play().catch(err => {
