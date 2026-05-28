@@ -2745,7 +2745,6 @@ async function submitOnlineScore() {
   if (match.game.currentPlayerKey !== myKey) return;
 
   const player = match.game.players[myKey];
-  const calloutId = `${Date.now()}-${myKey}-${Math.random().toString(36).slice(2)}`;
   const previousScore = player.score;
   const newScore = previousScore - value;
 
@@ -3012,6 +3011,7 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
   const keys = onlinePlayerKeys(match);
   const opponentKey = keys.find(key => key !== myKey);
   const player = match.game.players[myKey];
+  const calloutId = `${Date.now()}-${myKey}-${Math.random().toString(36).slice(2)}`;
 
   const currentDarts = player.dartsThrown || 0;
   const currentTotal = player.totalScored || 0;
