@@ -552,13 +552,8 @@ function announceVisitAndRequire(visitScore, requiredScore) {
     required <= 170 &&
     POSSIBLE_CHECKOUTS.has(required)
   ) {
-    dartAudioTimers.push(setTimeout(() => {
-      playDartCallout("you-require.mp3");
-    }, 350));
-
-    dartAudioTimers.push(setTimeout(() => {
-      playDartCallout(`score-${required}-short.mp3`, `score-${required}.mp3`);
-    }, 700));
+    playDartCallout("you-require.mp3");
+    playDartCallout(`score-${required}-short.mp3`, `score-${required}.mp3`);
   }
 }
 
@@ -607,16 +602,16 @@ function playLayeredDartAudio(fileName, volume = 1) {
 function playInstantDartSfx(fileName, volume = 1) {
   unlockDartAudio();
 
-  if (!dartSfxPlayer) dartSfxPlayer = createDartAudioElement();
+  const audio = new Audio(`audio/darts/${fileName}`);
+  audio.preload = "auto";
+  audio.playsInline = true;
+  audio.volume = volume;
 
-  dartSfxPlayer.pause();
-  dartSfxPlayer.currentTime = 0;
-  dartSfxPlayer.src = `audio/darts/${fileName}`;
-  dartSfxPlayer.volume = volume;
-
-  dartSfxPlayer.play().catch(err => {
+  audio.play().catch(err => {
     console.warn("Could not play instant dart sfx:", fileName, err);
   });
+
+  return audio;
 }
 
 const DART_VOICE_CREDITS = {
