@@ -532,6 +532,23 @@ function createDartAudioElement() {
   return audio;
 }
 
+function primeNotificationAudio() {
+  if (!dartSfxPlayer) dartSfxPlayer = createDartAudioElement();
+
+  dartSfxPlayer.src = "audio/darts/notification.mp3";
+  dartSfxPlayer.volume = 0.01;
+
+  dartSfxPlayer.play()
+    .then(() => {
+      dartSfxPlayer.pause();
+      dartSfxPlayer.currentTime = 0;
+      dartSfxPlayer.volume = 1;
+    })
+    .catch(err => {
+      console.warn("Could not prime notification audio:", err);
+    });
+}
+
 function unlockDartAudio() {
   if (!dartAudioPlayer) dartAudioPlayer = createDartAudioElement();
   if (!dartAudioPlayerB) dartAudioPlayerB = createDartAudioElement();
@@ -549,6 +566,7 @@ function unlockDartAudio() {
       dartAudioUnlocker.currentTime = 0;
       dartAudioUnlocked = true;
       console.log("Dart audio unlocked");
+      primeNotificationAudio();
     })
     .catch(err => {
       console.warn("Could not unlock dart audio:", err);
@@ -556,30 +574,8 @@ function unlockDartAudio() {
 }
 
 function announceVisitAndRequire(visitScore, requiredScore) {
-  const required = Number(requiredScore);
-
-  if (
-    Number.isInteger(required) &&
-    required > 1 &&
-    required <= 170 &&
-    POSSIBLE_CHECKOUTS.has(required)
-  ) {
-    clearDartAudioQueue();
-
-    playLayeredDartAudio(`score-${Number(visitScore)}.mp3`);
-
-    dartAudioTimers.push(setTimeout(() => {
-      playLayeredDartAudio("you-require.mp3");
-    }, 650));
-
-    dartAudioTimers.push(setTimeout(() => {
-      playLayeredDartAudio(`score-${required}-short.mp3`);
-    }, 1250));
-
-    return;
-  }
-
   announceDartVisit(visitScore);
+  announceRequiredScore(requiredScore);
 }
 
 function clearDartAudioQueue() {
@@ -675,30 +671,18 @@ function playLayeredDartAudio(fileName, volume = 1) {
 function playInstantDartSfx(fileName, volume = 1) {
   unlockDartAudio();
 
-  if (isDartAudioSuppressed()) return;
+  if (!dartSfxPlayer) dartSfxPlayer = createDartAudioElement();
 
-  const audio = new Audio(`audio/darts/${fileName}`);
-  audio.preload = "auto";
-  audio.playsInline = true;
-  audio.setAttribute("playsinline", "");
-  audio.setAttribute("x-webkit-airplay", "deny");
-  audio.disableRemotePlayback = true;
-  audio.controls = false;
-  audio.removeAttribute("controls");
-  audio.volume = volume;
+  dartSfxPlayer.pause();
+  dartSfxPlayer.currentTime = 0;
+  dartSfxPlayer.src = `audio/darts/${fileName}`;
+  dartSfxPlayer.volume = volume;
 
-  dartOneShotAudios.push(audio);
-
-  audio.onended = () => {
-    dartOneShotAudios = dartOneShotAudios.filter(item => item !== audio);
-  };
-
-  audio.play().catch(err => {
-    dartOneShotAudios = dartOneShotAudios.filter(item => item !== audio);
+  dartSfxPlayer.play().catch(err => {
     console.warn("Could not play instant dart sfx:", fileName, err);
   });
 
-  return audio;
+  return dartSfxPlayer;
 }
 
 const DART_VOICE_CREDITS = {
@@ -4624,6 +4608,10 @@ function listenForDartInvites() {
       els.dartInviteOverlay.classList.remove("hidden");
       els.dartInviteOverlay.setAttribute("aria-hidden", "false");
       playInstantDartSfx("notification.mp3");
+
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
 
       console.log("[DART DEBUG] invite overlay shown");
     });
