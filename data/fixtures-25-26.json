@@ -368,5 +368,71 @@
     "Opponent": "Boomers",
     "HA": "Away",
     "Location": "North Star"
+  },
+  [
+  {
+    "League": "Smithfield",
+    "Day": "Thursday",
+    "Date": "4th June 2026",
+    "Opponent": "Southwark Huntsmen Too",
+    "HA": "Home",
+    "Location": "The Horseshoe EC1R 0AG"
+  },
+  {
+    "League": "Smithfield",
+    "Day": "Tuesday",
+    "Date": "9th June 2026",
+    "Opponent": "Invicta",
+    "HA": "Away",
+    "Location": "Three Tuns"
+  },
+  {
+    "League": "Smithfield",
+    "Day": "Thursday",
+    "Date": "18th June 2026",
+    "Opponent": "Slaters",
+    "HA": "Home",
+    "Location": "The Horseshoe EC1R 0AG"
+  },
+  {
+    "League": "Smithfield",
+    "Day": "Monday",
+    "Date": "22nd June 2026",
+    "Opponent": "Fast Ponies",
+    "HA": "Away",
+    "Location": "Brown Bear"
+  },
+  {
+    "League": "Smithfield",
+    "Day": "Monday",
+    "Date": "23rd July 2026",
+    "Opponent": "Invicta",
+    "HA": "Home",
+    "Location": "The Horseshoe EC1R 0AG"
+  },
+  {
+    "League": "Smithfield",
+    "Day": "Tuesday",
+    "Date": "28th July 2026",
+    "Opponent": "Slaters",
+    "HA": "Away",
+    "Location": "Brown Bear"
+  },
+  {
+    "League": "Smithfield",
+    "Day": "Tuesday",
+    "Date": "4th August 2026",
+    "Opponent": "Southwark Huntsmen Too",
+    "HA": "Away",
+    "Location": "The Royal Oak"
+  },
+  {
+    "League": "Smithfield",
+    "Day": "Thursday",
+    "Date": "27th August 2026",
+    "Opponent": "Fast Ponies",
+    "HA": "Home",
+    "Location": "The Horseshoe EC1R 0AG"
   }
+]
 ]
