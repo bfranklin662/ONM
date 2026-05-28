@@ -831,6 +831,18 @@ function playNextDartCallout() {
     playNextDartCallout();
   };
 
+  dartAudioPlayer.ontimeupdate = () => {
+    if (!dartAudioPlayer.duration) return;
+
+    const remaining = dartAudioPlayer.duration - dartAudioPlayer.currentTime;
+
+    if (remaining <= 0.5 && dartAudioQueue.length) {
+      dartAudioPlayer.ontimeupdate = null;
+      dartAudioPlaying = false;
+      playNextDartCallout();
+    }
+  };
+
   dartAudioPlayer.onerror = () => {
     console.warn("Could not load dart callout:", src);
 
