@@ -524,6 +524,9 @@ function clearDartAudioQueue() {
 }
 
 function playDartCallout(fileName, fallbackFileName = null) {
+  const credit = DART_VOICE_CREDITS[fileName];
+  if (credit) showDartVoiceToast(credit);
+
   dartAudioQueue.push({
     src: `audio/darts/${fileName}`,
     fallbackSrc: fallbackFileName ? `audio/darts/${fallbackFileName}` : null
@@ -536,11 +539,7 @@ function playLayeredDartAudio(fileName, volume = 1) {
   const audio = new Audio(`audio/darts/${fileName}`);
   audio.volume = volume;
 
-  audio.play().then(() => {
-    const cleanFileName = src.split("/").pop();
-    const credit = DART_VOICE_CREDITS[cleanFileName];
-    if (credit) showDartVoiceToast(credit);
-  }).catch(err => {
+  audio.play().catch(err => {
     console.warn("Could not play layered audio:", err);
   });
 
@@ -5450,18 +5449,10 @@ function applyOnlineGame(match) {
   const lastCallout = match.game?.lastCallout;
 
   if (lastCallout?.id && lastCallout.id !== lastOnlineCalloutId) {
-    const shouldPlayCallout =
-      lastOnlineCalloutId !== null ||
-      lastCallout.byKey === getCurrentPlayerKey();
-
     lastOnlineCalloutId = lastCallout.id;
     lastOnlineCalloutAt = lastCallout.createdAt || null;
-
-    if (shouldPlayCallout) {
-      playOnlineCallout(lastCallout);
-    }
+    playOnlineCallout(lastCallout);
   }
-
   render();
 }
 
