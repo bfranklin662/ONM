@@ -525,8 +525,25 @@ function unlockDartAudio() {
 }
 
 function announceVisitAndRequire(visitScore, requiredScore) {
-  announceDartVisit(visitScore);
-  announceRequiredScore(requiredScore);
+  const score = Number(visitScore);
+  const required = Number(requiredScore);
+
+  announceDartVisit(score);
+
+  if (
+    Number.isInteger(required) &&
+    required > 1 &&
+    required <= 170 &&
+    POSSIBLE_CHECKOUTS.has(required)
+  ) {
+    setTimeout(() => {
+      playDartCallout("you-require.mp3");
+    }, 700);
+
+    setTimeout(() => {
+      playDartCallout(`score-${required}-short.mp3`, `score-${required}.mp3`);
+    }, 1300);
+  }
 }
 
 function clearDartAudioQueue() {
@@ -563,6 +580,19 @@ function playLayeredDartAudio(fileName, volume = 1) {
 
   audio.play().catch(err => {
     console.warn("Could not play layered audio:", err);
+  });
+
+  return audio;
+}
+
+function playInstantDartSfx(fileName, volume = 1) {
+  const audio = new Audio(`audio/darts/${fileName}`);
+  audio.preload = "auto";
+  audio.playsInline = true;
+  audio.volume = volume;
+
+  audio.play().catch(err => {
+    console.warn("Could not play instant dart sfx:", fileName, err);
   });
 
   return audio;
@@ -4453,7 +4483,7 @@ function listenForDartInvites() {
 
       els.dartInviteOverlay.classList.remove("hidden");
       els.dartInviteOverlay.setAttribute("aria-hidden", "false");
-      playDartCallout("notification.mp3");
+      playInstantDartSfx("notification.mp3");
 
       console.log("[DART DEBUG] invite overlay shown");
     });
@@ -5470,6 +5500,8 @@ function applyOnlineGame(match) {
 }
 
 function playOnlineCallout(lastCallout) {
+  clearDartAudioQueue();
+
   if (lastCallout.type === "gameShot") {
     announceLegWon(false, Boolean(lastCallout.bullOut));
   } else if (lastCallout.type === "matchShot") {
