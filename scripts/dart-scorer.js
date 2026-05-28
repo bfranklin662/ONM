@@ -856,54 +856,30 @@ function playNextDartCallout() {
   dartAudioPlaying = true;
 
   const item = dartAudioQueue.shift();
-  const src = typeof item === "string" ? item : item.src;
-  const fallbackSrc = typeof item === "string" ? null : item.fallbackSrc;
+  const fileName = item.fileName;
+  const fallbackFileName = item.fallbackFileName;
 
-  const audio = new Audio(src);
-  audio.preload = "auto";
-  audio.playsInline = true;
-  audio.volume = 1;
+  playDartBuffer(fileName)
+    .then(source => {
+      source.onended = () => {
+        dartActiveAudios = dartActiveAudios.filter(item => item !== source);
+        dartAudioPlaying = false;
+        playNextDartCallout();
+      };
+    })
+    .catch(err => {
+      console.warn("Could not play dart callout:", fileName, err);
 
-  let nextStarted = false;
+      if (fallbackFileName) {
+        dartAudioQueue.unshift({
+          fileName: fallbackFileName,
+          fallbackFileName: null
+        });
+      }
 
-  dartActiveAudios.push(audio);
-
-  audio.onended = () => {
-    dartActiveAudios = dartActiveAudios.filter(item => item !== audio);
-
-    if (!nextStarted) {
       dartAudioPlaying = false;
       playNextDartCallout();
-    }
-  };
-
-  audio.onerror = () => {
-    console.warn("Could not load dart callout:", src);
-
-    dartActiveAudios = dartActiveAudios.filter(item => item !== audio);
-
-    if (fallbackSrc) {
-      dartAudioQueue.unshift({
-        src: fallbackSrc,
-        fallbackSrc: null
-      });
-    }
-
-    if (!nextStarted) {
-      dartAudioPlaying = false;
-      playNextDartCallout();
-    }
-  };
-
-  audio.play().catch(err => {
-    console.warn("Could not play dart callout:", err);
-    dartActiveAudios = dartActiveAudios.filter(item => item !== audio);
-
-    if (!nextStarted) {
-      dartAudioPlaying = false;
-      playNextDartCallout();
-    }
-  });
+    });
 }
 
 function announceDartVisit(visitScore) {
@@ -1992,6 +1968,10 @@ document.querySelectorAll("#inModeSwitch .toggleBtn").forEach(button => {
     setTogglePosition(els.inModeSwitch, button);
   });
 });
+
+document.addEventListener("pointerdown", () => {
+  unlockDartAudio();
+}, { once: true });
 
 function closeQuitConfirm() {
   els.quitConfirmOverlay.classList.add("hidden");
