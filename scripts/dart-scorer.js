@@ -4393,9 +4393,11 @@ async function initDartScorerAuth() {
   listenForDartInvites();
 
   console.log("[DART DEBUG] restoring session now");
-  await restoreOnlineSession();
+  const restoredOnlineGame = await restoreOnlineSession();
 
-  initialisePageModeView();
+  if (!restoredOnlineGame) {
+    initialisePageModeView();
+  }
 
   console.log("[DART DEBUG] initDartScorerAuth complete");
 }
@@ -5056,12 +5058,12 @@ async function restoreOnlineSession() {
     session = JSON.parse(saved);
   } catch {
     clearOnlineSession();
-    return;
+    return false;
   }
 
   if (!session?.matchId || !session?.role) {
     clearOnlineSession();
-    return;
+    return false;
   }
 
   const { db, ref, get, update } = window.ONMLiveDarts;
@@ -5069,14 +5071,14 @@ async function restoreOnlineSession() {
 
   if (!matchSnap.exists()) {
     clearOnlineSession();
-    return;
+    return false;
   }
 
   const match = matchSnap.val();
 
   if (["left", "cancelled"].includes(match.status)) {
     clearOnlineSession();
-    return;
+    return false;
   }
 
   onlineInviteAccepted = true;
@@ -5094,6 +5096,8 @@ async function restoreOnlineSession() {
 
   listenToOnlineMatch(onlineMatchId);
   updateSetupPlayerMode();
+
+  return true;
 }
 
 async function leaveOnlineMatch(reason = "left") {
@@ -5655,8 +5659,6 @@ if (window.ONMLiveDarts) {
 } else {
   window.addEventListener("onmLiveDartsReady", initDartScorerAuth, { once: true });
 }
-
-window.addEventListener("load", initialisePageModeView);
 
 function syncMainViews(activeView) {
   const leaderboardView = document.getElementById("leaderboardView");
