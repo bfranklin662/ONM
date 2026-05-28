@@ -502,54 +502,16 @@ let dartActiveAudios = [];
 let lastOnlineCalloutAt = null;
 let lastOnlineCalloutId = null;
 const dartAudioPageLoadedAt = Date.now();
-const DART_AUDIO_OVERLAP_SECONDS = 0.3;
-
-const IS_MOBILE_AUDIO =
-  /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-const dartAudioCache = new Map();
-
-function getCachedDartAudio(src) {
-  if (!dartAudioCache.has(src)) {
-    const audio = new Audio(src);
-    audio.preload = "auto";
-    audio.playsInline = true;
-    dartAudioCache.set(src, audio);
-  }
-
-  return dartAudioCache.get(src);
-}
-
-function preloadDartAudioLibrary() {
-  const files = new Set([
-    "silence.mp3",
-    "you-require.mp3",
-    "game-shot.mp3",
-    "match-shot.mp3",
-    "bull-out.mp3",
-    "finish-him.mp3",
-    "victory.mp3",
-    "defeat.mp3",
-    ...Object.keys(DART_VOICE_CREDITS),
-    ...Object.keys(CHECKOUTS).map(score => `score-${score}-short.mp3`)
-  ]);
-
-  files.forEach(file => {
-    const audio = getCachedDartAudio(`audio/darts/${file}`);
-    audio.load();
-  });
-}
 
 let dartAudioUnlocked = false;
 
 function unlockDartAudio() {
   if (dartAudioUnlocked) return;
 
-  preloadDartAudioLibrary();
-
-  const audio = getCachedDartAudio("audio/darts/silence.mp3");
+  const audio = new Audio("audio/darts/silence.mp3");
+  audio.preload = "auto";
+  audio.playsInline = true;
   audio.volume = 0.01;
-  audio.currentTime = 0;
 
   audio.play()
     .then(() => {
@@ -805,33 +767,14 @@ function playNextDartCallout() {
   const src = typeof item === "string" ? item : item.src;
   const fallbackSrc = typeof item === "string" ? null : item.fallbackSrc;
 
-  const audio = getCachedDartAudio(src);
-  audio.pause();
-  audio.currentTime = 0;
+  const audio = new Audio(src);
+  audio.preload = "auto";
+  audio.playsInline = true;
   audio.volume = 1;
 
   let nextStarted = false;
 
   dartActiveAudios.push(audio);
-
-  function startNextEarly() {
-    if (nextStarted) return;
-    if (!dartAudioQueue.length) return;
-
-    nextStarted = true;
-    dartAudioPlaying = false;
-    playNextDartCallout();
-  }
-
-  audio.addEventListener("timeupdate", () => {
-    if (!audio.duration || Number.isNaN(audio.duration)) return;
-
-    const remaining = audio.duration - audio.currentTime;
-
-    if (!IS_MOBILE_AUDIO && remaining <= DART_AUDIO_OVERLAP_SECONDS) {
-      startNextEarly();
-    }
-  });
 
   audio.onended = () => {
     dartActiveAudios = dartActiveAudios.filter(item => item !== audio);
