@@ -879,39 +879,6 @@ function showDartVoiceToast(label) {
   }, 1000);
 }
 
-let dartAudioPreloaded = false;
-
-function preloadCommonDartAudio() {
-  if (dartAudioPreloaded) return;
-  dartAudioPreloaded = true;
-
-  const commonFiles = [
-    "you-require.mp3",
-    "game-on.mp3",
-    "game-shot.mp3",
-    "match-shot.mp3"
-  ];
-
-  // Preload score files 0-180 would be too many, but preload the common ones
-  for (let i = 0; i <= 60; i++) {
-    commonFiles.push(`score-${i}.mp3`);
-    commonFiles.push(`score-${i}-short.mp3`);
-  }
-  
-  // Add high-frequency scores
-  [100, 120, 140, 180].forEach(score => {
-    commonFiles.push(`score-${score}.mp3`);
-    commonFiles.push(`score-${score}-short.mp3`);
-  });
-
-  commonFiles.forEach(file => {
-    const audio = new Audio();
-    audio.preload = "auto";
-    audio.src = `audio/darts/${file}`;
-    // Just loading, no need to keep reference
-  });
-}
-
 function unlockDartAudio() {
   if (!dartAudioPlayer) dartAudioPlayer = createDartAudioElement();
   if (!dartAudioPlayerB) dartAudioPlayerB = createDartAudioElement();
@@ -930,7 +897,6 @@ function unlockDartAudio() {
       dartAudioUnlocked = true;
       console.log("Dart audio unlocked");
       primeNotificationAudio();
-      preloadCommonDartAudio(); // Add this line
     })
     .catch(err => {
       console.warn("Could not unlock dart audio:", err);
