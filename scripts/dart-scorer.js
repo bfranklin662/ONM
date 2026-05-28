@@ -524,9 +524,6 @@ function clearDartAudioQueue() {
 }
 
 function playDartCallout(fileName, fallbackFileName = null) {
-  const credit = DART_VOICE_CREDITS[fileName];
-  if (credit) showDartVoiceToast(credit);
-
   dartAudioQueue.push({
     src: `audio/darts/${fileName}`,
     fallbackSrc: fallbackFileName ? `audio/darts/${fallbackFileName}` : null
@@ -539,7 +536,11 @@ function playLayeredDartAudio(fileName, volume = 1) {
   const audio = new Audio(`audio/darts/${fileName}`);
   audio.volume = volume;
 
-  audio.play().catch(err => {
+  audio.play().then(() => {
+    const cleanFileName = src.split("/").pop();
+    const credit = DART_VOICE_CREDITS[cleanFileName];
+    if (credit) showDartVoiceToast(credit);
+  }).catch(err => {
     console.warn("Could not play layered audio:", err);
   });
 
@@ -3045,6 +3046,7 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
     [`game/players/${myKey}/firstNineDarts`]: currentFirstNineDarts + firstNineDartsUsed,
     [`game/players/${myKey}/currentLegFirstNineScored`]: currentLegFirstNineScored + firstNineScore,
     [`game/players/${myKey}/currentLegFirstNineDarts`]: currentLegFirstNineDarts + firstNineDartsUsed,
+    [`game/lastCallout/id`]: calloutId,
     [`game/lastCallout/type`]: "score",
     [`game/lastCallout/visitScore`]: visitScore,
     [`game/lastCallout/requiredScore`]: legWon ? 0 : match.game.players[opponentKey].score,
@@ -5447,10 +5449,13 @@ function applyOnlineGame(match) {
 
   const lastCallout = match.game?.lastCallout;
 
-  if (lastCallout?.createdAt && lastCallout.createdAt !== lastOnlineCalloutAt) {
-    const shouldPlayCallout = lastOnlineCalloutAt !== null;
+  if (lastCallout?.id && lastCallout.id !== lastOnlineCalloutId) {
+    const shouldPlayCallout =
+      lastOnlineCalloutId !== null ||
+      lastCallout.byKey === getCurrentPlayerKey();
 
-    lastOnlineCalloutAt = lastCallout.createdAt;
+    lastOnlineCalloutId = lastCallout.id;
+    lastOnlineCalloutAt = lastCallout.createdAt || null;
 
     if (shouldPlayCallout) {
       playOnlineCallout(lastCallout);
