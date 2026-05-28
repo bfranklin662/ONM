@@ -506,6 +506,8 @@ const dartAudioPageLoadedAt = Date.now();
 let dartAudioUnlocked = false;
 let dartAudioUnlocker = null;
 
+let dartAudioTimers = [];
+
 function unlockDartAudio() {
   if (dartAudioUnlocked) return;
 
@@ -525,10 +527,9 @@ function unlockDartAudio() {
 }
 
 function announceVisitAndRequire(visitScore, requiredScore) {
-  const score = Number(visitScore);
-  const required = Number(requiredScore);
+  announceDartVisit(visitScore);
 
-  announceDartVisit(score);
+  const required = Number(requiredScore);
 
   if (
     Number.isInteger(required) &&
@@ -536,17 +537,20 @@ function announceVisitAndRequire(visitScore, requiredScore) {
     required <= 170 &&
     POSSIBLE_CHECKOUTS.has(required)
   ) {
-    setTimeout(() => {
+    dartAudioTimers.push(setTimeout(() => {
       playDartCallout("you-require.mp3");
-    }, 700);
+    }, 500));
 
-    setTimeout(() => {
+    dartAudioTimers.push(setTimeout(() => {
       playDartCallout(`score-${required}-short.mp3`, `score-${required}.mp3`);
-    }, 1300);
+    }, 950));
   }
 }
 
 function clearDartAudioQueue() {
+  dartAudioTimers.forEach(clearTimeout);
+  dartAudioTimers = [];
+  
   dartAudioQueue = [];
   dartAudioPlaying = false;
 
