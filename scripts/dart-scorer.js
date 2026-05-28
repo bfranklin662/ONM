@@ -506,6 +506,7 @@ const dartAudioPageLoadedAt = Date.now();
 let dartAudioUnlocked = false;
 let dartAudioPlayer = null;
 let dartSfxPlayer = null;
+let dartAudioUnlocker = null;
 let dartAudioTimers = [];
 
 function createDartAudioElement() {
@@ -521,16 +522,17 @@ function createDartAudioElement() {
 function unlockDartAudio() {
   if (!dartAudioPlayer) dartAudioPlayer = createDartAudioElement();
   if (!dartSfxPlayer) dartSfxPlayer = createDartAudioElement();
+  if (!dartAudioUnlocker) dartAudioUnlocker = createDartAudioElement();
 
   if (dartAudioUnlocked) return;
 
-  dartAudioPlayer.src = "audio/darts/silence.mp3";
-  dartAudioPlayer.volume = 0.01;
+  dartAudioUnlocker.src = "audio/darts/silence.mp3";
+  dartAudioUnlocker.volume = 0.01;
 
-  dartAudioPlayer.play()
+  dartAudioUnlocker.play()
     .then(() => {
-      dartAudioPlayer.pause();
-      dartAudioPlayer.currentTime = 0;
+      dartAudioUnlocker.pause();
+      dartAudioUnlocker.currentTime = 0;
       dartAudioUnlocked = true;
       console.log("Dart audio unlocked");
     })
