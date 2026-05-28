@@ -881,6 +881,7 @@ function showDartVoiceToast(label) {
 
 function playNextDartCallout() {
   if (dartAudioPlaying || !dartAudioQueue.length) return;
+  if (isDartAudioSuppressed()) return;
 
   unlockDartAudio();
 
@@ -891,6 +892,18 @@ function playNextDartCallout() {
   const item = dartAudioQueue.shift();
   const src = item.src;
   const fallbackSrc = item.fallbackSrc;
+
+  function playFallbackOrNext() {
+    if (fallbackSrc) {
+      dartAudioQueue.unshift({
+        src: fallbackSrc,
+        fallbackSrc: null
+      });
+    }
+
+    dartAudioPlaying = false;
+    playNextDartCallout();
+  }
 
   dartAudioPlayer.pause();
   dartAudioPlayer.currentTime = 0;
@@ -907,27 +920,15 @@ function playNextDartCallout() {
   dartAudioPlayer.onerror = () => {
     dartAudioPlayer.onended = null;
     dartAudioPlayer.onerror = null;
-
     console.warn("Could not load dart callout:", src);
-
-    if (fallbackSrc) {
-      dartAudioQueue.unshift({
-        src: fallbackSrc,
-        fallbackSrc: null
-      });
-    }
-
-    dartAudioPlaying = false;
-    playNextDartCallout();
+    playFallbackOrNext();
   };
 
   dartAudioPlayer.play().catch(err => {
     dartAudioPlayer.onended = null;
     dartAudioPlayer.onerror = null;
-
     console.warn("Could not play dart callout:", src, err);
-    dartAudioPlaying = false;
-    playNextDartCallout();
+    playFallbackOrNext();
   });
 }
 
