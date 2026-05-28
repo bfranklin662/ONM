@@ -504,6 +504,23 @@ let lastOnlineCalloutId = null;
 const dartAudioPageLoadedAt = Date.now();
 const DART_AUDIO_OVERLAP_SECONDS = 0.3;
 
+let dartAudioUnlocked = false;
+
+function unlockDartAudio() {
+  if (dartAudioUnlocked) return;
+
+  const audio = new Audio("audio/darts/silence.mp3");
+  audio.volume = 0;
+
+  audio.play()
+    .then(() => {
+      dartAudioUnlocked = true;
+    })
+    .catch(err => {
+      console.warn("Could not unlock dart audio:", err);
+    });
+}
+
 function announceVisitAndRequire(visitScore, requiredScore) {
   announceDartVisit(visitScore);
   announceRequiredScore(requiredScore);
@@ -2728,6 +2745,7 @@ function submitScore() {
 }
 
 async function submitOnlineScore() {
+  unlockDartAudio();
   const value = Number(els.input.value);
 
   if (!Number.isInteger(value) || value < 0 || value > MAX_VISIT) {
@@ -3814,6 +3832,7 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
 });
 
 els.markReadyBtn?.addEventListener("click", async () => {
+  unlockDartAudio();
   if (window.innerWidth < 500) {
     enterScorerFullscreen();
     document.documentElement.requestFullscreen?.().catch(() => { });
@@ -3975,7 +3994,7 @@ function enterScorerFullscreen() {
   document.body.classList.add("scorer-fullscreen");
 
   if (els.fullscreenBtn) {
-    els.fullscreenBtn.textContent = "✕";
+    els.fullscreenBtn.textContent = "⛶";
   }
 
   els.input.blur();
@@ -4330,6 +4349,8 @@ function getPresenceKey(userOrPlayer) {
 }
 
 function toggleScorerFullscreen() {
+  unlockDartAudio();
+
   if (document.body.classList.contains("scorer-fullscreen")) {
     exitScorerFullscreen();
   } else {
