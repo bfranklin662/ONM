@@ -879,6 +879,65 @@ function showDartVoiceToast(label) {
   }, 1000);
 }
 
+let dartAudioPreloaded = false;
+
+function preloadCommonDartAudio() {
+  if (dartAudioPreloaded) return;
+  dartAudioPreloaded = true;
+
+  const commonFiles = [
+    "you-require.mp3",
+    "game-on.mp3",
+    "game-shot.mp3",
+    "match-shot.mp3"
+  ];
+
+  // Preload score files 0-180 would be too many, but preload the common ones
+  for (let i = 0; i <= 60; i++) {
+    commonFiles.push(`score-${i}.mp3`);
+    commonFiles.push(`score-${i}-short.mp3`);
+  }
+  
+  // Add high-frequency scores
+  [100, 120, 140, 180].forEach(score => {
+    commonFiles.push(`score-${score}.mp3`);
+    commonFiles.push(`score-${score}-short.mp3`);
+  });
+
+  commonFiles.forEach(file => {
+    const audio = new Audio();
+    audio.preload = "auto";
+    audio.src = `audio/darts/${file}`;
+    // Just loading, no need to keep reference
+  });
+}
+
+function unlockDartAudio() {
+  if (!dartAudioPlayer) dartAudioPlayer = createDartAudioElement();
+  if (!dartAudioPlayerB) dartAudioPlayerB = createDartAudioElement();
+  if (!dartSfxPlayer) dartSfxPlayer = createDartAudioElement();
+  if (!dartAudioUnlocker) dartAudioUnlocker = createDartAudioElement();
+
+  if (dartAudioUnlocked) return;
+
+  dartAudioUnlocker.src = "audio/darts/silence.mp3";
+  dartAudioUnlocker.volume = 0.01;
+
+  dartAudioUnlocker.play()
+    .then(() => {
+      dartAudioUnlocker.pause();
+      dartAudioUnlocker.currentTime = 0;
+      dartAudioUnlocked = true;
+      console.log("Dart audio unlocked");
+      primeNotificationAudio();
+      preloadCommonDartAudio(); // Add this line
+    })
+    .catch(err => {
+      console.warn("Could not unlock dart audio:", err);
+    });
+}
+
+
 function playNextDartCallout() {
   if (dartAudioPlaying || !dartAudioQueue.length) return;
   if (isDartAudioSuppressed()) return;
@@ -932,6 +991,7 @@ function playNextDartCallout() {
   });
 }
 
+
 function announceDartVisit(visitScore) {
   const score = Number(visitScore);
   if (!Number.isInteger(score) || score < 0 || score > 180) return;
@@ -948,10 +1008,12 @@ function announceRequiredScore(requiredScore) {
     required <= 170 &&
     POSSIBLE_CHECKOUTS.has(required)
   ) {
+    console.log("[AUDIO DEBUG] Queueing you-require and score", required);
     playDartCallout("you-require.mp3");
     playDartCallout(`score-${required}-short.mp3`, `score-${required}.mp3`);
   }
 }
+
 
 function announceLegWon(isMatchShot = false, isBullOut = false) {
   clearDartAudioQueue();
