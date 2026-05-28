@@ -885,58 +885,29 @@ function playNextDartCallout() {
   unlockDartAudio();
 
   if (!dartAudioPlayer) dartAudioPlayer = createDartAudioElement();
-  if (!dartAudioPlayerB) dartAudioPlayerB = createDartAudioElement();
-
-  const player = dartUsePlayerB ? dartAudioPlayerB : dartAudioPlayer;
-  dartUsePlayerB = !dartUsePlayerB;
 
   dartAudioPlaying = true;
 
   const item = dartAudioQueue.shift();
   const src = item.src;
   const fallbackSrc = item.fallbackSrc;
-  const fileName = src.split("/").pop();
 
-  let earlyStartedNext = false;
+  dartAudioPlayer.pause();
+  dartAudioPlayer.currentTime = 0;
+  dartAudioPlayer.src = src;
+  dartAudioPlayer.volume = 1;
 
-  player.pause();
-  player.currentTime = 0;
-  player.src = src;
-  player.volume = 1;
-
-  player.onended = () => {
-    player.ontimeupdate = null;
-
-    if (earlyStartedNext) return;
-
+  dartAudioPlayer.onended = () => {
+    dartAudioPlayer.onended = null;
+    dartAudioPlayer.onerror = null;
     dartAudioPlaying = false;
     playNextDartCallout();
   };
 
-  player.ontimeupdate = () => {
-    if (!player.duration || earlyStartedNext) return;
+  dartAudioPlayer.onerror = () => {
+    dartAudioPlayer.onended = null;
+    dartAudioPlayer.onerror = null;
 
-    const nextItem = dartAudioQueue[0];
-    const nextFile = nextItem?.src?.split("/").pop();
-
-    const canOverlap =
-      fileName.startsWith("score-") &&
-      nextFile === "you-require.mp3";
-
-    if (!canOverlap) return;
-
-    const remaining = player.duration - player.currentTime;
-
-    if (remaining <= 0.35 && dartAudioQueue.length) {
-      earlyStartedNext = true;
-      player.ontimeupdate = null;
-      dartAudioPlaying = false;
-      playNextDartCallout();
-    }
-  };
-
-  player.onerror = () => {
-    player.ontimeupdate = null;
     console.warn("Could not load dart callout:", src);
 
     if (fallbackSrc) {
@@ -950,8 +921,10 @@ function playNextDartCallout() {
     playNextDartCallout();
   };
 
-  player.play().catch(err => {
-    player.ontimeupdate = null;
+  dartAudioPlayer.play().catch(err => {
+    dartAudioPlayer.onended = null;
+    dartAudioPlayer.onerror = null;
+
     console.warn("Could not play dart callout:", src, err);
     dartAudioPlaying = false;
     playNextDartCallout();
