@@ -5742,7 +5742,11 @@ function applyOnlineGame(match) {
   els.startDeciderScreen.classList.add("hidden");
   els.scorerCard.classList.remove("hidden");
 
-  const myKey = getCurrentPlayerKey();
+  const myKey =
+    onlineRole === "host"
+      ? match.hostPlayerKey
+      : match.guestPlayerKey;
+
   const isMyTurn = match.game.currentPlayerKey === myKey;
   const throwingName = playerName(state.currentPlayer);
 
