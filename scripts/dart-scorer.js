@@ -748,7 +748,7 @@ const DART_VOICE_CREDITS = {
   "score-49.mp3": "Nick 🔊",
   "score-50.mp3": "Nick 🔊",
   "score-51.mp3": "Nick 🔊",
-  "score-52.mp3": "Nick 🔊",
+  "score-52.mp3": "AP 🔊",
   "score-53.mp3": "Nick 🔊",
   "score-54.mp3": "Nick 🔊",
   "score-55.mp3": "Nick 🔊",
@@ -756,7 +756,7 @@ const DART_VOICE_CREDITS = {
   "score-57.mp3": "Nick 🔊",
   "score-58.mp3": "Nick 🔊",
   "score-59.mp3": "Nick 🔊",
-  "score-60.mp3": "Nick 🔊",
+  "score-60.mp3": "Rob 🔊",
   "score-61.mp3": "Nick 🔊",
   "score-62.mp3": "Nick 🔊",
   "score-63.mp3": "Nick 🔊",
@@ -2917,11 +2917,20 @@ async function submitOnlineScore() {
   if (!matchSnap.exists()) return;
 
   const match = matchSnap.val();
-  const myKey = getCurrentPlayerKey();
+
+  const myKey =
+    onlineRole === "host"
+      ? match.hostPlayerKey
+      : match.guestPlayerKey;
 
   if (match.game.currentPlayerKey !== myKey) return;
 
   const player = match.game.players[myKey];
+
+  if (!player) {
+    console.warn("No online player found for key:", myKey, match.game.players);
+    return;
+  }
   const previousScore = player.score;
   const newScore = previousScore - value;
 
@@ -5749,6 +5758,15 @@ function applyOnlineGame(match) {
 
   const isMyTurn = match.game.currentPlayerKey === myKey;
   const throwingName = playerName(state.currentPlayer);
+
+  console.log("ONLINE DEBUG");
+  console.log("onlineRole", onlineRole);
+  console.log("currentPlayerKey", match.game.currentPlayerKey);
+  console.log("hostPlayerKey", match.hostPlayerKey);
+  console.log("guestPlayerKey", match.guestPlayerKey);
+  console.log("getCurrentPlayerKey()", getCurrentPlayerKey());
+  console.log("myKey", myKey);
+  console.log("isMyTurn", isMyTurn);
 
   els.turnMessage.textContent = `${throwingName}'s turn`;
 
