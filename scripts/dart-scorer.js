@@ -4380,6 +4380,7 @@ function countryToFlag(country) {
     singapore: "🇸🇬",
     indonesia: "🇮🇩",
     philippines: "🇵🇭",
+    nepal: "🇳🇵",
 
     "united arab emirates": "🇦🇪",
     "saudi arabia": "🇸🇦",
