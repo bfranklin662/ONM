@@ -4625,6 +4625,7 @@ async function initDartScorerAuth() {
 
     updateLeaguePlayButton();
     updateSetupPlayerMode();
+    initialisePageModeView();
 
     console.warn("[DART DEBUG] No user, invite listener NOT started");
     return;
