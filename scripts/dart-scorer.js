@@ -1428,7 +1428,7 @@ async function openOpponentModal() {
     }
 
     const currentUser = window.ONMSession?.getUser?.() || loggedInUser;
-    const currentPlayerKey = currentUser?.linkedPlayerKey;
+    const currentPlayerKey = getCurrentPlayerKey();
 
     const allPlayers = result.players || [];
     const currentPlayerProfile =
@@ -1543,12 +1543,17 @@ async function openOpponentModal() {
             fromUser: {
               ...currentPlayerProfile,
               ...currentUser,
+              linkedPlayerKey: getCurrentPlayerKey(),
+              playerKey: getCurrentPlayerKey(),
               fullName: hostFullName,
+              playerName: hostFullName,
               photo: hostPhoto,
               nationality: getPlayerNationality(currentPlayerProfile) || getPlayerNationality(currentUser)
             },
             toPlayer: {
               ...player,
+              linkedPlayerKey: getPlayerKey(player),
+              playerKey: getPlayerKey(player),
               playerName: opponentFullName,
               fullName: opponentFullName,
               photo: opponentPhoto,
@@ -1585,14 +1590,24 @@ async function openOpponentModal() {
   }
 }
 
-function getPlayerKey(player) {
+function safeFirebaseKey(value) {
+  return String(value || "")
+    .trim()
+    .replace(/[.#$/[\]]/g, "_");
+}
+
+function getLeagueUserKey(user) {
   return (
-    player?.linkedPlayerKey ||
-    player?.playerKey ||
-    player?.userId ||
-    player?.email ||
+    user?.linkedPlayerKey ||
+    user?.playerKey ||
+    user?.userId ||
+    safeFirebaseKey(user?.email) ||
     ""
   );
+}
+
+function getPlayerKey(player) {
+  return getLeagueUserKey(player);
 }
 
 function formatMovement(oldValue, newValue, inverse = false) {
@@ -2545,13 +2560,7 @@ function getLoggedInFullName(user) {
 
 function getCurrentPlayerKey() {
   const user = window.ONMSession?.getUser?.() || loggedInUser;
-
-  return (
-    user?.linkedPlayerKey ||
-    user?.userId ||
-    user?.email ||
-    ""
-  );
+  return getLeagueUserKey(user);
 }
 
 function getMyOnlineIndex(match) {
@@ -4248,16 +4257,23 @@ function renderProfileStatsTab(stats) {
 
 async function loadProfileStats() {
   const user = window.ONMSession?.getUser?.() || loggedInUser;
-  if (!user?.linkedPlayerName) return;
+  if (!user) return;
+
+  const playerName =
+    user.linkedPlayerName ||
+    getLoggedInFullName(user);
+
+  const playerKey =
+    user.linkedPlayerKey ||
+    getLeagueUserKey(user);
 
   const result = await postDartMatch({
     action: "getUserStats",
-    linkedPlayerName: user.linkedPlayerName,
-    linkedPlayerKey: user.linkedPlayerKey
+    linkedPlayerName: playerName,
+    linkedPlayerKey: playerKey
   });
 
   if (!result.success) return;
-
   renderProfileStatsTab(result.stats);
 }
 
@@ -4281,6 +4297,97 @@ function countryToFlag(country) {
     scotland: "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
     wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
     ireland: "🇮🇪",
+    "united kingdom": "🇬🇧",
+    france: "🇫🇷",
+    germany: "🇩🇪",
+    spain: "🇪🇸",
+    portugal: "🇵🇹",
+    italy: "🇮🇹",
+    netherlands: "🇳🇱",
+    belgium: "🇧🇪",
+    luxembourg: "🇱🇺",
+    switzerland: "🇨🇭",
+    austria: "🇦🇹",
+    denmark: "🇩🇰",
+    norway: "🇳🇴",
+    sweden: "🇸🇪",
+    finland: "🇫🇮",
+    iceland: "🇮🇸",
+
+    poland: "🇵🇱",
+    "czech republic": "🇨🇿",
+    slovakia: "🇸🇰",
+    hungary: "🇭🇺",
+    romania: "🇷🇴",
+    bulgaria: "🇧🇬",
+    croatia: "🇭🇷",
+    serbia: "🇷🇸",
+    slovenia: "🇸🇮",
+    "bosnia and herzegovina": "🇧🇦",
+    montenegro: "🇲🇪",
+    "north macedonia": "🇲🇰",
+    albania: "🇦🇱",
+    kosovo: "🇽🇰",
+    greece: "🇬🇷",
+
+    ukraine: "🇺🇦",
+    lithuania: "🇱🇹",
+    latvia: "🇱🇻",
+    estonia: "🇪🇪",
+    belarus: "🇧🇾",
+    moldova: "🇲🇩",
+
+    turkey: "🇹🇷",
+
+    "united states": "🇺🇸",
+    usa: "🇺🇸",
+    canada: "🇨🇦",
+    mexico: "🇲🇽",
+
+    brazil: "🇧🇷",
+    argentina: "🇦🇷",
+    chile: "🇨🇱",
+    colombia: "🇨🇴",
+    peru: "🇵🇪",
+    uruguay: "🇺🇾",
+    paraguay: "🇵🇾",
+    venezuela: "🇻🇪",
+
+    australia: "🇦🇺",
+    "new zealand": "🇳🇿",
+
+    "south africa": "🇿🇦",
+    nigeria: "🇳🇬",
+    kenya: "🇰🇪",
+    egypt: "🇪🇬",
+    morocco: "🇲🇦",
+
+    india: "🇮🇳",
+    pakistan: "🇵🇰",
+    bangladesh: "🇧🇩",
+    "sri lanka": "🇱🇰",
+
+    china: "🇨🇳",
+    japan: "🇯🇵",
+    "south korea": "🇰🇷",
+    "north korea": "🇰🇵",
+    taiwan: "🇹🇼",
+    "hong kong": "🇭🇰",
+
+    thailand: "🇹🇭",
+    vietnam: "🇻🇳",
+    malaysia: "🇲🇾",
+    singapore: "🇸🇬",
+    indonesia: "🇮🇩",
+    philippines: "🇵🇭",
+
+    "united arab emirates": "🇦🇪",
+    "saudi arabia": "🇸🇦",
+    qatar: "🇶🇦",
+    kuwait: "🇰🇼",
+    bahrain: "🇧🇭",
+    oman: "🇴🇲",
+    israel: "🇮🇱"
   };
 
   return flags[value] || "🌍";
@@ -4477,7 +4584,7 @@ els.removeSetupPlayerTwoBtn?.addEventListener("click", () => {
 });
 
 function getPresenceKey(userOrPlayer) {
-  return userOrPlayer?.linkedPlayerKey || userOrPlayer?.playerKey || "";
+  return getLeagueUserKey(userOrPlayer);
 }
 
 function toggleScorerFullscreen() {
@@ -4526,8 +4633,17 @@ async function initDartScorerAuth() {
 
   updateLeaguePlayButton();
 
-  console.log("[DART DEBUG] setting presence for:", user.linkedPlayerKey);
-  window.ONMLiveDarts?.setPlayerPresence?.(user);
+  const myKey = getCurrentPlayerKey();
+
+  console.log("[DART DEBUG] setting presence for:", myKey);
+
+  window.ONMLiveDarts?.setPlayerPresence?.({
+    ...user,
+    linkedPlayerKey: myKey,
+    playerKey: myKey,
+    fullName: getLoggedInFullName(user),
+    playerName: getLoggedInFullName(user)
+  });
 
   updateSetupPlayerMode();
 
@@ -4553,9 +4669,11 @@ function listenForDartInvites() {
 
   console.log("[DART DEBUG] listenForDartInvites called");
   console.log("[DART DEBUG] listener user:", user);
-  console.log("[DART DEBUG] listener linkedPlayerKey:", user?.linkedPlayerKey);
+  const myKey = getCurrentPlayerKey();
 
-  if (!user?.linkedPlayerKey || !window.ONMLiveDarts) {
+  console.log("[DART DEBUG] listener key:", myKey);
+
+  if (!myKey || !window.ONMLiveDarts) {
     console.error("[DART DEBUG] Cannot start invite listener", {
       linkedPlayerKey: user?.linkedPlayerKey,
       hasONMLiveDarts: !!window.ONMLiveDarts
@@ -4568,10 +4686,10 @@ function listenForDartInvites() {
   const invitesQuery = query(
     ref(db, "dartInvites"),
     orderByChild("toPlayerKey"),
-    equalTo(user.linkedPlayerKey)
+    equalTo(myKey)
   );
 
-  console.log("[DART DEBUG] Firebase invite listener attached for toPlayerKey:", user.linkedPlayerKey);
+  console.log("[DART DEBUG] Firebase invite listener attached for toPlayerKey:", myKey);
 
   onValue(invitesQuery, snapshot => {
     console.log("[DART DEBUG] invite listener fired. exists:", snapshot.exists());
@@ -4846,8 +4964,8 @@ async function exitCompletedOnlineMatch() {
 
 function listenToOnlineMatch(matchId) {
   const { db, ref, onValue } = window.ONMLiveDarts;
-  const user = window.ONMSession?.getUser?.() || loggedInUser;
-  if (!user?.linkedPlayerKey) return;
+  const myKey = getCurrentPlayerKey();
+  if (!myKey) return;
 
   const matchRef = ref(db, `onlineMatches/${matchId}`);
 
@@ -4982,7 +5100,7 @@ function listenToOnlineMatch(matchId) {
     }
 
     const opponentKey =
-      user.linkedPlayerKey === match.hostPlayerKey
+      myKey === match.hostPlayerKey
         ? match.guestPlayerKey
         : match.hostPlayerKey;
 
@@ -5980,7 +6098,7 @@ function renderLeaderboard(players = []) {
   if (!rowsEl) return;
 
   const currentUser = window.ONMSession?.getUser?.() || loggedInUser;
-  const myKey = currentUser?.linkedPlayerKey || "";
+  const myKey = getCurrentPlayerKey();
 
   const myIndex = players.findIndex(player => player.playerKey === myKey);
   const me = myIndex >= 0 ? players[myIndex] : null;
