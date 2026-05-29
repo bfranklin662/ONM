@@ -3925,3 +3925,52 @@ body.casualMode #matchModeSwitch {
   opacity: 0;
   transform: translateX(-50%) translateY(8px);
 }
+
+.opponentOverlay {
+  overflow-y: auto;
+  padding: 18px 0;
+}
+
+.opponentOverlay .modalCard {
+  max-height: calc(100dvh - 36px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.opponentOverlay .modalBody {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.molInvitePanel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 120px);
+  min-height: 0;
+}
+
+.molInvitePlayersScroll {
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.molInviteGroupTitle,
+.molInviteOfflineGroup summary {
+  color: #ffd740;
+  font-weight: 900;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  margin: 10px 0 8px;
+}
+
+.molInviteOfflineGroup summary {
+  cursor: pointer;
+}
+
+.molInviteOfflineGroup:not([open]) {
+  padding-bottom: 8px;
+}

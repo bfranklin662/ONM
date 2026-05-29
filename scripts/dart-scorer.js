@@ -1396,7 +1396,7 @@ async function openOpponentModal() {
         <button id="molRefreshPlayersBtn" type="button">Refresh</button>
       </div>
 
-      <div id="molInvitePlayersList" class="molInvitePlayersList">
+      <div id="molInvitePlayersList" class="molInvitePlayersList molInvitePlayersScroll">
         <div class="loadingRow">
           <span class="inlineSpinner"></span>
           <span>Loading players...</span>
@@ -1503,7 +1503,28 @@ async function openOpponentModal() {
       `;
     }));
 
-    document.getElementById("molInvitePlayersList").innerHTML = playerRows.join("");
+    const onlineRows = [];
+    const offlineRows = [];
+
+    playerRows.forEach(row => {
+      if (row.includes("Online now")) {
+        onlineRows.push(row);
+      } else {
+        offlineRows.push(row);
+      }
+    });
+
+    document.getElementById("molInvitePlayersList").innerHTML = `
+      <div class="molInviteGroup">
+        <div class="molInviteGroupTitle">Online players</div>
+        ${onlineRows.length ? onlineRows.join("") : `<div class="muted">No online players right now.</div>`}
+      </div>
+
+      <details class="molInviteGroup molInviteOfflineGroup">
+        <summary>Offline players (${offlineRows.length})</summary>
+        ${offlineRows.join("")}
+      </details>
+    `;
 
     document.querySelectorAll("#molInvitePlayersList [data-player]").forEach(button => {
       button.addEventListener("click", async () => {
@@ -3972,14 +3993,25 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
 
 els.markReadyBtn?.addEventListener("click", async () => {
   unlockDartAudio();
+
   if (window.innerWidth < 500) {
     enterScorerFullscreen();
     document.documentElement.requestFullscreen?.().catch(() => { });
   }
 
   if (!onlineMatchId) return;
-  const { db, ref, update } = window.ONMLiveDarts;
-  const myKey = getCurrentPlayerKey();
+
+  const { db, ref, update, get } = window.ONMLiveDarts;
+
+  const matchSnap = await get(ref(db, `onlineMatches/${onlineMatchId}`));
+  if (!matchSnap.exists()) return;
+
+  const match = matchSnap.val();
+
+  const myKey =
+    onlineRole === "host"
+      ? match.hostPlayerKey
+      : match.guestPlayerKey;
 
   await update(ref(db, `onlineMatches/${onlineMatchId}/ready`), {
     [myKey]: true
