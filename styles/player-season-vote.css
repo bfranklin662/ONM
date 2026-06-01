@@ -36,7 +36,7 @@
   border-radius: 10px;
   background: #0f1115;
   color: #fff;
-  border: 1px solid rgba(255,255,255,.18);
+  border: 1px solid rgba(255, 255, 255, .18);
   padding: 0 10px;
   font-weight: 800;
 }
@@ -64,8 +64,9 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.1);
-  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(255, 255, 255, .04);
+  margin-bottom: 10px;
 }
 
 #playerSeasonVoteStatsTable {
@@ -77,24 +78,24 @@
 }
 
 #playerSeasonVoteStatsTable th {
-  background: rgba(255,255,255,.06);
-  color: rgba(255,255,255,.78);
+  background: rgba(255, 255, 255, .06);
+  color: rgba(255, 255, 255, .78);
   text-transform: uppercase;
   padding: 9px 10px;
   font-size: 11px;
   white-space: nowrap;
-  border-bottom: 1px solid rgba(255,215,64,.45);
+  border-bottom: 1px solid rgba(255, 215, 64, .45);
 }
 
 #playerSeasonVoteStatsTable td {
   padding: 8px 10px;
   white-space: nowrap;
-  border-bottom: 1px solid rgba(255,255,255,.08);
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
   font-weight: 800;
 }
 
 #playerSeasonVoteStatsTable tbody tr:nth-child(even) {
-  background: rgba(255,255,255,.05);
+  background: rgba(255, 255, 255, .05);
 }
 
 
@@ -106,9 +107,9 @@
   width: 48px;
   height: 48px;
   border-radius: 999px;
-  border: 1px solid rgba(255,215,64,.7);
-  background: rgba(15,17,21,.96);
+  border: 1px solid rgba(255, 215, 64, .7);
+  background: rgba(15, 17, 21, .96);
   color: #ffd740;
   font-size: 22px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
 }
