@@ -41,6 +41,33 @@
         { "name": "The Panda's", "venue": "Nolans" },
         { "name": "Boomers", "venue": "North Star" }
       ]
+    },
+    "Smithfield League": {
+      "legs": 13,
+      "teams": [
+        { "name": "Oche Ness Monsters", "venue": "The Horseshoe" },
+        { "name": "Southwark Huntsmen Too", "venue": "The Royal Oak" },
+        { "name": "Invicta", "venue": "Three Tuns" },
+        { "name": "Slaters", "venue": "Brown Bear" },
+        { "name": "Fast Ponies", "venue": "Brown Bear" }
+      ]
+    },
+    "COLDA League": {
+      "legs": 0,
+      "teams": [
+        { "name": "Oche Ness Monsters A", "venue": "The Horseshoe" },
+        { "name": "Oche Ness Monsters B", "venue": "The Horseshoe" },
+        { "name": "Madhouse Specialists", "venue": "The Horseshoe" },
+        { "name": "Black Arrows", "venue": "Nolans" },
+        { "name": "Shark Hunters", "venue": "Nolans" },
+        { "name": "Nolans D", "venue": "The Horseshoe" },
+        { "name": "Albany Allstars", "venue": "Sir Sydney Smith" },
+        { "name": "Abosh", "venue": "The Horseshoe" },
+        { "name": "Flashing Arrows", "venue": "Artful Dodger" },
+        { "name": "Silverbacks", "venue": "Artful Dodger" },
+        { "name": "Bada Bing", "venue": "Nolans" },
+        { "name": "The Blue Boar", "venue": "The Horseshoe" }
+      ]
     }
   }
 }

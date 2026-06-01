@@ -2155,3 +2155,23 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
   opacity: 1;
 }
+
+.matchStageField {
+  grid-column: 1 / -1;
+}
+
+.matchStageField.hidden {
+  display: none;
+}
+
+.resultSubmittedSuccess {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(0, 160, 75, 0.16);
+  border: 1px solid rgba(0, 210, 100, 0.45);
+  color: #fff;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}

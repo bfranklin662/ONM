@@ -16,6 +16,8 @@ document.addEventListener("DOMContentLoaded", () => {
     match: {}
   };
 
+  let submittedResultRow = null;
+
   // ---- DOM ----
   const setupGrid = document.getElementById("setupGrid");
   const setupCard = document.getElementById("setupCard");
@@ -123,6 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const imageText = document.getElementById("imageText");
 
+  const matchStageField = document.getElementById("matchStageField");
 
   cupNoBtn?.addEventListener("click", () => setCup(false));
   cupYesBtn?.addEventListener("click", () => setCup(true));
@@ -185,6 +188,13 @@ document.addEventListener("DOMContentLoaded", () => {
     cupNoBtn?.classList.toggle("active", !isCup);
     cupYesBtn?.classList.toggle("active", isCup);
     cupToggle?.classList.toggle("away", isCup);
+
+    matchStageField?.classList.toggle("hidden", !isCup);
+
+    if (!isCup) {
+      const stage = document.getElementById("matchStage");
+      if (stage) stage.value = "";
+    }
 
     readMatchInfo();
     saveGameSnapshot();
@@ -1023,32 +1033,42 @@ document.addEventListener("DOMContentLoaded", () => {
   function hydrateMatchInfoFromStore() {
     const m = resultSubmitData.match || {};
 
-    const set = (id, value) => {
-      const el = document.getElementById(id);
-      if (el && value !== undefined && value !== null) el.value = value;
-    };
-
-    set("matchLeague", m.league);
-    set("matchHomeTeam", m.homeTeam);
-    set("matchAwayTeam", m.awayTeam);
-    set("matchHomeScore", m.homeScore);
-    set("matchAwayScore", m.awayScore);
-    set("matchResult", m.result);
-    set("matchDate", m.date);
-    set("matchVenue", m.venue);
-    set("matchImageFolder", m.imageFolder);
-    set("matchStage", m.stage);
+    if (matchLeague && m.league) {
+      matchLeague.value = m.league;
+    }
 
     onmSide = m.onmSide || "home";
+
     onmHomeBtn?.classList.toggle("active", onmSide === "home");
     onmAwayBtn?.classList.toggle("active", onmSide === "away");
     homeAwayToggle?.classList.toggle("away", onmSide === "away");
 
-    const cup = document.getElementById("matchCup");
-    if (cup) cup.checked = !!m.cup;
+    // Important: rebuild dropdown options for the saved league BEFORE setting teams
+    populateLeagueTeamSuggestions({ applyDefaults: false });
+
+    if (matchHomeTeam && m.homeTeam) matchHomeTeam.value = m.homeTeam;
+    if (matchAwayTeam && m.awayTeam) matchAwayTeam.value = m.awayTeam;
+    if (matchHomeScore && m.homeScore !== undefined) matchHomeScore.value = m.homeScore;
+    if (matchAwayScore && m.awayScore !== undefined) matchAwayScore.value = m.awayScore;
+    if (matchDate && m.date) matchDate.value = m.date;
+    if (matchVenue && m.venue) matchVenue.value = m.venue;
+
+    const resultEl = document.getElementById("matchResult");
+    if (resultEl && m.result) resultEl.value = m.result;
+
+    const stageEl = document.getElementById("matchStage");
+    if (stageEl && m.stage) stageEl.value = m.stage;
+
+    if (matchCup) matchCup.checked = !!m.cup;
+
     cupNoBtn?.classList.toggle("active", !m.cup);
     cupYesBtn?.classList.toggle("active", !!m.cup);
     cupToggle?.classList.toggle("away", !!m.cup);
+    matchStageField?.classList.toggle("hidden", !m.cup);
+
+    updateVenueFromHomeTeam();
+    updateResultFromScore();
+    readMatchInfo();
   }
 
   function restoreGameFromStore() {
@@ -1177,6 +1197,10 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.classList.toggle("active", btn.dataset.screenTarget === screen);
     });
 
+    if (screen === "reviewResult") {
+      updateReviewSubmitButtonText();
+    }
+
     if (store.game) {
       store.game.screen = screen;
       store.game.updatedAt = nowIso();
@@ -1258,7 +1282,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return teams;
   }
 
-  function populateLeagueTeamSuggestions() {
+  function populateLeagueTeamSuggestions({ applyDefaults = true } = {}) {
     const teams = getLeagueTeamNames();
 
     [matchHomeTeam, matchAwayTeam].forEach(select => {
@@ -1279,7 +1303,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    applyHomeAwayDefaults();
+    if (applyDefaults) {
+      applyHomeAwayDefaults();
+    }
   }
 
   function applyHomeAwayDefaults() {
@@ -1288,16 +1314,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!teams.length) return;
 
     if (onmSide === "home") {
-      matchHomeTeam.value = "Oche Ness Monsters";
+      matchHomeTeam.value = getDefaultOnmTeamForLeague();
 
-      if (!matchAwayTeam.value || matchAwayTeam.value === "Oche Ness Monsters") {
-        matchAwayTeam.value = teams.find(team => team !== "Oche Ness Monsters") || "";
+      if (!matchAwayTeam.value || isOnmTeam(matchAwayTeam.value)) {
+        matchAwayTeam.value = teams.find(team => !isOnmTeam(team)) || "";
       }
     } else {
-      matchAwayTeam.value = "Oche Ness Monsters";
+      matchAwayTeam.value = getDefaultOnmTeamForLeague();
 
-      if (!matchHomeTeam.value || matchHomeTeam.value === "Oche Ness Monsters") {
-        matchHomeTeam.value = teams.find(team => team !== "Oche Ness Monsters") || "";
+      if (!matchHomeTeam.value || isOnmTeam(matchHomeTeam.value)) {
+        matchHomeTeam.value = teams.find(team => !isOnmTeam(team)) || "";
       }
     }
 
@@ -1310,8 +1336,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function isOnmTeam(teamName) {
+    return [
+      "Oche Ness Monsters",
+      "Oche Ness Monsters A",
+      "Oche Ness Monsters B"
+    ].includes(String(teamName || "").trim());
+  }
+
   function getTeamVenue(teamName) {
-    if (teamName === "Oche Ness Monsters") return "The Horseshoe";
+    if (isOnmTeam(teamName)) return "The Horseshoe";
 
     const league = getCurrentLeagueConfig();
     if (!league) return "";
@@ -1372,8 +1406,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const home = Number(matchHomeScore.value);
     const away = Number(matchAwayScore.value);
 
-    const onmScore = onmSide === "home" ? home : away;
-    const oppScore = onmSide === "home" ? away : home;
+    const onmIsHome = isOnmTeam(matchHomeTeam.value);
+    const onmScore = onmIsHome ? home : away;
+    const oppScore = onmIsHome ? away : home;
 
     resultEl.value = onmScore > oppScore ? "Won" : "Lost";
   }
@@ -1384,7 +1419,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (matchHomeTeam && !matchHomeTeam.value) {
-      matchHomeTeam.value = "Oche Ness Monsters";
+      matchHomeTeam.value = getDefaultOnmTeamForLeague();
     }
 
     if (matchAwayTeam && matchAwayTeam.value === "Oche Ness Monsters") {
@@ -1407,7 +1442,7 @@ document.addEventListener("DOMContentLoaded", () => {
     matchHomeTeam.value = fixture.homeTeam;
     matchAwayTeam.value = fixture.awayTeam;
 
-    onmSide = fixture.homeTeam === "Oche Ness Monsters" ? "home" : "away";
+    onmSide = isOnmTeam(fixture.homeTeam) ? "home" : "away";
 
     onmHomeBtn?.classList.toggle("active", onmSide === "home");
     onmAwayBtn?.classList.toggle("active", onmSide === "away");
@@ -1417,6 +1452,16 @@ document.addEventListener("DOMContentLoaded", () => {
     updateVenueFromHomeTeam();
     readMatchInfo();
     saveGameSnapshot();
+  }
+
+  function getDefaultOnmTeamForLeague() {
+    const leagueName = matchLeague?.value || "";
+
+    if (leagueName === "COLDA League") {
+      return "Oche Ness Monsters A";
+    }
+
+    return "Oche Ness Monsters";
   }
 
   function applyHomeAwaySide(side = onmSide) {
@@ -1432,11 +1477,11 @@ document.addEventListener("DOMContentLoaded", () => {
     homeAwayToggle?.classList.toggle("away", side === "away");
 
     if (side === "home") {
-      matchHomeTeam.value = "Oche Ness Monsters";
-      matchAwayTeam.value = oldHome && oldHome !== "Oche Ness Monsters" ? oldHome : "";
+      matchHomeTeam.value = getDefaultOnmTeamForLeague();
+      matchAwayTeam.value = oldHome && !isOnmTeam(oldHome) ? oldHome : "";
     } else {
-      matchAwayTeam.value = "Oche Ness Monsters";
-      matchHomeTeam.value = oldAway && oldAway !== "Oche Ness Monsters" ? oldAway : "";
+      matchAwayTeam.value = getDefaultOnmTeamForLeague();
+      matchHomeTeam.value = oldAway && !isOnmTeam(oldAway) ? oldAway : "";
     }
 
     populateLeagueTeamSuggestions();
@@ -1466,15 +1511,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   matchLeague?.addEventListener("change", () => {
-    populateLeagueTeamSuggestions();
+    if (matchHomeScore) matchHomeScore.value = "";
+    if (matchAwayScore) matchAwayScore.value = "";
 
-    matchHomeTeam.value = onmSide === "home" ? "Oche Ness Monsters" : "";
-    matchAwayTeam.value = onmSide === "away" ? "Oche Ness Monsters" : "";
-
-    matchHomeScore.value = "";
-    matchAwayScore.value = "";
+    populateLeagueTeamSuggestions({ applyDefaults: true });
 
     updateVenueFromHomeTeam();
+    updateResultFromScore();
     readMatchInfo();
     saveGameSnapshot();
   });
@@ -2589,6 +2632,18 @@ document.addEventListener("DOMContentLoaded", () => {
   resultStatsNextBtn?.addEventListener("click", goToMatchInfo);
 
   resultStatsSubmitBtn?.addEventListener("click", () => {
+    const currentUser = window.ONMSession?.getUser?.();
+
+    if (!currentUser) {
+      showToast("Log in to submit a result.");
+      return;
+    }
+
+    if (!currentUser.linkedPlayerName || !currentUser.linkedPlayerKey) {
+      showToast("You must be linked to an ONM player to submit a result.");
+      return;
+    }
+
     readMatchInfo();
     goToReviewResult();
   });
@@ -2730,17 +2785,54 @@ document.addEventListener("DOMContentLoaded", () => {
     if (actions) actions.classList.remove("hidden");
   }
 
-  reviewSubmitBtn?.addEventListener("click", async () => {
-    try {
-      reviewSubmitBtn.disabled = true;
-      reviewSubmitBtn.textContent = "Confirming...";
+  function showResultSubmittedBanner(isResubmit = false) {
+    document.getElementById("resultSubmittedBanner")?.remove();
 
-      openModal("Confirm result", `
-      <div class="loading-results">
-        <div class="spinner"></div>
-        <p>Uploading result and images...</p>
+    reviewResultBody.insertAdjacentHTML("afterend", `
+      <div id="resultSubmittedBanner" class="resultSubmittedSuccess">
+        <div class="linkSuccessIcon">✓</div>
+        <div>
+          <div class="linkSuccessTitle">
+            ${isResubmit ? "Result re-submitted" : "Result submitted"}
+          </div>
+          <div class="mutedSmall">You can amend details and re-submit to overwrite this row.</div>
+        </div>
       </div>
     `);
+  }
+
+  reviewSubmitBtn?.addEventListener("click", async () => {
+    const currentUser = window.ONMSession?.getUser?.();
+
+    if (!currentUser) {
+      window.location.href = `auth.html?redirect=${encodeURIComponent("fines.html")}&mode=login`;
+      return;
+    }
+
+    if (!currentUser.linkedPlayerName || !currentUser.linkedPlayerKey) {
+      showToast("You must be linked to an ONM player to submit a result.");
+      return;
+    }
+    const isResubmit = Boolean(submittedResultRow);
+
+    try {
+      reviewSubmitBtn.disabled = true;
+      reviewSubmitBtn.textContent = isResubmit ? "Re-submitting..." : "Submitting...";
+
+      openModal(isResubmit ? "Re-submitting result" : "Submit result", `
+        <div class="loading-results">
+          <div class="spinner"></div>
+          <p>${isResubmit ? "Updating result row..." : "Submitting result..."}</p>
+        </div>
+      `);
+
+      if (!currentUser) {
+        throw new Error("Log in to submit a result.");
+      }
+
+      if (!currentUser.linkedPlayerName || !currentUser.linkedPlayerKey) {
+        throw new Error("You must be linked to an ONM player to submit a result.");
+      }
 
       readMatchInfo();
 
@@ -2749,6 +2841,11 @@ document.addEventListener("DOMContentLoaded", () => {
       );
 
       const payload = {
+        action: isResubmit ? "updateResult" : "submitResult",
+        rowNumber: submittedResultRow,
+        userId: currentUser.userId,
+        linkedPlayerName: currentUser.linkedPlayerName,
+        linkedPlayerKey: currentUser.linkedPlayerKey,
         match: resultSubmitData.match,
         players: resultSubmitData.players,
         images
@@ -2770,20 +2867,21 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         data = JSON.parse(text);
       } catch {
-        throw new Error(
-          "The server did not return a valid response. This often happens if the uploaded images are too large."
-        );
+        throw new Error("The server did not return a valid response.");
       }
 
       if (!data.success) {
-        throw new Error(data.error || "Submit failed. The images may be too large.");
+        throw new Error(data.error || "Submit failed.");
       }
 
-      openModal("Result submitted", `
-        <div class="muted">✅ Result saved successfully.</div>
-      `);
+      submittedResultRow = data.rowNumber || submittedResultRow;
 
-      showSubmittedActions();
+      closeModal();
+      showResultSubmittedBanner(isResubmit);
+
+      reviewSubmitBtn.classList.remove("hidden");
+      reviewSubmitBtn.disabled = false;
+      reviewSubmitBtn.textContent = "Re-submit Result";
 
     } catch (err) {
       console.error("Submit error:", err);
@@ -2791,13 +2889,31 @@ document.addEventListener("DOMContentLoaded", () => {
       const message = err.message || "Something went wrong.";
 
       openModal("Submit failed", `
-        <div class="muted">${escapeHtml(message)}</div>
-      `);
-    } finally {
+      <div class="muted">${escapeHtml(message)}</div>
+    `);
+
       reviewSubmitBtn.disabled = false;
-      reviewSubmitBtn.textContent = "Confirm Result";
+      reviewSubmitBtn.textContent = submittedResultRow ? "Re-submit Result" : "Submit Result";
     }
   });
+
+  function updateReviewSubmitButtonText() {
+    if (!reviewSubmitBtn) return;
+
+    const currentUser = window.ONMSession?.getUser?.();
+
+    if (!currentUser) {
+      reviewSubmitBtn.textContent = "Log in / Register to Submit";
+      return;
+    }
+
+    if (!currentUser.linkedPlayerName || !currentUser.linkedPlayerKey) {
+      reviewSubmitBtn.textContent = "Link ONM Player to Submit";
+      return;
+    }
+
+    reviewSubmitBtn.textContent = submittedResultRow ? "Re-submit Result" : "Submit Result";
+  }
 
   document.getElementById("resetAfterSubmitBtn")?.addEventListener("click", () => {
     hardResetAll();

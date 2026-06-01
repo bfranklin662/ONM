@@ -10,6 +10,57 @@ const CSV_URL = {
   leagueStats: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1287781750&single=true&output=csv"
 };
 
+let resultsVisibleCount = 10;
+const RESULTS_PAGE_SIZE = 10;
+let currentLeagueFilter = localStorage.getItem("resultsLeagueFilter") || "all";
+
+const LEAGUE_META = {
+  "Banks League": { key: "banks", label: "BANKS" },
+  "Trafalgar League": { key: "trafalgar", label: "TRAFALGAR" },
+  "Smithfield League": { key: "smithfield", label: "SMITHFIELD" },
+  "COLDA League": { key: "colda", label: "COLDA" }
+};
+
+function getLeagueMeta(competition) {
+  return LEAGUE_META[competition] || {
+    key: normalizeName(competition).replace(/\s+/g, "-"),
+    label: String(competition || "LEAGUE").replace(" League", "").toUpperCase()
+  };
+}
+
+function renderLeagueFilter(matches) {
+  const leagues = [...new Set(matches.map(m => m.Competition).filter(Boolean))];
+
+  if (!leagues.length) return "";
+
+  return `
+    <div class="resultsLeagueFilter">
+      <button class="${currentLeagueFilter === "all" ? "active" : ""}" data-league-filter="all">
+        All
+      </button>
+      ${leagues.map(league => {
+    const meta = getLeagueMeta(league);
+    return `
+          <button class="${currentLeagueFilter === league ? "active" : ""}" data-league-filter="${league}">
+            ${meta.label}
+          </button>
+        `;
+  }).join("")}
+    </div>
+  `;
+}
+
+function bindLeagueFilter() {
+  document.querySelectorAll("[data-league-filter]").forEach(button => {
+    button.addEventListener("click", () => {
+      currentLeagueFilter = button.dataset.leagueFilter;
+      localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
+      resultsVisibleCount = RESULTS_PAGE_SIZE;
+      fetchResults(currentSeason, currentViewMode);
+    });
+  });
+}
+
 // ✅ Reusable CSV fetch + parse
 async function fetchCSVData(url) {
   const noCacheUrl = `${url}&t=${Date.now()}`;
@@ -354,10 +405,12 @@ function formatCurrency(value) {
 }
 
 
-async function fetchResults(season = currentSeason, viewMode = currentViewMode) {
+async function fetchResults(season = currentSeason, viewMode = currentViewMode, appendFrom = null) {
 
   const grid = document.getElementById("resultsGrid");
-  grid.innerHTML = `<div class="loading-results"><div class="spinner"></div> Loading ${viewMode}...</div>`;
+  if (appendFrom === null) {
+    grid.innerHTML = `<div class="loading-results"><div class="spinner"></div> Loading ${viewMode}...</div>`;
+  }
 
   try {
     // 🎯 Select season URLs
@@ -390,41 +443,30 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
       return; // ⛔️ Stop further rendering
     }
 
-    // 🧩 Group by competition
-    const grouped = {};
-    mainData.forEach((row) => {
-      if (!grouped[row.Competition]) grouped[row.Competition] = [];
-      grouped[row.Competition].push(row);
-    });
+    const allMatches = mainData
+      .filter(match => currentLeagueFilter === "all" || match.Competition === currentLeagueFilter)
+      .sort((a, b) => parseDate(b.Date) - parseDate(a.Date));
 
-    const order = ["Banks League", "Trafalgar League"];
+    const filterHtml = renderLeagueFilter(mainData);
 
-    // 🖼️ GALLERY MODE 
     if (viewMode === "gallery") {
-      console.log("🖼️ Building gallery mode...");
-
-      const allMatches = Object.values(grouped).flat();
-      allMatches.sort((a, b) => {
-        const toTime = (d) => {
-          if (!d) return -Infinity;
-          const parts = String(d).trim().split(/[\/\-]/).map(Number);
-          if (parts[0] > 1900) return new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1).getTime();
-          if (parts[0] > 12) return new Date(parts[2], (parts[1] || 1) - 1, parts[0]).getTime();
-          return new Date(parts[2], (parts[1] || 1) - 1, parts[0]).getTime();
-        };
-        return toTime(b.Date) - toTime(a.Date);
-      });
+      const visibleGalleryMatches =
+        appendFrom === null
+          ? allMatches.slice(0, resultsVisibleCount)
+          : allMatches.slice(appendFrom, resultsVisibleCount);
 
       const galleryCards = await Promise.all(
-        allMatches.map(async (match) => {
+        visibleGalleryMatches.map(async match => {
           let images = [];
           const folderUrl = match.IMGFOLDER?.trim();
+
           if (folderUrl) {
             const folderMatch = folderUrl.match(/(?:[?&]id=|\/folders\/)([a-zA-Z0-9_-]+)/);
             const folderId = folderMatch ? folderMatch[1] : null;
             if (folderId) images = await fetchDriveImages(folderId);
           }
 
+          const meta = getLeagueMeta(match.Competition);
 
           const matchInfo = {
             homeTeam: match.HomeTeam || "",
@@ -433,354 +475,312 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode) 
             venue: match.Venue || "",
           };
 
-          // ✅ JSON-safe for inline onclick (prevents apostrophe breaking)
           const matchInfoJson = JSON.stringify(matchInfo)
             .replace(/</g, "\\u003c")
             .replace(/'/g, "\\u0027");
 
           const galleryImages = images.length
-            ? `<div class="gallery-grid">${images
-              .map(
-                (src, i) =>
-                  `<img src="${src}"
-                    data-drive-thumb="1"
-                    loading="lazy"
-                    decoding="async"
-                    alt="Match ${i + 1}"
-                    class="gallery-thumb"
-                onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'>`
-              )
-              .join("")}</div>`
+            ? `<div class="gallery-grid">${images.map((src, i) => `
+            <img src="${src}"
+              data-drive-thumb="1"
+              loading="lazy"
+              decoding="async"
+              alt="Match ${i + 1}"
+              class="gallery-thumb"
+              onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'>
+          `).join("")}</div>`
             : `<div class="no-images">No photos available.</div>`;
 
-
           return `
-            <div class="gallery-card ${(match.Result || "").toLowerCase()} ${match.Competition}">
-              <div class="gallery-header">
-                <h3>${match.HomeTeam} vs ${match.AwayTeam}</h3>
-                <p class="gallery-meta">${match.Date} • ${match.Venue || "Venue TBA"}</p>
-                <span class="gallery-result-label">${match.HomeScore} – ${match.AwayScore}</span>  
-                <span class="gallery-league"></span>              
-              </div>
-              ${galleryImages}
-            </div>
-          `;
-        })
-      );
+        <div class="gallery-card ${(match.Result || "").toLowerCase()} league-${meta.key}">
+          <div class="league-pill league-pill-${meta.key}">${meta.label}</div>
 
-      document.getElementById("resultsGrid").innerHTML = `
-        <div class="gallery-container">
-          ${galleryCards.join("")}
+          <div class="gallery-header">
+            <h3>${match.HomeTeam} vs ${match.AwayTeam}</h3>
+            <p class="gallery-meta">${match.Date} • ${match.Venue || "Venue TBA"}</p>
+            <span class="gallery-result-label">${match.HomeScore} – ${match.AwayScore}</span>
+          </div>
+
+          ${galleryImages}
         </div>
       `;
-      return; // ✅ Exit early so league layout doesn’t render
-    }
-
-    // 🧱 DEFAULT LEAGUE MODE (existing working logic)
-
-    const htmlMain = await (async () => {
-      const leagueSections = await Promise.all(
-        order.map(async (league) => {
-          const matches = grouped[league] || [];
-          const summary = leagueStats[league] || { P: 0, W: 0, L: 0, SheetURL: "#" };
-
-          // If there are no matches for this league
-          if (matches.length === 0) {
-            return `
-                  <section class="league-column ${league === "Banks League" ? "banks-league" : "trafalgar-league"}">
-                    <div class="league-header">
-                      <h2>${league} ${formatSeason(season)}</h2>
-                      <div class="pwl-grid">
-                        <a class="pwl played">P: 0</a>
-                        <a class="pwl won">W: 0</a>
-                        <a class="pwl lost">L: 0</a>
-                      </div>
-                    </div>
-                    <div class="no-data">No data available for ${league} ${season.replace("-", "/")}.</div>
-                  </section>
-                `;
-          }
-
-
-
-          // 🧮 Build HTML for each match (existing logic unchanged)
-          const matchHTMLs = await Promise.all(
-            matches.map(async (match) => {
-              const players = Array.from({ length: 10 }, (_, i) => {
-                const n = i + 1;
-
-                return {
-                  name: getMatchValue(match, `Player${n}`),
-                  score: getMatchValue(match, `C${n}`),
-                  fines: getMatchValue(match, `F${n}`),
-                  doubleFines: getMatchValue(match, `D${n}`),
-                  oneEightys: getMatchValue(match, `O${n}`),
-                  bulls: getMatchValue(match, `B${n}`),
-                  tonOuts: getMatchValue(match, `T${n}`),
-                };
-              })
-                .filter((p) => String(p.name || "").trim() !== "")
-                .sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
-
-              const isoDate = toISO(parseDate(match.Date));
-              const teamN = normalizeName("Oche Ness Monsters");
-              const homeN = normalizeName(match.HomeTeam);
-              const awayN = normalizeName(match.AwayTeam);
-
-              // opponent is "the team that isn't us"
-              const opp = homeN === teamN ? match.AwayTeam : match.HomeTeam;
-              const ha = homeN === teamN ? "Home" : "Away";
-
-              const cardKey = `${isoDate}|${normalizeName(opp)}|${ha.toLowerCase()}`;
-
-
-              // 🎞️ Fetch images
-              let images = [];
-              const folderUrl = match.IMGFOLDER?.trim();
-              // 🖼️ If we're in gallery mode, just return gallery card instead of full result card
-              if (viewMode === "gallery") {
-                const matchInfo = {
-                  homeTeam: match.HomeTeam || "",
-                  awayTeam: match.AwayTeam || "",
-                  date: match.Date || "",
-                  venue: match.Venue || "",
-                };
-                const matchInfoJson = JSON.stringify(matchInfo)
-                  .replace(/</g, "\\u003c")
-                  .replace(/'/g, "\\u0027"); // ✅ escape apostrophes for inline onclick
-
-
-                const galleryImages = images.length
-                  ? `
-                        <div class="gallery-grid">
-                          ${images.map(
-                    (src, i) => `
-                              <img 
-                                src="${src}" 
-                                alt="Match photo ${i + 1}" 
-                                class="gallery-thumb"
-                                onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'>
-                            `
-                  ).join("")}
-                        </div>`
-                  : `<div class="no-images">No photos available.</div>`;
-
-                const resultClass = (match.Result || "").toLowerCase();
-
-                return `
-                      <div class="gallery-card ${resultClass}">
-                        <div class="gallery-league-tag ${league.toLowerCase().includes("trafalgar") ? "trafalgar" : "banks"}">
-                          ${league.toLowerCase().includes("trafalgar") ? "TRAFALGAR" : "BANKS"}
-                        </div>
-                        <div class="gallery-header">
-                          <h3>${match.HomeTeam} vs ${match.AwayTeam}</h3>
-                          <p class="gallery-meta">${match.Date} • ${match.Venue || "Venue TBA"}</p>
-                          <span class="gallery-score">${match.HomeScore} – ${match.AwayScore}</span>
-                          <span class="result-label">${match.Result}</span>
-                        </div>
-                        ${galleryImages}
-                      </div>
-                    `;
-
-              }
-
-              if (folderUrl) {
-                const folderMatch = folderUrl.match(/(?:[?&]id=|\/folders\/)([a-zA-Z0-9_-]+)/);
-                const folderId = folderMatch ? folderMatch[1] : null;
-                if (folderId) {
-                  images = await fetchDriveImages(folderId);
-                }
-              }
-              const visible = images.slice(0, 4);
-              const extraCount = Math.max(0, images.length - visible.length);
-
-
-              const matchInfo = {
-                homeTeam: match.HomeTeam || "",
-                awayTeam: match.AwayTeam || "",
-                date: match.Date || "",
-                venue: match.Venue || "",
-              };
-              const matchInfoJson = JSON.stringify(matchInfo)
-                .replace(/</g, "\\u003c")
-                .replace(/'/g, "\\u0027"); // ✅ escape apostrophes for inline onclick
-
-
-              // 🧱 Build image grid
-              const imageGrid = images.length
-                ? `
-                  <div class="match-image-grid">
-                    ${visible
-                  .map(
-                    (src, i) => `
-                      <div class="${i === 3 && extraCount > 0 ? "image-count-overlay" : ""
-                      }"
-                        data-extra="${i === 3 && extraCount > 0 ? "+" + extraCount : ""
-                      }"
-                        ${i === 3 && extraCount > 0
-                        ? `onclick='openLightbox(${JSON.stringify(
-                          images
-                        )}, ${i}, event, ${matchInfoJson})'`
-                        : ""
-                      }>
-                        <img src="${src}"
-                          data-drive-thumb="1"
-                          loading="lazy"
-                          decoding="async"
-                          alt="Match photo ${i + 1}"
-                            onclick='openLightbox(${JSON.stringify(
-                        images
-                      )}, ${i}, event, ${matchInfoJson})'>
-                      </div>`
-                  )
-                  .join("")}
-                  </div>`
-                : "";
-
-              // 🧾 Player table HTML
-              const playerHTML = `
-                <div class="player-data player-stats" style="display: none;">
-                  <div class="flex-layout">
-                    <div class="player-table-wrapper">
-                      <table class="player-table">
-                        <thead>
-                          <tr>
-                            <th>Player</th>
-                            <th>Checkouts</th>
-                            <th>Fines</th>
-                            <th>Specials</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          ${players
-                  .map((p) => {
-                    const hasDoubleFine =
-                      p.doubleFines === "TRUE" || p.doubleFines === true;
-                    const fineClass = hasDoubleFine ? "fine-highlight" : "";
-                    const specials = [];
-                    if (p.oneEightys && Number(p.oneEightys) > 0) {
-                      const count =
-                        Number(p.oneEightys) > 1
-                          ? `×${p.oneEightys}`
-                          : "";
-                      specials.push(
-                        `<span class="badge badge-180" title="Hit a 180">180${count}</span>`
-                      );
-                    }
-                    if (p.bulls && Number(p.bulls) > 0) {
-                      const count =
-                        Number(p.bulls) > 1 ? `×${p.bulls}` : "";
-                      specials.push(
-                        `<span class="badge badge-bull" title="Bull checkout">Bull${count}</span>`
-                      );
-                    }
-                    if (p.tonOuts && Number(p.tonOuts) > 0) {
-                      const count =
-                        Number(p.tonOuts) > 1 ? `×${p.tonOuts}` : "";
-                      specials.push(
-                        `<span class="badge badge-ton" title="Ton+ checkout">Ton+${count}</span>`
-                      );
-                    }
-                    return `
-                                <tr>
-                                  <td>${p.name
-                        ? `<a href="player.html?name=${encodeURIComponent(
-                          p.name
-                        )}" class="player-link">${p.name}</a>`
-                        : ""
-                      }<td>${p.score && Number(p.score) === 0
-                        ? `<span class="bagel" title="No checkouts">🥯</span>`
-                        : p.score || ""
-                      }</td>
-                                  <td class="${fineClass}">${formatCurrency(p.fines)}</td>
-                                  <td><div class="specials-container">${specials.join(
-                        " "
-                      )}</div></td>
-                                </tr>`;
-                  })
-                  .join("")}
-                        </tbody>
-                      </table>
-                    </div>
-                    <div class="player-images">${imageGrid}</div>
-                  </div>
-
-                  ${match.Venue
-                  ? `<div class="match-venue">
-                          <img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/map-pin.svg" alt="Venue" class="venue-icon">
-                          <span class="venue-name">${match.Venue}</span>
-                        </div>`
-                  : ""
-                }
-                </div>
-                `;
-
-              // 🏁 Match card
-              return `
-                <div class="result-card ${(match.Result || "").toLowerCase()}"
-                  data-key="${cardKey}"
-                  data-date="${isoDate}"
-                  data-opp="${normalizeName(opp)}"
-                  data-ha="${ha.toLowerCase()}">
-                  ${match["Cup?"]?.toLowerCase() === "true" ||
-                  match["Cup?"]?.toLowerCase() === "yes"
-                  ? `<img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/trophy.svg"
-                          alt="Cup Match" class="cup-icon" title="Cup Match">`
-                  : ""
-                }
-                  <div class="teams">
-                    <span class="team home">${match.HomeTeam}</span>
-                    <span class="score">${match.HomeScore} – ${match.AwayScore}</span>
-                    <span class="team away">${match.AwayTeam}</span>
-                  </div>
-                  <p class="date">${match.Date}</p>
-                  <div class="result-label-wrapper">
-                    ${images.length
-                  ? `
-                        <div class="result-images-corner"
-                          onclick='event.stopPropagation(); openLightbox(${JSON.stringify(
-                    images
-                  )}, 0, event, ${matchInfoJson})'
-                            title="Match photos">
-                          <img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/image.svg"
-                              alt="Images" class="result-has-images">
-                          <span class="image-count">${images.length}</span>
-                        </div>`
-                  : ""
-                }
-                    <span class="result-label">${match.Result}</span>
-                  </div>
-
-                  ${playerHTML}
-                  <button class="toggle-players" onclick="togglePlayers(this)" title="Match details">▽</button>
-                </div>
-                  `;
-            })
-          );
-
-
-          return `
-                  <section class="league-column ${league === "Banks League" ? "banks-league" : "trafalgar-league"}">
-                    <div class="league-header">
-                      <h2>${league} ${formatSeason(season)}</h2>
-                      <div class="pwl-grid">
-                        <a class="pwl played">P: ${summary.P}</a>
-                        <a class="pwl won">W: ${summary.W}</a>
-                        <a class="pwl lost">L: ${summary.L}</a>
-                      </div>
-                    </div>
-                    ${matchHTMLs.join("")}
-                  </section>
-                `;
         })
       );
 
-      return leagueSections.join("");
-    })();
+      const hasMoreGalleryResults = allMatches.length > resultsVisibleCount;
+
+      if (appendFrom !== null) {
+        document.querySelector(".gallery-container")?.insertAdjacentHTML("beforeend", galleryCards.join(""));
+
+        const oldButton = document.getElementById("loadMoreResultsBtn");
+        oldButton?.remove();
+
+        if (hasMoreGalleryResults) {
+          document.getElementById("resultsGrid").insertAdjacentHTML("beforeend", `
+          <button id="loadMoreResultsBtn" class="loadMoreResultsBtn" type="button">
+            Load more results
+          </button>
+        `);
+        }
+      } else {
+        document.getElementById("resultsGrid").innerHTML = `
+       ${filterHtml}
+        <div class="gallery-container">
+          ${galleryCards.join("") || `<div class="no-data">No matches found.</div>`}
+        </div>
+
+       ${hasMoreGalleryResults ? `
+          <button id="loadMoreResultsBtn" class="loadMoreResultsBtn" type="button">
+            Load more results
+          </button>
+        ` : ""}
+      `;
+
+        bindLeagueFilter();
+      }
+
+      document.getElementById("loadMoreResultsBtn")?.addEventListener("click", async () => {
+        const button = document.getElementById("loadMoreResultsBtn");
+        if (!button) return;
+
+        const previousCount = resultsVisibleCount;
+
+        button.disabled = true;
+        button.innerHTML = `
+          <span class="miniSpinner"></span>
+          Loading more...
+        `;
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        resultsVisibleCount += RESULTS_PAGE_SIZE;
+        fetchResults(currentSeason, currentViewMode, previousCount);
+      });
+
+      return;
+    }
+
+    const visibleMatches =
+      appendFrom === null
+        ? allMatches.slice(0, resultsVisibleCount)
+        : allMatches.slice(appendFrom, resultsVisibleCount);
+
+    const resultCards = await Promise.all(
+      visibleMatches.map(async match => {
+        const players = Array.from({ length: 10 }, (_, i) => {
+          const n = i + 1;
+
+          return {
+            name: getMatchValue(match, `Player${n}`),
+            score: getMatchValue(match, `C${n}`),
+            fines: getMatchValue(match, `F${n}`),
+            doubleFines: getMatchValue(match, `D${n}`),
+            oneEightys: getMatchValue(match, `O${n}`),
+            bulls: getMatchValue(match, `B${n}`),
+            tonOuts: getMatchValue(match, `T${n}`),
+          };
+        })
+          .filter(p => String(p.name || "").trim() !== "")
+          .sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+
+        const isoDate = toISO(parseDate(match.Date));
+        const teamN = normalizeName("Oche Ness Monsters");
+        const homeN = normalizeName(match.HomeTeam);
+        const awayN = normalizeName(match.AwayTeam);
+
+        const opp = homeN === teamN ? match.AwayTeam : match.HomeTeam;
+        const ha = homeN === teamN ? "Home" : "Away";
+        const cardKey = `${isoDate}|${normalizeName(opp)}|${ha.toLowerCase()}`;
+
+        const meta = getLeagueMeta(match.Competition);
+
+        let images = [];
+        const folderUrl = match.IMGFOLDER?.trim();
+
+        if (folderUrl) {
+          const folderMatch = folderUrl.match(/(?:[?&]id=|\/folders\/)([a-zA-Z0-9_-]+)/);
+          const folderId = folderMatch ? folderMatch[1] : null;
+          if (folderId) images = await fetchDriveImages(folderId);
+        }
+
+        const visibleCount = window.innerWidth >= 1100 ? 8 : 4;
+        const visible = images.slice(0, visibleCount);
+        const extraCount = Math.max(0, images.length - visible.length);
+
+        const matchInfo = {
+          homeTeam: match.HomeTeam || "",
+          awayTeam: match.AwayTeam || "",
+          date: match.Date || "",
+          venue: match.Venue || "",
+        };
+
+        const matchInfoJson = JSON.stringify(matchInfo)
+          .replace(/</g, "\\u003c")
+          .replace(/'/g, "\\u0027");
+
+        const imageGrid = images.length
+          ? `
+        <div class="match-image-grid">
+          ${visible.map((src, i) => `
+            <div class="${i === visible.length - 1 && extraCount > 0 ? "image-count-overlay" : ""}"
+              data-extra="${i === visible.length - 1 && extraCount > 0 ? "+" + extraCount : ""}"
+              ${i === visible.length - 1 && extraCount > 0
+              ? `onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'`
+              : ""}>
+              <img src="${src}"
+                data-drive-thumb="1"
+                loading="lazy"
+                decoding="async"
+                alt="Match photo ${i + 1}"
+                onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'>
+            </div>
+          `).join("")}
+        </div>`
+          : "";
+
+        const playerHTML = `
+      <div class="player-data player-stats" style="display: none;">
+        <div class="flex-layout">
+          <div class="player-table-wrapper">
+            <table class="player-table">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Checkouts</th>
+                  <th>Fines</th>
+                  <th>Specials</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${players.map(p => {
+          const hasDoubleFine = p.doubleFines === "TRUE" || p.doubleFines === true;
+          const fineClass = hasDoubleFine ? "fine-highlight" : "";
+
+          const specials = [];
+          if (p.oneEightys && Number(p.oneEightys) > 0) specials.push(`<span class="badge badge-180">180${Number(p.oneEightys) > 1 ? `×${p.oneEightys}` : ""}</span>`);
+          if (p.bulls && Number(p.bulls) > 0) specials.push(`<span class="badge badge-bull">Bull${Number(p.bulls) > 1 ? `×${p.bulls}` : ""}</span>`);
+          if (p.tonOuts && Number(p.tonOuts) > 0) specials.push(`<span class="badge badge-ton">Ton+${Number(p.tonOuts) > 1 ? `×${p.tonOuts}` : ""}</span>`);
+
+          return `
+                    <tr>
+                      <td>${p.name ? `<a href="player.html?name=${encodeURIComponent(p.name)}" class="player-link">${p.name}</a>` : ""}</td>
+                      <td>${p.score && Number(p.score) === 0 ? `<span class="bagel">🥯</span>` : p.score || ""}</td>
+                      <td class="${fineClass}">${formatCurrency(p.fines)}</td>
+                      <td><div class="specials-container">${specials.join(" ")}</div></td>
+                    </tr>
+                  `;
+        }).join("")}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="player-images">${imageGrid}</div>
+        </div>
+
+        ${match.Venue ? `
+          <div class="match-venue">
+            <img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/map-pin.svg" alt="Venue" class="venue-icon">
+            <span class="venue-name">${match.Venue}</span>
+          </div>
+        ` : ""}
+      </div>
+    `;
+
+        return `
+      <div class="result-card result-card-wide ${(match.Result || "").toLowerCase()} league-${meta.key}"
+        data-key="${cardKey}"
+        data-date="${isoDate}"
+        data-opp="${normalizeName(opp)}"
+        data-ha="${ha.toLowerCase()}">
+
+        <div class="league-pill league-pill-${meta.key}">${meta.label}</div>
+
+        ${match["Cup?"]?.toLowerCase() === "true" || match["Cup?"]?.toLowerCase() === "yes"
+            ? `<img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/trophy.svg" alt="Cup Match" class="cup-icon" title="Cup Match">`
+            : ""}
+
+        <div class="teams">
+          <span class="team home">${match.HomeTeam}</span>
+          <span class="score ${match.Result?.toLowerCase() === "won" ? "score-win" : "score-loss"}">
+            ${match.HomeScore} – ${match.AwayScore}
+          </span>
+          <span class="team away">${match.AwayTeam}</span>
+        </div>
+
+        <p class="date">${match.Date}</p>
+
+        <div class="result-label-wrapper">
+          ${images.length ? `
+            <div class="result-images-corner"
+              onclick='event.stopPropagation(); openLightbox(${JSON.stringify(images)}, 0, event, ${matchInfoJson})'
+              title="Match photos">
+              <img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/image.svg" alt="Images" class="result-has-images">
+              <span class="image-count">${images.length}</span>
+            </div>
+          ` : ""}
+
+          <span class="result-label">${match.Result}</span>
+        </div>
+
+        ${playerHTML}
+        <button class="toggle-players" onclick="togglePlayers(this)" title="Match details">▽</button>
+      </div>
+    `;
+      })
+    );
+
+    const hasMoreResults = allMatches.length > resultsVisibleCount;
+
+    const htmlMain = `
+  ${filterHtml}
+      <div class="results-list">
+        ${resultCards.join("") || `<div class="no-data">No matches found.</div>`}
+      </div>
+
+      ${hasMoreResults ? `
+        <button id="loadMoreResultsBtn" class="loadMoreResultsBtn" type="button">
+          Load more results
+        </button>
+      ` : ""}
+    `;
 
     // 🎨 Render
-    document.getElementById("resultsGrid").innerHTML = htmlMain;
-    requestAnimationFrame(() => openResultFromQuery());
+    if (appendFrom !== null) {
+      document.querySelector(".results-list")?.insertAdjacentHTML("beforeend", resultCards.join(""));
+
+      const oldButton = document.getElementById("loadMoreResultsBtn");
+      oldButton?.remove();
+
+      if (hasMoreResults) {
+        document.getElementById("resultsGrid").insertAdjacentHTML("beforeend", `
+      <button id="loadMoreResultsBtn" class="loadMoreResultsBtn" type="button">
+        Load more results
+      </button>
+    `);
+      }
+    } else {
+      document.getElementById("resultsGrid").innerHTML = htmlMain;
+      bindLeagueFilter();
+      requestAnimationFrame(() => openResultFromQuery());
+    }
+
+    document.getElementById("loadMoreResultsBtn")?.addEventListener("click", async () => {
+      const button = document.getElementById("loadMoreResultsBtn");
+      if (!button) return;
+
+      const previousCount = resultsVisibleCount;
+
+      button.disabled = true;
+      button.innerHTML = `
+    <span class="miniSpinner"></span>
+    Loading more...
+  `;
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      resultsVisibleCount += RESULTS_PAGE_SIZE;
+      fetchResults(currentSeason, currentViewMode, previousCount);
+    });
 
 
   } catch (err) {
@@ -880,6 +880,8 @@ function initPage() {
       btn.classList.add("active");
 
       currentSeason = btn.dataset.season;
+      resultsVisibleCount = RESULTS_PAGE_SIZE;
+
       saveUserPrefs();
       updateTitle(currentViewMode, currentSeason);
       if (currentViewMode === "stats") {
@@ -903,6 +905,7 @@ function initPage() {
       btn.classList.add("active");
 
       currentViewMode = btn.dataset.view;
+      resultsVisibleCount = RESULTS_PAGE_SIZE;
 
       // ✅ keep URL in sync (no reload)
       history.replaceState(null, "", `#${currentViewMode}`);
@@ -1035,45 +1038,83 @@ async function fetchStats(season) {
   }
 
   // === Build HTML ===
-  const banksStats = leagueStats?.["Banks League"] || { P: 0, W: 0, L: 0 };
-  const trafStats = leagueStats?.["Trafalgar League"] || { P: 0, W: 0, L: 0 };
+  const statsLeagues = [
+    {
+      name: "Banks League",
+      key: "banks",
+      csv: banksCsv,
+      stats: leagueStats?.["Banks League"] || { P: 0, W: 0, L: 0 }
+    },
+    {
+      name: "Trafalgar League",
+      key: "trafalgar",
+      csv: trafCsv,
+      stats: leagueStats?.["Trafalgar League"] || { P: 0, W: 0, L: 0 }
+    },
+    {
+      name: "Smithfield League",
+      key: "smithfield",
+      csv: null,
+      stats: { P: 0, W: 0, L: 0 }
+    },
+    {
+      name: "COLDA League",
+      key: "colda",
+      csv: null,
+      stats: { P: 0, W: 0, L: 0 }
+    }
+  ];
+
+  const visibleStatsLeagues =
+    currentLeagueFilter === "all"
+      ? statsLeagues
+      : statsLeagues.filter(league => league.name === currentLeagueFilter);
+
+  const filterHtml = renderLeagueFilter(
+    statsLeagues.map(league => ({ Competition: league.name }))
+  );
 
   const html = `
-    <div class="stats-container">
+  ${filterHtml}
 
-      <!-- ⚙️ Stats Grid -->
-      <div class="stats-grid">
-        <div class="league-box banks-league active">
-          <div class="league-header">
-            <h2>Banks League ${formattedSeason}</h2>
-            <div class="pwl-grid">
-              <a class="pwl played">P: ${banksStats.P || 0}</a>
-              <a class="pwl won">W: ${banksStats.W || 0}</a>
-              <a class="pwl lost">L: ${banksStats.L || 0}</a>
-            </div>
-          </div>
-          ${csvToStyledTable(banksCsv)}
-        </div>
+  <div class="stats-container">
+    <div class="stats-grid">
+      ${visibleStatsLeagues.map(league => {
+    const meta = getLeagueMeta(league.name);
+    const stats = league.stats;
 
-        <div class="league-box trafalgar-league">
-          <div class="league-header">
-            <h2>Trafalgar League ${formattedSeason}</h2>
-            <div class="pwl-grid">
-              <a class="pwl played">P: ${trafStats.P || 0}</a>
-              <a class="pwl won">W: ${trafStats.W || 0}</a>
-              <a class="pwl lost">L: ${trafStats.L || 0}</a>
+    return `
+          <div class="league-box league-${meta.key} ${meta.key}-league active">
+            <div class="league-header">
+              <h2>${league.name} ${formattedSeason}</h2>
+              <div class="pwl-grid">
+                <a class="pwl played">P: ${stats.P || 0}</a>
+                <a class="pwl won">W: ${stats.W || 0}</a>
+                <a class="pwl lost">L: ${stats.L || 0}</a>
+              </div>
             </div>
+
+            ${league.csv
+        ? csvToStyledTable(league.csv)
+        : `<div class="no-data">No stats available for ${league.name} ${formattedSeason} yet.</div>`}
           </div>
-          ${trafCsv
-      ? csvToStyledTable(trafCsv)
-      : `<div class="no-data">No data available for Trafalgar League ${formattedSeason}.</div>`}
-        </div>
-      </div>
+        `;
+  }).join("")}
     </div>
-  `;
+  </div>
+`;
 
   // === Render ===
   grid.innerHTML = html;
+  bindLeagueFilter();
+
+  const statsGrid = grid.querySelector(".stats-grid");
+
+  if (visibleStatsLeagues.length === 1) {
+    statsGrid.classList.add("single-league");
+  } else {
+    statsGrid.classList.remove("single-league");
+  }
 
   // === League tab switching (mobile only) ===
   document.querySelectorAll(".league-tab").forEach(tab => {

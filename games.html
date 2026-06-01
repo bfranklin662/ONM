@@ -66,30 +66,40 @@
 
     <section class="scorerSetupCard">
       <div class="setupGrid">
-        <div class="sectionTitle">Choose a game</div>
 
-        <a href="dart-scorer.html?mode=league" class="gameTile leagueGameTile">
-          <div>
+        <a href="dart-scorer.html?mode=league" class="gameTile gameTileLeague">
+          <div class="gameTileImage" style="background-image:url('graphics/online-league-card-art.png')"></div>
+          <div class="gameTileBody">
             <h2>Monsters Online League</h2>
+            <p class="gameTileKicker">Competitive darts • Leaderboard</p>
+            <div class="gameTileStats">
+              <span>👤 Players: <strong id="molGamePlayers">-</strong></span>
+              <span>🏆 Rank: <strong id="molGameRank">-</strong></span>
+              <span>⭐ Rating: <strong id="molGameRating">-</strong></span>
+            </div>
             <p>Play ranked online 501 matches, climb the leaderboard, track averages and other stats.</p>
           </div>
-          <span>Play →</span>
+          <span class="gameTileAction">Play →</span>
         </a>
 
-        <a href="dart-scorer.html?mode=casual" class="gameTile">
-          <div>
+        <a href="dart-scorer.html?mode=casual" class="gameTile gameTileCasual">
+          <div class="gameTileImage" style="background-image:url('graphics/casual-scorer-card-art.png')"></div>
+          <div class="gameTileBody">
             <h2>Casual Dart Scorer</h2>
+            <p class="gameTileKicker">Casual darts • Score tracker</p>
             <p>Local-only darts scorer for casual games.</p>
           </div>
-          <span>Open →</span>
+          <span class="gameTileAction">Open →</span>
         </a>
 
-        <a href="fines.html" class="gameTile">
-          <div>
-            <h2>Fine Tracker</h2>
-            <p>Track match fines, 180s, bulls, ton-outs and weekly damage.</p>
+        <a href="fines.html" class="gameTile gameTileFines">
+          <div class="gameTileImage" style="background-image:url('graphics/fine-tracker-card-art.png')"></div>
+          <div class="gameTileBody">
+            <h2>Fine Tracker • Results Submit</h2>
+            <p class="gameTileKicker">Match analytics • Fine tracking</p>
+            <p>Track match fines, spin for double fines and submit match checkouts and specials data.</p>
           </div>
-          <span>Open →</span>
+          <span class="gameTileAction">Open →</span>
         </a>
       </div>
     </section>
@@ -111,6 +121,8 @@
   <script src="scripts/player-data.js"></script>
   <script src="scripts/session.js"></script>
   <script src="scripts/profile.js"></script>
+  <script type="module" defer src="scripts/firebase-live.js"></script>
+  <script defer src="scripts/games.js"></script>
 
   <script>
     function toggleSidebar() {

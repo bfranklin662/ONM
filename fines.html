@@ -136,6 +136,8 @@
             <select id="matchLeague">
               <option value="Trafalgar League">Trafalgar League</option>
               <option value="Banks League">Banks League</option>
+              <option value="Smithfield League">Smithfield League</option>
+              <option value="COLDA League">COLDA League</option>
             </select>
             <span class="selectArrow">▾</span>
           </div>
@@ -185,15 +187,6 @@
           <input id="matchDate" type="date">
         </div>
 
-        <div class="field imageField">
-          <label>Images</label>
-          <div class="imageUploadBox" id="openImagesBox">
-            <span id="imageText">📷 Add images</span>
-            <button id="openImagesBtn" type="button" class="imagePlusBtn">+</button>
-          </div>
-          <input id="matchImageInput" type="file" accept="image/*" multiple hidden>
-        </div>
-
         <div class="field">
           <label>Cup?</label>
           <div id="cupToggle" class="homeAwayToggle cupSwitch">
@@ -204,7 +197,7 @@
           <input id="matchCup" type="checkbox" hidden>
         </div>
 
-        <div class="field">
+        <div id="matchStageField" class="field matchStageField hidden">
           <label>Stage</label>
           <input id="matchStage" type="text" placeholder="Group / Quarter-Final / Final" spellcheck="false">
         </div>
@@ -227,7 +220,7 @@
       <div class="bottomBar">
         <div class="row">
           <button id="reviewBackBtn" class="btn btnGhost">Back</button>
-          <button id="reviewSubmitBtn" class="btn btnPrimary">Confirm Result</button>
+          <button id="reviewSubmitBtn" class="btn btnPrimary">Submit Result</button>
         </div>
         <div id="submittedActions" class="row hidden">
           <button id="resetAfterSubmitBtn" type="button" class="btn btnGhost">Reset game</button>
@@ -328,8 +321,20 @@
     </div>
   </div>
 
+  <div id="profileOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard profileModalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Profile</div>
+        <button id="closeProfileBtn" class="modalClose" type="button">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <div id="profileModalContent"></div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
-  <script src="scripts/fines.js"></script>
   <script>
     function toggleSidebar() {
       const sidebar = document.getElementById("sidebar");
@@ -341,10 +346,11 @@
       });
     });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="scripts/player-data.js"></script>
   <script src="scripts/session.js"></script>
   <script src="scripts/profile.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="scripts/fines.js"></script>
 </body>
 
 </html>
