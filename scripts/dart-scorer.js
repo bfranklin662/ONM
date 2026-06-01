@@ -4673,6 +4673,7 @@ async function initDartScorerAuth() {
   }
 
   loggedInUser = user;
+  window.loggedInUser = user;
 
   updateLeaguePlayButton();
 
@@ -4700,6 +4701,10 @@ async function initDartScorerAuth() {
 
   if (!restoredOnlineGame) {
     initialisePageModeView();
+
+    if (PAGE_MODE === "league") {
+      window.PlayerSeasonVote?.init?.();
+    }
   }
 
   console.log("[DART DEBUG] initDartScorerAuth complete");
@@ -5922,6 +5927,26 @@ function preventFullscreenScroll(event) {
 
 document.addEventListener("touchmove", preventFullscreenScroll, { passive: false });
 
+function isInsideActiveMatch() {
+  const scorerVisible =
+    document.querySelector(".scorerCard") &&
+    !document.querySelector(".scorerCard").classList.contains("hidden");
+
+  const readyLobbyVisible =
+    document.getElementById("competitiveReadyOverlay") &&
+    !document.getElementById("competitiveReadyOverlay").classList.contains("hidden");
+
+  const deciderVisible =
+    document.getElementById("startDeciderScreen") &&
+    !document.getElementById("startDeciderScreen").classList.contains("hidden");
+
+  return Boolean(
+    scorerVisible ||
+    readyLobbyVisible ||
+    deciderVisible
+  );
+}
+
 async function loadLoggedInPlayer(user) {
   console.log("[DART DEBUG] loadLoggedInPlayer user:", user);
   console.log("[DART DEBUG] guestPlayerOneName:", els.guestPlayerOneName);
@@ -6308,6 +6333,8 @@ async function loadExpandedPlayerStats(row) {
       linkedPlayerName: playerName,
       linkedPlayerKey: playerKey
     });
+
+    console.log("[VOTE DEBUG]", result);
 
     if (!result.success) {
       details.innerHTML = `<div class="leaderboardEmpty">Could not load stats.</div>`;

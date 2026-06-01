@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="styles/buttons.css">
   <link rel="stylesheet" href="styles/dart-scorer.css" />
   <link rel="stylesheet" href="styles/profile.css" />
+  <link rel="stylesheet" href="styles/player-season-vote.css">
   <link rel="icon" type="image/png" href="/graphics/favicon1.png" sizes="32x32">
   <meta property="og:title" content="Oche Ness Monsters">
   <meta property="og:description" content="London based darts team">
@@ -684,12 +685,57 @@
     </div>
   </div>
 
+  <div id="playerSeasonVoteOverlay" class="modalOverlay hidden">
+    <div class="modalCard playerSeasonVoteCard">
+
+      <div class="modalHeader">
+        <div class="modalTitle">🏆 Players' Player of the Season</div>
+        <button id="closePlayerSeasonVoteBtn" class="modalClose">✕</button>
+      </div>
+
+      <div class="modalBody">
+
+        <h3>
+          Vote for your Banks & Trafalgar League 25/26
+          Players' Player of the Season
+        </h3>
+
+        <p class="voteDeadline">
+          Voting closes 26th June.
+        </p>
+
+        <div class="playerSeasonVoteControls">
+          <select id="playerSeasonVoteSelect"></select>
+          <button id="submitPlayerSeasonVoteBtn">Submit Vote</button>
+        </div>
+
+        <div class="playerSeasonStatsSection">
+          <h4>Season Stats</h4>
+
+          <div class="playerSeasonStatsWrap">
+            <table id="playerSeasonVoteStatsTable"></table>
+          </div>
+
+          <button id="expandPlayerSeasonStatsBtn" class="btnSecondary">
+            Show all players
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <button id="playerSeasonVoteLauncher" class="playerSeasonVoteLauncher hidden">
+    🏆
+  </button>
+
   <div id="dartVoiceToast" class="dartVoiceToast hidden"></div>
 
   <script src="scripts/player-data.js"></script>
   <script src="scripts/session.js"></script>
   <script src="scripts/profile.js"></script>
   <script type="module" defer src="scripts/firebase-live.js"></script>
+  <script defer src="scripts/player-season-vote.js"></script>
   <script defer src="scripts/dart-scorer.js"></script>
   <script>
     function toggleSidebar() {
