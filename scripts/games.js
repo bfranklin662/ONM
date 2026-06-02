@@ -7,29 +7,27 @@ async function initGamesPageLeagueStats() {
   const ratingEl = document.getElementById("molGameRating");
   const playersEl = document.getElementById("molGamePlayers");
 
-  if (!rankEl || !ratingEl) return;
+  const rankPill = document.getElementById("molGameRankPill");
+  const ratingPill = document.getElementById("molGameRatingPill");
 
-  const user = window.ONMSession?.getUser?.();
+  if (!playersEl) return;
 
-  if (!user || !window.ONMLiveDarts) {
-    rankEl.textContent = "-";
-    ratingEl.textContent = "-";
+  rankPill?.classList.add("hidden");
+  ratingPill?.classList.add("hidden");
+
+  if (!window.ONMLiveDarts) {
+    playersEl.textContent = "-";
     return;
   }
-
-  const myKey =
-    user.linkedPlayerKey ||
-    user.playerKey ||
-    user.userId ||
-    "";
-
-  if (!myKey) return;
 
   try {
     const { db, ref, get } = window.ONMLiveDarts;
     const snapshot = await get(ref(db, "ratings"));
 
-    if (!snapshot.exists()) return;
+    if (!snapshot.exists()) {
+      playersEl.textContent = "0";
+      return;
+    }
 
     const players = Object.values(snapshot.val())
       .map(player => ({
@@ -37,20 +35,37 @@ async function initGamesPageLeagueStats() {
         rating: Number(player.rating || 1000),
         gamesPlayed: Number(player.gamesPlayed || 0)
       }))
-      .filter(player => player.gamesPlayed > 0)
+      .filter(player => Number(player.gamesPlayed || 0) > 0)
       .sort((a, b) => b.rating - a.rating);
 
-    if (playersEl) {
-      playersEl.textContent = players.length;
-    }
+    playersEl.textContent = players.length;
+
+    const user = window.ONMSession?.getUser?.();
+
+    if (!user) return;
+
+    const myKey =
+      user.linkedPlayerKey ||
+      user.playerKey ||
+      user.userId ||
+      "";
+
+    if (!myKey) return;
 
     const myIndex = players.findIndex(player => player.playerKey === myKey);
     const me = myIndex >= 0 ? players[myIndex] : null;
 
-    rankEl.textContent = me ? myIndex + 1 : "-";
-    ratingEl.textContent = me ? me.rating : "-";
+    if (!me || Number(me.gamesPlayed || 0) < 1) return;
+
+    if (rankEl) rankEl.textContent = myIndex + 1;
+    if (ratingEl) ratingEl.textContent = me.rating;
+
+    rankPill?.classList.remove("hidden");
+    ratingPill?.classList.remove("hidden");
+
   } catch (err) {
     console.warn("Could not load games page league stats:", err);
+    playersEl.textContent = "-";
   }
 }
 

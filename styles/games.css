@@ -136,7 +136,31 @@ body::before {
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(0,0,0,.22);
   border-radius: 999px;
-  padding: 10px 16px;
+  padding: 6px 12px;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.gameTileStats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 800px) {
+  .gameTileStats {
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+    max-width: 100%;
+  }
+
+  .gameTileStats span {
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    line-height: 1;
+    min-width: 0;
+  }
 }
 
 .gameTileAction {
