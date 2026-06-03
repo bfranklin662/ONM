@@ -8,7 +8,28 @@ let MATCH_MODE = "local";
 let STATS_MODE = "casual";
 window.STATS_MODE = STATS_MODE;
 
-const PAGE_MODE = new URLSearchParams(window.location.search).get("mode") || "league";
+const params = new URLSearchParams(window.location.search);
+const PAGE_MODE = params.get("mode") === "league" ? "league" : "casual";
+
+function lockScorerZoom() {
+  document.addEventListener("gesturestart", event => event.preventDefault(), { passive: false });
+  document.addEventListener("gesturechange", event => event.preventDefault(), { passive: false });
+  document.addEventListener("gestureend", event => event.preventDefault(), { passive: false });
+
+  let lastTouchEnd = 0;
+
+  document.addEventListener("touchend", event => {
+    const now = Date.now();
+
+    if (now - lastTouchEnd <= 300) {
+      event.preventDefault();
+    }
+
+    lastTouchEnd = now;
+  }, { passive: false });
+}
+
+lockScorerZoom();
 
 document.body.classList.toggle("casualMode", PAGE_MODE === "casual");
 document.body.classList.toggle("leagueMode", PAGE_MODE !== "casual");
@@ -256,7 +277,151 @@ let rematchStarting = false;
 
 let gameOnAnnouncedForMatchId = null;
 
+let onlineHeartbeatInterval = null;
+let onlineDisconnectInterval = null;
+let onlineOpponentMissingShown = false;
+
+const ONLINE_HEARTBEAT_MS = 10000;
+const ONLINE_MISSING_AFTER_MS = 25000;
+const ONLINE_ABANDON_AFTER_MS = 180000;
+
 const ONLINE_SESSION_KEY = "onmActiveDartMatch";
+
+function getOpponentKeyFromMatch(match) {
+  const myKey = getCurrentPlayerKey();
+
+  if (myKey === match.hostPlayerKey) return match.guestPlayerKey;
+  if (myKey === match.guestPlayerKey) return match.hostPlayerKey;
+
+  return "";
+}
+
+function showOpponentMissingOverlay(message = "Opponent disconnected. Waiting for them to rejoin...") {
+  let overlay = document.getElementById("onlineReconnectOverlay");
+
+  if (!overlay) {
+    document.body.insertAdjacentHTML("beforeend", `
+      <div id="onlineReconnectOverlay" class="modalOverlay">
+        <div class="modalCard">
+          <div class="modalHeader">
+            <div class="modalTitle">Online match paused</div>
+          </div>
+          <div class="modalBody">
+            <div class="loading-results">
+              <div class="spinner"></div>
+              <p id="onlineReconnectText">${message}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+  } else {
+    overlay.classList.remove("hidden");
+    document.getElementById("onlineReconnectText").textContent = message;
+  }
+
+  els.onlineTurnOverlay?.classList.remove("hidden");
+  if (els.onlineTurnOverlay) {
+    els.onlineTurnOverlay.textContent = "Opponent disconnected. Please wait...";
+  }
+}
+
+function hideOpponentMissingOverlay() {
+  document.getElementById("onlineReconnectOverlay")?.classList.add("hidden");
+
+  if (els.onlineTurnOverlay) {
+    els.onlineTurnOverlay.classList.add("hidden");
+    els.onlineTurnOverlay.textContent = "Waiting for opponent's score...";
+  }
+
+  onlineOpponentMissingShown = false;
+}
+
+async function writeOnlineHeartbeat() {
+  if (!onlineMatchId || !window.ONMLiveDarts) return;
+
+  const myKey = getCurrentPlayerKey();
+  if (!myKey) return;
+
+  const { db, ref, update } = window.ONMLiveDarts;
+
+  await update(ref(db, `onlineMatches/${onlineMatchId}`), {
+    [`presence/${myKey}`]: {
+      online: true,
+      lastSeen: Date.now()
+    }
+  });
+}
+
+function startOnlineHeartbeat() {
+  clearInterval(onlineHeartbeatInterval);
+
+  writeOnlineHeartbeat();
+
+  onlineHeartbeatInterval = setInterval(() => {
+    writeOnlineHeartbeat();
+  }, ONLINE_HEARTBEAT_MS);
+}
+
+function stopOnlineHeartbeat() {
+  clearInterval(onlineHeartbeatInterval);
+  onlineHeartbeatInterval = null;
+}
+
+function startOnlineDisconnectWatch(matchId) {
+  clearInterval(onlineDisconnectInterval);
+
+  onlineDisconnectInterval = setInterval(async () => {
+    if (!matchId || !window.ONMLiveDarts) return;
+
+    const { db, ref, get, update } = window.ONMLiveDarts;
+    const snap = await get(ref(db, `onlineMatches/${matchId}`));
+
+    if (!snap.exists()) {
+      clearInterval(onlineDisconnectInterval);
+      return;
+    }
+
+    const match = snap.val();
+
+    if (!["playing", "readyLobby", "decider"].includes(match.status)) {
+      hideOpponentMissingOverlay();
+      return;
+    }
+
+    const opponentKey = getOpponentKeyFromMatch(match);
+    if (!opponentKey) return;
+
+    const opponentPresence = match.presence?.[opponentKey];
+    const lastSeen = Number(opponentPresence?.lastSeen || 0);
+    const missingFor = Date.now() - lastSeen;
+
+    if (!lastSeen || missingFor > ONLINE_MISSING_AFTER_MS) {
+      if (!onlineOpponentMissingShown) {
+        onlineOpponentMissingShown = true;
+        showOpponentMissingOverlay();
+      }
+
+      if (missingFor > ONLINE_ABANDON_AFTER_MS) {
+        await update(ref(db, `onlineMatches/${matchId}`), {
+          status: "abandoned",
+          abandonedAt: Date.now(),
+          abandonedReason: "playerDisconnected",
+          abandonedPlayerKey: opponentKey
+        });
+      }
+
+      return;
+    }
+
+    hideOpponentMissingOverlay();
+  }, 5000);
+}
+
+function stopOnlineDisconnectWatch() {
+  clearInterval(onlineDisconnectInterval);
+  onlineDisconnectInterval = null;
+}
 
 function saveOnlineSession() {
   if (!onlineMatchId || !onlineRole) return;
@@ -1303,13 +1468,12 @@ function updateLeaguePlayButton() {
 }
 
 function openCompetitiveInviteFlow() {
-
   const currentUser =
     window.ONMSession?.getUser?.() || loggedInUser;
 
   if (!currentUser) {
     window.location.href =
-      "auth.html?mode=register&redirect=dart-scorer.html";
+      "auth.html?mode=register&redirect=dart-scorer.html?mode=league";
     return;
   }
 
@@ -1560,12 +1724,19 @@ async function openOpponentModal() {
             drivePhotos[hostPhotoKey] ||
             "";
 
+          const opponentKey = getPlayerKey(player);
+          const hostKey = getCurrentPlayerKey();
+
+          if (!opponentKey) {
+            throw new Error("Opponent has no player key. They may need to relink their ONM player.");
+          }
+
           const inviteId = await window.ONMLiveDarts.createOnlineInvite({
             fromUser: {
               ...currentPlayerProfile,
               ...currentUser,
-              linkedPlayerKey: getCurrentPlayerKey(),
-              playerKey: getCurrentPlayerKey(),
+              linkedPlayerKey: hostKey,
+              playerKey: hostKey,
               fullName: hostFullName,
               playerName: hostFullName,
               photo: hostPhoto,
@@ -1573,8 +1744,9 @@ async function openOpponentModal() {
             },
             toPlayer: {
               ...player,
-              linkedPlayerKey: getPlayerKey(player),
-              playerKey: getPlayerKey(player),
+              linkedPlayerKey: opponentKey,
+              playerKey: opponentKey,
+              toPlayerKey: opponentKey,
               playerName: opponentFullName,
               fullName: opponentFullName,
               photo: opponentPhoto,
@@ -1591,15 +1763,68 @@ async function openOpponentModal() {
             }
           });
 
+          const { db, ref, update, get } = window.ONMLiveDarts;
+
+          await update(ref(db, `dartInvites/${inviteId}`), {
+            inviteId,
+            status: "pending",
+
+            fromPlayerKey: hostKey,
+            fromUserId: currentUser.userId || "",
+            fromName: hostFullName,
+
+            toPlayerKey: opponentKey,
+            toUserId: player.userId || "",
+            toName: opponentFullName,
+
+            statsMode: "competitive",
+            startScore: 501,
+            gameType: "bestOf",
+            legsCount: competitiveLegsCount,
+            inMode: "straight",
+
+            inviteText: `${hostFullName} has invited you to a competitive leaderboard BO${competitiveLegsCount} game.`,
+            createdAt: Date.now()
+          });
+
+          const checkSnap = await get(ref(db, `dartInvites/${inviteId}`));
+
+          if (!checkSnap.exists()) {
+            throw new Error("Invite was not saved to Firebase.");
+          }
+
+          const savedInvite = checkSnap.val();
+
+          if (savedInvite.toPlayerKey !== opponentKey) {
+            throw new Error("Invite was saved with the wrong receiver key.");
+          }
+
+          if (!inviteId) {
+            throw new Error("Invite was not created.");
+          }
+
+          button.textContent = "Invite sent";
+
           els.setupPlayerTwoName.value = opponentFullName;
           showInviteWaiting(opponentFullName);
           listenForInviteResponse(inviteId, opponentFullName);
 
         } catch (err) {
           console.error("Could not create invite:", err);
+
           button.disabled = false;
           button.textContent = "Invite";
-          showOnlineNotice("Could not send invite. Please try again.");
+
+          els.linkedPlayersList.innerHTML = `
+            <div class="inviteResultBox error">
+              <div class="linkErrorIcon">×</div>
+              <strong>Invite failed</strong>
+              <div class="muted">${err.message || "Could not send invite. Please try again."}</div>
+              <button type="button" class="btn btnPrimary" onclick="openOpponentModal()">
+                Try again
+              </button>
+            </div>
+          `;
         }
       });
     });
@@ -1710,29 +1935,76 @@ function showInviteWaiting(playerName) {
 function listenForInviteResponse(inviteId, playerName) {
   const { db, ref, onValue, update } = window.ONMLiveDarts;
 
-  const timeoutId = setTimeout(async () => {
+  console.log("[INVITE DEBUG] listening for invite response:", inviteId);
+
+  let delivered = false;
+  let finished = false;
+
+  const deliveryTimer = setTimeout(async () => {
+    if (delivered || finished) return;
+
+    console.error("[INVITE DEBUG] invite was not delivered:", inviteId);
+
+    els.linkedPlayersList.innerHTML = `
+      <div class="inviteResultBox error">
+        <div class="linkErrorIcon">×</div>
+        <strong>Invite not delivered</strong>
+        <div class="muted">
+          ${playerName} did not receive the invite. They may need to refresh the Monsters Online League page.
+        </div>
+        <button type="button" class="btn btnPrimary" onclick="openOpponentModal()">
+          Try again
+        </button>
+      </div>
+    `;
+  }, 8000);
+
+  const expiryTimer = setTimeout(async () => {
+    if (finished) return;
+
+    finished = true;
+
     await update(ref(db, `dartInvites/${inviteId}`), {
       status: "expired",
       expiredAt: Date.now()
     });
-  }, 120000);
 
-  const inviteRef = ref(db, `dartInvites/${inviteId}`);
+    els.linkedPlayersList.innerHTML = `
+      <div class="inviteResultBox error">
+        <div class="linkErrorIcon">×</div>
+        <strong>Invite expired</strong>
+        <div class="muted">${playerName} did not respond in time.</div>
+        <button type="button" class="btn btnPrimary" onclick="openOpponentModal()">
+          Try again
+        </button>
+      </div>
+    `;
+  }, 30000);
 
-  onValue(inviteRef, async snapshot => {
+  onValue(ref(db, `dartInvites/${inviteId}`), async snapshot => {
+    console.log("[INVITE DEBUG] invite response snapshot:", snapshot.val());
+
     if (!snapshot.exists()) return;
 
     const invite = snapshot.val();
 
+    if (invite.deliveredAt && !delivered) {
+      delivered = true;
+      clearTimeout(deliveryTimer);
+
+      els.waitingInviteText.textContent =
+        `Invite delivered to ${playerName}. Waiting for response...`;
+    }
+
     if (invite.status === "accepted") {
-      clearTimeout(timeoutId);
+      finished = true;
+      clearTimeout(deliveryTimer);
+      clearTimeout(expiryTimer);
 
       onlineInviteAccepted = true;
       onlineInviteId = inviteId;
       onlineMatchId = invite.matchId;
       onlineRole = "host";
-
-      els.setupPlayerTwoName.value = playerName;
 
       saveOnlineSession();
       closeOpponentModal();
@@ -1750,24 +2022,17 @@ function listenForInviteResponse(inviteId, playerName) {
     }
 
     if (invite.status === "declined") {
-      clearTimeout(timeoutId);
+      finished = true;
+      clearTimeout(deliveryTimer);
+      clearTimeout(expiryTimer);
 
       els.linkedPlayersList.innerHTML = `
         <div class="inviteResultBox error">
           <div class="linkErrorIcon">×</div>
           <strong>${playerName} declined</strong>
-        </div>
-      `;
-      return;
-    }
-
-    if (invite.status === "expired") {
-      clearTimeout(timeoutId);
-
-      els.linkedPlayersList.innerHTML = `
-        <div class="inviteResultBox error">
-          <div class="linkErrorIcon">×</div>
-          <strong>${playerName} did not respond in time</strong>
+          <button type="button" class="btn btnPrimary" onclick="openOpponentModal()">
+            Back
+          </button>
         </div>
       `;
     }
@@ -4455,6 +4720,16 @@ function getPlayerPhoto(userOrPlayer) {
 
 function renderKnownPlayerCard({ side, name, flag, photo }) {
   const slot = side === 1 ? els.setupPlayerOneSlot : els.setupPlayerTwoSlot;
+
+  if (!slot) {
+    console.warn("[SETUP DEBUG] Missing setup player slot", {
+      side,
+      setupPlayerOneSlot: els.setupPlayerOneSlot,
+      setupPlayerTwoSlot: els.setupPlayerTwoSlot
+    });
+    return;
+  }
+
   const imageSrc = photo || "graphics/logoWoText.png";
   const flagText = flag || "🌍";
 
@@ -4463,12 +4738,12 @@ function renderKnownPlayerCard({ side, name, flag, photo }) {
   slot.innerHTML = side === 1
     ? `
       <span class="setupPlayerFlag">${flagText}</span>
-      <strong class="setupSelectedName">${name}</strong>
-      <img class="setupSelectedPhoto" src="${imageSrc}" alt="${name}">
+      <strong class="setupSelectedName">${name || "Player"}</strong>
+      <img class="setupSelectedPhoto" src="${imageSrc}" alt="${name || "Player"}">
     `
     : `
-      <img class="setupSelectedPhoto" src="${imageSrc}" alt="${name}">
-      <strong class="setupSelectedName">${name}</strong>
+      <img class="setupSelectedPhoto" src="${imageSrc}" alt="${name || "Player"}">
+      <strong class="setupSelectedName">${name || "Player"}</strong>
       <span class="setupPlayerFlag">${flagText}</span>
     `;
 }
@@ -4641,14 +4916,13 @@ function toggleScorerFullscreen() {
 
 els.fullscreenBtn?.addEventListener("click", toggleScorerFullscreen);
 
-
-
 async function initDartScorerAuth() {
   console.log("[DART DEBUG] initDartScorerAuth started");
+  console.log("[DART DEBUG] PAGE_MODE:", PAGE_MODE);
   console.log("[DART DEBUG] ONMLiveDarts available:", !!window.ONMLiveDarts);
   console.log("[DART DEBUG] ONMSession available:", !!window.ONMSession);
 
-  els.setupCard?.classList.remove("hidden");
+  initialisePageModeView();
 
   let user = null;
 
@@ -4663,17 +4937,38 @@ async function initDartScorerAuth() {
 
   if (!user) {
     loggedInUser = null;
-
     updateLeaguePlayButton();
-    updateSetupPlayerMode();
-    initialisePageModeView();
 
-    console.warn("[DART DEBUG] No user, invite listener NOT started");
+    if (PAGE_MODE === "league") {
+      MATCH_MODE = "online";
+      STATS_MODE = "competitive";
+      window.STATS_MODE = STATS_MODE;
+
+      els.setupCard?.classList.add("hidden");
+      els.scorerCard?.classList.add("hidden");
+      els.startDeciderScreen?.classList.add("hidden");
+      document.getElementById("leaderboardView")?.classList.remove("hidden");
+
+      loadLeaderboard();
+    } else {
+      MATCH_MODE = "local";
+      STATS_MODE = "casual";
+      window.STATS_MODE = STATS_MODE;
+
+      els.setupCard?.classList.remove("hidden");
+      document.getElementById("leaderboardView")?.classList.add("hidden");
+
+      try {
+        updateSetupPlayerMode();
+      } catch (err) {
+        console.error("[DART DEBUG] updateSetupPlayerMode failed:", err);
+      }
+    }
+
     return;
   }
 
   loggedInUser = user;
-  window.loggedInUser = user;
 
   updateLeaguePlayButton();
 
@@ -4689,22 +4984,22 @@ async function initDartScorerAuth() {
     playerName: getLoggedInFullName(user)
   });
 
-  updateSetupPlayerMode();
-
-  await loadLoggedInPlayer(user);
-
   console.log("[DART DEBUG] starting invite listener now");
   listenForDartInvites();
+
+  try {
+    updateSetupPlayerMode();
+  } catch (err) {
+    console.error("[DART DEBUG] updateSetupPlayerMode failed:", err);
+  }
+
+  await loadLoggedInPlayer(user);
 
   console.log("[DART DEBUG] restoring session now");
   const restoredOnlineGame = await restoreOnlineSession();
 
   if (!restoredOnlineGame) {
     initialisePageModeView();
-
-    if (PAGE_MODE === "league") {
-      window.PlayerSeasonVote?.init?.();
-    }
   }
 
   console.log("[DART DEBUG] initDartScorerAuth complete");
@@ -4712,67 +5007,107 @@ async function initDartScorerAuth() {
 
 let activeDartInvite = null;
 
+function getMyInviteKeys() {
+  const user = window.ONMSession?.getUser?.() || loggedInUser || {};
+
+  return [
+    getCurrentPlayerKey?.(),
+    user.linkedPlayerKey,
+    user.playerKey,
+    user.userId,
+    safeFirebaseKey(user.email)
+  ]
+    .filter(Boolean)
+    .map(String);
+}
+
 function listenForDartInvites() {
   const user = window.ONMSession?.getUser?.() || loggedInUser;
 
-  console.log("[DART DEBUG] listenForDartInvites called");
-  console.log("[DART DEBUG] listener user:", user);
-  const myKey = getCurrentPlayerKey();
+  console.log("[INVITE DEBUG] listenForDartInvites called");
+  console.log("[INVITE DEBUG] user:", user);
 
-  console.log("[DART DEBUG] listener key:", myKey);
-
-  if (!myKey || !window.ONMLiveDarts) {
-    console.error("[DART DEBUG] Cannot start invite listener", {
-      linkedPlayerKey: user?.linkedPlayerKey,
+  if (!user || !window.ONMLiveDarts) {
+    console.error("[INVITE DEBUG] listener blocked", {
+      hasUser: !!user,
       hasONMLiveDarts: !!window.ONMLiveDarts
     });
     return;
   }
 
-  const { db, ref, onValue, query, orderByChild, equalTo } = window.ONMLiveDarts;
+  const myKeys = getMyInviteKeys();
 
-  const invitesQuery = query(
-    ref(db, "dartInvites"),
-    orderByChild("toPlayerKey"),
-    equalTo(myKey)
-  );
+  console.log("[INVITE DEBUG] receiver keys:", myKeys);
 
-  console.log("[DART DEBUG] Firebase invite listener attached for toPlayerKey:", myKey);
+  if (!myKeys.length) {
+    console.error("[INVITE DEBUG] No receiver keys available");
+    return;
+  }
 
-  onValue(invitesQuery, snapshot => {
-    console.log("[DART DEBUG] invite listener fired. exists:", snapshot.exists());
-    console.log("[DART DEBUG] invite snapshot value:", snapshot.val());
+  const { db, ref, onValue, update } = window.ONMLiveDarts;
+
+  onValue(ref(db, "dartInvites"), async snapshot => {
+    console.log("[INVITE DEBUG] all invites snapshot exists:", snapshot.exists());
+    console.log("[INVITE DEBUG] all invites value:", snapshot.val());
 
     if (!snapshot.exists()) return;
 
     snapshot.forEach(child => {
       const invite = child.val();
+      const inviteId = child.key;
 
-      console.log("[DART DEBUG] invite child:", child.key, invite);
+      const inviteReceiverKeys = [
+        invite.toPlayerKey,
+        invite.toUserId,
+        invite.toLinkedPlayerKey,
+        invite.toPlayer?.playerKey,
+        invite.toPlayer?.linkedPlayerKey,
+        invite.toPlayer?.userId
+      ]
+        .filter(Boolean)
+        .map(String);
 
+      const isForMe = inviteReceiverKeys.some(key => myKeys.includes(key));
+
+      console.log("[INVITE DEBUG] checking invite", {
+        inviteId,
+        status: invite.status,
+        inviteReceiverKeys,
+        myKeys,
+        isForMe
+      });
+
+      if (!isForMe) return;
       if (invite.status !== "pending") return;
       if (activeDartInvite?.inviteId === invite.inviteId) return;
 
-      activeDartInvite = invite;
+      activeDartInvite = {
+        ...invite,
+        inviteId: invite.inviteId || inviteId
+      };
+
+      update(ref(db, `dartInvites/${inviteId}`), {
+        deliveredAt: Date.now(),
+        deliveredToKey: myKeys[0],
+        deliveredToName: getLoggedInFullName(user)
+      }).catch(err => {
+        console.warn("[INVITE DEBUG] could not mark invite delivered", err);
+      });
 
       const inviteText =
         invite.inviteText ||
-        `${invite.fromName} has invited you to a ${invite.statsMode === "competitive" ? "competitive leaderboard" : "casual"} BO${invite.legsCount || 3} game.`;
+        `${invite.fromName} has invited you to a competitive leaderboard BO${invite.legsCount || invite.settings?.legsCount || 3} game.`;
 
       els.dartInviteText.textContent = inviteText;
-
       els.dartInviteOverlay.classList.remove("hidden");
       els.dartInviteOverlay.setAttribute("aria-hidden", "false");
-      playInstantDartSfx("notification.mp3");
 
-      if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]);
-      }
+      playInstantDartSfx?.("notification.mp3");
 
-      console.log("[DART DEBUG] invite overlay shown");
+      console.log("[INVITE DEBUG] invite overlay shown", activeDartInvite);
     });
   }, error => {
-    console.error("[DART DEBUG] invite listener Firebase error:", error);
+    console.error("[INVITE DEBUG] invite listener Firebase error:", error);
   });
 }
 
@@ -5147,6 +5482,18 @@ function listenToOnlineMatch(matchId) {
       applyOnlineGame(match);
     }
 
+    if (match.status === "abandoned") {
+      stopOnlineHeartbeat();
+      stopOnlineDisconnectWatch();
+      hideOpponentMissingOverlay();
+      clearOnlineSession();
+
+      showOnlineNotice("Match abandoned because a player disconnected for too long.");
+      resetOnlineLobbyState();
+      initialisePageModeView();
+      return;
+    }
+
     const opponentKey =
       myKey === match.hostPlayerKey
         ? match.guestPlayerKey
@@ -5407,10 +5754,19 @@ async function restoreOnlineSession() {
   const myKey = getCurrentPlayerKey();
 
   await update(ref(db, `onlineMatches/${onlineMatchId}`), {
-    [`presence/${myKey}`]: true
+    [`presence/${myKey}`]: {
+      online: true,
+      lastSeen: Date.now(),
+      rejoinedAt: Date.now()
+    }
   });
 
+  startOnlineHeartbeat();
+  startOnlineDisconnectWatch(onlineMatchId);
+
   listenToOnlineMatch(onlineMatchId);
+  document.body.classList.remove("scorer-fullscreen");
+  window.scrollTo(0, 0);
   updateSetupPlayerMode();
 
   return true;
@@ -5418,6 +5774,9 @@ async function restoreOnlineSession() {
 
 async function leaveOnlineMatch(reason = "left") {
   fullyStopDartAudio();
+  stopOnlineHeartbeat();
+  stopOnlineDisconnectWatch();
+  hideOpponentMissingOverlay();
   if (!onlineMatchId || !window.ONMLiveDarts) return;
 
   const { db, ref, update, remove, setPresenceStatus } = window.ONMLiveDarts;
@@ -5433,7 +5792,11 @@ async function leaveOnlineMatch(reason = "left") {
     status: reason,
     leftByKey: myKey,
     leftAt: Date.now(),
-    [`presence/${myKey}`]: false
+    [`presence/${myKey}`]: {
+      online: false,
+      lastSeen: Date.now(),
+      leftAt: Date.now()
+    }
   });
 
   await setPresenceStatus?.(myKey, "online");
@@ -5958,12 +6321,6 @@ async function loadLoggedInPlayer(user) {
     els.setupCard?.classList.remove("hidden");
   } else {
     els.setupCard?.classList.add("hidden");
-  }
-
-  if (els.setupPlayerOneName) {
-    els.setupPlayerOneName.value = displayName;
-  } else {
-    console.error("[DART DEBUG] Missing #setupPlayerOneName");
   }
 
   if (els.guestPlayerOneName) {

@@ -68,29 +68,17 @@
           <button type="button" class="toggleBtn" data-match-mode="online">Online</button>
         </div>
 
-        <div id="namePlayersSetup" class="guestPlayersSetup setupPlayersVersus">
-          <div class="setupPlayerSide" id="setupPlayerOneSide">
-            <div class="setupPlayerTop">
-              <span>Player 1</span>
-              <button id="removeSetupPlayerOneBtn" type="button" class="setupRemoveBtn hidden">×</button>
-            </div>
-            <div id="setupPlayerOneSlot" class="setupPlayerSlot"></div>
-          </div>
+        <div id="namePlayersSetup" class="casualPlayersSetup">
+          <label class="casualPlayerField">
+            <span>Player 1</span>
+            <input id="setupPlayerOneName" type="text" placeholder="Player 1" value="">
+          </label>
 
-          <div class="setupVs">vs</div>
-
-          <div class="setupPlayerSide" id="setupPlayerTwoSide">
-            <div class="setupPlayerTop">
-              <button id="removeSetupPlayerTwoBtn" type="button" class="setupRemoveBtn hidden">×</button>
-              <span>Player 2</span>
-            </div>
-            <div id="setupPlayerTwoSlot" class="setupPlayerSlot"></div>
-            <div id="setupPlayerErrorMsg" class="setupErrorMsg hidden"></div>
-          </div>
+          <label class="casualPlayerField">
+            <span>Player 2</span>
+            <input id="setupPlayerTwoName" type="text" placeholder="Player 2" value="">
+          </label>
         </div>
-
-        <input id="setupPlayerOneName" type="hidden" value="Player 1">
-        <input id="setupPlayerTwoName" type="hidden" value="Player 2">
 
         <div class="sectionTitle setupSectionTitle">Game Settings</div>
 
