@@ -1364,36 +1364,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateScoreAutofill(changedSide) {
-    const league = getCurrentLeagueConfig();
-    if (!league || matchCup?.checked) return;
-
-    const totalLegs = Number(league.legs || 0);
-    if (!totalLegs) return;
-
-    if (changedSide === "home") {
-      if (matchHomeScore.value === "") {
-        matchAwayScore.value = "";
-        readMatchInfo();
-        saveGameSnapshot();
-        return;
-      }
-
-      const home = Number(matchHomeScore.value);
-      matchAwayScore.value = Math.max(0, totalLegs - home);
-    }
-
-    if (changedSide === "away") {
-      if (matchAwayScore.value === "") {
-        matchHomeScore.value = "";
-        readMatchInfo();
-        saveGameSnapshot();
-        return;
-      }
-
-      const away = Number(matchAwayScore.value);
-      matchHomeScore.value = Math.max(0, totalLegs - away);
-    }
-
     updateResultFromScore();
     readMatchInfo();
     saveGameSnapshot();
