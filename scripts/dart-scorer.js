@@ -1546,9 +1546,15 @@ async function openOpponentModal() {
       <div class="molInviteSettings">
         <div class="molInviteLabel">Settings</div>
         <div class="molLegButtons">
-          <button type="button" class="active" data-comp-legs="3">BO3</button>
-          <button type="button" data-comp-legs="5">BO5</button>
-          <button type="button" data-comp-legs="7">BO7</button>
+          <button type="button" data-comp-legs="1" class="shootoutBtn">
+            1 Leg Shootout
+          </button>
+
+          <div class="molLegButtonsRow">
+            <button type="button" class="active" data-comp-legs="3">BO3</button>
+            <button type="button" data-comp-legs="5">BO5</button>
+            <button type="button" data-comp-legs="7">BO7</button>
+          </div>
         </div>
       </div>
 
@@ -5521,7 +5527,8 @@ function applyReadyLobby(match) {
 
   const legsCount = Number(match.settings?.legsCount || 3);
 
-  els.readyMatchTitle.textContent = `501 · Best of ${legsCount}`;
+  els.readyMatchTitle.textContent =
+  legsCount === 1 ? "501 · 1 Leg Shootout" : `501 · Best of ${legsCount}`;
 
   els.readyHostName.innerHTML = `${match.hostName || "Player 1"} <span class="readyNameFlag">${countryToFlag(match.hostNationality)}</span>`;
   els.readyGuestName.innerHTML = `${match.guestName || "Player 2"} <span class="readyNameFlag">${countryToFlag(match.guestNationality)}</span>`;

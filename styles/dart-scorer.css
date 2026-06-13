@@ -4032,3 +4032,19 @@ body.casualMode #matchModeSwitch {
 .casualPlayerField input::placeholder {
   color: rgba(255, 255, 255, .45);
 }
+
+.molLegButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shootoutBtn {
+  width: 100%;
+}
+
+.molLegButtonsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
