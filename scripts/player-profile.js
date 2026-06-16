@@ -72,7 +72,7 @@ async function loadOutstandingFines() {
 
     rows.forEach(row => {
       const name = row[0]; // Column A
-      const owed = row[6]; // Column G
+      const owed = row[9]; // Column J
 
       if (name && name.toLowerCase() === playerName.toLowerCase()) {
         owedValue = owed || "£0.00";

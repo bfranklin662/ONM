@@ -93,10 +93,10 @@ function updateAuthHeader(user) {
 }
 
 async function loadHeaderProfileImage(authBtn, user, profileName) {
-  let imageUrl = "graphics/logoWoText.png";
+  let imageUrl = user.photoUrl || "graphics/logoWoText.png";
 
   try {
-    if (user.linkedPlayerName && window.PlayerData?.fetchPlayerPhotosFromDrive) {
+    if (!user.photoUrl && user.linkedPlayerName && window.PlayerData?.fetchPlayerPhotosFromDrive) {
       const photos = await window.PlayerData.fetchPlayerPhotosFromDrive();
       const key = window.PlayerData.photoKey(user.linkedPlayerName);
       imageUrl = photos[key] || imageUrl;
@@ -125,7 +125,7 @@ async function initOnmSession() {
     updateAuthHeader(freshUser);
 
     try {
-      if (freshUser.linkedPlayerName && window.PlayerData?.fetchPlayerPhotosFromDrive) {
+      if (!freshUser.photoUrl && freshUser.linkedPlayerName && window.PlayerData?.fetchPlayerPhotosFromDrive) {
         const photos = await window.PlayerData.fetchPlayerPhotosFromDrive();
         const key = window.PlayerData.photoKey(freshUser.linkedPlayerName);
         const imageUrl = photos[key];

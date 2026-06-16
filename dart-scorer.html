@@ -160,16 +160,16 @@
 
         <div class="leagueLastGameCard" id="leagueLastGameCard">
           <div>
+            <div class="leagueLastOpponent" id="leagueLastOpponent">
+              Last game
+            </div>
+
             <div class="leagueResultText win" id="leagueLastResult">
               Victory!
             </div>
 
             <div class="leagueRatingChange" id="leagueRatingChange">
               +0 rating
-            </div>
-
-            <div class="leagueLastOpponent" id="leagueLastOpponent">
-              Last game
             </div>
           </div>
 
@@ -425,6 +425,25 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <div id="editOnlineScoreOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Edit last score</div>
+        <button id="closeEditOnlineScoreBtn" class="modalClose" type="button">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <label for="editOnlineScoreInput">Edit last score</label>
+        <input id="editOnlineScoreInput" type="number" min="0" max="180" inputmode="numeric">
+        <p id="editOnlineScoreMessage" class="editScoreMessage"></p>
+
+        <button id="submitEditOnlineScoreBtn" class="btn btnPrimary" type="button" style="margin-top:14px;">
+          Submit
+        </button>
+      </div>
     </div>
   </div>
 

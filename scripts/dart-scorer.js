@@ -274,6 +274,7 @@ let competitiveLobbyMode = false;
 let competitiveLegsCount = 3;
 let molVictoryShownForMatchId = null;
 let rematchStarting = false;
+let currentLeagueProfile = null;
 
 let gameOnAnnouncedForMatchId = null;
 
@@ -479,6 +480,11 @@ const els = {
   customScoreInput: document.getElementById("customScoreInput"),
   closeCustomScoreBtn: document.getElementById("closeCustomScoreBtn"),
   confirmCustomScoreBtn: document.getElementById("confirmCustomScoreBtn"),
+  editOnlineScoreOverlay: document.getElementById("editOnlineScoreOverlay"),
+  closeEditOnlineScoreBtn: document.getElementById("closeEditOnlineScoreBtn"),
+  editOnlineScoreInput: document.getElementById("editOnlineScoreInput"),
+  editOnlineScoreMessage: document.getElementById("editOnlineScoreMessage"),
+  submitEditOnlineScoreBtn: document.getElementById("submitEditOnlineScoreBtn"),
   startScoreSwitch: document.getElementById("startScoreSwitch"),
   inModeSwitch: document.getElementById("inModeSwitch"),
   quitGameBtn: document.getElementById("quitGameBtn"),
@@ -2371,24 +2377,34 @@ els.confirmQuitBtn.addEventListener("click", async () => {
     STATS_MODE === "competitive" ||
     onlineMatchId;
 
-  if (MATCH_MODE === "online" && onlineMatchId) {
-    await leaveOnlineMatch("left");
-  }
-
   closeQuitConfirm();
+  els.confirmQuitBtn.disabled = true;
 
-  if (wasMOLGame) {
-    showLeaderboardTab();
-  } else {
-    showPlayTab();
-  }
+  try {
+    if (MATCH_MODE === "online" && onlineMatchId) {
+      await leaveOnlineMatch("left", { keepLeagueMode: wasMOLGame });
+    }
 
-  if (window.innerWidth < 500) {
-    exitScorerFullscreen();
+    if (wasMOLGame) {
+      MATCH_MODE = "online";
+      STATS_MODE = "competitive";
+      window.STATS_MODE = STATS_MODE;
+      showLeaderboardTab();
+    } else {
+      showPlayTab();
+    }
+
+    if (window.innerWidth < 500) {
+      exitScorerFullscreen();
+    }
+  } finally {
+    els.confirmQuitBtn.disabled = false;
   }
 });
 
 els.quitGameBtn.addEventListener("click", () => {
+  if (!els.quitConfirmOverlay.classList.contains("hidden")) return;
+
   els.quitConfirmOverlay.classList.remove("hidden");
   els.quitConfirmOverlay.setAttribute("aria-hidden", "false");
 });
@@ -2855,6 +2871,12 @@ function getCurrentPlayerKey() {
   return getLeagueUserKey(user);
 }
 
+function getMyOnlinePlayerKey(match) {
+  if (onlineRole === "host") return match.hostPlayerKey;
+  if (onlineRole === "guest") return match.guestPlayerKey;
+  return getCurrentPlayerKey();
+}
+
 function getMyOnlineIndex(match) {
   const myKey = getCurrentPlayerKey();
   return myKey === match.hostPlayerKey ? 0 : 1;
@@ -2868,7 +2890,19 @@ function onlinePlayerKeys(match) {
   return [match.hostPlayerKey, match.guestPlayerKey];
 }
 
+function syncScoreCorrectionButton() {
+  const button = els.keypad?.querySelector("[data-action='undo']");
+  if (!button) return;
+
+  const isOnline = MATCH_MODE === "online" || Boolean(onlineMatchId);
+  button.textContent = isOnline ? "✎" : "↩";
+  button.setAttribute("aria-label", isOnline ? "Edit last score" : "Undo last score");
+  button.title = isOnline ? "Edit last score" : "Undo last score";
+}
+
 function render() {
+  syncScoreCorrectionButton();
+
   state.players.forEach((player, index) => {
     const checkout = CHECKOUTS[player.score];
 
@@ -3032,6 +3066,26 @@ function showImpossibleMessage(message) {
     els.input.value = "";
     els.input.blur();
   }, 1200);
+}
+
+function calculateFirstNineImpact(visitScore, dartsUsed, currentLegDartsBefore) {
+  const firstNineDartsAvailable = Math.max(0, 9 - currentLegDartsBefore);
+  const firstNineDartsUsed = Math.min(dartsUsed, firstNineDartsAvailable);
+
+  if (firstNineDartsUsed <= 0) {
+    return {
+      firstNineScore: 0,
+      firstNineDartsUsed: 0
+    };
+  }
+
+  return {
+    firstNineScore:
+      firstNineDartsUsed === dartsUsed
+        ? visitScore
+        : Math.round((visitScore / dartsUsed) * firstNineDartsUsed),
+    firstNineDartsUsed
+  };
 }
 
 function closeCheckoutPrompt() {
@@ -3351,6 +3405,8 @@ async function getFirebasePlayerRating(playerKey, fallbackName = "") {
 
     lastResult: data.lastResult || "",
     lastRatingChange: data.lastRatingChange || "",
+    lastMatch: data.lastMatch || null,
+    matchHistory: Array.isArray(data.matchHistory) ? data.matchHistory : [],
 
     playerName: data.playerName || fallbackName
   };
@@ -3461,6 +3517,54 @@ function buildDartMatchPayloadFromOnlineMatch(match, winnerKey) {
   };
 }
 
+function buildMolStatRows(myStats, opponentStats) {
+  return [
+    ["3-dart avg.", myStats.average, opponentStats.average],
+    ["First 9 avg.", myStats.firstNineAvg, opponentStats.firstNineAvg],
+    ["Checkouts", myStats.checkouts, opponentStats.checkouts],
+    ["Checkout rate", myStats.checkoutRate, opponentStats.checkoutRate],
+    ["Highest out", myStats.highestOut, opponentStats.highestOut],
+    ["High score", myStats.highScore, opponentStats.highScore],
+    ["Best leg", myStats.bestLeg, opponentStats.bestLeg],
+    ["Worst leg", myStats.worstLeg, opponentStats.worstLeg],
+    ["180s", myStats.oneEightys, opponentStats.oneEightys],
+    ["Bull-outs", myStats.bullOuts, opponentStats.bullOuts]
+  ];
+}
+
+function buildRatingHistoryEntry({
+  match,
+  playerKey,
+  opponentKey,
+  playerData,
+  opponentData,
+  playerLegs,
+  opponentLegs,
+  won,
+  ratingChange,
+  newRating,
+  completedAt
+}) {
+  const myStats = getPlayerStats(playerData);
+  const opponentStats = getPlayerStats(opponentData);
+  const legsCount = Number(match.settings?.legsCount || els.legsCount.textContent || 3);
+
+  return {
+    matchId: match.matchId || `MOL-${completedAt}`,
+    completedAt,
+    opponentKey,
+    opponentName: opponentData.name || "Opponent",
+    format: `BO${legsCount}`,
+    score: `${playerLegs}-${opponentLegs}`,
+    result: won ? "Victory!" : "Defeat!",
+    ratingChange: `${ratingChange > 0 ? "+" : ""}${ratingChange} rating`,
+    newRating,
+    won,
+    playerName: playerData.name || "Player",
+    statsRows: buildMolStatRows(myStats, opponentStats)
+  };
+}
+
 async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWon, dartsUsed, doublesAttempted, bullOut }) {
   const { db, ref, update } = window.ONMLiveDarts;
   let ratingUpdates = null;
@@ -3479,20 +3583,47 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
   const currentLegFirstNineScored = player.currentLegFirstNineScored || 0;
   const currentLegFirstNineDarts = player.currentLegFirstNineDarts || 0;
 
-  const firstNineDartsAvailable = Math.max(0, 9 - currentLegDarts);
-  const firstNineDartsUsed = Math.min(dartsUsed, firstNineDartsAvailable);
+  const { firstNineScore, firstNineDartsUsed } =
+    calculateFirstNineImpact(visitScore, dartsUsed, currentLegDarts);
 
-  let firstNineScore = 0;
-
-  if (firstNineDartsUsed > 0) {
-    firstNineScore =
-      firstNineDartsUsed === dartsUsed
-        ? visitScore
-        : Math.round((visitScore / dartsUsed) * firstNineDartsUsed);
-  }
+  const editSnapshot = {
+    score: previousScore,
+    lastScore: player.lastScore ?? null,
+    dartsThrown: currentDarts,
+    currentLegDarts,
+    totalScored: currentTotal,
+    highScore: currentHighScore,
+    firstNineScored: currentFirstNineScored,
+    firstNineDarts: currentFirstNineDarts,
+    currentLegFirstNineScored,
+    currentLegFirstNineDarts,
+    checkoutHits: player.checkoutHits || 0,
+    checkoutAttempts: player.checkoutAttempts || 0,
+    highestOut: player.highestOut || 0,
+    oneEightys: player.oneEightys || 0,
+    bullOuts: player.bullOuts || 0,
+    legDarts: player.legDarts || [],
+    legs: player.legs || 0
+  };
+  const editableVisit = legWon
+    ? null
+    : {
+      id: calloutId,
+      visitScore,
+      previousScore,
+      dartsUsed,
+      doublesAttempted,
+      legWon: false,
+      firstNineScore,
+      firstNineDartsUsed,
+      editSnapshot,
+      playerName: player.name || "Player",
+      createdAt: Date.now()
+    };
 
   const updates = {
     [`game/players/${myKey}/lastScore`]: visitScore,
+    [`game/players/${myKey}/lastEditableVisit`]: editableVisit,
     [`game/players/${myKey}/dartsThrown`]: currentDarts + dartsUsed,
     [`game/players/${myKey}/currentLegDarts`]: currentLegDarts + dartsUsed,
     [`game/players/${myKey}/totalScored`]: currentTotal + visitScore,
@@ -3509,6 +3640,13 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
     [`game/lastCallout/bullOut`]: Boolean(bullOut),
     [`game/lastCallout/byKey`]: myKey,
     [`game/lastCallout/createdAt`]: Date.now(),
+    [`game/lastCallout/previousScore`]: previousScore,
+    [`game/lastCallout/dartsUsed`]: dartsUsed,
+    [`game/lastCallout/doublesAttempted`]: doublesAttempted,
+    [`game/lastCallout/legWon`]: Boolean(legWon),
+    [`game/lastCallout/firstNineScore`]: firstNineScore,
+    [`game/lastCallout/firstNineDartsUsed`]: firstNineDartsUsed,
+    [`game/lastCallout/editSnapshot`]: editSnapshot,
     [`game/lastCallout/finishHim`]: Boolean(
       match.game.players[opponentKey]?.score === 2 &&
       Number(match.game.players[opponentKey]?.checkoutAttempts || 0) >= 3
@@ -3552,6 +3690,8 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
 
     updates[`game/players/${myKey}/score`] = STARTING_SCORE;
     updates[`game/players/${opponentKey}/score`] = STARTING_SCORE;
+    updates[`game/players/${myKey}/lastEditableVisit`] = null;
+    updates[`game/players/${opponentKey}/lastEditableVisit`] = null;
     updates[`game/players/${myKey}/currentLegDarts`] = 0;
     updates[`game/players/${opponentKey}/currentLegDarts`] = 0;
     updates[`game/players/${myKey}/currentLegFirstNineScored`] = 0;
@@ -3593,6 +3733,55 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       };
 
       const winnerStreak = Number(winnerProfile.streak || 0) + 1;
+      const completedAt = Date.now();
+      const winnerStatsPlayer = {
+        ...player,
+        score: STARTING_SCORE,
+        legs: newLegs,
+        lastScore: visitScore,
+        dartsThrown: currentDarts + dartsUsed,
+        currentLegDarts: 0,
+        totalScored: currentTotal + visitScore,
+        highScore: Math.max(currentHighScore, visitScore),
+        checkoutHits: (player.checkoutHits || 0) + 1,
+        checkoutAttempts: (player.checkoutAttempts || 0) + Math.max(1, doublesAttempted),
+        highestOut: Math.max(player.highestOut || 0, previousScore),
+        legDarts: [...previousLegDarts, finishedLegDarts],
+        oneEightys: (player.oneEightys || 0) + (visitScore === 180 ? 1 : 0),
+        bullOuts: (player.bullOuts || 0) + (bullOut ? 1 : 0),
+        firstNineScored: currentFirstNineScored + firstNineScore,
+        firstNineDarts: currentFirstNineDarts + firstNineDartsUsed
+      };
+      const loserStatsPlayer = {
+        ...opponent,
+        score: STARTING_SCORE
+      };
+      const winnerHistoryEntry = buildRatingHistoryEntry({
+        match,
+        playerKey: myKey,
+        opponentKey,
+        playerData: winnerStatsPlayer,
+        opponentData: loserStatsPlayer,
+        playerLegs: newLegs,
+        opponentLegs: opponent.legs || 0,
+        won: true,
+        ratingChange: elo.winnerChange,
+        newRating: elo.winnerNewRating,
+        completedAt
+      });
+      const loserHistoryEntry = buildRatingHistoryEntry({
+        match,
+        playerKey: opponentKey,
+        opponentKey: myKey,
+        playerData: loserStatsPlayer,
+        opponentData: winnerStatsPlayer,
+        playerLegs: opponent.legs || 0,
+        opponentLegs: newLegs,
+        won: false,
+        ratingChange: -elo.loserChange,
+        newRating: elo.loserNewRating,
+        completedAt
+      });
 
       ratingUpdates = {
         [`ratings/${myKey}`]: {
@@ -3607,6 +3796,8 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
           updatedAt: Date.now(),
           lastResult: `${newLegs}-${opponent.legs || 0} Victory!`,
           lastRatingChange: `+${elo.winnerChange} rating`,
+          lastMatch: winnerHistoryEntry,
+          matchHistory: [winnerHistoryEntry, ...(winnerProfile.matchHistory || [])].slice(0, 30),
           form: [...(winnerProfile.form || []), "W"].slice(-5),
         },
         [`ratings/${opponentKey}`]: {
@@ -3621,6 +3812,8 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
           updatedAt: Date.now(),
           lastResult: `${opponent.legs || 0}-${newLegs} Defeat!`,
           lastRatingChange: `-${elo.loserChange} rating`,
+          lastMatch: loserHistoryEntry,
+          matchHistory: [loserHistoryEntry, ...(loserProfile.matchHistory || [])].slice(0, 30),
           form: [...(loserProfile.form || []), "L"].slice(-5),
         }
       };
@@ -3895,6 +4088,174 @@ function undoLastVisit() {
   state.currentPlayer = last.playerIndex;
   els.submit.disabled = false;
   render();
+}
+
+function closeEditOnlineScore() {
+  els.editOnlineScoreOverlay?.classList.add("hidden");
+  els.editOnlineScoreOverlay?.setAttribute("aria-hidden", "true");
+  if (els.editOnlineScoreMessage) els.editOnlineScoreMessage.textContent = "";
+  els.input.blur();
+}
+
+function setEditOnlineScoreMessage(message) {
+  if (els.editOnlineScoreMessage) {
+    els.editOnlineScoreMessage.textContent = message;
+  }
+}
+
+async function openEditOnlineScore() {
+  if (MATCH_MODE !== "online" || !onlineMatchId || !window.ONMLiveDarts) {
+    undoLastVisit();
+    return;
+  }
+
+  const { db, ref, get } = window.ONMLiveDarts;
+  const matchSnap = await get(ref(db, `onlineMatches/${onlineMatchId}`));
+
+  if (!matchSnap.exists()) {
+    showOnlineNotice("This online match could not be found.");
+    return;
+  }
+
+  const match = matchSnap.val();
+  const myKey = getMyOnlinePlayerKey(match);
+  const editableVisit = match.game?.players?.[myKey]?.lastEditableVisit;
+
+  if (!editableVisit) {
+    showOnlineNotice("You do not have an editable score yet.");
+    return;
+  }
+
+  if (editableVisit.legWon) {
+    showOnlineNotice("Completed legs cannot be edited here.");
+    return;
+  }
+
+  if (!editableVisit.editSnapshot) {
+    showOnlineNotice("This score was submitted before edit tracking was added.");
+    return;
+  }
+
+  els.editOnlineScoreInput.value = Number(editableVisit.visitScore || 0);
+  setEditOnlineScoreMessage("");
+  els.editOnlineScoreOverlay.classList.remove("hidden");
+  els.editOnlineScoreOverlay.setAttribute("aria-hidden", "false");
+  setTimeout(() => {
+    els.editOnlineScoreInput.focus();
+    els.editOnlineScoreInput.select();
+  }, 0);
+}
+
+async function submitEditedOnlineScore() {
+  if (!onlineMatchId || !window.ONMLiveDarts) return;
+
+  const nextScore = Number(els.editOnlineScoreInput.value);
+
+  if (!Number.isInteger(nextScore) || nextScore < 0 || nextScore > MAX_VISIT) {
+    setEditOnlineScoreMessage("Enter a score from 0 to 180.");
+    els.editOnlineScoreInput.select();
+    return;
+  }
+
+  const { db, ref, get, update } = window.ONMLiveDarts;
+  const matchSnap = await get(ref(db, `onlineMatches/${onlineMatchId}`));
+
+  if (!matchSnap.exists()) {
+    closeEditOnlineScore();
+    showOnlineNotice("This online match could not be found.");
+    return;
+  }
+
+  const match = matchSnap.val();
+  const myKey = getMyOnlinePlayerKey(match);
+  const player = match.game?.players?.[myKey];
+  const editableVisit = player?.lastEditableVisit;
+
+  if (!editableVisit || !editableVisit.editSnapshot) {
+    closeEditOnlineScore();
+    showOnlineNotice("That score is no longer available to edit.");
+    return;
+  }
+
+  if (editableVisit.legWon) {
+    closeEditOnlineScore();
+    showOnlineNotice("Completed legs cannot be edited here.");
+    return;
+  }
+
+  const snapshot = editableVisit.editSnapshot;
+  const previousScore = Number(editableVisit.previousScore ?? snapshot.score);
+  const dartsUsed = Number(editableVisit.dartsUsed || 3);
+  const doublesAttempted = Number(editableVisit.doublesAttempted || 0);
+
+  if (!player || !Number.isInteger(previousScore)) {
+    closeEditOnlineScore();
+    showOnlineNotice("That score could not be edited.");
+    return;
+  }
+
+  const remaining = previousScore - nextScore;
+
+  if (nextScore > previousScore) {
+    setEditOnlineScoreMessage(`${nextScore} is impossible.`);
+    els.editOnlineScoreInput.select();
+    return;
+  }
+
+  if (remaining === 1) {
+    setEditOnlineScoreMessage("Leaving 1 is impossible.");
+    els.editOnlineScoreInput.select();
+    return;
+  }
+
+  if (remaining === 0) {
+    setEditOnlineScoreMessage("Use the normal checkout flow for leg-winning scores.");
+    els.editOnlineScoreInput.select();
+    return;
+  }
+
+  const currentLegDartsBefore = Number(snapshot.currentLegDarts || 0);
+  const { firstNineScore, firstNineDartsUsed } =
+    calculateFirstNineImpact(nextScore, dartsUsed, currentLegDartsBefore);
+
+  const editedAt = Date.now();
+  const editCalloutId = `${editedAt}-${myKey}-edit-${Math.random().toString(36).slice(2)}`;
+  const editedVisit = {
+    ...editableVisit,
+    visitScore: nextScore,
+    firstNineScore,
+    firstNineDartsUsed,
+    editedAt
+  };
+
+  const updates = {
+    [`game/players/${myKey}/score`]: remaining,
+    [`game/players/${myKey}/lastScore`]: nextScore,
+    [`game/players/${myKey}/lastEditableVisit`]: editedVisit,
+    [`game/players/${myKey}/dartsThrown`]: Number(snapshot.dartsThrown || 0) + dartsUsed,
+    [`game/players/${myKey}/currentLegDarts`]: currentLegDartsBefore + dartsUsed,
+    [`game/players/${myKey}/totalScored`]: Number(snapshot.totalScored || 0) + nextScore,
+    [`game/players/${myKey}/highScore`]: Math.max(Number(snapshot.highScore || 0), nextScore),
+    [`game/players/${myKey}/firstNineScored`]: Number(snapshot.firstNineScored || 0) + firstNineScore,
+    [`game/players/${myKey}/firstNineDarts`]: Number(snapshot.firstNineDarts || 0) + firstNineDartsUsed,
+    [`game/players/${myKey}/currentLegFirstNineScored`]: Number(snapshot.currentLegFirstNineScored || 0) + firstNineScore,
+    [`game/players/${myKey}/currentLegFirstNineDarts`]: Number(snapshot.currentLegFirstNineDarts || 0) + firstNineDartsUsed,
+    [`game/players/${myKey}/checkoutAttempts`]: Number(snapshot.checkoutAttempts || 0) + doublesAttempted,
+    [`game/players/${myKey}/oneEightys`]: Number(snapshot.oneEightys || 0) + (nextScore === 180 ? 1 : 0),
+    [`game/lastCallout/id`]: editCalloutId,
+    [`game/lastCallout/type`]: "scoreEdit",
+    [`game/lastCallout/byKey`]: myKey,
+    [`game/lastCallout/playerName`]: player.name || editableVisit.playerName || "Player",
+    [`game/lastCallout/previousVisitScore`]: Number(editableVisit.visitScore || 0),
+    [`game/lastCallout/visitScore`]: nextScore,
+    [`game/lastCallout/requiredScore`]: remaining,
+    [`game/lastCallout/createdAt`]: editedAt,
+    [`game/lastCallout/editedAt`]: editedAt
+  };
+
+  await update(ref(db, `onlineMatches/${onlineMatchId}`), updates);
+  closeEditOnlineScore();
+  els.input.value = "";
 }
 
 function formatMatchDate(date) {
@@ -4400,11 +4761,38 @@ els.keypad.addEventListener("click", event => {
   }
 
   if (button.dataset.action === "undo") {
-    undoLastVisit();
+    if (MATCH_MODE === "online" && onlineMatchId) {
+      openEditOnlineScore();
+    } else {
+      undoLastVisit();
+    }
     return;
   }
 
   els.input.blur();
+});
+
+els.onlineTurnOverlay?.addEventListener("click", event => {
+  const button = event.target.closest("[data-action='edit-online-score']");
+  if (!button) return;
+
+  event.preventDefault();
+  openEditOnlineScore();
+});
+
+els.editOnlineScoreOverlay?.addEventListener("click", event => {
+  if (event.target === els.editOnlineScoreOverlay) {
+    closeEditOnlineScore();
+  }
+});
+
+els.closeEditOnlineScoreBtn?.addEventListener("click", closeEditOnlineScore);
+els.submitEditOnlineScoreBtn?.addEventListener("click", submitEditedOnlineScore);
+els.editOnlineScoreInput?.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    submitEditedOnlineScore();
+  }
 });
 
 if (els.newGame) {
@@ -5255,7 +5643,7 @@ async function startOnlinePlaying(startingIndex) {
   await setPresenceStatus?.(match.guestPlayerKey, "playing");
 }
 
-function resetOnlineLobbyState() {
+function resetOnlineLobbyState({ keepLeagueMode = PAGE_MODE === "league" } = {}) {
   onlineInviteAccepted = false;
   onlineInviteId = null;
   onlineMatchId = null;
@@ -5265,8 +5653,8 @@ function resetOnlineLobbyState() {
   onlineCoinStarted = false;
   onlineBullSubmitted = false;
 
-  MATCH_MODE = "local";
-  STATS_MODE = "casual";
+  MATCH_MODE = keepLeagueMode ? "online" : "local";
+  STATS_MODE = keepLeagueMode ? "competitive" : "casual";
   window.STATS_MODE = STATS_MODE;
 
   els.setupPlayerTwoName.value = "Player 2";
@@ -5277,12 +5665,16 @@ function resetOnlineLobbyState() {
 
   setTogglePosition(
     els.matchModeSwitch,
-    document.querySelector('#matchModeSwitch .toggleBtn[data-match-mode="local"]')
+    document.querySelector(
+      `#matchModeSwitch .toggleBtn[data-match-mode="${keepLeagueMode ? "online" : "local"}"]`
+    )
   );
 
   setTogglePosition(
     els.statsModeSwitch,
-    document.querySelector('#statsModeSwitch .toggleBtn[data-stats-mode="casual"]')
+    document.querySelector(
+      `#statsModeSwitch .toggleBtn[data-stats-mode="${keepLeagueMode ? "competitive" : "casual"}"]`
+    )
   );
 
   window.currentOnlineMatch = null;
@@ -5779,7 +6171,7 @@ async function restoreOnlineSession() {
   return true;
 }
 
-async function leaveOnlineMatch(reason = "left") {
+async function leaveOnlineMatch(reason = "left", { keepLeagueMode = PAGE_MODE === "league" } = {}) {
   fullyStopDartAudio();
   stopOnlineHeartbeat();
   stopOnlineDisconnectWatch();
@@ -5812,7 +6204,7 @@ async function leaveOnlineMatch(reason = "left") {
     await remove(ref(db, `onlineMatches/${matchToRemove}`));
   }, 5000);
 
-  resetOnlineLobbyState();
+  resetOnlineLobbyState({ keepLeagueMode });
 }
 
 async function openOnlineBullDecider(match) {
@@ -6133,6 +6525,12 @@ function applyOnlineGame(match) {
 
   const isMyTurn = match.game.currentPlayerKey === myKey;
   const throwingName = playerName(state.currentPlayer);
+  const lastCallout = match.game?.lastCallout;
+  const editableVisit = match.game?.players?.[myKey]?.lastEditableVisit;
+  const canEditLastOnlineScore =
+    !isMyTurn &&
+    editableVisit?.editSnapshot &&
+    !editableVisit?.legWon;
 
   console.log("ONLINE DEBUG");
   console.log("onlineRole", onlineRole);
@@ -6150,6 +6548,9 @@ function applyOnlineGame(match) {
     <div class="onlineTurnBox">
       <span class="inlineSpinner"></span>
       <strong>${throwingName} is throwing...</strong>
+      ${canEditLastOnlineScore
+        ? `<button type="button" class="btn btnPrimary onlineEditScoreBtn" data-action="edit-online-score" aria-label="Edit last score" title="Edit last score">✎</button>`
+        : ""}
     </div>
   `;
 
@@ -6159,8 +6560,6 @@ function applyOnlineGame(match) {
   els.submit.disabled = !isMyTurn;
   els.keypad.classList.toggle("disabled", !isMyTurn);
 
-  const lastCallout = match.game?.lastCallout;
-
   if (lastCallout?.id && lastCallout.id !== lastOnlineCalloutId) {
     lastOnlineCalloutId = lastCallout.id;
     lastOnlineCalloutAt = lastCallout.createdAt || null;
@@ -6169,8 +6568,43 @@ function applyOnlineGame(match) {
   render();
 }
 
+function showOnlineScoreEditToast(playerNameText, previousVisitScore, visitScore) {
+  let toast = document.getElementById("onlineScoreEditToast");
+
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "onlineScoreEditToast";
+    toast.className = "onlineScoreEditToast hidden";
+    document.body.appendChild(toast);
+  }
+
+  toast.innerHTML = `
+    <div class="onlineScoreEditToastTitle">${playerNameText || "Player"} edited his last score</div>
+    <div class="onlineScoreEditToastChange">
+      <span class="onlineScoreEditOld">${previousVisitScore}</span>
+      <span class="onlineScoreEditArrow">→</span>
+      <span class="onlineScoreEditNew">${visitScore}</span>
+    </div>
+  `;
+  toast.classList.remove("hidden");
+
+  clearTimeout(showOnlineScoreEditToast.hideTimer);
+  showOnlineScoreEditToast.hideTimer = setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 2600);
+}
+
 function playOnlineCallout(lastCallout) {
   clearDartAudioQueue();
+
+  if (lastCallout.type === "scoreEdit") {
+    showOnlineScoreEditToast(
+      lastCallout.playerName,
+      lastCallout.previousVisitScore,
+      lastCallout.visitScore
+    );
+    return;
+  }
 
   if (isDartAudioSuppressed()) return;
 
@@ -6450,6 +6884,8 @@ function showLeaderboardTab() {
   document.getElementById("leaderboardView")
     ?.classList.remove("hidden");
 
+  els.leaderboardTabBtn?.classList.add("active");
+  els.playTabBtn?.classList.remove("active");
   els.setupCard?.classList.add("hidden");
   els.scorerCard?.classList.add("hidden");
   els.startDeciderScreen?.classList.add("hidden");
@@ -6547,6 +6983,7 @@ function renderLeaderboard(players = []) {
 
   const myIndex = players.findIndex(player => player.playerKey === myKey);
   const me = myIndex >= 0 ? players[myIndex] : null;
+  currentLeagueProfile = me;
 
   const heroMeta = document.querySelector(".leagueHeroMeta");
   const heroResult = document.getElementById("leagueLastResult");
@@ -6592,8 +7029,13 @@ function renderLeaderboard(players = []) {
         }`;
     }
 
-    if (heroRating) heroRating.textContent = me.lastRatingChange || "+0 rating";
-    if (heroOpponent) heroOpponent.textContent = "Last game";
+    const lastMatch = me.lastMatch || null;
+    if (heroRating) heroRating.textContent = lastMatch?.ratingChange || me.lastRatingChange || "+0 rating";
+    if (heroOpponent) {
+      heroOpponent.textContent = lastMatch
+        ? `Last game vs ${lastMatch.opponentName || "Opponent"} (${lastMatch.format || "BO3"})`
+        : "Last game";
+    }
     if (statsBtn) statsBtn.textContent = "Stats";
     if (historyBtn) {
       historyBtn.textContent = "History";
@@ -6747,6 +7189,134 @@ async function loadExpandedPlayerStats(row) {
   }
 }
 
+function escapeHtml(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function formatLeagueMatchDate(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+}
+
+function closeLeagueInfoModal() {
+  const overlay = document.getElementById("leagueInfoOverlay");
+  overlay?.classList.add("hidden");
+  overlay?.setAttribute("aria-hidden", "true");
+}
+
+function openLeagueInfoModal(title, bodyHtml) {
+  let overlay = document.getElementById("leagueInfoOverlay");
+
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "leagueInfoOverlay";
+    overlay.className = "modalOverlay hidden";
+    overlay.setAttribute("aria-hidden", "true");
+    overlay.innerHTML = `
+      <div class="modalCard leagueInfoModalCard">
+        <div class="modalHeader">
+          <div class="modalTitle" id="leagueInfoTitle"></div>
+          <button id="closeLeagueInfoBtn" class="modalClose" type="button">✕</button>
+        </div>
+        <div class="modalBody" id="leagueInfoBody"></div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener("click", event => {
+      if (event.target === overlay) closeLeagueInfoModal();
+    });
+    overlay.querySelector("#closeLeagueInfoBtn")?.addEventListener("click", closeLeagueInfoModal);
+  }
+
+  overlay.querySelector("#leagueInfoTitle").textContent = title;
+  overlay.querySelector("#leagueInfoBody").innerHTML = bodyHtml;
+  overlay.classList.remove("hidden");
+  overlay.setAttribute("aria-hidden", "false");
+}
+
+function buildLeagueMatchStatsHtml(match) {
+  if (!match) {
+    return `<div class="leaderboardEmpty">No last-game stats available yet.</div>`;
+  }
+
+  const resultClass = match.won ? "win" : "loss";
+  const rows = Array.isArray(match.statsRows) ? match.statsRows : [];
+
+  return `
+    <div class="leagueMatchSummaryHero">
+      <div>
+        <div class="leagueMatchKicker">Last game vs ${escapeHtml(match.opponentName || "Opponent")} (${escapeHtml(match.format || "BO3")})</div>
+        <div class="leagueResultText ${resultClass}">${escapeHtml(match.score || "-")} ${escapeHtml(match.result || "")}</div>
+        <div class="leagueRatingChange">${escapeHtml(match.ratingChange || "")}</div>
+      </div>
+      <div class="leagueMatchDate">${escapeHtml(formatLeagueMatchDate(match.completedAt))}</div>
+    </div>
+
+    <div class="leagueMatchStatsRows">
+      ${rows.map(([label, me, opponent]) => `
+        <div class="statRow">
+          <div class="statValue">${escapeHtml(me ?? "-")}</div>
+          <div class="statLabelWrap">
+            <div class="statLabel">${escapeHtml(label)}</div>
+          </div>
+          <div class="statValue">${escapeHtml(opponent ?? "-")}</div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function openLastLeagueStats() {
+  openLeagueInfoModal("Last game stats", buildLeagueMatchStatsHtml(currentLeagueProfile?.lastMatch));
+}
+
+function openLeagueHistory() {
+  const history = Array.isArray(currentLeagueProfile?.matchHistory)
+    ? currentLeagueProfile.matchHistory
+    : [];
+
+  if (!history.length) {
+    openLeagueInfoModal("Game history", `<div class="leaderboardEmpty">No league game history available yet.</div>`);
+    return;
+  }
+
+  openLeagueInfoModal("Game history", `
+    <div class="leagueHistoryList">
+      ${history.map(match => `
+        <button type="button" class="leagueHistoryItem" data-match-id="${escapeHtml(match.matchId || "")}">
+          <div>
+            <div class="leagueMatchKicker">vs ${escapeHtml(match.opponentName || "Opponent")} (${escapeHtml(match.format || "BO3")})</div>
+            <strong class="${match.won ? "win" : "loss"}">${escapeHtml(match.score || "-")} ${escapeHtml(match.result || "")}</strong>
+            <span>${escapeHtml(match.ratingChange || "")}</span>
+          </div>
+          <small>${escapeHtml(formatLeagueMatchDate(match.completedAt))}</small>
+        </button>
+      `).join("")}
+    </div>
+  `);
+
+  document.querySelectorAll("#leagueInfoBody .leagueHistoryItem").forEach(button => {
+    button.addEventListener("click", () => {
+      const match = history.find(item => String(item.matchId || "") === button.dataset.matchId);
+      openLeagueInfoModal("Game stats", buildLeagueMatchStatsHtml(match));
+    });
+  });
+}
+
 async function loadLeaderboard() {
   const rowsEl = document.getElementById("leaderboardRows");
   if (!rowsEl) return;
@@ -6785,7 +7355,9 @@ async function loadLeaderboard() {
         streak: Number(player.streak || 0),
         form: Array.isArray(player.form) ? player.form : [],
         lastResult: player.lastResult || "",
-        lastRatingChange: player.lastRatingChange || ""
+        lastRatingChange: player.lastRatingChange || "",
+        lastMatch: player.lastMatch || null,
+        matchHistory: Array.isArray(player.matchHistory) ? player.matchHistory : []
       }))
       .filter(player => player.gamesPlayed > 0)
       .sort((a, b) => Number(b.rating || 1000) - Number(a.rating || 1000));
@@ -6817,19 +7389,24 @@ document.getElementById("openLastGameStatsBtn")?.addEventListener("click", event
     return;
   }
 
-  loadProfileStats();
-  openProfilePopup();
+  openLastLeagueStats();
 });
 
 document.getElementById("openGameHistoryBtn")?.addEventListener("click", () => {
   const user = window.ONMSession?.getUser?.() || loggedInUser;
+  const buttonText = document.getElementById("openGameHistoryBtn")?.textContent.trim();
 
   if (!user) {
     window.location.href = "auth.html?mode=register&redirect=dart-scorer.html";
     return;
   }
 
-  showOnlineNotice("Game history coming soon.");
+  if (buttonText === "Register") {
+    window.location.href = "auth.html?mode=register&redirect=dart-scorer.html";
+    return;
+  }
+
+  openLeagueHistory();
 });
 
 render();
