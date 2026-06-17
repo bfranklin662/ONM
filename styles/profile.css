@@ -279,6 +279,32 @@
   min-height: 0;
 }
 
+.profileAveragesLoading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 213, 59, .24);
+  border-radius: 14px;
+  background: rgba(255, 213, 59, .08);
+}
+
+.profileAveragesLoading strong {
+  display: block;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.profileAveragesLoading span:last-child {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .profileLinkedStatsCard {
   display: grid;
   gap: 10px;

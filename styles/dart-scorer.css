@@ -563,7 +563,11 @@ body {
   }
 
   .scoreEntry {
-    grid-template-columns: 1fr 110px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .scoreEntry.hasCheckoutPhoto {
+    grid-template-columns: minmax(0, 50%) 48px minmax(110px, 1fr);
   }
 
   .keypad button {
@@ -1570,10 +1574,14 @@ body.scorer-fullscreen .scorerCard {
 
 body.scorer-fullscreen .scoreEntry {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 104px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
   width: 100%;
   min-width: 0;
+}
+
+body.scorer-fullscreen .scoreEntry.hasCheckoutPhoto {
+  grid-template-columns: minmax(0, 50%) 48px minmax(110px, 1fr);
 }
 
 body.scorer-fullscreen .scoreEntry input {
@@ -1583,8 +1591,12 @@ body.scorer-fullscreen .scoreEntry input {
 }
 
 body.scorer-fullscreen .scoreEntry button {
-  width: 104px;
+  width: 100%;
   min-width: 0;
+}
+
+body.scorer-fullscreen .scoreEntry .checkoutPhotoBtn {
+  width: 48px;
 }
 
 body.scorer-fullscreen .scoreboard,
@@ -2189,6 +2201,194 @@ body.scorer-fullscreen .startDeciderScreen {
 
 .scoreEntry {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.scoreEntry input {
+  grid-column: 1;
+}
+
+.scoreEntry .btnPrimary {
+  grid-column: 2;
+  width: 100%;
+}
+
+.scoreEntry.hasCheckoutPhoto {
+  grid-template-columns: minmax(0, 50%) 48px minmax(120px, 1fr);
+}
+
+.scoreEntry.hasCheckoutPhoto .btnPrimary {
+  grid-column: 3;
+}
+
+.checkoutPhotoBtn {
+  grid-column: 2;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+.checkoutPhotoBtn.hidden {
+  display: none;
+}
+
+.checkoutPhotoBtn.hasPhoto {
+  background: rgba(46, 204, 113, .24);
+  border-color: rgba(46, 204, 113, .72);
+}
+
+.checkoutPhotoBtn.isLoading {
+  opacity: .58;
+  cursor: wait;
+}
+
+.checkoutPhotoCard {
+  max-width: 520px;
+}
+
+.checkoutPhotoText {
+  margin: 0 0 14px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.checkoutPhotoImage {
+  display: block;
+  width: 100%;
+  max-height: min(58vh, 560px);
+  object-fit: contain;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, .3);
+  border: 1px solid rgba(255, 255, 255, .1);
+  margin-bottom: 16px;
+}
+
+.checkoutPhotoReactionBlock {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.checkoutPhotoReactionBlock.hidden {
+  display: none;
+}
+
+.checkoutPhotoReactionLabel {
+  color: rgba(255, 255, 255, .68);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.checkoutPhotoReactions {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.checkoutPhotoReactions button {
+  min-height: 42px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .07);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.checkoutPhotoReactions button.selected {
+  background: rgba(255, 215, 64, .2);
+  border-color: rgba(255, 215, 64, .72);
+  box-shadow: 0 0 0 2px rgba(255, 215, 64, .12);
+}
+
+.checkoutPhotoMessageRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.checkoutPhotoMessageRow input {
+  min-width: 0;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, .28);
+  color: #fff;
+  padding: 0 12px;
+  font-weight: 800;
+}
+
+.checkoutPhotoMessageRow button {
+  border: 0;
+  border-radius: 12px;
+  background: var(--yellow);
+  color: #111;
+  padding: 0 15px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.checkoutPhotoReactionToast {
+  position: fixed;
+  top: 86px;
+  left: 50%;
+  z-index: 10050;
+  transform: translateX(-50%);
+  min-width: min(360px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 215, 64, .55);
+  border-radius: 16px;
+  background: rgba(15, 20, 18, .96);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .42);
+  text-align: center;
+}
+
+.checkoutPhotoReactionToast.hidden {
+  display: none;
+}
+
+.checkoutPhotoReactionToastKicker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, .68);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.checkoutPhotoReactionToastIcon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.checkoutPhotoReactionToastBody {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.checkoutPhotoReactionToastBody span {
+  font-size: 28px;
 }
 
 .scoreControlsWrap {
@@ -2832,6 +3032,73 @@ body.scorer-fullscreen .startDeciderScreen {
     linear-gradient(135deg, rgba(18, 68, 19, .98), rgba(27, 92, 35, .96));
   border: 1px solid rgba(255, 255, 255, .12);
   box-shadow: 0 18px 45px rgba(0, 0, 0, .3);
+}
+
+.leagueResumeMatchCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: min(100%, 560px);
+  margin: -4px auto 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 213, 59, .42);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 213, 59, .18), transparent 44%),
+    rgba(22, 24, 30, .94);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, .28);
+}
+
+.leagueResumeMatchCard.hidden {
+  display: none;
+}
+
+.leagueResumeMatchCard span {
+  display: block;
+  color: var(--yellow);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.leagueResumeMatchCard strong {
+  display: block;
+  margin-top: 3px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.leagueResumeMatchCard small {
+  display: block;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, .62);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.leagueResumeMatchCard button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: #111;
+  padding: 0 18px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .leagueResumeMatchCard {
+    grid-template-columns: 1fr;
+  }
+
+  .leagueResumeMatchCard button {
+    width: 100%;
+  }
 }
 
 .leagueHeroLeft {

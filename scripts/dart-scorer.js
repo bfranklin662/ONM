@@ -437,6 +437,82 @@ function saveOnlineSession() {
 
 function clearOnlineSession() {
   localStorage.removeItem(ONLINE_SESSION_KEY);
+  hideLeagueResumePrompt();
+}
+
+async function getSavedOnlineSessionMatch() {
+  const saved = localStorage.getItem(ONLINE_SESSION_KEY);
+  if (!saved || !window.ONMLiveDarts) return null;
+
+  let session = null;
+
+  try {
+    session = JSON.parse(saved);
+  } catch {
+    clearOnlineSession();
+    return null;
+  }
+
+  if (!session?.matchId || !session?.role) {
+    clearOnlineSession();
+    return null;
+  }
+
+  const { db, ref, get } = window.ONMLiveDarts;
+  const matchSnap = await get(ref(db, `onlineMatches/${session.matchId}`));
+
+  if (!matchSnap.exists()) {
+    clearOnlineSession();
+    return null;
+  }
+
+  const match = matchSnap.val();
+
+  if (["left", "cancelled", "closed", "abandoned"].includes(match.status)) {
+    clearOnlineSession();
+    return null;
+  }
+
+  const myKey = getCurrentPlayerKey();
+  const keys = onlinePlayerKeys(match);
+
+  if (myKey && !keys.includes(myKey)) {
+    clearOnlineSession();
+    return null;
+  }
+
+  return { session, match };
+}
+
+function getLeagueResumeOpponentName(match) {
+  const myKey = getCurrentPlayerKey();
+
+  if (myKey === match.hostPlayerKey) return match.guestName || "Opponent";
+  if (myKey === match.guestPlayerKey) return match.hostName || "Opponent";
+
+  return match.guestName || match.hostName || "Opponent";
+}
+
+function showLeagueResumePrompt(match) {
+  const card = document.getElementById("leagueResumeMatchCard");
+  const title = document.getElementById("leagueResumeMatchTitle");
+  const meta = document.getElementById("leagueResumeMatchMeta");
+
+  if (!card) return;
+
+  const opponentName = getLeagueResumeOpponentName(match);
+  const statusText = String(match.status || "playing").replace(/([a-z])([A-Z])/g, "$1 $2");
+  const legsCount = Number(match.settings?.legsCount || match.legsCount || els.legsCount?.textContent || 3);
+  const format = legsCount === 1 ? "1 Leg Shootout" : `BO${legsCount}`;
+
+  if (title) title.textContent = `Continue vs ${opponentName}`;
+  if (meta) meta.textContent = `${format} · ${statusText}`;
+
+  card.classList.remove("hidden");
+}
+
+function hideLeagueResumePrompt() {
+  document.getElementById("leagueResumeMatchCard")?.classList.add("hidden");
 }
 
 const els = {
@@ -449,6 +525,17 @@ const els = {
   darts: [document.getElementById("playerOneDarts"), document.getElementById("playerTwoDarts")],
   input: document.getElementById("scoreInput"),
   submit: document.getElementById("submitScoreBtn"),
+  checkoutPhotoBtn: document.getElementById("checkoutPhotoBtn"),
+  checkoutPhotoInput: document.getElementById("checkoutPhotoInput"),
+  checkoutPhotoOverlay: document.getElementById("checkoutPhotoOverlay"),
+  checkoutPhotoTitle: document.getElementById("checkoutPhotoTitle"),
+  checkoutPhotoText: document.getElementById("checkoutPhotoText"),
+  checkoutPhotoImage: document.getElementById("checkoutPhotoImage"),
+  checkoutPhotoReactionBlock: document.getElementById("checkoutPhotoReactionBlock"),
+  checkoutPhotoMessageInput: document.getElementById("checkoutPhotoMessageInput"),
+  sendCheckoutPhotoMessageBtn: document.getElementById("sendCheckoutPhotoMessageBtn"),
+  closeCheckoutPhotoBtn: document.getElementById("closeCheckoutPhotoBtn"),
+  dismissCheckoutPhotoBtn: document.getElementById("dismissCheckoutPhotoBtn"),
   turnMessage: document.getElementById("turnMessage"),
   keypad: document.querySelector(".keypad"),
   newGame: document.getElementById("newGameBtn"),
@@ -672,6 +759,11 @@ let dartAudioPlaying = false;
 let dartActiveAudios = [];
 let lastOnlineCalloutAt = null;
 let lastOnlineCalloutId = null;
+let checkoutPhotoDraft = null;
+let lastCheckoutPhotoId = null;
+let lastCheckoutPhotoReactionId = null;
+let checkoutPhotoDismissTimer = null;
+let selectedCheckoutPhotoReaction = "";
 const dartAudioPageLoadedAt = Date.now();
 
 let dartAudioUnlocked = false;
@@ -2900,6 +2992,138 @@ function syncScoreCorrectionButton() {
   button.title = isOnline ? "Edit last score" : "Undo last score";
 }
 
+function getCurrentCheckoutPhotoOpportunity() {
+  if (MATCH_MODE !== "online" || !onlineMatchId || !els.checkoutPhotoBtn) return null;
+  if (els.submit?.disabled) return null;
+
+  const visitScore = Number(els.input.value);
+  if (!Number.isInteger(visitScore) || visitScore <= 0 || visitScore > MAX_VISIT) return null;
+
+  const player = state.players[state.currentPlayer];
+  const previousScore = Number(player?.score || 0);
+
+  if (visitScore !== previousScore) return null;
+  if (!CHECKOUTS[previousScore]) return null;
+
+  return {
+    visitScore,
+    previousScore,
+    playerIndex: state.currentPlayer
+  };
+}
+
+function resetCheckoutPhotoDraft() {
+  checkoutPhotoDraft = null;
+
+  if (els.checkoutPhotoInput) {
+    els.checkoutPhotoInput.value = "";
+  }
+
+  els.checkoutPhotoBtn?.classList.remove("hasPhoto");
+  els.checkoutPhotoBtn?.setAttribute("title", "Add checkout photo");
+}
+
+function syncCheckoutPhotoButton() {
+  const opportunity = getCurrentCheckoutPhotoOpportunity();
+
+  if (!els.checkoutPhotoBtn) return;
+
+  els.checkoutPhotoBtn.classList.toggle("hidden", !opportunity);
+  els.checkoutPhotoBtn.disabled = !opportunity;
+  els.checkoutPhotoBtn.closest(".scoreEntry")?.classList.toggle("hasCheckoutPhoto", Boolean(opportunity));
+
+  if (!opportunity) {
+    resetCheckoutPhotoDraft();
+    return;
+  }
+
+  const draftMatchesOpportunity =
+    checkoutPhotoDraft &&
+    checkoutPhotoDraft.visitScore === opportunity.visitScore &&
+    checkoutPhotoDraft.previousScore === opportunity.previousScore;
+
+  if (!draftMatchesOpportunity && checkoutPhotoDraft) {
+    resetCheckoutPhotoDraft();
+  }
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function compressCheckoutPhoto(file) {
+  const dataUrl = await readFileAsDataUrl(file);
+
+  if (!dataUrl.startsWith("data:image/")) {
+    throw new Error("Invalid image");
+  }
+
+  const image = await new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+
+  const maxWidth = 900;
+  const scale = Math.min(1, maxWidth / image.width);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  return canvas.toDataURL("image/jpeg", 0.72);
+}
+
+async function handleCheckoutPhotoFile(file) {
+  const opportunity = getCurrentCheckoutPhotoOpportunity();
+  if (!opportunity || !file) return;
+
+  if (!file.type.startsWith("image/")) {
+    showOnlineNotice("Please choose an image file.");
+    return;
+  }
+
+  if (file.size > 8 * 1024 * 1024) {
+    showOnlineNotice("Please choose an image under 8MB.");
+    return;
+  }
+
+  els.checkoutPhotoBtn.disabled = true;
+  els.checkoutPhotoBtn.classList.add("isLoading");
+
+  try {
+    const imageData = await compressCheckoutPhoto(file);
+
+    if (imageData.length > 700000) {
+      showOnlineNotice("That photo is still too large. Try a smaller image.");
+      return;
+    }
+
+    checkoutPhotoDraft = {
+      ...opportunity,
+      imageData,
+      createdAt: Date.now()
+    };
+
+    els.checkoutPhotoBtn.classList.add("hasPhoto");
+    els.checkoutPhotoBtn.setAttribute("title", "Checkout photo ready");
+  } catch (err) {
+    console.warn("Could not prepare checkout photo:", err);
+    showOnlineNotice("Could not prepare that photo.");
+  } finally {
+    els.checkoutPhotoBtn.classList.remove("isLoading");
+    syncCheckoutPhotoButton();
+  }
+}
+
 function render() {
   syncScoreCorrectionButton();
 
@@ -2926,6 +3150,8 @@ function render() {
   if (document.activeElement !== els.input) {
     els.input.blur();
   }
+
+  syncCheckoutPhotoButton();
 }
 
 function switchPlayer() {
@@ -3565,7 +3791,7 @@ function buildRatingHistoryEntry({
   };
 }
 
-async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWon, dartsUsed, doublesAttempted, bullOut }) {
+async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWon, dartsUsed, doublesAttempted, bullOut, checkoutPhoto = null }) {
   const { db, ref, update } = window.ONMLiveDarts;
   let ratingUpdates = null;
 
@@ -3652,6 +3878,20 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       Number(match.game.players[opponentKey]?.checkoutAttempts || 0) >= 3
     ),
   };
+
+  if (legWon && checkoutPhoto?.imageData) {
+    updates[`game/checkoutPhoto`] = {
+      id: `photo-${calloutId}`,
+      byKey: myKey,
+      byName: player.name || "Player",
+      visitScore,
+      previousScore,
+      bullOut: Boolean(bullOut),
+      imageData: checkoutPhoto.imageData,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 45000
+    };
+  }
 
   if (visitScore === 180) {
     updates[`game/players/${myKey}/oneEightys`] = (player.oneEightys || 0) + 1;
@@ -3830,6 +4070,12 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
 
   await update(ref(db, `onlineMatches/${onlineMatchId}`), updates);
 
+  if (legWon && checkoutPhoto?.imageData) {
+    setTimeout(() => {
+      clearCheckoutPhotoFromMatch(`photo-${calloutId}`);
+    }, 45000);
+  }
+
   if (ratingUpdates) {
     await update(ref(db), ratingUpdates);
   }
@@ -3861,6 +4107,7 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
   }
 
   els.input.value = "";
+  syncCheckoutPhotoButton();
 }
 
 function setTogglePosition(toggleEl, activeBtn) {
@@ -4578,8 +4825,10 @@ els.checkoutOverlay.addEventListener("click", event => {
   if (event.target !== els.checkoutOverlay) return;
 
   closeCheckoutPrompt();
+  resetCheckoutPhotoDraft();
   els.input.value = "";
   els.input.blur();
+  syncCheckoutPhotoButton();
 });
 
 els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
@@ -4599,6 +4848,10 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
     : false;
 
   const promptData = pendingCheckoutPrompt;
+  const checkoutPhoto =
+    promptData.online && promptData.legWon
+      ? checkoutPhotoDraft
+      : null;
   closeCheckoutPrompt();
 
   if (promptData.online && onlineMatchId) {
@@ -4614,8 +4867,11 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
       legWon: promptData.legWon,
       dartsUsed,
       doublesAttempted,
-      bullOut
+      bullOut,
+      checkoutPhoto
     });
+
+    resetCheckoutPhotoDraft();
 
     return;
   }
@@ -4680,6 +4936,46 @@ els.customScoreOverlay.addEventListener("click", (e) => {
 
 els.submit.addEventListener("click", submitScore);
 
+els.checkoutPhotoBtn?.addEventListener("click", () => {
+  if (!getCurrentCheckoutPhotoOpportunity()) return;
+  els.checkoutPhotoInput?.click();
+});
+
+els.checkoutPhotoInput?.addEventListener("change", event => {
+  const file = event.target.files?.[0] || null;
+  handleCheckoutPhotoFile(file);
+});
+
+els.closeCheckoutPhotoBtn?.addEventListener("click", () => closeCheckoutPhotoOverlay());
+els.checkoutPhotoOverlay?.addEventListener("click", event => {
+  const reactionButton = event.target.closest("[data-checkout-reaction]");
+
+  if (reactionButton) {
+    selectedCheckoutPhotoReaction = reactionButton.dataset.checkoutReaction || "";
+    els.checkoutPhotoOverlay
+      ?.querySelectorAll("[data-checkout-reaction]")
+      .forEach(button => button.classList.toggle("selected", button === reactionButton));
+    return;
+  }
+
+  if (event.target !== els.checkoutPhotoOverlay) return;
+  closeCheckoutPhotoOverlay();
+});
+els.sendCheckoutPhotoMessageBtn?.addEventListener("click", () => {
+  sendCheckoutPhotoReaction({
+    emoji: selectedCheckoutPhotoReaction,
+    message: els.checkoutPhotoMessageInput?.value || ""
+  });
+});
+els.checkoutPhotoMessageInput?.addEventListener("keydown", event => {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  sendCheckoutPhotoReaction({
+    emoji: selectedCheckoutPhotoReaction,
+    message: els.checkoutPhotoMessageInput?.value || ""
+  });
+});
+
 els.input.addEventListener("keydown", event => {
   if (event.key === "Enter") submitScore();
 });
@@ -4692,6 +4988,8 @@ els.input.addEventListener("input", () => {
   if (Number(els.input.value) > MAX_VISIT) {
     els.input.value = String(MAX_VISIT);
   }
+
+  syncCheckoutPhotoButton();
 });
 
 els.statsBtn.addEventListener("click", () => {
@@ -4769,6 +5067,7 @@ els.keypad.addEventListener("click", event => {
     return;
   }
 
+  syncCheckoutPhotoButton();
   els.input.blur();
 });
 
@@ -5388,6 +5687,17 @@ async function initDartScorerAuth() {
   }
 
   await loadLoggedInPlayer(user);
+
+  if (PAGE_MODE === "league") {
+    const savedOnlineGame = await getSavedOnlineSessionMatch();
+
+    if (savedOnlineGame) {
+      initialisePageModeView();
+      showLeagueResumePrompt(savedOnlineGame.match);
+      console.log("[DART DEBUG] active online session prompt shown");
+      return;
+    }
+  }
 
   console.log("[DART DEBUG] restoring session now");
   const restoredOnlineGame = await restoreOnlineSession();
@@ -6149,6 +6459,7 @@ async function restoreOnlineSession() {
   onlineRole = session.role;
   MATCH_MODE = "online";
   STATS_MODE = match.statsMode || "casual";
+  hideLeagueResumePrompt();
 
   const myKey = getCurrentPlayerKey();
 
@@ -6565,6 +6876,8 @@ function applyOnlineGame(match) {
     lastOnlineCalloutAt = lastCallout.createdAt || null;
     playOnlineCallout(lastCallout);
   }
+
+  handleCheckoutPhotoNotification(match);
   render();
 }
 
@@ -6592,6 +6905,172 @@ function showOnlineScoreEditToast(playerNameText, previousVisitScore, visitScore
   showOnlineScoreEditToast.hideTimer = setTimeout(() => {
     toast.classList.add("hidden");
   }, 2600);
+}
+
+function getCheckoutPhotoMessage(photo) {
+  const name = photo.byName || "Player";
+  const score = photo.previousScore || photo.visitScore || "";
+
+  return photo.bullOut
+    ? `${name} checked out ${score} with a bullseye!`
+    : `${name} checked out ${score}!`;
+}
+
+async function clearCheckoutPhotoFromMatch(photoId) {
+  if (!onlineMatchId || !photoId || !window.ONMLiveDarts) return;
+
+  try {
+    const { db, ref, get, update } = window.ONMLiveDarts;
+    const snap = await get(ref(db, `onlineMatches/${onlineMatchId}/game/checkoutPhoto`));
+
+    if (!snap.exists()) return;
+
+    const currentPhoto = snap.val();
+
+    if (currentPhoto?.id !== photoId) return;
+
+    await update(ref(db, `onlineMatches/${onlineMatchId}`), {
+      "game/checkoutPhoto": null
+    });
+  } catch (err) {
+    console.warn("Could not clear checkout photo:", err);
+  }
+}
+
+function closeCheckoutPhotoOverlay({ clearRemote = true } = {}) {
+  const photoId = els.checkoutPhotoOverlay?.dataset.photoId || "";
+
+  clearTimeout(checkoutPhotoDismissTimer);
+  checkoutPhotoDismissTimer = null;
+
+  els.checkoutPhotoOverlay?.classList.add("hidden");
+  els.checkoutPhotoOverlay?.setAttribute("aria-hidden", "true");
+
+  if (els.checkoutPhotoImage) {
+    els.checkoutPhotoImage.src = "";
+  }
+
+  if (els.checkoutPhotoMessageInput) {
+    els.checkoutPhotoMessageInput.value = "";
+  }
+
+  selectedCheckoutPhotoReaction = "";
+  els.checkoutPhotoOverlay
+    ?.querySelectorAll("[data-checkout-reaction]")
+    .forEach(button => button.classList.remove("selected"));
+
+  if (clearRemote && photoId) {
+    clearCheckoutPhotoFromMatch(photoId);
+  }
+}
+
+async function sendCheckoutPhotoReaction({ emoji = "", message = "" } = {}) {
+  const photoId = els.checkoutPhotoOverlay?.dataset.photoId || "";
+  if (!onlineMatchId || !photoId || !window.ONMLiveDarts) return;
+
+  const cleanedMessage = String(message || "").trim().slice(0, 80);
+  if (!emoji && !cleanedMessage) return;
+
+  const user = window.ONMSession?.getUser?.() || loggedInUser || {};
+  const reactionId = `reaction-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const { db, ref, update } = window.ONMLiveDarts;
+
+  await update(ref(db, `onlineMatches/${onlineMatchId}/game/checkoutPhoto/reaction`), {
+    id: reactionId,
+    photoId,
+    emoji,
+    message: cleanedMessage,
+    byKey: getCurrentPlayerKey(),
+    byName: getLoggedInFullName(user),
+    createdAt: Date.now()
+  });
+
+  closeCheckoutPhotoOverlay({ clearRemote: false });
+
+  setTimeout(() => {
+    clearCheckoutPhotoFromMatch(photoId);
+  }, 6500);
+}
+
+function showCheckoutPhotoReactionToast(reaction) {
+  let toast = document.getElementById("checkoutPhotoReactionToast");
+
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "checkoutPhotoReactionToast";
+    toast.className = "checkoutPhotoReactionToast hidden";
+    document.body.appendChild(toast);
+  }
+
+  const message = String(reaction.message || "").trim();
+  const emoji = reaction.emoji || "";
+
+  toast.innerHTML = `
+    <div class="checkoutPhotoReactionToastKicker">
+      <span class="checkoutPhotoReactionToastIcon">📷</span>
+      ${reaction.byName || "Opponent"} reacted to your checkout
+    </div>
+    <div class="checkoutPhotoReactionToastBody">
+      ${emoji ? `<span>${emoji}</span>` : ""}
+      ${message ? `<strong>${escapeHtml(message)}</strong>` : ""}
+    </div>
+  `;
+
+  toast.classList.remove("hidden");
+
+  clearTimeout(showCheckoutPhotoReactionToast.hideTimer);
+  showCheckoutPhotoReactionToast.hideTimer = setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 4200);
+}
+
+function showCheckoutPhotoOverlay(photo) {
+  if (!photo?.imageData || !els.checkoutPhotoOverlay) return;
+
+  const message = getCheckoutPhotoMessage(photo);
+
+  els.checkoutPhotoOverlay.dataset.photoId = photo.id || "";
+  if (els.checkoutPhotoTitle) els.checkoutPhotoTitle.textContent = "Checkout photo";
+  if (els.checkoutPhotoText) els.checkoutPhotoText.textContent = message;
+  if (els.checkoutPhotoImage) els.checkoutPhotoImage.src = photo.imageData;
+  els.checkoutPhotoReactionBlock?.classList.remove("hidden");
+
+  els.checkoutPhotoOverlay.classList.remove("hidden");
+  els.checkoutPhotoOverlay.setAttribute("aria-hidden", "false");
+
+  clearTimeout(checkoutPhotoDismissTimer);
+  checkoutPhotoDismissTimer = setTimeout(() => {
+    closeCheckoutPhotoOverlay();
+  }, 18000);
+}
+
+function handleCheckoutPhotoNotification(match) {
+  const photo = match.game?.checkoutPhoto;
+
+  if (!photo?.id) return;
+
+  if (Number(photo.expiresAt || 0) && Date.now() > Number(photo.expiresAt)) {
+    clearCheckoutPhotoFromMatch(photo.id);
+    return;
+  }
+
+  const myKey = getCurrentPlayerKey();
+
+  if (photo.byKey === myKey) {
+    const reaction = photo.reaction;
+
+    if (reaction?.id && reaction.id !== lastCheckoutPhotoReactionId) {
+      lastCheckoutPhotoReactionId = reaction.id;
+      showCheckoutPhotoReactionToast(reaction);
+    }
+
+    return;
+  }
+
+  if (photo.id === lastCheckoutPhotoId) return;
+
+  lastCheckoutPhotoId = photo.id;
+  showCheckoutPhotoOverlay(photo);
 }
 
 function playOnlineCallout(lastCallout) {
@@ -6920,6 +7399,28 @@ document.getElementById("leaderboardPlayDockBtn")?.addEventListener("click", () 
   }
 
   openCompetitiveInviteFlow();
+});
+
+document.getElementById("leagueResumeMatchBtn")?.addEventListener("click", async () => {
+  const button = document.getElementById("leagueResumeMatchBtn");
+
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = `<span class="btnSpinner"></span> Opening`;
+  }
+
+  const restored = await restoreOnlineSession();
+
+  if (!restored) {
+    hideLeagueResumePrompt();
+    showOnlineNotice("That online match is no longer available.");
+    initialisePageModeView();
+  }
+
+  if (button) {
+    button.disabled = false;
+    button.textContent = "Continue game";
+  }
 });
 
 document.querySelectorAll(".molStatsDot").forEach((dot, index) => {

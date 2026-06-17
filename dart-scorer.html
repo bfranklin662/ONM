@@ -185,6 +185,18 @@
         </div>
       </div>
 
+      <div id="leagueResumeMatchCard" class="leagueResumeMatchCard hidden">
+        <div>
+          <span>Online match in progress</span>
+          <strong id="leagueResumeMatchTitle">Continue game</strong>
+          <small id="leagueResumeMatchMeta">Return to your live match.</small>
+        </div>
+
+        <button id="leagueResumeMatchBtn" type="button">
+          Continue game
+        </button>
+      </div>
+
       <div class="leaderboardHeader">
         <span>#</span>
         <span>Name</span>
@@ -353,6 +365,10 @@
       <div class="scoreControlsWrap">
         <div class="scoreEntry">
           <input id="scoreInput" type="text" readonly placeholder="Enter a score" autocomplete="off">
+          <button id="checkoutPhotoBtn" type="button" class="checkoutPhotoBtn hidden" title="Add checkout photo" aria-label="Add checkout photo">
+            📷
+          </button>
+          <input id="checkoutPhotoInput" class="hidden" type="file" accept="image/*" capture="environment">
           <button id="submitScoreBtn" type="button" class="btn btnPrimary">
             Submit
           </button>
@@ -405,6 +421,35 @@
       <button id="confirmCheckoutPromptBtn" type="button" class="btn btnPrimary">
         Confirm
       </button>
+    </div>
+  </div>
+
+  <div id="checkoutPhotoOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard checkoutPhotoCard">
+      <div class="modalHeader">
+        <div class="modalTitle" id="checkoutPhotoTitle">Checkout photo</div>
+        <button id="closeCheckoutPhotoBtn" class="modalClose">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <p id="checkoutPhotoText" class="checkoutPhotoText"></p>
+        <img id="checkoutPhotoImage" class="checkoutPhotoImage" src="" alt="Checkout photo">
+        <div id="checkoutPhotoReactionBlock" class="checkoutPhotoReactionBlock">
+          <div class="checkoutPhotoReactionLabel">Send a reaction</div>
+          <div class="checkoutPhotoReactions">
+            <button type="button" data-checkout-reaction="😍">😍</button>
+            <button type="button" data-checkout-reaction="💥">💥</button>
+            <button type="button" data-checkout-reaction="🎯">🎯</button>
+            <button type="button" data-checkout-reaction="👏">👏</button>
+            <button type="button" data-checkout-reaction="🤫">🤫</button>
+            <button type="button" data-checkout-reaction="🐟">🐟</button>
+          </div>
+          <div class="checkoutPhotoMessageRow">
+            <input id="checkoutPhotoMessageInput" type="text" maxlength="80" placeholder="Add a message">
+            <button id="sendCheckoutPhotoMessageBtn" type="button">Send</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

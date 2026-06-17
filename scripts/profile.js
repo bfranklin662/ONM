@@ -175,6 +175,13 @@ function renderProfileAveragesLoading() {
   if (!tab) return;
 
   tab.innerHTML = `
+    <div class="profileAveragesLoading">
+      <span class="inlineSpinner"></span>
+      <div>
+        <strong>Loading averages</strong>
+        <span>Fetching your match stats...</span>
+      </div>
+    </div>
     <div class="profileStatGrid">
       ${[
         "3-dart average",
