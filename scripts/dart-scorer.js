@@ -250,10 +250,20 @@ const CHECKOUTS = {
 
 const POSSIBLE_CHECKOUTS = new Set(Object.keys(CHECKOUTS).map(Number));
 
-const FORCED_BULL_OUTS = new Set([161, 164, 167, 170]);
+const FORCED_BULL_OUTS = new Set([155, 161, 164, 167, 170]);
 
 function canAskBullOut(score) {
   return score >= 50 && score <= 170 && POSSIBLE_CHECKOUTS.has(score);
+}
+
+function getBullOutPromptConfig(score) {
+  const forcedBullOut = FORCED_BULL_OUTS.has(score);
+
+  return {
+    forcedBullOut,
+    bullOutOptions: !forcedBullOut && canAskBullOut(score) ? ["No", "Yes"] : null,
+    bullOutDefault: "No"
+  };
 }
 
 let pendingCheckoutPrompt = null;
@@ -1383,6 +1393,37 @@ function buildMatchStatsData() {
   };
 }
 
+function buildLocalMatchStatsData() {
+  const p1 = state.players[0];
+  const p2 = state.players[1];
+
+  function buildLocalPlayer(index, player) {
+    return {
+      key: `local-${index}`,
+      name: playerName(index),
+      nationality: "",
+      photo: "graphics/logoWoText.png",
+      legs: Number(player.legs || 0),
+      stats: getPlayerStats(player),
+      isWinner: state.winnerIndex === index,
+      oldRating: null,
+      newRating: null,
+      ratingMove: { text: "", className: "" },
+      oldRank: null,
+      newRank: "",
+      rankMove: { text: "", className: "" }
+    };
+  }
+
+  return {
+    mode: "casual",
+    players: [
+      buildLocalPlayer(0, p1),
+      buildLocalPlayer(1, p2)
+    ]
+  };
+}
+
 function buildStatsRowsHtml(rows) {
   return rows.map(([label, left, right]) => `
     <div class="statRow">
@@ -1456,15 +1497,26 @@ function applyMolRematchState(match) {
   const opponentLeft = presence[opponentKey] === "left";
 
   els.molVictoryPlayerOneRematch.textContent = hostLeft
-    ? "Declined"
+    ? "×"
     : hostRematch
-      ? "Rematch ✓"
-      : "Rematch";
+      ? "✓"
+      : "R";
 
   els.molVictoryPlayerTwoRematch.textContent = guestLeft
-    ? "Declined"
+    ? "×"
     : guestRematch
-      ? "Rematch ✓"
+      ? "✓"
+      : "R";
+
+  els.molVictoryPlayerOneRematch.title = hostLeft
+    ? "Rematch declined"
+    : hostRematch
+      ? "Rematch requested"
+      : "Rematch";
+  els.molVictoryPlayerTwoRematch.title = guestLeft
+    ? "Rematch declined"
+    : guestRematch
+      ? "Rematch requested"
       : "Rematch";
 
   els.molVictoryPlayerOneRematch.classList.toggle("ready", hostRematch && !hostLeft);
@@ -1497,10 +1549,19 @@ function applyMolRematchState(match) {
 }
 
 function openMolVictoryScreen(matchData) {
+  const isCasualResult = matchData.mode === "casual" || MATCH_MODE !== "online";
+  const kicker = els.molVictoryOverlay?.querySelector(".readyLeagueKicker");
 
   els.scorerCard?.classList.add("hidden");
 
   els.molVictoryOverlay?.classList.remove("hidden");
+  els.molVictoryOverlay?.classList.toggle("casualVictory", isCasualResult);
+  if (els.molVictoryOverlay) {
+    els.molVictoryOverlay.dataset.resultMode = isCasualResult ? "casual" : "online";
+  }
+  if (kicker) {
+    kicker.textContent = isCasualResult ? "Casual darts match" : "Monsters Online League";
+  }
 
   const p1 = matchData.players[0];
   const p2 = matchData.players[1];
@@ -1513,6 +1574,8 @@ function openMolVictoryScreen(matchData) {
 
   els.molVictoryPlayerOnePhoto.src = p1.photo;
   els.molVictoryPlayerTwoPhoto.src = p2.photo;
+  els.molVictoryPlayerOnePhoto.classList.toggle("defaultMonsterPhoto", String(p1.photo || "").includes("logoWoText"));
+  els.molVictoryPlayerTwoPhoto.classList.toggle("defaultMonsterPhoto", String(p2.photo || "").includes("logoWoText"));
 
   els.molVictoryPlayerOneRank.innerHTML = `
     Rank ${p1.newRank}
@@ -1534,24 +1597,169 @@ function openMolVictoryScreen(matchData) {
     <span class="${p2.ratingMove.className}">${p2.ratingMove.text}</span>
   `;
 
-  els.molVictoryPlayerOneName.textContent =
-    `${p1.name} ${countryToFlag(p1.nationality)}`;
+  els.molVictoryPlayerOneName.textContent = p1.name;
 
-  els.molVictoryPlayerTwoName.textContent =
-    `${p2.name} ${countryToFlag(p2.nationality)}`;
+  els.molVictoryPlayerTwoName.textContent = p2.name;
+
+  els.molVictoryPlayerOneFlag.textContent = countryToFlag(p1.nationality);
+  els.molVictoryPlayerTwoFlag.textContent = countryToFlag(p2.nationality);
+
+  [
+    els.molVictoryPlayerOneFlag,
+    els.molVictoryPlayerTwoFlag,
+    els.molVictoryPlayerOneRank,
+    els.molVictoryPlayerTwoRank,
+    els.molVictoryPlayerOneRating,
+    els.molVictoryPlayerTwoRating,
+    els.molVictoryPlayerOneRematch,
+    els.molVictoryPlayerTwoRematch
+  ].forEach(element => element?.classList.toggle("hidden", isCasualResult));
 
   els.molVictoryMiddleScore.textContent =
     `${p1.legs} - ${p2.legs}`;
 
   els.molVictoryTitle.textContent =
-    `${STARTING_SCORE} · BO${Number(els.legsCount.textContent)}`;
+    isCasualResult
+      ? `${STARTING_SCORE} · ${GAME_TYPE === "bestOf" ? `BO${Number(els.legsCount.textContent)}` : `FT${Number(els.legsCount.textContent)}`}`
+      : `${STARTING_SCORE} · BO${Number(els.legsCount.textContent)}`;
 
-  els.molVictoryPlayerOneWon.classList.toggle("hidden", !p1.isWinner);
-  els.molVictoryPlayerTwoWon.classList.toggle("hidden", !p2.isWinner);
+  els.molVictoryPlayerOneWon.textContent = p1.isWinner ? "WINNER" : "LOSER";
+  els.molVictoryPlayerTwoWon.textContent = p2.isWinner ? "WINNER" : "LOSER";
+  els.molVictoryPlayerOneWon.classList.remove("hidden");
+  els.molVictoryPlayerTwoWon.classList.remove("hidden");
+  els.molVictoryPlayerOneWon.classList.toggle("loser", !p1.isWinner);
+  els.molVictoryPlayerTwoWon.classList.toggle("loser", !p2.isWinner);
 
   populateMolVictoryStats(matchData);
-  updateMolResultPresence("viewing");
+
+  els.molVictoryRematchBtn.textContent = "Rematch";
+  els.molVictoryRematchBtn.disabled = false;
+  els.molVictoryRematchBtn.classList.remove("active");
+  els.molVictoryCloseBtn.disabled = false;
+
+  if (!isCasualResult) {
+    updateMolResultPresence("viewing");
+  }
 }
+
+function buildTestMolVictoryData() {
+  return {
+    players: [
+      {
+        key: "test-filip",
+        name: "Filip Kalmus",
+        nationality: "Poland",
+        photo: "graphics/logoWoText.png",
+        legs: 3,
+        stats: {
+          average: "68.84",
+          firstNineAvg: "66.38",
+          checkouts: "3/8",
+          checkoutRate: "37.50%",
+          highestOut: 44,
+          highScore: 140,
+          bestLeg: 21,
+          worstLeg: 33,
+          oneEightys: 0,
+          bullOuts: 0
+        },
+        isWinner: false,
+        oldRating: 1116,
+        newRating: 1099,
+        ratingMove: { text: "↓ 17", className: "ratingDown" },
+        oldRank: 1,
+        newRank: 1,
+        rankMove: { text: "", className: "" }
+      },
+      {
+        key: "test-seb",
+        name: "Seb Priest",
+        nationality: "England",
+        photo: "graphics/logoWoText.png",
+        legs: 4,
+        stats: {
+          average: "69.04",
+          firstNineAvg: "73.43",
+          checkouts: "4/12",
+          checkoutRate: "33.33%",
+          highestOut: 134,
+          highScore: 171,
+          bestLeg: 19,
+          worstLeg: 31,
+          oneEightys: 1,
+          bullOuts: 1
+        },
+        isWinner: true,
+        oldRating: 1000,
+        newRating: 1023,
+        ratingMove: { text: "↑ 23", className: "ratingUp" },
+        oldRank: null,
+        newRank: "-",
+        rankMove: { text: "", className: "" }
+      }
+    ]
+  };
+}
+
+window.testMolVictoryScreen = function testMolVictoryScreen() {
+  STATS_MODE = "competitive";
+  MATCH_MODE = "online";
+  STARTING_SCORE = 501;
+  if (els.legsCount) els.legsCount.textContent = "7";
+  openMolVictoryScreen(buildTestMolVictoryData());
+  applyMolRematchState({
+    hostPlayerKey: "test-filip",
+    guestPlayerKey: "test-seb",
+    rematch: {},
+    resultPresence: {}
+  });
+};
+
+window.testCasualVictoryScreen = function testCasualVictoryScreen() {
+  MATCH_MODE = "local";
+  STATS_MODE = "casual";
+  window.STATS_MODE = STATS_MODE;
+  STARTING_SCORE = 501;
+  if (els.legsCount) els.legsCount.textContent = "3";
+  els.names[0].value = els.names[0].value || "Nick";
+  els.names[1].value = els.names[1].value || "Ricky";
+
+  state.winnerIndex = 0;
+  state.players[0] = {
+    ...state.players[0],
+    score: 501,
+    legs: 2,
+    totalScored: 1260,
+    dartsThrown: 54,
+    checkoutHits: 2,
+    checkoutAttempts: 6,
+    highestOut: 116,
+    highScore: 180,
+    legDarts: [24, 30],
+    oneEightys: 1,
+    bullOuts: 0,
+    firstNineScored: 520,
+    firstNineDarts: 18
+  };
+  state.players[1] = {
+    ...state.players[1],
+    score: 501,
+    legs: 1,
+    totalScored: 1080,
+    dartsThrown: 57,
+    checkoutHits: 1,
+    checkoutAttempts: 5,
+    highestOut: 72,
+    highScore: 140,
+    legDarts: [33],
+    oneEightys: 0,
+    bullOuts: 0,
+    firstNineScored: 430,
+    firstNineDarts: 18
+  };
+
+  openMolVictoryScreen(buildLocalMatchStatsData());
+};
 
 function updateLeaguePlayButton() {
   const btn = document.getElementById("leaderboardPlayDockBtn");
@@ -2008,6 +2216,8 @@ function getProjectedRankData(playerKey, newRating) {
 }
 
 let molStatsPage = 0;
+let molStatsTouchStartX = null;
+let molStatsTouchStartY = null;
 
 function setMolStatsPage(index) {
   molStatsPage = index;
@@ -2020,6 +2230,24 @@ function setMolStatsPage(index) {
     .forEach((dot, i) => {
       dot.classList.toggle("active", i === index);
     });
+}
+
+function handleMolStatsSwipeEnd(endX, endY) {
+  if (molStatsTouchStartX === null || molStatsTouchStartY === null) return;
+
+  const deltaX = endX - molStatsTouchStartX;
+  const deltaY = endY - molStatsTouchStartY;
+
+  molStatsTouchStartX = null;
+  molStatsTouchStartY = null;
+
+  if (Math.abs(deltaX) < 45 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+
+  if (deltaX < 0) {
+    setMolStatsPage(Math.min(1, molStatsPage + 1));
+  } else {
+    setMolStatsPage(Math.max(0, molStatsPage - 1));
+  }
 }
 
 function closeOpponentModal() {
@@ -2329,6 +2557,14 @@ function leaveMolVictoryScreenLocally() {
 
 els.molVictoryCloseBtn?.addEventListener("click", async () => {
   fullyStopDartAudio();
+
+  if (els.molVictoryOverlay?.dataset.resultMode === "casual") {
+    els.molVictoryOverlay?.classList.add("hidden");
+    newGame();
+    syncMainViews("setup");
+    return;
+  }
+
   const matchId = getOnlineMatchId();
   const myKey = getCurrentPlayerKey();
   const match = window.currentOnlineMatch || {};
@@ -2351,6 +2587,14 @@ els.molVictoryCloseBtn?.addEventListener("click", async () => {
 });
 
 els.molVictoryRematchBtn?.addEventListener("click", async () => {
+  if (els.molVictoryOverlay?.dataset.resultMode === "casual") {
+    fullyStopDartAudio();
+    els.molVictoryOverlay?.classList.add("hidden");
+    newGame();
+    syncMainViews("game");
+    return;
+  }
+
   const matchId = getOnlineMatchId();
   const myKey = getCurrentPlayerKey();
   const match = window.currentOnlineMatch || {};
@@ -3070,16 +3314,34 @@ async function compressCheckoutPhoto(file) {
     img.src = dataUrl;
   });
 
-  const maxWidth = 900;
-  const scale = Math.min(1, maxWidth / image.width);
   const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(image.width * scale));
-  canvas.height = Math.max(1, Math.round(image.height * scale));
-
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const attempts = [
+    { maxWidth: 900, quality: 0.72 },
+    { maxWidth: 780, quality: 0.68 },
+    { maxWidth: 680, quality: 0.64 },
+    { maxWidth: 580, quality: 0.6 },
+    { maxWidth: 480, quality: 0.56 }
+  ];
 
-  return canvas.toDataURL("image/jpeg", 0.72);
+  let compressedDataUrl = "";
+
+  for (const attempt of attempts) {
+    const scale = Math.min(1, attempt.maxWidth / image.width);
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    compressedDataUrl = canvas.toDataURL("image/jpeg", attempt.quality);
+
+    if (compressedDataUrl.length <= 700000) {
+      return compressedDataUrl;
+    }
+  }
+
+  return compressedDataUrl;
 }
 
 async function handleCheckoutPhotoFile(file) {
@@ -3091,8 +3353,8 @@ async function handleCheckoutPhotoFile(file) {
     return;
   }
 
-  if (file.size > 8 * 1024 * 1024) {
-    showOnlineNotice("Please choose an image under 8MB.");
+  if (file.size > 20 * 1024 * 1024) {
+    showOnlineNotice("Please choose an image under 20MB.");
     return;
   }
 
@@ -3103,7 +3365,7 @@ async function handleCheckoutPhotoFile(file) {
     const imageData = await compressCheckoutPhoto(file);
 
     if (imageData.length > 700000) {
-      showOnlineNotice("That photo is still too large. Try a smaller image.");
+      showOnlineNotice("That photo is still too large after compression.");
       return;
     }
 
@@ -3175,11 +3437,19 @@ function getDoubleOptionsForMissedVisit(scoreBeforeVisit, visitScore) {
   if (remaining < 2 || remaining > 50) return null;
   if (remaining === 1) return null;
 
+  const isRemainingDouble =
+    remaining === 50 ||
+    (remaining <= 40 && remaining % 2 === 0);
+
   const wasAlreadyOnOneDartFinish =
     scoreBeforeVisit <= 40 && scoreBeforeVisit % 2 === 0;
 
   if (wasAlreadyOnOneDartFinish || scoreBeforeVisit === 50) {
     return [1, 2, 3];
+  }
+
+  if (scoreBeforeVisit <= 110 && isRemainingDouble) {
+    return [0, 1, 2];
   }
 
   const possibleAttempts = 3 - Math.ceil(visitScore / 60);
@@ -3369,11 +3639,8 @@ function submitScore() {
   if (legWon) {
     const minimumDarts = getMinimumCheckoutDarts(previousScore);
 
-    const bullOutOptions = canAskBullOut(previousScore)
-      ? FORCED_BULL_OUTS.has(previousScore) ? ["Yes"] : ["No", "Yes"]
-      : null;
-
-    const bullOutDefault = FORCED_BULL_OUTS.has(previousScore) ? "Yes" : "No";
+    const { bullOutOptions, bullOutDefault, forcedBullOut } =
+      getBullOutPromptConfig(previousScore);
 
     if (minimumDarts === 1) {
       openCheckoutPrompt({
@@ -3386,7 +3653,8 @@ function submitScore() {
         doubleOptions: [1, 2, 3],
         checkoutOptions: [1, 2, 3],
         bullOutOptions,
-        bullOutDefault
+        bullOutDefault,
+        forcedBullOut
       });
       return;
     }
@@ -3402,7 +3670,8 @@ function submitScore() {
         doubleOptions: [1, 2],
         checkoutOptions: [2, 3],
         bullOutOptions,
-        bullOutDefault
+        bullOutDefault,
+        forcedBullOut
       });
       return;
     }
@@ -3418,7 +3687,8 @@ function submitScore() {
         doubleOptions: null,
         checkoutOptions: null,
         bullOutOptions,
-        bullOutDefault
+        bullOutDefault,
+        forcedBullOut
       });
       return;
     }
@@ -3450,7 +3720,7 @@ function submitScore() {
     bust,
     dartsUsed: 3,
     doublesAttempted: 0,
-    bullOut: false
+    bullOut: legWon && FORCED_BULL_OUTS.has(previousScore)
   });
 }
 
@@ -3508,11 +3778,8 @@ async function submitOnlineScore() {
   if (legWon) {
     const minimumDarts = getMinimumCheckoutDarts(previousScore);
 
-    const bullOutOptions = canAskBullOut(previousScore)
-      ? FORCED_BULL_OUTS.has(previousScore) ? ["Yes"] : ["No", "Yes"]
-      : null;
-
-    const bullOutDefault = FORCED_BULL_OUTS.has(previousScore) ? "Yes" : "No";
+    const { bullOutOptions, bullOutDefault, forcedBullOut } =
+      getBullOutPromptConfig(previousScore);
 
     if (minimumDarts === 1) {
       openCheckoutPrompt({
@@ -3526,6 +3793,7 @@ async function submitOnlineScore() {
         checkoutOptions: [1, 2, 3],
         bullOutOptions,
         bullOutDefault,
+        forcedBullOut,
         online: true
       });
       return;
@@ -3543,6 +3811,7 @@ async function submitOnlineScore() {
         checkoutOptions: [2, 3],
         bullOutOptions,
         bullOutDefault,
+        forcedBullOut,
         online: true
       });
       return;
@@ -3560,6 +3829,7 @@ async function submitOnlineScore() {
         checkoutOptions: null,
         bullOutOptions,
         bullOutDefault,
+        forcedBullOut,
         online: true
       });
       return;
@@ -3585,16 +3855,21 @@ async function submitOnlineScore() {
     }
   }
 
-  await applyOnlineVisit({
-    match,
-    myKey,
-    visitScore: value,
-    previousScore,
-    legWon,
-    dartsUsed: 3,
-    doublesAttempted: 0,
-    bullOut: false
-  });
+  try {
+    await applyOnlineVisit({
+      match,
+      myKey,
+      visitScore: value,
+      previousScore,
+      legWon,
+      dartsUsed: 3,
+      doublesAttempted: 0,
+      bullOut: legWon && FORCED_BULL_OUTS.has(previousScore)
+    });
+  } catch (err) {
+    console.error("Could not submit online score:", err);
+    showOnlineNotice("Could not submit that score. Please try again.");
+  }
 }
 
 async function getFirebasePlayerRating(playerKey, fallbackName = "") {
@@ -3879,20 +4154,6 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
     ),
   };
 
-  if (legWon && checkoutPhoto?.imageData) {
-    updates[`game/checkoutPhoto`] = {
-      id: `photo-${calloutId}`,
-      byKey: myKey,
-      byName: player.name || "Player",
-      visitScore,
-      previousScore,
-      bullOut: Boolean(bullOut),
-      imageData: checkoutPhoto.imageData,
-      createdAt: Date.now(),
-      expiresAt: Date.now() + 45000
-    };
-  }
-
   if (visitScore === 180) {
     updates[`game/players/${myKey}/oneEightys`] = (player.oneEightys || 0) + 1;
   }
@@ -4071,9 +4332,30 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
   await update(ref(db, `onlineMatches/${onlineMatchId}`), updates);
 
   if (legWon && checkoutPhoto?.imageData) {
-    setTimeout(() => {
-      clearCheckoutPhotoFromMatch(`photo-${calloutId}`);
-    }, 45000);
+    const photoId = `photo-${calloutId}`;
+
+    try {
+      await update(ref(db, `onlineMatches/${onlineMatchId}`), {
+        "game/checkoutPhoto": {
+          id: photoId,
+          byKey: myKey,
+          byName: player.name || "Player",
+          visitScore,
+          previousScore,
+          bullOut: Boolean(bullOut),
+          imageData: checkoutPhoto.imageData,
+          createdAt: Date.now(),
+          expiresAt: Date.now() + 45000
+        }
+      });
+
+      setTimeout(() => {
+        clearCheckoutPhotoFromMatch(photoId);
+      }, 45000);
+    } catch (err) {
+      console.warn("Checkout submitted, but photo could not be sent:", err);
+      showOnlineNotice("Checkout submitted, but the photo could not be sent.");
+    }
   }
 
   if (ratingUpdates) {
@@ -4081,28 +4363,32 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
   }
 
   if (updates.status === "complete") {
-    const finalMatchSnap = await window.ONMLiveDarts.get(ref(db, `onlineMatches/${onlineMatchId}`));
-    const finalMatch = finalMatchSnap.val();
+    try {
+      const finalMatchSnap = await window.ONMLiveDarts.get(ref(db, `onlineMatches/${onlineMatchId}`));
+      const finalMatch = finalMatchSnap.val();
 
-    if (!finalMatch.sheetSaved) {
-      const saveResult = await postDartMatch({
-        action: "saveDartMatch",
-        match: buildDartMatchPayloadFromOnlineMatch(finalMatch, myKey)
-      });
-
-      if (saveResult.success) {
-        await update(ref(db, `onlineMatches/${onlineMatchId}`), {
-          sheetSaved: true,
-          sheetSavedAt: Date.now(),
-          status: "closed"
+      if (!finalMatch.sheetSaved) {
+        const saveResult = await postDartMatch({
+          action: "saveDartMatch",
+          match: buildDartMatchPayloadFromOnlineMatch(finalMatch, myKey)
         });
 
-        setTimeout(async () => {
-          await window.ONMLiveDarts.remove(
-            ref(db, `onlineMatches/${onlineMatchId}`)
-          );
-        }, 3000);
+        if (saveResult.success) {
+          await update(ref(db, `onlineMatches/${onlineMatchId}`), {
+            sheetSaved: true,
+            sheetSavedAt: Date.now(),
+            status: "closed"
+          });
+
+          setTimeout(async () => {
+            await window.ONMLiveDarts.remove(
+              ref(db, `onlineMatches/${onlineMatchId}`)
+            );
+          }, 3000);
+        }
       }
+    } catch (err) {
+      console.warn("Checkout submitted, but match save/cleanup failed:", err);
     }
   }
 
@@ -4256,7 +4542,11 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
       els.submit.disabled = true;
 
       setTimeout(() => {
-        openMolVictoryScreen(buildMatchStatsData());
+        openMolVictoryScreen(
+          MATCH_MODE === "online"
+            ? buildMatchStatsData()
+            : buildLocalMatchStatsData()
+        );
       }, 700);
     } else {
       announceLegWon(false, bullOut);
@@ -4845,7 +5135,7 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
   const bullOutSelected = document.querySelector("#bullOutPromptOptions button.selected");
   const bullOut = bullOutSelected
     ? bullOutSelected.dataset.value === "Yes"
-    : false;
+    : Boolean(pendingCheckoutPrompt.forcedBullOut);
 
   const promptData = pendingCheckoutPrompt;
   const checkoutPhoto =
@@ -4859,19 +5149,24 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
     const matchSnap = await get(ref(db, `onlineMatches/${onlineMatchId}`));
     if (!matchSnap.exists()) return;
 
-    await applyOnlineVisit({
-      match: matchSnap.val(),
-      myKey: getCurrentPlayerKey(),
-      visitScore: promptData.visitScore,
-      previousScore: promptData.previousScore,
-      legWon: promptData.legWon,
-      dartsUsed,
-      doublesAttempted,
-      bullOut,
-      checkoutPhoto
-    });
+    try {
+      await applyOnlineVisit({
+        match: matchSnap.val(),
+        myKey: getCurrentPlayerKey(),
+        visitScore: promptData.visitScore,
+        previousScore: promptData.previousScore,
+        legWon: promptData.legWon,
+        dartsUsed,
+        doublesAttempted,
+        bullOut,
+        checkoutPhoto
+      });
 
-    resetCheckoutPhotoDraft();
+      resetCheckoutPhotoDraft();
+    } catch (err) {
+      console.error("Could not submit online checkout:", err);
+      showOnlineNotice("Could not submit that checkout. Please try again.");
+    }
 
     return;
   }
@@ -7375,6 +7670,7 @@ function showLeaderboardTab() {
 }
 
 els.molVictoryCloseBtn?.addEventListener("click", () => {
+  if (els.molVictoryOverlay?.dataset.resultMode === "casual") return;
 
   els.molVictoryOverlay?.classList.add("hidden");
 
@@ -7428,6 +7724,40 @@ document.querySelectorAll(".molStatsDot").forEach((dot, index) => {
     setMolStatsPage(index);
   });
 });
+
+els.molStatsTrack?.addEventListener("touchstart", event => {
+  const touch = event.touches[0];
+  molStatsTouchStartX = touch.clientX;
+  molStatsTouchStartY = touch.clientY;
+}, { passive: true });
+
+els.molStatsTrack?.addEventListener("touchend", event => {
+  const touch = event.changedTouches[0];
+  handleMolStatsSwipeEnd(touch.clientX, touch.clientY);
+}, { passive: true });
+
+els.molStatsTrack?.addEventListener("pointerdown", event => {
+  if (event.pointerType === "mouse") return;
+  molStatsTouchStartX = event.clientX;
+  molStatsTouchStartY = event.clientY;
+});
+
+els.molStatsTrack?.addEventListener("pointerup", event => {
+  if (event.pointerType === "mouse") return;
+  handleMolStatsSwipeEnd(event.clientX, event.clientY);
+});
+
+if (params.get("testVictory") === "1") {
+  setTimeout(() => {
+    window.testMolVictoryScreen?.();
+  }, 700);
+}
+
+if (params.get("testCasualVictory") === "1") {
+  setTimeout(() => {
+    window.testCasualVictoryScreen?.();
+  }, 700);
+}
 
 function initialisePageModeView() {
   const title = document.getElementById("screenTitleText");
