@@ -1339,14 +1339,18 @@ td:first-child {
 
 
 .team-stats-row td {
-  font-weight: bold;
-  border-bottom: 2px solid rgba(255, 230, 0, 0.5);
-  color: #ffe600 !important;
+  font-weight: inherit;
+  border-bottom: 0;
+  color: inherit !important;
 }
 
 .top-player-row td {
   color: #00ff7f;
-  font-weight: 700;
+  font-weight: 800;
+}
+
+.top-player-row .player-link {
+  color: #00ff7f;
 }
 
 /* === Container Layout === */
@@ -1357,15 +1361,18 @@ td:first-child {
   align-items: stretch;
   gap: 20px;
   width: 100%;
+  justify-items: center;
   transition: all 0.3s ease;
 }
 
 .stats-grid .league-box {
-  flex: 1 1 1120px;
+  width: fit-content;
   max-width: min(1280px, calc(100vw - 48px));
   min-width: 340px;
   background: rgba(25, 25, 35, 0.6);
   border-radius: 16px;
+  border-top: 0 !important;
+  border-left: 0 !important;
   padding: 1rem;
   box-sizing: border-box;
   display: block;
@@ -1376,6 +1383,9 @@ td:first-child {
 /* === Table Layout === */
 .stats-grid .table-container {
   position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
   overflow-x: auto;
   cursor: grab;
   -webkit-overflow-scrolling: touch;
@@ -1394,6 +1404,7 @@ td:first-child {
   table-layout: auto;
   min-width: 1080px;
   width: 100%;
+  margin: 0 auto;
   border-collapse: collapse;
   transform: rotateX(180deg);
 }
@@ -1439,22 +1450,41 @@ td:first-child {
 
 /* 🟡 Team row (outline only) */
 .stats-grid tr.team-stats-row {
-  border: 2px solid #ffe600;
   background: transparent !important;
-  color: #ffe600;
-  font-weight: 700;
+  color: inherit;
+  font-weight: inherit;
 }
 
 .stats-grid tr.top-player-row {
-  background: none !important;
-  color: inherit !important;
-  font-weight: normal;
+  background: rgba(0, 255, 127, 0.08) !important;
+}
+
+.stats-grid tbody tr:not(.top-player-row) td {
+  font-weight: 500;
+}
+
+.stats-empty-row td,
+.stats-loading-row td {
+  height: 72px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1rem;
+  font-weight: 700 !important;
+  text-align: center;
+}
+
+.stats-loading-row td {
+  color: #fff;
+}
+
+.stats-loading-row .miniSpinner {
+  margin-right: 10px;
 }
 
 /* Player links */
 .stats-grid .player-link {
   color: #fff;
   text-decoration: none;
+  font-weight: inherit;
   transition: color 0.2s;
 }
 
@@ -2031,7 +2061,8 @@ td:first-child {
 }
 
 .stats-grid:has(.league-box:only-child) .league-box {
-  width: min(100%, 700px);
+  width: fit-content;
+  max-width: min(1280px, calc(100vw - 48px));
 }
 
 .stats-grid.single-league {
@@ -2040,6 +2071,7 @@ td:first-child {
 }
 
 .stats-grid.single-league .league-box {
+  width: fit-content;
   max-width: min(1280px, calc(100vw - 48px));
 }
 

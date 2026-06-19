@@ -9,10 +9,16 @@ const CSV_URL = {
   main: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=858987471&single=true&output=csv",
   leagueStats: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1287781750&single=true&output=csv"
 };
+const LIVE_STATS_SHEET_ID = "1svcwpJZujjUG-mJbYHFqiiGtKvqM2QrnyK1FC1ZdiNQ";
+
+function liveStatsCsvUrl(gid) {
+  return `https://docs.google.com/spreadsheets/d/${LIVE_STATS_SHEET_ID}/export?format=csv&gid=${gid}`;
+}
 
 let resultsVisibleCount = 10;
 const RESULTS_PAGE_SIZE = 10;
 let currentLeagueFilter = localStorage.getItem("resultsLeagueFilter") || "all";
+const statsPwlCache = {};
 
 const LEAGUE_META = {
   "Banks League": { key: "banks", label: "BANKS" },
@@ -32,6 +38,28 @@ const STATS_FILTER_MATCHES = [
 ];
 
 const ALL_LEAGUE_FILTER_MATCHES = STATS_FILTER_MATCHES;
+const STATS_TABLE_HEADERS = [
+  "Player",
+  "Played",
+  "Checkouts",
+  "Checkouts/game",
+  "Fines",
+  "Fines/game",
+  "Double Fines",
+  "180s",
+  "Bull-outs",
+  "Ton+ Outs"
+];
+
+function statsPwlHtml(stats = {}) {
+  return `
+    <div class="pwl-grid">
+      <a class="pwl played">P: ${stats.P || 0}</a>
+      <a class="pwl won">W: ${stats.W || 0}</a>
+      <a class="pwl lost">L: ${stats.L || 0}</a>
+    </div>
+  `;
+}
 
 function getLeagueMeta(competition) {
   return LEAGUE_META[competition] || {
@@ -453,11 +481,17 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
   const grid = document.getElementById("resultsGrid");
   updateLeagueFilterBar();
-  if (appendFrom === null) {
+  if (appendFrom === null && viewMode !== "stats") {
     grid.innerHTML = `<div class="loading-results"><div class="spinner"></div> Loading ${viewMode}...</div>`;
   }
 
   try {
+    if (viewMode === "stats") {
+      console.log("📊 Fetching stats view for", season);
+      await fetchStats(season);
+      return;
+    }
+
     // 🎯 Select season URLs
     const urls =
       season === "24-25"
@@ -479,14 +513,6 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
     const leagueStats = urls.leagueStats.endsWith(".json")
       ? await fetchJSONData(urls.leagueStats)
       : await fetchLeagueStats(urls.leagueStats);
-
-
-
-    if (viewMode === "stats") {
-      console.log("📊 Fetching stats view for", season);
-      await fetchStats(season); // ✅ Just call your new stats function
-      return; // ⛔️ Stop further rendering
-    }
 
     const allMatches = mainData
       .filter(match => currentLeagueFilter === "all" || match.Competition === currentLeagueFilter)
@@ -989,13 +1015,23 @@ async function fetchStats(season) {
 
   updateLeagueFilterBar();
   const formattedSeason = season.replace("-", "/");
+  const loadingLeagueName =
+    currentLeagueFilter === "all"
+      ? "All Leagues"
+      : currentLeagueFilter;
+  const loadingStats = statsPwlCache[loadingLeagueName] || { P: 0, W: 0, L: 0 };
 
   // 🌀 Loading spinner
   grid.innerHTML = `
     <div id="statsContent" class="stats-container">
-      <div class="loading-results">
-        <div class="spinner"></div>
-        <p>Loading stats...</p>
+      <div class="stats-grid single-league">
+        <div class="league-box active">
+          <div class="league-header">
+            <h2>${loadingLeagueName} ${formattedSeason}</h2>
+            ${statsPwlHtml(loadingStats)}
+          </div>
+          ${statsTableShell(`<tr class="stats-loading-row"><td colspan="${STATS_TABLE_HEADERS.length}"><div class="miniSpinner"></div><span>Loading stats...</span></td></tr>`)}
+        </div>
       </div>
     </div>
   `;
@@ -1006,27 +1042,27 @@ async function fetchStats(season) {
   // === Sheet URLs ===
   const SHEETS = {
     all: {
-      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=590387953&single=true&output=csv",
+      "25-26": liveStatsCsvUrl("590387953"),
       "24-25": null
     },
     banks: {
-      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1530331549&single=true&output=csv",
+      "25-26": liveStatsCsvUrl("1530331549"),
       "24-25": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSeeA_wG4oiO36aIbXiYRYVxw_5jrIeL-ZG9hPHS5XD9nZuzFbGf7Tn64Tu6PrS_hb0UAArz-m7MQoE/pub?gid=1483412373&single=true&output=csv"
     },
     traf: {
-      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1168072831&single=true&output=csv",
+      "25-26": liveStatsCsvUrl("1168072831"),
       "24-25": null
     },
     smithfield: {
-      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=455815630&single=true&output=csv",
+      "25-26": liveStatsCsvUrl("455815630"),
       "24-25": null
     },
     coldaA: {
-      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1813256931&single=true&output=csv",
+      "25-26": liveStatsCsvUrl("1813256931"),
       "24-25": null
     },
     coldaB: {
-      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=230091598&single=true&output=csv",
+      "25-26": liveStatsCsvUrl("230091598"),
       "24-25": null
     }
   };
@@ -1111,40 +1147,8 @@ async function fetchStats(season) {
   }
 
   // === Convert CSV to table ===
-  function csvToStyledTable(csv) {
-    if (!csv) return "<div class='no-data'>No data available.</div>";
-
-    const lines = csv.trim().split("\n");
-    const headers = lines[0].split(",");
-    const rows = lines.slice(1).map(l => l.split(","));
+  function statsTableShell(bodyHTML, headers = STATS_TABLE_HEADERS) {
     const headerHTML = headers.map(h => `<th>${h.trim()}</th>`).join("");
-
-    const bodyHTML = rows.map((row, i) => {
-      let rowClass = "";
-      let style = "";
-
-      if (i === 0) {
-        rowClass = "team-stats-row";
-        style = "background: rgba(255, 230, 0, 0.15); color: #ffe600; font-weight: 700;";
-      } else if (i === 1) {
-        rowClass = "top-player-row";
-        style = "background: rgba(0, 255, 100, 0.15); color: #00ff7f; font-weight: 700;";
-      }
-
-      return `
-        <tr class="${rowClass}" style="${style}">
-          ${row.map((cell, j) => {
-        const text = cell.trim();
-        if (i >= 1 && j === 0 && text && text !== "-") {
-          const href = `player.html?name=${encodeURIComponent(text)}`;
-          return `<td><a href="${href}" class="player-link">${text}</a></td>`;
-        }
-        return `<td>${text}</td>`;
-      }).join("")}
-        </tr>
-      `;
-    }).join("");
-
     return `
       <div class="table-container top-scroll">
         <div class="scrollbar-top"></div>
@@ -1154,6 +1158,44 @@ async function fetchStats(season) {
         </table>
       </div>
     `;
+  }
+
+  function csvToStyledTable(csv) {
+    if (!csv) {
+      return statsTableShell(`<tr class="stats-empty-row"><td colspan="${STATS_TABLE_HEADERS.length}">No stats available yet.</td></tr>`);
+    }
+
+    const lines = csv.trim().split("\n");
+    const headers = lines[0].split(",");
+    const rows = lines.slice(1).map(l => l.split(","));
+    const colSpan = headers.length || STATS_TABLE_HEADERS.length;
+
+    if (!rows.length) {
+      return statsTableShell(`<tr class="stats-empty-row"><td colspan="${colSpan}">No stats available yet.</td></tr>`, headers);
+    }
+
+    const bodyHTML = rows.map((row, i) => {
+      let rowClass = "";
+
+      if (i === 0) {
+        rowClass = "top-player-row";
+      }
+
+      return `
+        <tr class="${rowClass}">
+          ${row.map((cell, j) => {
+        const text = cell.trim();
+        if (j === 0 && text && text !== "-") {
+          const href = `player.html?name=${encodeURIComponent(text)}`;
+          return `<td><a href="${href}" class="player-link">${text}</a></td>`;
+        }
+        return `<td>${text}</td>`;
+      }).join("")}
+        </tr>
+      `;
+    }).join("");
+
+    return statsTableShell(bodyHTML, headers);
   }
 
   function parseStatsCsv(csv) {
@@ -1281,6 +1323,10 @@ async function fetchStats(season) {
     }
   ];
 
+  [allLeaguesTable, ...statsLeagues].forEach(league => {
+    statsPwlCache[league.name] = league.stats;
+  });
+
   const visibleStatsLeagues =
     currentLeagueFilter === "all"
       ? [allLeaguesTable]
@@ -1296,16 +1342,12 @@ async function fetchStats(season) {
           <div class="league-box league-${meta.key} ${meta.key}-league active">
             <div class="league-header">
               <h2>${league.name} ${formattedSeason}</h2>
-              <div class="pwl-grid">
-                <a class="pwl played">P: ${stats.P || 0}</a>
-                <a class="pwl won">W: ${stats.W || 0}</a>
-                <a class="pwl lost">L: ${stats.L || 0}</a>
-              </div>
+              ${statsPwlHtml(stats)}
             </div>
 
             ${league.csv
         ? csvToStyledTable(league.csv)
-        : `<div class="no-data">No stats available for ${league.name} ${formattedSeason} yet.</div>`}
+        : statsTableShell(`<tr class="stats-empty-row"><td colspan="${STATS_TABLE_HEADERS.length}">No stats available for ${league.name} ${formattedSeason} yet.</td></tr>`)}
           </div>
         `;
   }).join("")}
