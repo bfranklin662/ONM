@@ -171,8 +171,8 @@
 
             <!-- STATS + APPEARANCES -->
             <div class="stats-and-appearances-wrapper">
-              <div class="stats-header">
-                <div class="stats-toggle-left only-desktop">
+              <div class="profile-data-header">
+                <div class="stats-toggle-left">
                   <button class="season-btn active" data-season="all">All</button>
                   <button class="season-btn" data-season="25-26">25/26</button>
                   <button class="season-btn" data-season="24-25">24/25</button>
@@ -182,15 +182,18 @@
                   Player Stats – <span id="statsPlayerName"></span>
                 </div>
 
-                <div class="stats-toggle-right only-desktop">
-                  <button class="league-btn active" data-league="all">All</button>
-                  <button class="league-btn" data-league="banks">Banks</button>
-                  <button class="league-btn" data-league="traf">Trafalgar</button>
+                <div class="profile-view-tabs" aria-label="Profile data view">
+                  <button class="profile-view-btn active" data-profile-view="stats" aria-label="Stats">📊</button>
+                  <button class="profile-view-btn" data-profile-view="appearances" aria-label="Appearances">🧾</button>
                 </div>
               </div>
 
+              <div class="profile-league-filter stats-toggle-right" id="profileLeagueFilter">
+                <button class="league-btn active" data-league="all">All</button>
+              </div>
+
               <!-- STATS TABLE -->
-              <section class="player-stats-section">
+              <section class="player-stats-section" id="profileStatsPanel">
 
 
                 <div class="player-stats-table">
@@ -210,79 +213,14 @@
                           <th>Specials</th>
                         </tr>
                       </thead>
-                      <tbody>
-                        <tr id="row-overall" class="stats-row stats-overall">
-                          <td>Overall</td>
-                          <td id="overall-played"></td>
-                          <td id="overall-wins"></td>
-                          <td id="overall-losses"></td>
-                          <td id="overall-checkouts"></td>
-                          <td id="overall-checkoutsPerGame"></td>
-                          <td id="overall-fines"></td>
-                          <td id="overall-finesPerGame"></td>
-                          <td id="overall-bagels"></td>
-                          <td id="overall-specials"></td>
-                        </tr>
-
-                        <tr id="row-season" class="stats-row stats-overall">
-                          <td>25/26 Season</td>
-                          <td id="season-played"></td>
-                          <td id="season-wins"></td>
-                          <td id="season-losses"></td>
-                          <td id="season-checkouts"></td>
-                          <td id="season-checkoutsPerGame"></td>
-                          <td id="season-fines"></td>
-                          <td id="season-finesPerGame"></td>
-                          <td id="season-bagels"></td>
-                          <td id="season-specials"></td>
-                        </tr>
-
-                        <tr id="row-banks2625" class="stats-row row-banks">
-                          <td>Banks 25/26</td>
-                          <td id="banks2625-played"></td>
-                          <td id="banks2625-wins"></td>
-                          <td id="banks2625-losses"></td>
-                          <td id="banks2625-checkouts"></td>
-                          <td id="banks2625-checkoutsPerGame"></td>
-                          <td id="banks2625-fines"></td>
-                          <td id="banks2625-finesPerGame"></td>
-                          <td id="banks2625-bagels"></td>
-                          <td id="banks2625-specials"></td>
-                        </tr>
-
-                        <tr id="row-traf2625" class="stats-row row-traf">
-                          <td>Trafalgar 25/26</td>
-                          <td id="traf2625-played"></td>
-                          <td id="traf2625-wins"></td>
-                          <td id="traf2625-losses"></td>
-                          <td id="traf2625-checkouts"></td>
-                          <td id="traf2625-checkoutsPerGame"></td>
-                          <td id="traf2625-fines"></td>
-                          <td id="traf2625-finesPerGame"></td>
-                          <td id="traf2625-bagels"></td>
-                          <td id="traf2625-specials"></td>
-                        </tr>
-
-                        <tr id="row-banks2425" class="stats-row row-banks">
-                          <td>Banks 24/25</td>
-                          <td id="banks2425-played"></td>
-                          <td id="banks2425-wins"></td>
-                          <td id="banks2425-losses"></td>
-                          <td id="banks2425-checkouts"></td>
-                          <td id="banks2425-checkoutsPerGame"></td>
-                          <td id="banks2425-fines"></td>
-                          <td id="banks2425-finesPerGame"></td>
-                          <td id="banks2425-bagels"></td>
-                          <td id="banks2425-specials"></td>
-                        </tr>
-                      </tbody>
+                      <tbody id="playerStatsBody"></tbody>
                     </table>
                   </div>
                 </div>
               </section>
 
               <!-- APPEARANCES -->
-              <section class="player-appearances">
+              <section class="player-appearances" id="profileAppearancesPanel" hidden>
                 <div id="playerAppearancesWrapper">
                   <div id="playerAppearances" class="appearances-grid"></div>
                 </div>

@@ -1484,6 +1484,18 @@
   border-left: 4px solid #ff7b00;
 }
 
+.row-smithfield {
+  border-left: 4px solid #8e99a6;
+}
+
+.row-colda-a {
+  border-left: 4px solid #00c389;
+}
+
+.row-colda-b {
+  border-left: 4px solid #7aa7ff;
+}
+
 
 
 .specials-row {
@@ -1709,6 +1721,18 @@
   border-left: 5px solid #ff7b00;
 }
 
+.row-smithfield {
+  border-left: 5px solid #8e99a6;
+}
+
+.row-colda-a {
+  border-left: 5px solid #00c389;
+}
+
+.row-colda-b {
+  border-left: 5px solid #7aa7ff;
+}
+
 .appearance-season-title {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -1819,6 +1843,80 @@
   text-align: center;
 }
 
+.profile-data-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background: rgba(13, 17, 28, 0.82);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.profile-data-header .stats-toggle-left {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.profile-view-tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.profile-view-btn {
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.9rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profile-view-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.profile-view-btn.active {
+  background: #00b89347;
+  border: 1px solid #00b894;
+  color: #fff;
+}
+
+.profile-league-filter {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.profile-league-filter .league-btn {
+  width: auto;
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-weight: 900;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.profile-league-filter .league-btn.active {
+  background: rgba(0, 184, 148, .28);
+  border-color: #00b894;
+}
+
 .appearances-header {
   display: flex;
   justify-content: space-between;
@@ -1845,21 +1943,54 @@
 /* Toggle buttons */
 .season-btn,
 .league-btn {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: none;
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
-  padding: 4px 10px;
-  font-size: .85rem;
-  border-radius: 4px;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
   cursor: pointer;
-  transition: 0.15s;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.season-btn {
+  text-transform: none;
+}
+
+.season-btn:hover,
+.league-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .season-btn.active,
 .league-btn.active {
-  background: #ffe066;
-  color: #000;
-  font-weight: 700;
+  background: #00b89347;
+  border: 1px solid #00b894;
+  color: #fff;
+}
+
+.profile-data-header .season-btn {
+  width: auto;
+}
+
+@media (max-width: 700px) {
+  .profile-data-header {
+    grid-template-columns: 1fr auto;
+  }
+
+  .profile-data-header .stats-toggle-left {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  .profile-data-header .stats-title {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .profile-view-tabs {
+    justify-content: flex-end;
+  }
 }
 
 
@@ -2821,6 +2952,18 @@
 
 .player-stats-table .row-traf {
   border-left: 4px solid #ff7b00;
+}
+
+.player-stats-table .row-smithfield {
+  border-left: 4px solid #8e99a6;
+}
+
+.player-stats-table .row-colda-a {
+  border-left: 4px solid #00c389;
+}
+
+.player-stats-table .row-colda-b {
+  border-left: 4px solid #7aa7ff;
 }
 
 /* Grey border for Overall rows */

@@ -1,13 +1,31 @@
 // scripts/player-data.js
 (function () {
   // ---- CONFIG ----
+  const LIVE_STATS_SHEET_ID = "1svcwpJZujjUG-mJbYHFqiiGtKvqM2QrnyK1FC1ZdiNQ";
+
+  function liveStatsCsvUrl(gid) {
+    return `https://docs.google.com/spreadsheets/d/${LIVE_STATS_SHEET_ID}/export?format=csv&gid=${gid}`;
+  }
+
   const SHEETS = {
     banks: {
-      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1575634851&single=true&output=csv",
+      "25-26": liveStatsCsvUrl("1530331549"),
       "24-25": "data/banks-stats-24-25.json"
     },
     traf: {
-      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1817707297&single=true&output=csv",
+      "25-26": liveStatsCsvUrl("1168072831"),
+      "24-25": null
+    },
+    smithfield: {
+      "25-26": liveStatsCsvUrl("455815630"),
+      "24-25": null
+    },
+    coldaA: {
+      "25-26": liveStatsCsvUrl("1813256931"),
+      "24-25": null
+    },
+    coldaB: {
+      "25-26": liveStatsCsvUrl("230091598"),
       "24-25": null
     },
     appearances: {
@@ -15,6 +33,14 @@
       "24-25": "data/result-data-24-25.json"
     }
   };
+
+  const STAT_LEAGUES = [
+    { id: "banks", label: "Banks", competition: "Banks League", sheetKey: "banks", seasons: ["25-26", "24-25"] },
+    { id: "traf", label: "Trafalgar", competition: "Trafalgar League", sheetKey: "traf", seasons: ["25-26"] },
+    { id: "smithfield", label: "Smithfield", competition: "Smithfield League", sheetKey: "smithfield", seasons: ["25-26"] },
+    { id: "colda-a", label: "COLDA A", competition: "COLDA A", sheetKey: "coldaA", seasons: ["25-26"] },
+    { id: "colda-b", label: "COLDA B", competition: "COLDA B", sheetKey: "coldaB", seasons: ["25-26"] }
+  ];
 
   const KEYS = {
     played: ["Played", "P", "Games"],
@@ -80,18 +106,25 @@
   async function getAllPlayersFromSheets() {
     const players = new Set();
 
-    const banks25 = await fetchCSV(SHEETS.banks["25-26"]);
-    const traf25 = await fetchCSV(SHEETS.traf["25-26"]);
-    const banks24 = await fetchCSV(SHEETS.banks["24-25"]);
+    const statRows = await Promise.all(
+      STAT_LEAGUES.flatMap(league =>
+        league.seasons.map(season => fetchCSV(SHEETS[league.sheetKey]?.[season]))
+      )
+    );
     const apps25 = await fetchCSV(SHEETS.appearances["25-26"]);
     const apps24 = await fetchCSV(SHEETS.appearances["24-25"]);
 
     const all = [
-      ...banks25, ...traf25, ...banks24,
+      ...statRows.flat(),
       ...apps25, ...apps24
     ];
 
     all.forEach(row => {
+      const directName = row.Player || row.Name;
+      if (directName && typeof directName === "string" && directName.trim()) {
+        players.add(directName.trim());
+      }
+
       for (let i = 1; i <= 20; i++) {
         let name =
           row[`Player${i}`] ||
@@ -217,9 +250,22 @@
 
     if (comp.includes("bank")) return { name: "banks", color: "#007bff" };
     if (comp.includes("traf")) return { name: "traf", color: "#ff9800" };
+    if (comp.includes("smithfield")) return { name: "smithfield", color: "#8e99a6" };
+    if (comp.includes("colda a")) return { name: "colda-a", color: "#00c389" };
+    if (comp.includes("colda b")) return { name: "colda-b", color: "#7aa7ff" };
+    if (comp.includes("colda")) return { name: "colda-a", color: "#00c389" };
 
     const home = (row.HomeTeam || "").toLowerCase();
     const away = (row.AwayTeam || "").toLowerCase();
+
+    if (home.includes("smithfield") || away.includes("smithfield"))
+      return { name: "smithfield", color: "#8e99a6" };
+
+    if (home.includes("oche ness monsters b") || away.includes("oche ness monsters b"))
+      return { name: "colda-b", color: "#7aa7ff" };
+
+    if (home.includes("oche ness monsters a") || away.includes("oche ness monsters a"))
+      return { name: "colda-a", color: "#00c389" };
 
     if (home.includes("trafalgar") || away.includes("trafalgar"))
       return { name: "traf", color: "#ff9800" };
@@ -366,6 +412,7 @@
 
   window.PlayerData = {
     SHEETS,
+    STAT_LEAGUES,
     KEYS,
     fetchCSV,
     getAllPlayersFromSheets,
@@ -384,4 +431,3 @@
   };
 
 })();
-

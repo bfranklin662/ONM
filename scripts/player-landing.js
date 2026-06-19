@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   const {
     SHEETS,
+    STAT_LEAGUES,
     KEYS,
     fetchCSV,
     getAllPlayersFromSheets,
@@ -221,9 +222,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
   // Start CSV fetches immediately (and cached)
-  const banks25Promise = fetchCSVWithCache("banks_25-26", SHEETS.banks["25-26"]);
-  const traf25Promise = fetchCSVWithCache("traf_25-26", SHEETS.traf["25-26"]);
-  const banks24Promise = fetchCSVWithCache("banks_24-25", SHEETS.banks["24-25"]);
+  const statPromises = STAT_LEAGUES.flatMap(league =>
+    league.seasons.map(season => ({
+      league,
+      season,
+      promise: fetchCSVWithCache(`${league.id}_${season}`, SHEETS[league.sheetKey]?.[season])
+    }))
+  );
   const apps25Promise = fetchCSVWithCache("apps_25-26", SHEETS.appearances["25-26"]);
   const apps24Promise = fetchCSVWithCache("apps_24-25", SHEETS.appearances["24-25"]);
 
@@ -410,16 +415,16 @@ document.addEventListener("DOMContentLoaded", async () => {
      LOAD STATS (already in-flight) & update UI
   -------------------------------------------- */
   try {
-    const [banks25, traf25, banks24, apps25, apps24] = await Promise.all([
-      banks25Promise,
-      traf25Promise,
-      banks24Promise,
+    const [statResults, apps25, apps24] = await Promise.all([
+      Promise.all(statPromises.map(item => item.promise)),
       apps25Promise,
       apps24Promise
     ]);
-    console.log("Traf URL:", SHEETS?.traf?.["25-26"]);
-    console.log("traf25 type:", Array.isArray(traf25) ? "array" : typeof traf25, "len:", Array.isArray(traf25) ? traf25.length : "n/a");
-    console.log("traf25 first row:", Array.isArray(traf25) ? traf25[0] : traf25);
+
+    const statsByLeagueSeason = statPromises.map((item, index) => ({
+      ...item,
+      rows: Array.isArray(statResults[index]) ? statResults[index] : []
+    }));
 
 
     const allAppsRows = [
@@ -449,45 +454,24 @@ document.addEventListener("DOMContentLoaded", async () => {
           return { wins, losses };
         };
 
-    const b25Index = makeIndex(banks25);
-    const t25Index = makeIndex(traf25);
-
-    const b24Index = makeIndex(banks24);
+    const statIndexes = statsByLeagueSeason.map(item => ({
+      ...item,
+      index: makeIndex(item.rows)
+    }));
 
     const playersWithStats = allPlayers.map(name => {
       const keyName = name.trim().toLowerCase();
-      const b25 = b25Index.get(keyName) || {};
-      const t25 = t25Index.get(keyName) || {};
-      const b24 = b24Index.get(keyName) || {};
+      const rows = statIndexes.map(item => item.index.get(keyName) || {});
 
-      const played =
-        getStatFromRow(b25, KEYS.played) +
-        getStatFromRow(t25, KEYS.played) +
-        getStatFromRow(b24, KEYS.played);
-
-      const checkouts =
-        getStatFromRow(b25, KEYS.checkouts) +
-        getStatFromRow(t25, KEYS.checkouts) +
-        getStatFromRow(b24, KEYS.checkouts);
-
-      const fines =
-        getStatFromRow(b25, KEYS.fines) +
-        getStatFromRow(t25, KEYS.fines) +
-        getStatFromRow(b24, KEYS.fines);
+      const sumStat = keys => rows.reduce((total, row) => total + getStatFromRow(row, keys), 0);
+      const played = sumStat(KEYS.played);
+      const checkouts = sumStat(KEYS.checkouts);
+      const fines = sumStat(KEYS.fines);
 
       const specials = {
-        "180s":
-          getStatFromRow(b25, KEYS.one80s) +
-          getStatFromRow(t25, KEYS.one80s) +
-          getStatFromRow(b24, KEYS.one80s),
-        Bulls:
-          getStatFromRow(b25, KEYS.bulls) +
-          getStatFromRow(t25, KEYS.bulls) +
-          getStatFromRow(b24, KEYS.bulls),
-        "Ton+":
-          getStatFromRow(b25, KEYS.tonPlus) +
-          getStatFromRow(t25, KEYS.tonPlus) +
-          getStatFromRow(b24, KEYS.tonPlus)
+        "180s": sumStat(KEYS.one80s),
+        Bulls: sumStat(KEYS.bulls),
+        "Ton+": sumStat(KEYS.tonPlus)
       };
 
       const wl = countWL(allAppsRows, name);

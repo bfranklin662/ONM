@@ -2,7 +2,9 @@
 let playerName = "";
 let selectedSeason = "all";
 let selectedLeague = "all";
+let selectedProfileView = "stats";
 let overallTotals = null;
+let playerStatsRows = [];
 
 if (!window.PlayerData) {
   console.error("PlayerData not found. Is scripts/player-data.js loaded before player-profile.js?");
@@ -12,6 +14,7 @@ const FINES_26_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv7
 
 const {
   SHEETS,
+  STAT_LEAGUES,
   KEYS,
   fetchCSV,
   getAllPlayersFromSheets,
@@ -26,6 +29,47 @@ const {
   fetchPlayerPhotosFromDrive,
   photoKey
 } = window.PlayerData || {};
+
+const ZERO_PLAYER_STATS = { Played: 0, Wins: 0, Losses: 0, Checkouts: 0, Fines: 0, "180s": 0, Bulls: 0, "Ton+": 0, Bagels: 0 };
+
+function getPlayerStatLeague(id) {
+  return (STAT_LEAGUES || []).find(league => league.id === id) || { id, label: id, competition: id };
+}
+
+function leagueLabelFromId(id) {
+  return getPlayerStatLeague(id).label || id;
+}
+
+function isOnmTeamName(name = "") {
+  return /^oche ness monsters(?:\s+[ab])?$/i.test(String(name).trim());
+}
+
+function selectedSeasonLabel() {
+  return selectedSeason === "all" ? "" : selectedSeason.replace("-", "/");
+}
+
+function updateProfileDataTitle() {
+  const title = document.getElementById("statsTitle");
+  if (!title) return;
+
+  const viewText = selectedProfileView === "appearances" ? "Appearances" : "Player Stats";
+  const seasonText = selectedSeasonLabel();
+  title.textContent = `${viewText}${seasonText ? ` ${seasonText}` : ""} – ${playerName}`;
+}
+
+function updateProfileDataPanels() {
+  const statsPanel = document.getElementById("profileStatsPanel");
+  const appearancesPanel = document.getElementById("profileAppearancesPanel");
+
+  if (statsPanel) statsPanel.hidden = selectedProfileView !== "stats";
+  if (appearancesPanel) appearancesPanel.hidden = selectedProfileView !== "appearances";
+
+  document.querySelectorAll(".profile-view-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.profileView === selectedProfileView);
+  });
+
+  updateProfileDataTitle();
+}
 
 // ---------- ANIMATION HELPERS ----------
 
@@ -237,25 +281,25 @@ async function loadOverallTotals() {
   const grand = { Played: 0, Checkouts: 0, Fines: 0, "180s": 0, Bulls: 0, "Ton+": 0 };
 
   await Promise.all(seasons.map(async season => {
-    const [banksRows, trafRows] = await Promise.all([
-      SHEETS.banks[season] ? fetchCSV(SHEETS.banks[season]) : [],
-      SHEETS.traf[season] ? fetchCSV(SHEETS.traf[season]) : []
-    ]);
+    const seasonLeagues = (STAT_LEAGUES || []).filter(league => league.seasons.includes(season));
+    const leagueRows = await Promise.all(
+      seasonLeagues.map(league => SHEETS[league.sheetKey]?.[season] ? fetchCSV(SHEETS[league.sheetKey][season]) : [])
+    );
 
     const find = rows =>
     (rows.find(r =>
       ((r.Player || r.Name || "").toLowerCase() === playerName.toLowerCase())
     ) || {});
 
-    const b = find(banksRows);
-    const t = find(trafRows);
-
-    grand.Played += getStatFromRow(b, KEYS.played) + getStatFromRow(t, KEYS.played);
-    grand.Checkouts += getStatFromRow(b, KEYS.checkouts) + getStatFromRow(t, KEYS.checkouts);
-    grand.Fines += getStatFromRow(b, KEYS.fines) + getStatFromRow(t, KEYS.fines);
-    grand["180s"] += getStatFromRow(b, KEYS.one80s) + getStatFromRow(t, KEYS.one80s);
-    grand.Bulls += getStatFromRow(b, KEYS.bulls) + getStatFromRow(t, KEYS.bulls);
-    grand["Ton+"] += getStatFromRow(b, KEYS.tonPlus) + getStatFromRow(t, KEYS.tonPlus);
+    leagueRows.forEach(rows => {
+      const row = find(rows);
+      grand.Played += getStatFromRow(row, KEYS.played);
+      grand.Checkouts += getStatFromRow(row, KEYS.checkouts);
+      grand.Fines += getStatFromRow(row, KEYS.fines);
+      grand["180s"] += getStatFromRow(row, KEYS.one80s);
+      grand.Bulls += getStatFromRow(row, KEYS.bulls);
+      grand["Ton+"] += getStatFromRow(row, KEYS.tonPlus);
+    });
   }));
 
   overallTotals = grand;
@@ -455,12 +499,9 @@ function makeSpecialsHtml(stats = {}) {
 }
 
 function animateStatsRowNumbers() {
-  const rows = ["row-overall", "row-season", "row-banks2625", "row-traf2625", "row-banks2425"];
+  const rows = [...document.querySelectorAll(".player-stats-table .stats-row")];
 
-  rows.forEach(id => {
-    const row = document.getElementById(id);
-    if (!row) return;
-
+  rows.forEach(row => {
     [...row.querySelectorAll("td")].forEach(cell => {
       const text = cell.textContent.trim();
 
@@ -481,123 +522,64 @@ function animateStatsRowNumbers() {
 
 
 // ---------- STATS TABLE FILL ----------
-function updateStatsTable(p) {
-  const fill = (id, val) => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = val ?? "";
-  };
-
+function statsRowHtml(row, index) {
   const fmtGBP = (v) => "£" + Number(v || 0).toFixed(2);
   const fmt2 = (v) => Number(v || 0).toFixed(2);
 
+  return `
+    <tr class="stats-row ${row.className || ""}"
+        data-season="${row.season}"
+        data-league="${row.league}"
+        style="animation-delay:${index * 0.07}s">
+      <td>${row.label}</td>
+      <td>${row.Played}</td>
+      <td>${row.Wins}</td>
+      <td>${row.Losses}</td>
+      <td>${row.Checkouts}</td>
+      <td>${fmt2(row.CheckoutsPerGame)}</td>
+      <td>${fmtGBP(row.Fines)}</td>
+      <td>${fmtGBP(row.FinesPerGame)}</td>
+      <td>${row.Bagels}</td>
+      <td>${row.specialsHtml}</td>
+    </tr>
+  `;
+}
 
-  fill("overall-played", p.overall.Played);
-  fill("overall-wins", p.overall.Wins);
-  fill("overall-losses", p.overall.Losses);
-  fill("overall-checkouts", p.overall.Checkouts);
-  fill("overall-checkoutsPerGame", fmt2(p.overall.CheckoutsPerGame));
-  fill("overall-fines", fmtGBP(p.overall.Fines));
-  fill("overall-finesPerGame", fmtGBP(p.overall.FinesPerGame));
-  fill("overall-specials", p.overall.specialsHtml);
+function updateStatsTable(rows) {
+  playerStatsRows = rows;
+  const tbody = document.getElementById("playerStatsBody");
+  if (!tbody) return;
 
-  fill("season-played", p.season.Played);
-  fill("season-wins", p.season.Wins);
-  fill("season-losses", p.season.Losses);
-  fill("season-checkouts", p.season.Checkouts);
-  fill("season-checkoutsPerGame", fmt2(p.season.CheckoutsPerGame));
-  fill("season-fines", fmtGBP(p.season.Fines));
-  fill("season-finesPerGame", fmtGBP(p.season.FinesPerGame));
-  fill("season-specials", p.season.specialsHtml);
-
-  fill("banks2625-played", p.banks2625.Played);
-  fill("banks2625-wins", p.banks2625.Wins);
-  fill("banks2625-losses", p.banks2625.Losses);
-  fill("banks2625-checkouts", p.banks2625.Checkouts);
-  fill("banks2625-checkoutsPerGame", fmt2(p.banks2625.CheckoutsPerGame));
-  fill("banks2625-fines", fmtGBP(p.banks2625.Fines));
-  fill("banks2625-finesPerGame", fmtGBP(p.banks2625.FinesPerGame));
-  fill("banks2625-specials", p.banks2625.specialsHtml);
-
-  fill("traf2625-played", p.traf2625.Played);
-  fill("traf2625-wins", p.traf2625.Wins);
-  fill("traf2625-losses", p.traf2625.Losses);
-  fill("traf2625-checkouts", p.traf2625.Checkouts);
-  fill("traf2625-checkoutsPerGame", fmt2(p.traf2625.CheckoutsPerGame));
-  fill("traf2625-fines", fmtGBP(p.traf2625.Fines));
-  fill("traf2625-finesPerGame", fmtGBP(p.traf2625.FinesPerGame));
-  fill("traf2625-specials", p.traf2625.specialsHtml);
-
-  fill("banks2425-played", p.banks2425.Played);
-  fill("banks2425-wins", p.banks2425.Wins);
-  fill("banks2425-losses", p.banks2425.Losses);
-  fill("banks2425-checkouts", p.banks2425.Checkouts);
-  fill("banks2425-checkoutsPerGame", fmt2(p.banks2425.CheckoutsPerGame));
-  fill("banks2425-fines", fmtGBP(p.banks2425.Fines));
-  fill("banks2425-finesPerGame", fmtGBP(p.banks2425.FinesPerGame));
-  fill("banks2425-specials", p.banks2425.specialsHtml);
-
-  fill("overall-bagels", p.overall.Bagels);
-  fill("season-bagels", p.season.Bagels);
-  fill("banks2625-bagels", p.banks2625.Bagels);
-  fill("traf2625-bagels", p.traf2625.Bagels);
-  fill("banks2425-bagels", p.banks2425.Bagels);
-
+  tbody.innerHTML = rows.map(statsRowHtml).join("");
   animateStatsRowNumbers();
 }
 
 // ---------- SHOW/HIDE ROWS BASED ON FILTERS ----------
 function updateStatsVisibility() {
-  const title = document.getElementById("statsTitle");
-  if (title) title.textContent = `Player Stats – ${playerName}`;
-
-  const rows = {
-    overall: document.getElementById("row-overall"),
-    season: document.getElementById("row-season"),
-    banks2625: document.getElementById("row-banks2625"),
-    traf2625: document.getElementById("row-traf2625"),
-    banks2425: document.getElementById("row-banks2425")
-  };
+  updateProfileDataTitle();
 
   const old = document.querySelector(".no-data");
   if (old) old.remove();
 
-  Object.values(rows).forEach(r => { if (r) r.style.display = ""; });
+  const rowEls = [...document.querySelectorAll(".player-stats-table .stats-row")];
+  let visibleCount = 0;
 
-  if (selectedSeason === "25-26") {
-    if (rows.overall) rows.overall.style.display = "none";
-    if (rows.banks2425) rows.banks2425.style.display = "none";
-  }
+  rowEls.forEach(row => {
+    const rowSeason = row.dataset.season;
+    const rowLeague = row.dataset.league;
+    const seasonOk = selectedSeason === "all" || rowSeason === selectedSeason;
+    const leagueOk = selectedLeague === "all" || rowLeague === selectedLeague;
+    const summaryOk = selectedLeague === "all" || rowLeague !== "all";
+    const visible = seasonOk && leagueOk && summaryOk;
+    row.style.display = visible ? "" : "none";
+    if (visible) visibleCount++;
+  });
 
-  if (selectedSeason === "24-25") {
-    if (rows.overall) rows.overall.style.display = "none";
-    if (rows.season) rows.season.style.display = "none";
-    if (rows.banks2625) rows.banks2625.style.display = "none";
-    if (rows.traf2625) rows.traf2625.style.display = "none";
-  }
-
-  if (selectedLeague === "banks") {
-    if (rows.overall) rows.overall.style.display = "none";
-    if (rows.season) rows.season.style.display = "none";
-    if (rows.traf2625) rows.traf2625.style.display = "none";
-  }
-
-  if (selectedLeague === "traf") {
-    if (rows.overall) rows.overall.style.display = "none";
-    if (rows.season) rows.season.style.display = "none";
-    if (rows.banks2625) rows.banks2625.style.display = "none";
-    if (rows.banks2425) rows.banks2425.style.display = "none";
-
-    if (selectedSeason === "24-25" && rows.season) {
-      rows.traf2625.style.display = "none";
-      rows.season.insertAdjacentHTML(
-        "afterend",
-        `<tr class="no-data">
-          <td colspan="9" style="padding:10px;color:#f66;text-align:center;font-weight:600">
-            No data for Trafalgar 24/25
-          </td>
-        </tr>`
-      );
-    }
+  if (!visibleCount) {
+    document.getElementById("playerStatsBody")?.insertAdjacentHTML(
+      "beforeend",
+      `<tr class="no-data"><td colspan="10">No player stats available for this filter yet.</td></tr>`
+    );
   }
 }
 
@@ -624,15 +606,14 @@ function formatPrettyDateNoYear(raw) {
 async function buildRowsOnly(apps) {
   return apps.map((r, index) => {
     const league = leagueInfoFromRow(r);
-    const isBanks = league.name === "banks";
-    const leagueText = isBanks ? "BANKS" : "TRAFALGAR";
+    const leagueText = leagueLabelFromId(league.name).toUpperCase();
+    const rowClass = `row-${league.name}`;
 
-    const TEAM = "Oche Ness Monsters";
     const home = (r.HomeTeam || "").trim();
     const away = (r.AwayTeam || "").trim();
-    let opponent = home === TEAM ? away : home;
+    let opponent = isOnmTeamName(home) ? away : home;
     if (!opponent) opponent = "Unknown";
-    const loc = home === TEAM ? "HOME" : (away === TEAM ? "AWAY" : "");
+    const loc = isOnmTeamName(home) ? "HOME" : (isOnmTeamName(away) ? "AWAY" : "");
 
     const rawDate =
       r["Date Played"] ||
@@ -670,10 +651,10 @@ async function buildRowsOnly(apps) {
       specials = `<span class="no-specials">—</span>`;
 
     return `
-      <tr class="appearance-row ${isBanks ? "row-banks" : "row-traf"}"
+      <tr class="appearance-row ${rowClass}"
           style="animation: slideIn 0.35s ease-out forwards; animation-delay:${index * 0.05}s; opacity:0">
 
-        <td><span class="league-col ${isBanks ? "banks" : "traf"}">${leagueText}</span></td>
+        <td><span class="league-col ${league.name}">${leagueText}</span></td>
 
         <td>
           <div class="opp-wrap">
@@ -745,10 +726,8 @@ async function renderFilteredAppearances() {
   else if (selectedSeason === "25-26") rows = apps2625;
   else rows = [...apps2625, ...apps2425];
 
-  if (selectedLeague === "banks") {
-    rows = rows.filter(r => leagueInfoFromRow(r).name === "banks");
-  } else if (selectedLeague === "traf") {
-    rows = rows.filter(r => leagueInfoFromRow(r).name === "traf");
+  if (selectedLeague !== "all") {
+    rows = rows.filter(r => leagueInfoFromRow(r).name === selectedLeague);
   }
 
   const final = rows.filter(r => playerAppearsInRow(r, playerName));
@@ -1263,6 +1242,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadSeasonData("all");
     await loadOutstandingFines();
     await updateMedals(overallTotals);
+    updateProfileDataPanels();
   }
 });
 
@@ -1278,12 +1258,22 @@ document.addEventListener("click", e => {
 document.addEventListener("click", (e) => {
   const seasonBtn = e.target.closest(".season-btn");
   const leagueBtn = e.target.closest(".league-btn");
+  const profileViewBtn = e.target.closest(".profile-view-btn");
+
+  if (profileViewBtn) {
+    document.querySelectorAll(".profile-view-btn").forEach(b => b.classList.remove("active"));
+    profileViewBtn.classList.add("active");
+    selectedProfileView = profileViewBtn.dataset.profileView || "stats";
+    updateProfileDataPanels();
+    return;
+  }
 
   if (seasonBtn) {
     document.querySelectorAll(".season-btn").forEach(b => b.classList.remove("active"));
     seasonBtn.classList.add("active");
     selectedSeason = seasonBtn.dataset.season;
     updateStatsVisibility();
+    updateProfileDataPanels();
     renderFilteredAppearances();
     return;
   }
@@ -1294,6 +1284,7 @@ document.addEventListener("click", (e) => {
     selectedLeague = leagueBtn.dataset.league;
     updateStatsVisibility();
     renderFilteredAppearances();
+    updateProfileDataPanels();
     return;
   }
 });
@@ -1310,37 +1301,45 @@ async function loadSeasonData(season) {
   }
 
   try {
-    const [
-      banks2625,
-      traf2625,
-      apps2625,
-      banks2425,
-      apps2425
-    ] = await Promise.all([
-      fetchCSV(SHEETS.banks["25-26"]),
-      fetchCSV(SHEETS.traf["25-26"]),
+    const statFetches = (STAT_LEAGUES || []).flatMap(league =>
+      league.seasons.map(seasonKey => ({
+        league,
+        season: seasonKey,
+        promise: fetchCSV(SHEETS[league.sheetKey]?.[seasonKey])
+      }))
+    );
+
+    const [statSheets, apps2625, apps2425] = await Promise.all([
+      Promise.all(statFetches.map(item => item.promise)),
       fetchCSV(SHEETS.appearances["25-26"]),
-      fetchCSV("data/banks-stats-24-25.json"),
-      fetchCSV("data/result-data-24-25.json")
+      fetchCSV(SHEETS.appearances["24-25"])
     ]);
+
+    const statTables = statFetches.map((item, index) => ({
+      ...item,
+      rows: Array.isArray(statSheets[index]) ? statSheets[index] : []
+    }));
 
     const getSummary = (rows) => {
       if (!Array.isArray(rows)) {
-        return { Played: 0, Checkouts: 0, Fines: 0, "180s": 0, Bulls: 0, "Ton+": 0 };
+        return { ...ZERO_PLAYER_STATS };
       }
       const row = rows.find(r =>
         (r.Player || r.Name || "").toLowerCase() === playerName.toLowerCase()
       );
       if (!row) {
-        return { Played: 0, Checkouts: 0, Fines: 0, "180s": 0, Bulls: 0, "Ton+": 0 };
+        return { ...ZERO_PLAYER_STATS };
       }
       return {
         Played: getStatFromRow(row, KEYS.played),
+        Wins: 0,
+        Losses: 0,
         Checkouts: getStatFromRow(row, KEYS.checkouts),
         Fines: getStatFromRow(row, KEYS.fines),
         "180s": getStatFromRow(row, KEYS.one80s),
         Bulls: getStatFromRow(row, KEYS.bulls),
-        "Ton+": getStatFromRow(row, KEYS.tonPlus)
+        "Ton+": getStatFromRow(row, KEYS.tonPlus),
+        Bagels: 0
       };
     };
 
@@ -1371,101 +1370,100 @@ async function loadSeasonData(season) {
       FinesPerGame: s.Played ? (s.Fines / s.Played).toFixed(2) : "0.00"
     });
 
-    const banks2625Stats = getSummary(banks2625);
-    const traf2625Stats = getSummary(traf2625);
-    const wl2625 = countWL(apps2625);
+    function rowsForSeason(seasonKey) {
+      return seasonKey === "24-25" ? apps2425 : apps2625;
+    }
 
-    const stats2625 = {
-      Played: banks2625Stats.Played + traf2625Stats.Played,
-      Wins: wl2625.wins,
-      Losses: wl2625.losses,
-      Checkouts: banks2625Stats.Checkouts + traf2625Stats.Checkouts,
-      Fines: banks2625Stats.Fines + traf2625Stats.Fines,
-      "180s": banks2625Stats["180s"] + traf2625Stats["180s"],
-      Bulls: banks2625Stats.Bulls + traf2625Stats.Bulls,
-      "Ton+": banks2625Stats["Ton+"] + traf2625Stats["Ton+"],
-      Bagels: countBagelsLocal(apps2625)
-    };
+    function combineStats(items) {
+      return items.reduce((total, item) => ({
+        Played: total.Played + Number(item.Played || 0),
+        Wins: total.Wins + Number(item.Wins || 0),
+        Losses: total.Losses + Number(item.Losses || 0),
+        Checkouts: total.Checkouts + Number(item.Checkouts || 0),
+        Fines: total.Fines + Number(item.Fines || 0),
+        "180s": total["180s"] + Number(item["180s"] || 0),
+        Bulls: total.Bulls + Number(item.Bulls || 0),
+        "Ton+": total["Ton+"] + Number(item["Ton+"] || 0),
+        Bagels: total.Bagels + Number(item.Bagels || 0)
+      }), { ...ZERO_PLAYER_STATS });
+    }
 
-    const wlBanks2625 = countWL(
-      apps2625.filter(r => leagueInfoFromRow(r).name === "banks")
-    );
-    const statsBanks2625 = {
-      ...banks2625Stats,
-      Wins: wlBanks2625.wins,
-      Losses: wlBanks2625.losses,
-      Bagels: countBagelsLocal(
-        apps2625.filter(r => leagueInfoFromRow(r).name === "banks")
-      )
-    };
+    const leagueRows = statTables.map(table => {
+      const summary = getSummary(table.rows);
+      const appearanceRows = rowsForSeason(table.season)
+        .filter(r => playerAppearsInRow(r, playerName))
+        .filter(r => leagueInfoFromRow(r).name === table.league.id);
+      const wl = countWL(appearanceRows);
+      const stats = {
+        ...summary,
+        Wins: wl.wins,
+        Losses: wl.losses,
+        Bagels: countBagelsLocal(appearanceRows)
+      };
 
-    const wlTraf2625 = countWL(
-      apps2625.filter(r => leagueInfoFromRow(r).name === "traf")
-    );
-    const statsTraf2625 = {
-      ...traf2625Stats,
-      Wins: wlTraf2625.wins,
-      Losses: wlTraf2625.losses,
-      Bagels: countBagelsLocal(
-        apps2625.filter(r => leagueInfoFromRow(r).name === "traf")
-      )
-    };
+      return {
+        ...stats,
+        ...makeRates(stats),
+        label: `${table.league.label} ${table.season.replace("-", "/")}`,
+        season: table.season,
+        league: table.league.id,
+        className: `row-${table.league.id}`,
+        specialsHtml: makeSpecialsHtml(stats)
+      };
+    }).filter(row => row.Played || row.Wins || row.Losses || row.Checkouts || row.Fines || row["180s"] || row.Bulls || row["Ton+"]);
 
-    const banks2425StatsObj = getSummary(banks2425);
-    const wl2425 = countWL(apps2425);
-    const stats2425 = {
-      ...banks2425StatsObj,
-      Wins: wl2425.wins,
-      Losses: wl2425.losses,
-      Bagels: countBagelsLocal(apps2425)
-    };
+    const seasonRows = ["25-26", "24-25"].map(seasonKey => {
+      const seasonStats = combineStats(leagueRows.filter(row => row.season === seasonKey));
+      return {
+        ...seasonStats,
+        ...makeRates(seasonStats),
+        label: `${seasonKey.replace("-", "/")} Season`,
+        season: seasonKey,
+        league: "all",
+        className: "stats-overall",
+        specialsHtml: makeSpecialsHtml(seasonStats)
+      };
+    }).filter(row => row.Played || row.Wins || row.Losses || row.Checkouts || row.Fines || row["180s"] || row.Bulls || row["Ton+"]);
 
-    const overall = {
-      Played: stats2625.Played + stats2425.Played,
-      Wins: stats2625.Wins + stats2425.Wins,
-      Losses: stats2625.Losses + stats2425.Losses,
-      Checkouts: stats2625.Checkouts + stats2425.Checkouts,
-      Fines: stats2625.Fines + stats2425.Fines,
-      "180s": stats2625["180s"] + stats2425["180s"],
-      Bulls: stats2625.Bulls + stats2425.Bulls,
-      "Ton+": stats2625["Ton+"] + stats2425["Ton+"],
-      Bagels: stats2625.Bagels + stats2425.Bagels
-    };
-
-    const payload = {
-      overall: {
+    const overall = combineStats(leagueRows);
+    const statsRows = [
+      {
         ...overall,
         ...makeRates(overall),
+        label: "Overall",
+        season: "all",
+        league: "all",
+        className: "stats-overall",
         specialsHtml: makeSpecialsHtml(overall)
       },
-      season: {
-        ...stats2625,
-        ...makeRates(stats2625),
-        specialsHtml: makeSpecialsHtml(stats2625)
-      },
-      banks2625: {
-        ...statsBanks2625,
-        ...makeRates(statsBanks2625),
-        specialsHtml: makeSpecialsHtml(statsBanks2625)
-      },
-      traf2625: {
-        ...statsTraf2625,
-        ...makeRates(statsTraf2625),
-        specialsHtml: makeSpecialsHtml(statsTraf2625)
-      },
-      banks2425: {
-        ...stats2425,
-        ...makeRates(stats2425),
-        specialsHtml: makeSpecialsHtml(stats2425)
-      }
-    };
+      ...seasonRows,
+      ...leagueRows
+    ];
 
-    updateStatsTable(payload);
+    updateStatsTable(statsRows);
+    updateStatsVisibility();
+
+    const playerLeagueIds = [...new Set(leagueRows.map(row => row.league))];
+    const leagueBtnWrap = document.getElementById("profileLeagueFilter");
+    if (leagueBtnWrap) {
+      if (selectedLeague !== "all" && !playerLeagueIds.includes(selectedLeague)) {
+        selectedLeague = "all";
+      }
+      leagueBtnWrap.innerHTML = `
+        <button class="league-btn ${selectedLeague === "all" ? "active" : ""}" data-league="all">All</button>
+        ${playerLeagueIds.map(id => `
+          <button class="league-btn ${selectedLeague === id ? "active" : ""}" data-league="${id}">
+            ${leagueLabelFromId(id)}
+          </button>
+        `).join("")}
+      `;
+      updateStatsVisibility();
+    }
 
     // ✅ Update Bagels in profile header
     const bagelsEl = document.getElementById("playerBagels");
-    if (bagelsEl && payload?.overall?.Bagels != null) {
-      bagelsEl.textContent = payload.overall.Bagels;
+    if (bagelsEl) {
+      bagelsEl.textContent = overall.Bagels;
     }
 
     const statRows = document.querySelectorAll(".player-stats-table .stats-row");
