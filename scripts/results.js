@@ -18,8 +18,20 @@ const LEAGUE_META = {
   "Banks League": { key: "banks", label: "BANKS" },
   "Trafalgar League": { key: "trafalgar", label: "TRAFALGAR" },
   "Smithfield League": { key: "smithfield", label: "SMITHFIELD" },
+  "COLDA A": { key: "colda-a", label: "COLDA A" },
+  "COLDA B": { key: "colda-b", label: "COLDA B" },
   "COLDA League": { key: "colda", label: "COLDA" }
 };
+
+const STATS_FILTER_MATCHES = [
+  { Competition: "Banks League" },
+  { Competition: "Trafalgar League" },
+  { Competition: "Smithfield League" },
+  { Competition: "COLDA A" },
+  { Competition: "COLDA B" }
+];
+
+const ALL_LEAGUE_FILTER_MATCHES = STATS_FILTER_MATCHES;
 
 function getLeagueMeta(competition) {
   return LEAGUE_META[competition] || {
@@ -56,9 +68,17 @@ function bindLeagueFilter() {
       currentLeagueFilter = button.dataset.leagueFilter;
       localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
       resultsVisibleCount = RESULTS_PAGE_SIZE;
+      updateLeagueFilterBar();
       fetchResults(currentSeason, currentViewMode);
     });
   });
+}
+
+function updateLeagueFilterBar(matches = ALL_LEAGUE_FILTER_MATCHES) {
+  const bar = document.getElementById("leagueFilterBar");
+  if (!bar) return;
+  bar.innerHTML = renderLeagueFilter(matches);
+  bindLeagueFilter();
 }
 
 // ✅ Reusable CSV fetch + parse
@@ -128,6 +148,12 @@ async function fetchLeagueStats(url) {
 
   // Transform into easy-to-use format
   const leagueStats = {
+    "All Leagues": {
+      P: stats["Played All"] || 0,
+      W: stats["Won All"] || 0,
+      L: stats["Lost All"] || 0,
+      SheetURL: url
+    },
     "Banks League": {
       P: stats["Played Banks"] || 0,
       W: stats["Won Banks"] || 0,
@@ -138,6 +164,24 @@ async function fetchLeagueStats(url) {
       P: stats["Played Trafalgar"] || 0,
       W: stats["Won Trafalgar"] || 0,
       L: stats["Lost Trafalgar"] || 0,
+      SheetURL: url
+    },
+    "Smithfield League": {
+      P: stats["Played Smithfield"] || 0,
+      W: stats["Won Smithfield"] || 0,
+      L: stats["Lost Smithfield"] || 0,
+      SheetURL: url
+    },
+    "COLDA A": {
+      P: stats["Played Colda A"] || stats["Played COLDA A"] || 0,
+      W: stats["Won Colda A"] || stats["Won COLDA A"] || 0,
+      L: stats["Lost Colda A"] || stats["Lost COLDA A"] || 0,
+      SheetURL: url
+    },
+    "COLDA B": {
+      P: stats["Played Colda B"] || stats["Played COLDA B"] || 0,
+      W: stats["Won Colda B"] || stats["Won COLDA B"] || 0,
+      L: stats["Lost Colda B"] || stats["Lost COLDA B"] || 0,
       SheetURL: url
     }
   };
@@ -408,6 +452,7 @@ function formatCurrency(value) {
 async function fetchResults(season = currentSeason, viewMode = currentViewMode, appendFrom = null) {
 
   const grid = document.getElementById("resultsGrid");
+  updateLeagueFilterBar();
   if (appendFrom === null) {
     grid.innerHTML = `<div class="loading-results"><div class="spinner"></div> Loading ${viewMode}...</div>`;
   }
@@ -446,8 +491,6 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
     const allMatches = mainData
       .filter(match => currentLeagueFilter === "all" || match.Competition === currentLeagueFilter)
       .sort((a, b) => parseDate(b.Date) - parseDate(a.Date));
-
-    const filterHtml = renderLeagueFilter(mainData);
 
     if (viewMode === "gallery") {
       const visibleGalleryMatches =
@@ -524,7 +567,6 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
         }
       } else {
         document.getElementById("resultsGrid").innerHTML = `
-       ${filterHtml}
         <div class="gallery-container">
           ${galleryCards.join("") || `<div class="no-data">No matches found.</div>`}
         </div>
@@ -535,8 +577,6 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           </button>
         ` : ""}
       `;
-
-        bindLeagueFilter();
       }
 
       document.getElementById("loadMoreResultsBtn")?.addEventListener("click", async () => {
@@ -640,7 +680,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
         const playerHTML = `
       <div class="player-data player-stats" style="display: none;">
-        <div class="flex-layout">
+        <div class="flex-layout ${images.length ? "" : "no-match-images"}">
           <div class="player-table-wrapper">
             <table class="player-table">
               <thead>
@@ -732,7 +772,6 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
     const hasMoreResults = allMatches.length > resultsVisibleCount;
 
     const htmlMain = `
-  ${filterHtml}
       <div class="results-list">
         ${resultCards.join("") || `<div class="no-data">No matches found.</div>`}
       </div>
@@ -760,7 +799,6 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
       }
     } else {
       document.getElementById("resultsGrid").innerHTML = htmlMain;
-      bindLeagueFilter();
       requestAnimationFrame(() => openResultFromQuery());
     }
 
@@ -941,25 +979,81 @@ if (document.readyState === "loading") {
 
 async function fetchStats(season) {
   const grid = document.getElementById("resultsGrid");
+  if (
+    currentLeagueFilter !== "all" &&
+    !STATS_FILTER_MATCHES.some(match => match.Competition === currentLeagueFilter)
+  ) {
+    currentLeagueFilter = "all";
+    localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
+  }
+
+  updateLeagueFilterBar();
+  const formattedSeason = season.replace("-", "/");
 
   // 🌀 Loading spinner
   grid.innerHTML = `
-    <div class="loading-results">
-      <div class="spinner"></div>
-      <p>Loading Stats...</p>
+    <div id="statsContent" class="stats-container">
+      <div class="loading-results">
+        <div class="spinner"></div>
+        <p>Loading stats...</p>
+      </div>
     </div>
   `;
+  bindLeagueFilter();
 
   await new Promise(r => setTimeout(r, 50));
 
   // === Sheet URLs ===
   const SHEETS = {
+    all: {
+      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=590387953&single=true&output=csv",
+      "24-25": null
+    },
     banks: {
-      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1575634851&single=true&output=csv",
+      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1530331549&single=true&output=csv",
       "24-25": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSeeA_wG4oiO36aIbXiYRYVxw_5jrIeL-ZG9hPHS5XD9nZuzFbGf7Tn64Tu6PrS_hb0UAArz-m7MQoE/pub?gid=1483412373&single=true&output=csv"
     },
     traf: {
+      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1168072831&single=true&output=csv",
+      "24-25": null
+    },
+    smithfield: {
+      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=455815630&single=true&output=csv",
+      "24-25": null
+    },
+    coldaA: {
+      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1813256931&single=true&output=csv",
+      "24-25": null
+    },
+    coldaB: {
+      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=230091598&single=true&output=csv",
+      "24-25": null
+    }
+  };
+
+  const FALLBACK_SHEETS = {
+    all: {
+      "25-26": null,
+      "24-25": null
+    },
+    banks: {
+      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1575634851&single=true&output=csv",
+      "24-25": null
+    },
+    traf: {
       "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1817707297&single=true&output=csv",
+      "24-25": null
+    },
+    smithfield: {
+      "25-26": null,
+      "24-25": null
+    },
+    coldaA: {
+      "25-26": null,
+      "24-25": null
+    },
+    coldaB: {
+      "25-26": null,
       "24-25": null
     }
   };
@@ -970,26 +1064,51 @@ async function fetchStats(season) {
     "24-25": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1942826343&single=true&output=csv"
   };
 
-  async function fetchCSV(url) {
+  function isUsableCsv(text) {
+    const trimmed = String(text || "").trim();
+    if (!trimmed) return false;
+    if (/^<!doctype html/i.test(trimmed) || /^<html/i.test(trimmed) || trimmed.includes("<title>")) return false;
+    return trimmed.includes(",");
+  }
+
+  async function fetchCSV(url, fallbackUrl = null) {
     if (!url) return null;
     try {
       const res = await fetch(url + "&t=" + Date.now());
       if (!res.ok) throw new Error("Network error");
-      return await res.text();
+      const text = await res.text();
+      if (isUsableCsv(text)) return text;
+      if (fallbackUrl) return fetchCSV(fallbackUrl);
+      return null;
     } catch (err) {
       console.warn("CSV fetch failed:", err);
+      if (fallbackUrl) return fetchCSV(fallbackUrl);
       return null;
     }
   }
 
-  // === Fetch CSV data ===
-  const [banksCsv, trafCsv, leagueStats] = await Promise.all([
-    fetchCSV(SHEETS.banks[season]),
-    fetchCSV(SHEETS.traf[season]),
-    fetchLeagueStats(LEAGUE_STATS_URLS[season])
-  ]);
+  let allCsv = null;
+  let banksCsv = null;
+  let trafCsv = null;
+  let smithfieldCsv = null;
+  let coldaACsv = null;
+  let coldaBCsv = null;
+  let leagueStats = {};
 
-  const formattedSeason = season.replace("-", "/");
+  try {
+    [allCsv, banksCsv, trafCsv, smithfieldCsv, coldaACsv, coldaBCsv, leagueStats] = await Promise.all([
+      fetchCSV(SHEETS.all[season], FALLBACK_SHEETS.all[season]),
+      fetchCSV(SHEETS.banks[season], FALLBACK_SHEETS.banks[season]),
+      fetchCSV(SHEETS.traf[season], FALLBACK_SHEETS.traf[season]),
+      fetchCSV(SHEETS.smithfield[season], FALLBACK_SHEETS.smithfield[season]),
+      fetchCSV(SHEETS.coldaA[season], FALLBACK_SHEETS.coldaA[season]),
+      fetchCSV(SHEETS.coldaB[season], FALLBACK_SHEETS.coldaB[season]),
+      fetchLeagueStats(LEAGUE_STATS_URLS[season])
+    ]);
+  } catch (err) {
+    console.warn("Stats fetch failed:", err);
+    leagueStats = {};
+  }
 
   // === Convert CSV to table ===
   function csvToStyledTable(csv) {
@@ -1037,7 +1156,98 @@ async function fetchStats(season) {
     `;
   }
 
+  function parseStatsCsv(csv) {
+    if (!csv) return { headers: [], rows: [] };
+    const lines = csv.trim().split("\n").filter(Boolean);
+    if (!lines.length) return { headers: [], rows: [] };
+
+    const headers = lines[0].split(",").map(cell => cell.trim());
+    const rows = lines.slice(1).map(line => line.split(",").map(cell => cell.trim()));
+    return { headers, rows };
+  }
+
+  function numberFromCell(cell) {
+    const clean = String(cell || "").replace(/[^0-9.-]/g, "");
+    const value = Number(clean);
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  function formatCombinedCell(header, value) {
+    const lower = header.toLowerCase();
+    if (lower.includes("fines")) return `£${value.toFixed(2)}`;
+    if (Number.isInteger(value)) return String(value);
+    return value.toFixed(2);
+  }
+
+  function csvEscape(cell) {
+    const text = String(cell ?? "");
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  }
+
+  function combineStatsCsvs(csvs) {
+    const parsed = csvs.map(parseStatsCsv).filter(table => table.headers.length && table.rows.length);
+    if (!parsed.length) return null;
+
+    const headers = parsed[0].headers;
+    const totalsByPlayer = new Map();
+
+    parsed.forEach(table => {
+      table.rows.forEach(row => {
+        const player = row[0];
+        if (!player || player === "-") return;
+
+        if (!totalsByPlayer.has(player)) {
+          totalsByPlayer.set(player, headers.map((_, index) => (index === 0 ? player : 0)));
+        }
+
+        const totals = totalsByPlayer.get(player);
+        headers.forEach((header, index) => {
+          if (index === 0) return;
+          totals[index] += numberFromCell(row[index]);
+        });
+      });
+    });
+
+    const rows = Array.from(totalsByPlayer.values())
+      .sort((a, b) => numberFromCell(b[2]) - numberFromCell(a[2]))
+      .map(row => row.map((cell, index) => (
+        index === 0 ? cell : formatCombinedCell(headers[index], cell)
+      )));
+
+    return [
+      headers.map(csvEscape).join(","),
+      ...rows.map(row => row.map(csvEscape).join(","))
+    ].join("\n");
+  }
+
   // === Build HTML ===
+  const combinedCsv = allCsv || combineStatsCsvs([banksCsv, trafCsv, smithfieldCsv, coldaACsv, coldaBCsv]);
+  const allStatsFromSheet = leagueStats?.["All Leagues"];
+  const allStatsHasValues = ["P", "W", "L"].some(key => Number(allStatsFromSheet?.[key] || 0) > 0);
+  const allStatLeagueNames = ["Banks League", "Trafalgar League", "Smithfield League", "COLDA A", "COLDA B"];
+  const summedAllStats = {
+    P: allStatLeagueNames.reduce(
+      (total, name) => total + Number(leagueStats?.[name]?.P || 0),
+      0
+    ),
+    W: allStatLeagueNames.reduce(
+      (total, name) => total + Number(leagueStats?.[name]?.W || 0),
+      0
+    ),
+    L: allStatLeagueNames.reduce(
+      (total, name) => total + Number(leagueStats?.[name]?.L || 0),
+      0
+    )
+  };
+  const allStats = allStatsHasValues ? allStatsFromSheet : summedAllStats;
+
+  const allLeaguesTable = {
+    name: "All Leagues",
+    key: "all",
+    csv: combinedCsv,
+    stats: allStats
+  };
+
   const statsLeagues = [
     {
       name: "Banks League",
@@ -1054,30 +1264,29 @@ async function fetchStats(season) {
     {
       name: "Smithfield League",
       key: "smithfield",
-      csv: null,
-      stats: { P: 0, W: 0, L: 0 }
+      csv: smithfieldCsv,
+      stats: leagueStats?.["Smithfield League"] || { P: 0, W: 0, L: 0 }
     },
     {
-      name: "COLDA League",
-      key: "colda",
-      csv: null,
-      stats: { P: 0, W: 0, L: 0 }
+      name: "COLDA A",
+      key: "colda-a",
+      csv: coldaACsv,
+      stats: leagueStats?.["COLDA A"] || { P: 0, W: 0, L: 0 }
+    },
+    {
+      name: "COLDA B",
+      key: "colda-b",
+      csv: coldaBCsv,
+      stats: leagueStats?.["COLDA B"] || { P: 0, W: 0, L: 0 }
     }
   ];
 
   const visibleStatsLeagues =
     currentLeagueFilter === "all"
-      ? statsLeagues
+      ? [allLeaguesTable]
       : statsLeagues.filter(league => league.name === currentLeagueFilter);
 
-  const filterHtml = renderLeagueFilter(
-    statsLeagues.map(league => ({ Competition: league.name }))
-  );
-
   const html = `
-  ${filterHtml}
-
-  <div class="stats-container">
     <div class="stats-grid">
       ${visibleStatsLeagues.map(league => {
     const meta = getLeagueMeta(league.name);
@@ -1101,14 +1310,14 @@ async function fetchStats(season) {
         `;
   }).join("")}
     </div>
-  </div>
 `;
 
   // === Render ===
-  grid.innerHTML = html;
-  bindLeagueFilter();
+  const statsContent = document.getElementById("statsContent");
+  if (!statsContent) return;
+  statsContent.innerHTML = html;
 
-  const statsGrid = grid.querySelector(".stats-grid");
+  const statsGrid = statsContent.querySelector(".stats-grid");
 
   if (visibleStatsLeagues.length === 1) {
     statsGrid.classList.add("single-league");
@@ -1441,4 +1650,3 @@ function openResultFromQuery() {
   card.classList.add("deep-link-highlight");
   setTimeout(() => card.classList.remove("deep-link-highlight"), 1600);
 }
-

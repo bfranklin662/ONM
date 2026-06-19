@@ -1,0 +1,20 @@
+Paste this single formula into the top-left cell of the Won/Lost Data sheet.
+
+={
+"Played Banks","Won Banks","Lost Banks","Played Trafalgar","Won Trafalgar","Lost Trafalgar","Played Smithfield","Won Smithfield","Lost Smithfield","Played Colda A","Won Colda A","Lost Colda A","Played Colda B","Won Colda B","Lost Colda B";
+COUNTIF('Results Data'!A2:A,"Banks League"),
+COUNTIFS('Results Data'!A2:A,"Banks League",'Results Data'!G2:G,"WON"),
+COUNTIFS('Results Data'!A2:A,"Banks League",'Results Data'!G2:G,"LOST"),
+COUNTIF('Results Data'!A2:A,"Trafalgar League"),
+COUNTIFS('Results Data'!A2:A,"Trafalgar League",'Results Data'!G2:G,"WON"),
+COUNTIFS('Results Data'!A2:A,"Trafalgar League",'Results Data'!G2:G,"LOST"),
+COUNTIF('Results Data'!A2:A,"Smithfield League"),
+COUNTIFS('Results Data'!A2:A,"Smithfield League",'Results Data'!G2:G,"WON"),
+COUNTIFS('Results Data'!A2:A,"Smithfield League",'Results Data'!G2:G,"LOST"),
+COUNTIF('Results Data'!A2:A,"COLDA A"),
+COUNTIFS('Results Data'!A2:A,"COLDA A",'Results Data'!G2:G,"WON"),
+COUNTIFS('Results Data'!A2:A,"COLDA A",'Results Data'!G2:G,"LOST"),
+COUNTIF('Results Data'!A2:A,"COLDA B"),
+COUNTIFS('Results Data'!A2:A,"COLDA B",'Results Data'!G2:G,"WON"),
+COUNTIFS('Results Data'!A2:A,"COLDA B",'Results Data'!G2:G,"LOST")
+}

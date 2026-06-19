@@ -1427,8 +1427,12 @@ document.addEventListener("DOMContentLoaded", () => {
   function getDefaultOnmTeamForLeague() {
     const leagueName = matchLeague?.value || "";
 
-    if (leagueName === "COLDA League") {
+    if (leagueName === "COLDA A") {
       return "Oche Ness Monsters A";
+    }
+
+    if (leagueName === "COLDA B") {
+      return "Oche Ness Monsters B";
     }
 
     return "Oche Ness Monsters";

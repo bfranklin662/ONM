@@ -52,21 +52,26 @@
         { "name": "Fast Ponies", "venue": "Brown Bear" }
       ]
     },
-    "COLDA League": {
+    "COLDA A": {
+      "legs": 0,
+      "teams": [
+        { "name": "Oche Ness Monsters B", "venue": "The Horseshoe" },
+        { "name": "Madhouse Specialists", "venue": "The Horseshoe" },
+        { "name": "Shark Hunters", "venue": "Nolans" },
+        { "name": "Albany Allstars", "venue": "The Horseshoe" },
+        { "name": "Flashing Arrows", "venue": "Artful Dodger" },
+        { "name": "The Blue Boar", "venue": "Nolans" }
+      ]
+    },
+    "COLDA B": {
       "legs": 0,
       "teams": [
         { "name": "Oche Ness Monsters A", "venue": "The Horseshoe" },
-        { "name": "Oche Ness Monsters B", "venue": "The Horseshoe" },
-        { "name": "Madhouse Specialists", "venue": "The Horseshoe" },
         { "name": "Black Arrows", "venue": "Nolans" },
-        { "name": "Shark Hunters", "venue": "Nolans" },
         { "name": "Nolans D", "venue": "The Horseshoe" },
-        { "name": "Albany Allstars", "venue": "Sir Sydney Smith" },
         { "name": "Abosh", "venue": "The Horseshoe" },
-        { "name": "Flashing Arrows", "venue": "Artful Dodger" },
-        { "name": "Silverbacks", "venue": "Artful Dodger" },
-        { "name": "Bada Bing", "venue": "Nolans" },
-        { "name": "The Blue Boar", "venue": "The Horseshoe" }
+        { "name": "Silverbacks", "venue": "The Horseshoe" },
+        { "name": "Bada Bing", "venue": "Nolans" }
       ]
     }
   }

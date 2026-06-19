@@ -1008,6 +1008,19 @@
   justify-content: center;
 }
 
+.flex-layout.no-match-images {
+  justify-content: center;
+}
+
+.flex-layout.no-match-images .player-table-wrapper {
+  flex: 0 1 720px;
+  max-width: min(720px, 100%);
+}
+
+.flex-layout.no-match-images .player-images {
+  display: none;
+}
+
 
 /* --- Image Grid --- */
 .match-image-grid {
@@ -1074,6 +1087,11 @@
     grid-template-columns: minmax(520px, 1fr) minmax(520px, 1fr);
     align-items: stretch;
     gap: 28px;
+  }
+
+  .result-card-wide .flex-layout.no-match-images {
+    display: flex;
+    justify-content: center;
   }
 
   .result-card-wide .player-table-wrapper,
@@ -1343,8 +1361,8 @@ td:first-child {
 }
 
 .stats-grid .league-box {
-  flex: 1 1 700px;
-  max-width: 740px;
+  flex: 1 1 1120px;
+  max-width: min(1280px, calc(100vw - 48px));
   min-width: 340px;
   background: rgba(25, 25, 35, 0.6);
   border-radius: 16px;
@@ -1373,8 +1391,8 @@ td:first-child {
 }
 
 .stats-grid .table-container table {
-  table-layout: fixed;
-  min-width: 700px;
+  table-layout: auto;
+  min-width: 1080px;
   width: 100%;
   border-collapse: collapse;
   transform: rotateX(180deg);
@@ -1934,6 +1952,16 @@ td:first-child {
   border-top-color: #8b5cf6 !important;
 }
 
+.league-colda-a {
+  border-left-color: #38bdf8 !important;
+  border-top-color: #38bdf8 !important;
+}
+
+.league-colda-b {
+  border-left-color: #a78bfa !important;
+  border-top-color: #a78bfa !important;
+}
+
 .league-pill-banks {
   background: rgba(0, 72, 135, .72);
 }
@@ -1950,9 +1978,19 @@ td:first-child {
   background: rgba(139, 92, 246, .72);
 }
 
+.league-pill-colda-a {
+  background: rgba(56, 189, 248, .7);
+}
+
+.league-pill-colda-b {
+  background: rgba(167, 139, 250, .72);
+}
+
 .gallery-card.league-banks,
 .gallery-card.league-trafalgar,
 .gallery-card.league-smithfield,
+.gallery-card.league-colda-a,
+.gallery-card.league-colda-b,
 .gallery-card.league-colda {
   border-left-width: 0;
   border-top-width: 5px;
@@ -2002,7 +2040,7 @@ td:first-child {
 }
 
 .stats-grid.single-league .league-box {
-  max-width: 700px;
+  max-width: min(1280px, calc(100vw - 48px));
 }
 
 .score-win {
