@@ -121,7 +121,7 @@
 
     all.forEach(row => {
       const directName = row.Player || row.Name;
-      if (directName && typeof directName === "string" && directName.trim()) {
+      if (directName && typeof directName === "string" && isRealPlayerName(directName)) {
         players.add(directName.trim());
       }
 
@@ -132,7 +132,7 @@
           row[`P${i}`] ||
           row[`P ${i}`];
 
-        if (name && typeof name === "string") {
+        if (name && typeof name === "string" && isRealPlayerName(name)) {
           name = name.trim();
           if (name.length > 0) players.add(name);
         }
@@ -158,6 +158,12 @@
       .trim()
       .replace(/\s+/g, " ")
       .toLowerCase();
+  }
+
+  function isRealPlayerName(name) {
+    const clean = normName(name);
+    if (!clean) return false;
+    return !["team", "total", "totals", "overall"].includes(clean);
   }
 
   function cellHasPlayer(cellValue, playerName) {

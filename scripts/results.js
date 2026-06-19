@@ -38,6 +38,9 @@ const STATS_FILTER_MATCHES = [
 ];
 
 const ALL_LEAGUE_FILTER_MATCHES = STATS_FILTER_MATCHES;
+const STATIC_LEAGUE_FILTERS_BY_SEASON = {
+  "24-25": [{ Competition: "Banks League" }]
+};
 const STATS_TABLE_HEADERS = [
   "Player",
   "Played",
@@ -90,6 +93,27 @@ function renderLeagueFilter(matches) {
   `;
 }
 
+function isAggregateStatsPlayer(name) {
+  const clean = String(name || "").trim().toLowerCase();
+  return ["team", "total", "totals", "overall"].includes(clean);
+}
+
+function csvHasPlayerRows(csv) {
+  if (!csv) return false;
+  return csv
+    .trim()
+    .split("\n")
+    .slice(1)
+    .some(line => {
+      const firstCell = line.split(",")[0]?.trim();
+      return firstCell && !isAggregateStatsPlayer(firstCell);
+    });
+}
+
+function availableLeagueFiltersForSeason(season, matches = ALL_LEAGUE_FILTER_MATCHES) {
+  return STATIC_LEAGUE_FILTERS_BY_SEASON[season] || matches;
+}
+
 function bindLeagueFilter() {
   document.querySelectorAll("[data-league-filter]").forEach(button => {
     button.addEventListener("click", () => {
@@ -102,9 +126,16 @@ function bindLeagueFilter() {
   });
 }
 
-function updateLeagueFilterBar(matches = ALL_LEAGUE_FILTER_MATCHES) {
+function updateLeagueFilterBar(matches = availableLeagueFiltersForSeason(currentSeason)) {
   const bar = document.getElementById("leagueFilterBar");
   if (!bar) return;
+  if (
+    currentLeagueFilter !== "all" &&
+    !matches.some(match => match.Competition === currentLeagueFilter)
+  ) {
+    currentLeagueFilter = "all";
+    localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
+  }
   bar.innerHTML = renderLeagueFilter(matches);
   bindLeagueFilter();
 }
@@ -509,6 +540,15 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
     const mainData = urls.main.endsWith(".json")
       ? await fetchJSONData(urls.main)
       : await fetchCSVData(urls.main);
+
+    updateLeagueFilterBar(
+      availableLeagueFiltersForSeason(
+        season,
+        mainData
+          .filter(match => match.Competition)
+          .map(match => ({ Competition: match.Competition }))
+      )
+    );
 
     const leagueStats = urls.leagueStats.endsWith(".json")
       ? await fetchJSONData(urls.leagueStats)
@@ -1005,15 +1045,16 @@ if (document.readyState === "loading") {
 
 async function fetchStats(season) {
   const grid = document.getElementById("resultsGrid");
+  const seasonLeagueFilters = availableLeagueFiltersForSeason(season);
   if (
     currentLeagueFilter !== "all" &&
-    !STATS_FILTER_MATCHES.some(match => match.Competition === currentLeagueFilter)
+    !seasonLeagueFilters.some(match => match.Competition === currentLeagueFilter)
   ) {
     currentLeagueFilter = "all";
     localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
   }
 
-  updateLeagueFilterBar();
+  updateLeagueFilterBar(seasonLeagueFilters);
   const formattedSeason = season.replace("-", "/");
   const loadingLeagueName =
     currentLeagueFilter === "all"
@@ -1167,7 +1208,10 @@ async function fetchStats(season) {
 
     const lines = csv.trim().split("\n");
     const headers = lines[0].split(",");
-    const rows = lines.slice(1).map(l => l.split(","));
+    const rows = lines
+      .slice(1)
+      .map(l => l.split(","))
+      .filter(row => !isAggregateStatsPlayer(row[0]));
     const colSpan = headers.length || STATS_TABLE_HEADERS.length;
 
     if (!rows.length) {
@@ -1236,7 +1280,7 @@ async function fetchStats(season) {
     parsed.forEach(table => {
       table.rows.forEach(row => {
         const player = row[0];
-        if (!player || player === "-") return;
+        if (!player || player === "-" || isAggregateStatsPlayer(player)) return;
 
         if (!totalsByPlayer.has(player)) {
           totalsByPlayer.set(player, headers.map((_, index) => (index === 0 ? player : 0)));
@@ -1327,10 +1371,28 @@ async function fetchStats(season) {
     statsPwlCache[league.name] = league.stats;
   });
 
+  const statsLeaguesWithData = statsLeagues.filter(league =>
+    Number(league.stats?.P || 0) > 0 || csvHasPlayerRows(league.csv)
+  );
+  const availableStatsFilters = availableLeagueFiltersForSeason(
+    season,
+    statsLeaguesWithData.map(league => ({ Competition: league.name }))
+  );
+  updateLeagueFilterBar(availableStatsFilters);
+
+  if (
+    currentLeagueFilter !== "all" &&
+    !availableStatsFilters.some(match => match.Competition === currentLeagueFilter)
+  ) {
+    currentLeagueFilter = "all";
+    localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
+    updateLeagueFilterBar(availableStatsFilters);
+  }
+
   const visibleStatsLeagues =
     currentLeagueFilter === "all"
       ? [allLeaguesTable]
-      : statsLeagues.filter(league => league.name === currentLeagueFilter);
+      : statsLeaguesWithData.filter(league => league.name === currentLeagueFilter);
 
   const html = `
     <div class="stats-grid">
