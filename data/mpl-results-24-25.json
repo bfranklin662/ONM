@@ -211,7 +211,7 @@
       { "fixture": 5, "opponent": "Jack", "result": "NA", "score": "NA", "bulls": "NA" },
       { "fixture": 6, "opponent": "Filip", "result": "Loss", "score": "0-4", "bulls": 0 },
       { "fixture": 7, "opponent": "Nick", "result": "Draw", "score": "3-3", "bulls": 1 },
-      { "fixture": 8, "opponent": "Billy", "result": "Win", "score": "4-0", "bulls": 0 },
+      { "fixture": 8, "opponent": "Billiams", "result": "Win", "score": "4-0", "bulls": 0 },
       { "fixture": 9, "opponent": "Codon", "result": "Loss", "score": "1-4", "bulls": 0 }
     ]
   },

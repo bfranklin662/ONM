@@ -1,5 +1,5 @@
 const HOME_CSVS = {
-  fines26: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1227331675&single=true&output=csv",
+  allStats: "https://docs.google.com/spreadsheets/d/1svcwpJZujjUG-mJbYHFqiiGtKvqM2QrnyK1FC1ZdiNQ/export?format=csv&gid=590387953",
   banksStats: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1575634851&single=true&output=csv",
   trafStats: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1817707297&single=true&output=csv"
 };
@@ -15,6 +15,18 @@ async function fetchCsvRows(url) {
 }
 
 const LB_SLIDE_DURATION = 260;
+const HOME_LEADERBOARD_FILTERS = [
+  { key: "appearances", label: "Appearances", valueLabel: "Played", formatter: v => Number(v || 0) },
+  { key: "checkouts", label: "Checkouts", valueLabel: "Checkouts", formatter: v => Number(v || 0) },
+  { key: "oneEightys", label: "180s", valueLabel: "180s", formatter: v => Number(v || 0) },
+  { key: "bulls", label: "Bull-outs", valueLabel: "Bull-outs", formatter: v => Number(v || 0) },
+  { key: "tonOuts", label: "Ton+ Outs", valueLabel: "Ton+ Outs", formatter: v => Number(v || 0) },
+  { key: "highestCheckout", label: "Highest checkout", valueLabel: "Highest out", formatter: v => Number(v || 0) }
+];
+
+let homeLeaderboardPlayers = [];
+let activeHomeLeaderboardKey = "appearances";
+let homeLeaderboardExpanded = false;
 
 async function fetchHighestCheckouts(playersMap) {
   const res = await fetch(`data/player-profile.json?t=${Date.now()}`);
@@ -223,6 +235,8 @@ function readFinesRows(rows, playersMap) {
         oneEightys: 0,
         bulls: 0,
         tonOuts: 0,
+        highestCheckout: 0,
+        appearances: 0,
         owed: 0
       };
     }
@@ -231,44 +245,82 @@ function readFinesRows(rows, playersMap) {
   });
 }
 
-function makeLeaderboardCard({ title, rows, key, formatter }) {
-  const sorted = rows
-    .filter(p => Number(p[key]) > 0)
-    .sort((a, b) => Number(b[key]) - Number(a[key]));
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-  const topFive = sorted.slice(0, 5);
-  const rest = sorted.slice(5);
+function getActiveHomeLeaderboardFilter() {
+  return HOME_LEADERBOARD_FILTERS.find(filter => filter.key === activeHomeLeaderboardKey) ||
+    HOME_LEADERBOARD_FILTERS[0];
+}
 
-  const makeRows = (list, startRank = 1) => list.map((p, i) => `
-    <div class="leaderboard-row">
-      <span class="leaderboard-rank">${startRank + i}</span>
-      <a href="player-profile.html?name=${encodeURIComponent(p.name)}" class="player-link leaderboard-name">
-        ${p.name}
-      </a>
-      <span class="leaderboard-value ${key === "owed" ? "leaderboard-value-overdue" : ""}">
-        ${formatter(p[key])}
-      </span>
-    </div>
+function renderHomeLeaderboardPills() {
+  const pills = document.getElementById("homeLeaderboardPills");
+  if (!pills) return;
+
+  pills.innerHTML = HOME_LEADERBOARD_FILTERS.map(filter => `
+    <button
+      class="${filter.key === activeHomeLeaderboardKey ? "active" : ""}"
+      type="button"
+      data-home-leaderboard-filter="${filter.key}"
+    >
+      ${filter.label}
+    </button>
   `).join("");
+}
 
-  return `
-    <article class="leaderboard-card leaderboard-${key}">
-      <h3>
-        ${title}
-        ${key === "owed" ? `<button class="leaderboard-info-btn" type="button" aria-label="Payment details">i</button>` : ""}
-      </h3>
+function renderHomeLeaderboard() {
+  const grid = document.getElementById("homeLeaderboardsGrid");
+  if (!grid) return;
 
-      <div class="leaderboard-list">
-        ${topFive.length ? makeRows(topFive, 1) : `<div class="leaderboard-empty">No data yet</div>`}
+  const filter = getActiveHomeLeaderboardFilter();
+  const sorted = homeLeaderboardPlayers
+    .filter(player => Number(player[filter.key]) > 0)
+    .sort((a, b) => Number(b[filter.key] || 0) - Number(a[filter.key] || 0));
+  const visibleRows = homeLeaderboardExpanded ? sorted : sorted.slice(0, 10);
+  const hasMoreRows = sorted.length > 10;
+
+  renderHomeLeaderboardPills();
+
+  grid.innerHTML = `
+    <article class="home-leaderboard-table leaderboard-${filter.key}">
+      <div class="home-leaderboard-table-title">
+        <h3>${filter.label}</h3>
       </div>
-
-      ${rest.length ? `
-        <div class="leaderboard-extra" style="display:none;">
-          ${makeRows(rest, 6)}
-        </div>
-
-        <button class="leaderboard-toggle" type="button" aria-label="Show more">
-          ▽
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Player</th>
+            <th>${filter.valueLabel}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${visibleRows.length ? visibleRows.map((player, index) => `
+            <tr class="${index === 0 ? "top-player-row" : ""}">
+              <td>${index + 1}</td>
+              <td>
+                <a href="player-profile.html?name=${encodeURIComponent(player.name)}" class="player-link">
+                  ${escapeHtml(player.name)}
+                </a>
+              </td>
+              <td>${filter.formatter(player[filter.key])}</td>
+            </tr>
+          `).join("") : `
+            <tr>
+              <td colspan="3" class="leaderboard-empty">No data yet</td>
+            </tr>
+          `}
+        </tbody>
+      </table>
+      ${hasMoreRows ? `
+        <button class="homeLeaderboardExpand" type="button" data-home-leaderboard-expand aria-expanded="${homeLeaderboardExpanded}">
+          ${homeLeaderboardExpanded ? "△" : "▽"}
         </button>
       ` : ""}
     </article>
@@ -287,97 +339,15 @@ async function loadHomeLeaderboards() {
   `;
 
   try {
-    const [finesRows, banksRows, trafRows] = await Promise.all([
-      fetchCsvRows(HOME_CSVS.fines26),
-      fetchCsvRows(HOME_CSVS.banksStats),
-      fetchCsvRows(HOME_CSVS.trafStats)
-    ]);
+    const allStatsRows = await fetchCsvRows(HOME_CSVS.allStats);
 
     const playersMap = {};
 
-    readStatRows(banksRows, playersMap);
-    readStatRows(trafRows, playersMap);
-    readFinesRows(finesRows, playersMap);
+    readStatRows(allStatsRows, playersMap);
     await fetchHighestCheckouts(playersMap);
 
-    const players = Object.values(playersMap);
-
-    grid.innerHTML = `
-      ${makeLeaderboardCard({
-      title: "Season checkouts",
-      rows: players,
-      key: "checkouts",
-      formatter: v => Number(v)
-    })}
-
-    ${makeLeaderboardCard({
-      title: "Appearances",
-      rows: players,
-      key: "appearances",
-      formatter: v => Number(v)
-    })}
-
-      ${makeLeaderboardCard({
-      title: "Season 180s",
-      rows: players,
-      key: "oneEightys",
-      formatter: v => Number(v)
-    })}
-
-      ${makeLeaderboardCard({
-      title: "Season Bull-outs",
-      rows: players,
-      key: "bulls",
-      formatter: v => Number(v)
-    })}
-
-      ${makeLeaderboardCard({
-      title: "Season Ton+ outs",
-      rows: players,
-      key: "tonOuts",
-      formatter: v => Number(v)
-    })}
-
-      ${makeLeaderboardCard({
-      title: "Highest checkout",
-      rows: players,
-      key: "highestCheckout",
-      formatter: v => Number(v)
-    })}
-
-      
-
-      ${makeLeaderboardCard({
-      title: "Outstanding fines",
-      rows: players,
-      key: "owed",
-      formatter: numberToMoney
-    })}
-    `;
-
-    document.querySelectorAll(".leaderboard-toggle").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const card = btn.closest(".leaderboard-card");
-        const extra = card?.querySelector(".leaderboard-extra");
-        if (!extra) return;
-
-        btn.disabled = true;
-
-        const isHidden = window.getComputedStyle(extra).display === "none";
-
-        if (isHidden) {
-          await animateOpen(extra);
-          btn.textContent = "△";
-          btn.setAttribute("aria-expanded", "true");
-        } else {
-          await animateClose(extra);
-          btn.textContent = "▽";
-          btn.setAttribute("aria-expanded", "false");
-        }
-
-        btn.disabled = false;
-      });
-    });
+    homeLeaderboardPlayers = Object.values(playersMap);
+    renderHomeLeaderboard();
 
   } catch (err) {
     console.error(err);
@@ -400,10 +370,25 @@ function closePaymentDetailsModal() {
 }
 
 document.addEventListener("click", async (e) => {
+  const homeLeaderboardPill = e.target.closest("[data-home-leaderboard-filter]");
+  const homeLeaderboardExpand = e.target.closest("[data-home-leaderboard-expand]");
   const infoBtn = e.target.closest(".leaderboard-info-btn");
   const closeBtn = e.target.closest("#closePaymentModal");
   const copyBtn = e.target.closest(".copy-btn");
   const paymentModal = document.getElementById("paymentModal");
+
+  if (homeLeaderboardPill) {
+    activeHomeLeaderboardKey = homeLeaderboardPill.dataset.homeLeaderboardFilter;
+    homeLeaderboardExpanded = false;
+    renderHomeLeaderboard();
+    return;
+  }
+
+  if (homeLeaderboardExpand) {
+    homeLeaderboardExpanded = !homeLeaderboardExpanded;
+    renderHomeLeaderboard();
+    return;
+  }
 
   if (infoBtn) {
     e.preventDefault();

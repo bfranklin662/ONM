@@ -111,6 +111,7 @@ function csvHasPlayerRows(csv) {
 }
 
 function availableLeagueFiltersForSeason(season, matches = ALL_LEAGUE_FILTER_MATCHES) {
+  if (season === "all") return matches;
   return STATIC_LEAGUE_FILTERS_BY_SEASON[season] || matches;
 }
 
@@ -120,8 +121,12 @@ function bindLeagueFilter() {
       currentLeagueFilter = button.dataset.leagueFilter;
       localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
       resultsVisibleCount = RESULTS_PAGE_SIZE;
-      updateLeagueFilterBar();
-      fetchResults(currentSeason, currentViewMode);
+      if (currentViewMode === "stats") {
+        fetchStats(currentSeason);
+      } else {
+        updateLeagueFilterBar();
+        fetchResults(currentSeason, currentViewMode);
+      }
     });
   });
 }
@@ -154,6 +159,7 @@ async function fetchCSVData(url) {
 }
 
 function formatSeason(season) {
+  if (season === "all") return "All Time";
   return season.replace("-", "/");
 }
 
@@ -512,6 +518,18 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
   const grid = document.getElementById("resultsGrid");
   updateLeagueFilterBar();
+
+  if (season === "all" && viewMode !== "stats") {
+    currentViewMode = "stats";
+    localStorage.setItem("viewMode", currentViewMode);
+    document.querySelectorAll(".view-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.view === "stats");
+    });
+    updateTitle(currentViewMode, currentSeason);
+    await fetchStats(season);
+    return;
+  }
+
   if (appendFrom === null && viewMode !== "stats") {
     grid.innerHTML = `<div class="loading-results"><div class="spinner"></div> Loading ${viewMode}...</div>`;
   }
@@ -1045,17 +1063,7 @@ if (document.readyState === "loading") {
 
 async function fetchStats(season) {
   const grid = document.getElementById("resultsGrid");
-  const seasonLeagueFilters = availableLeagueFiltersForSeason(season);
-  if (
-    currentLeagueFilter !== "all" &&
-    !seasonLeagueFilters.some(match => match.Competition === currentLeagueFilter)
-  ) {
-    currentLeagueFilter = "all";
-    localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
-  }
-
-  updateLeagueFilterBar(seasonLeagueFilters);
-  const formattedSeason = season.replace("-", "/");
+  const formattedSeason = formatSeason(season);
   const loadingLeagueName =
     currentLeagueFilter === "all"
       ? "All Leagues"
@@ -1164,29 +1172,6 @@ async function fetchStats(season) {
     }
   }
 
-  let allCsv = null;
-  let banksCsv = null;
-  let trafCsv = null;
-  let smithfieldCsv = null;
-  let coldaACsv = null;
-  let coldaBCsv = null;
-  let leagueStats = {};
-
-  try {
-    [allCsv, banksCsv, trafCsv, smithfieldCsv, coldaACsv, coldaBCsv, leagueStats] = await Promise.all([
-      fetchCSV(SHEETS.all[season], FALLBACK_SHEETS.all[season]),
-      fetchCSV(SHEETS.banks[season], FALLBACK_SHEETS.banks[season]),
-      fetchCSV(SHEETS.traf[season], FALLBACK_SHEETS.traf[season]),
-      fetchCSV(SHEETS.smithfield[season], FALLBACK_SHEETS.smithfield[season]),
-      fetchCSV(SHEETS.coldaA[season], FALLBACK_SHEETS.coldaA[season]),
-      fetchCSV(SHEETS.coldaB[season], FALLBACK_SHEETS.coldaB[season]),
-      fetchLeagueStats(LEAGUE_STATS_URLS[season])
-    ]);
-  } catch (err) {
-    console.warn("Stats fetch failed:", err);
-    leagueStats = {};
-  }
-
   // === Convert CSV to table ===
   function statsTableShell(bodyHTML, headers = STATS_TABLE_HEADERS) {
     const headerHTML = headers.map(h => `<th>${h.trim()}</th>`).join("");
@@ -1260,6 +1245,7 @@ async function fetchStats(season) {
 
   function formatCombinedCell(header, value) {
     const lower = header.toLowerCase();
+    if (lower.includes("double fines")) return String(Math.round(value));
     if (lower.includes("fines")) return `£${value.toFixed(2)}`;
     if (Number.isInteger(value)) return String(value);
     return value.toFixed(2);
@@ -1271,13 +1257,22 @@ async function fetchStats(season) {
   }
 
   function combineStatsCsvs(csvs) {
-    const parsed = csvs.map(parseStatsCsv).filter(table => table.headers.length && table.rows.length);
+    const parsed = csvs.filter(Boolean).map(parseStatsCsv).filter(table => table.headers.length && table.rows.length);
     if (!parsed.length) return null;
 
-    const headers = parsed[0].headers;
+    const headers = STATS_TABLE_HEADERS;
+    const headerIndex = header => headers.findIndex(h => h.toLowerCase() === header.toLowerCase());
+    const playedIndex = headerIndex("Played");
+    const checkoutsIndex = headerIndex("Checkouts");
+    const checkoutsGameIndex = headerIndex("Checkouts/game");
+    const finesIndex = headerIndex("Fines");
+    const finesGameIndex = headerIndex("Fines/game");
     const totalsByPlayer = new Map();
 
     parsed.forEach(table => {
+      const tableHeaderIndex = header =>
+        table.headers.findIndex(h => h.toLowerCase() === header.toLowerCase());
+
       table.rows.forEach(row => {
         const player = row[0];
         if (!player || player === "-" || isAggregateStatsPlayer(player)) return;
@@ -1289,9 +1284,28 @@ async function fetchStats(season) {
         const totals = totalsByPlayer.get(player);
         headers.forEach((header, index) => {
           if (index === 0) return;
-          totals[index] += numberFromCell(row[index]);
+          if (index === checkoutsGameIndex || index === finesGameIndex) return;
+
+          const sourceIndex = tableHeaderIndex(header);
+          if (sourceIndex >= 0) {
+            totals[index] += numberFromCell(row[sourceIndex]);
+          }
         });
       });
+    });
+
+    totalsByPlayer.forEach(row => {
+      const played = numberFromCell(row[playedIndex]);
+      const checkouts = numberFromCell(row[checkoutsIndex]);
+      const fines = numberFromCell(row[finesIndex]);
+
+      if (checkoutsGameIndex >= 0) {
+        row[checkoutsGameIndex] = played ? checkouts / played : 0;
+      }
+
+      if (finesGameIndex >= 0) {
+        row[finesGameIndex] = played ? fines / played : 0;
+      }
     });
 
     const rows = Array.from(totalsByPlayer.values())
@@ -1304,6 +1318,67 @@ async function fetchStats(season) {
       headers.map(csvEscape).join(","),
       ...rows.map(row => row.map(csvEscape).join(","))
     ].join("\n");
+  }
+
+  function combineLeagueStats(statsList) {
+    const empty = { P: 0, W: 0, L: 0 };
+    return statsList.reduce((combined, stats) => {
+      Object.entries(stats || {}).forEach(([league, value]) => {
+        if (!combined[league]) combined[league] = { ...empty };
+        combined[league].P += Number(value?.P || 0);
+        combined[league].W += Number(value?.W || 0);
+        combined[league].L += Number(value?.L || 0);
+      });
+      return combined;
+    }, {});
+  }
+
+  async function fetchLeagueCsvForSeasons(sheetKey, seasons) {
+    const csvs = await Promise.all(
+      seasons.map(statSeason => fetchCSV(SHEETS[sheetKey]?.[statSeason], FALLBACK_SHEETS[sheetKey]?.[statSeason]))
+    );
+    return csvs.filter(Boolean);
+  }
+
+  const statSeasons = season === "all" ? ["25-26", "24-25"] : [season];
+
+  let allCsv = null;
+  let banksCsv = null;
+  let trafCsv = null;
+  let smithfieldCsv = null;
+  let coldaACsv = null;
+  let coldaBCsv = null;
+  let leagueStats = {};
+
+  try {
+    const [
+      allCsvs,
+      banksCsvs,
+      trafCsvs,
+      smithfieldCsvs,
+      coldaACsvs,
+      coldaBCsvs,
+      leagueStatsList
+    ] = await Promise.all([
+      fetchLeagueCsvForSeasons("all", statSeasons),
+      fetchLeagueCsvForSeasons("banks", statSeasons),
+      fetchLeagueCsvForSeasons("traf", statSeasons),
+      fetchLeagueCsvForSeasons("smithfield", statSeasons),
+      fetchLeagueCsvForSeasons("coldaA", statSeasons),
+      fetchLeagueCsvForSeasons("coldaB", statSeasons),
+      Promise.all(statSeasons.map(statSeason => LEAGUE_STATS_URLS[statSeason] ? fetchLeagueStats(LEAGUE_STATS_URLS[statSeason]) : {}))
+    ]);
+
+    allCsv = season === "all" ? null : allCsvs[0] || null;
+    banksCsv = combineStatsCsvs(banksCsvs);
+    trafCsv = combineStatsCsvs(trafCsvs);
+    smithfieldCsv = combineStatsCsvs(smithfieldCsvs);
+    coldaACsv = combineStatsCsvs(coldaACsvs);
+    coldaBCsv = combineStatsCsvs(coldaBCsvs);
+    leagueStats = combineLeagueStats(leagueStatsList);
+  } catch (err) {
+    console.warn("Stats fetch failed:", err);
+    leagueStats = {};
   }
 
   // === Build HTML ===

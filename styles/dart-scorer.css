@@ -3950,8 +3950,40 @@ body.scorer-fullscreen .startDeciderScreen {
 .molInviteSettings {
   padding: 14px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, .055);
-  border: 1px solid rgba(255, 255, 255, .1);
+  margin-bottom: 8px;
+  background: rgba(0, 95, 54, .18);
+  border: 1px solid rgba(66, 220, 125, .20);
+}
+
+.molInviteSettings .homeAwayToggle {
+  background: rgba(0, 95, 54, .35);
+  border: 1px solid rgba(66, 220, 125, .20);
+}
+
+.molInviteSettings .homeAwayToggle .toggleSlider {
+  background: linear-gradient(135deg, rgba(18, 132, 67, .95), rgba(40, 170, 83, .78));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .18);
+}
+
+.molInviteSettings .homeAwayToggle .toggleBtn {
+  color: rgba(255, 255, 255, .62);
+}
+
+.molInviteSettings .homeAwayToggle .toggleBtn.active {
+  color: #fff;
+}
+
+.molInviteSettings .legCounter {
+  background: rgba(0, 95, 54, .35);
+  border-color: rgba(66, 220, 125, .24);
+}
+
+.molInviteSettings .legCounter button {
+  color: rgba(255, 255, 255, .82);
+}
+
+.molInviteSettings .legCounter button:hover {
+  color: #42dc7d;
 }
 
 .molLegButtons {
@@ -4594,4 +4626,17 @@ body.casualMode #matchModeSwitch {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+}
+
+.molMatchSettings {
+  display: grid;
+  grid-template-columns: 1fr 90px;
+  gap: 10px;
+  align-items: stretch;
+}
+
+@media (max-width: 520px) {
+  .molMatchSettings {
+    grid-template-columns: 1fr;
+  }
 }

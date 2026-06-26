@@ -30,7 +30,7 @@
     <nav class="nav-links desktop-nav">
       <ul>
         <li><a href="/" class="active">Home</a></li>
-        <li><a href="comps.html">Comps</a></li>
+        <li><a href="#competitions">Comps</a></li>
         <li><a href="results.html">Results & Stats</a></li>
         <li><a href="players-landing.html">Players</a></li>
         <li><a href="games.html">Games</a></li>
@@ -48,86 +48,223 @@
     <button class="close-btn" type="button" onclick="toggleSidebar()">✖</button>
 
     <a href="/" class="active">Home</a>
-    <a href="comps.html">Comps</a>
+    <a href="#competitions">Comps</a>
     <a href="results.html">Results & Stats</a>
     <a href="players-landing.html">Players</a>
     <a href="games.html">Games</a>
   </div>
 
-  <div class="fixturesContainer">
-    <div class="fixturesGlass">
-      <div class="fixturesTitle">FIXTURES</div>
+  <main class="home-shell">
+    <section class="home-jumpbar" aria-label="Homepage sections">
+      <nav class="home-jump-pills">
+        <a href="#play-darts">Play darts</a>
+        <a href="#fixtures">Fixtures</a>
+        <a href="#competitions">Competitions</a>
+        <a href="#stats">Stats</a>
+        <a href="#team">Team</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </section>
 
-      <div id="fixturesBanner" class="fixturesBanner" aria-label="Fixtures">
-        <!-- Carousel -->
-        <div id="fixturesCarousel" class="carouselWrap">
-          <button id="fixturesPrev" class="navArrow" type="button" aria-label="Previous fixture">‹</button>
-          <div id="fixturesStage" tabindex="0"></div>
-          <button id="fixturesNext" class="navArrow" type="button" aria-label="Next fixture">›</button>
+    <section id="play-darts" class="home-panel-row" aria-label="Play darts">
+      <a class="home-spotlight online" href="dart-scorer.html?mode=league&v=20260602">
+        <div>
+          <p>Monsters Online League</p>
+          <h2>Play darts online</h2>
+          <span>Ranked 501 • leaderboard • live matches</span>
+        </div>
+      </a>
+
+      <a class="home-spotlight scorer" href="dart-scorer.html?mode=casual&v=20260602">
+        <div>
+          <p>Casual Dart Scorer</p>
+          <h2>Score a local game</h2>
+          <span>Quick 301/501/701 scoring</span>
+        </div>
+      </a>
+
+      <a class="home-spotlight fines" href="fines.html">
+        <div>
+          <p>Match Admin</p>
+          <h2>Submit results</h2>
+          <span>Fines • specials • match data</span>
+        </div>
+      </a>
+    </section>
+
+    <section id="fixtures" class="home-section fixturesContainer">
+      <div class="home-section-heading">
+        <p>Next up</p>
+        <h2>Fixtures</h2>
+      </div>
+      <div class="fixturesGlass">
+        <div id="fixturesBanner" class="fixturesBanner" aria-label="Fixtures">
+          <div id="fixturesCarousel" class="carouselWrap">
+            <button id="fixturesPrev" class="navArrow" type="button" aria-label="Previous fixture">‹</button>
+            <div id="fixturesStage" tabindex="0"></div>
+            <button id="fixturesNext" class="navArrow" type="button" aria-label="Next fixture">›</button>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <section class="home-leaderboards">
-    <div class="fixturesTitle home-leaderboards-title">SEASON LEADERS</div>
-    <div id="homeLeaderboardsGrid" class="home-leaderboards-grid">
-      <div class="loading-season-leaders">
-        <div class="spinner"></div>
-        <p>Loading Season Leaders...</p>
+    <section id="competitions" class="home-section home-competitions">
+      <div class="home-section-heading">
+        <p>Where we play</p>
+        <h2>Competitions</h2>
       </div>
-    </div>
-  </section>
 
-  <!-- ABOUT SECTION -->
-  <div class="page-wrap">
-    <div class="about-container">
-      <section class="about-section">
-        <h3>About Us</h3>
-        <p>
-          We are The Oche Ness Monsters, a fiercely competitive and wildly fun darts team based in the heart of London.
-          Proud champions of the Alex Beckett Cup 2025 and Banks League Div 2 2025. We don’t just play darts —
-          we bring energy, character, and a touch of legend to every oche we step up to.
-        </p>
-        <img src="images/team1.jpg" alt="Team photo" class="about-image team-image">
-      </section>
+      <div class="home-comps-grid">
+        <article class="home-comp-card">
+          <img src="images/banks.jpg" alt="Banks League">
+          <div class="home-comp-body">
+            <div class="home-comp-top">
+              <h3>Banks League</h3>
+              <div class="pwl-grid" data-league="Banks League">
+                <a class="pwl played">P: <span id="banks-p">–</span></a>
+                <a class="pwl won">W: <span id="banks-w">–</span></a>
+                <a class="pwl lost">L: <span id="banks-l">–</span></a>
+              </div>
+            </div>
+            <p class="home-comp-tag">Division 2 Champions 2024/25</p>
+            <p>The regular league engine room: weekly matches, promotion momentum and a proper competitive grind.</p>
+            <div class="home-comp-links">
+              <a href="results.html#results">Results</a>
+              <a href="results.html#stats">Stats</a>
+              <a href="https://cbfidl2.leaguerepublic.com/fg/1_991506423.html" target="_blank">Table</a>
+            </div>
+          </div>
+        </article>
 
-      <section class="about-section">
-        <h3>Bull or Bust</h3>
-        <p>
-          Our motto, “Bull or Bust”, says it all: when you're sitting on 50, there's only one way to win —
-          straight through the bullseye. It’s not just about style, it’s about belief. We take risks, we aim high,
-          and we play with purpose.
-        </p>
-        <img src="images/bull.jpg" alt="Player throwing darts" class="about-image team-image1">
-      </section>
+        <article class="home-comp-card">
+          <img src="images/trafalgar.jpg" alt="Trafalgar League">
+          <div class="home-comp-body">
+            <div class="home-comp-top">
+              <h3>Trafalgar League</h3>
+              <div class="pwl-grid" data-league="Trafalgar League">
+                <a class="pwl played">P: <span id="traf-p">–</span></a>
+                <a class="pwl won">W: <span id="traf-w">–</span></a>
+                <a class="pwl lost">L: <span id="traf-l">–</span></a>
+              </div>
+            </div>
+            <p class="home-comp-tag">Team legs • trebles • doubles • singles</p>
+            <p>A bigger league format with more moving parts, deeper nights and plenty of room for drama.</p>
+            <div class="home-comp-links">
+              <a href="results.html#results">Results</a>
+              <a href="results.html#stats">Stats</a>
+              <a href="https://www.trafalgardartleague.org.uk/table.html" target="_blank">Table</a>
+            </div>
+          </div>
+        </article>
 
-      <section class="about-section">
-        <h3>More than just a team</h3>
-        <p>
-          The Oche Ness Monsters are as much about camaraderie as we are about competition. We're a sociable crew with a
-          love
-          for darts, great nights out, and our go-to drink: the mighty Baby Guinness. Whether it's match night or
-          post-game celebrations,
-          you'll find us bringing the same spirit to the pub as we do to the oche.
-        </p>
-        <img src="images/team3.jpg" alt="Team celebration" class="about-image team-image2">
-      </section>
+        <article class="home-comp-card">
+          <img src="images/bull.jpg" alt="Smithfield League">
+          <div class="home-comp-body">
+            <h3>Smithfield League</h3>
+            <p class="home-comp-tag">Four-player league • plenty of darts</p>
+            <p>A compact four-player format with a mix of team legs, doubles and singles. Plenty of visits, plenty of
+              pressure.</p>
+            <div class="home-comp-links">
+              <a href="results.html#results">Results</a>
+              <a href="results.html#stats">Stats</a>
+            </div>
+          </div>
+        </article>
 
-      <section class="about-section">
-        <h3>Fines, Fun &amp; Fierce Competition</h3>
-        <p>
-          Every Monster follows the rules — and that includes our infamous fines system. From missed checkouts to dress
-          code violations,
-          we keep things sharp, cheeky, and disciplined. It’s all part of what makes this team something special.
-          Welcome to the Monsters’ den.
-        </p>
-        <img src="images/mpl.jpg" alt="Victory shot" class="about-image team-image3">
-      </section>
-      <div class="button">
-        <a href="comps.html" class="forward">Jump to Competitions →</a>
+        <article class="home-comp-card">
+          <img src="images/colda.jpg" alt="COLDA League">
+          <div class="home-comp-body">
+            <h3>COLDA League</h3>
+            <p class="home-comp-tag">City Of London Darts Association</p>
+            <p>A four-player team league for Monsters who play in the COLDA singles league, adding another competitive
+              route through the season.</p>
+            <div class="home-comp-links">
+              <a href="results.html#results">Results</a>
+              <a href="results.html#stats">Stats</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="home-comp-card compact">
+          <img src="images/beckett.jpg" alt="Alex Beckett League">
+          <div class="home-comp-body">
+            <h3>Alex Beckett League</h3>
+            <p class="home-comp-tag">Tournament Champions 2024/25</p>
+            <p>The Barley Mow tournament where the Monsters picked up silverware and a story worth retelling.</p>
+            <div class="home-comp-links">
+              <a href="https://thebarleymowmarylebone.com/the-darts-league" target="_blank">Website</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="home-comp-card compact">
+          <img src="images/mpl.jpg" alt="Monsters Premier League">
+          <div class="home-comp-body">
+            <h3>Monsters Premier League</h3>
+            <p class="home-comp-tag">2025 Winner: Filip</p>
+            <p>Internal summer darts, bragging rights and a league table nobody pretends not to care about.</p>
+            <div class="home-comp-links">
+              <a href="mpl-table.html">Table</a>
+              <a href="mpl-stats.html">Stats</a>
+            </div>
+          </div>
+        </article>
       </div>
-    </div>
+    </section>
+
+    <section id="stats" class="home-section home-leaderboards">
+      <div class="home-section-heading home-section-heading-row">
+        <div>
+          <p>Form guide</p>
+          <h2>Season leaders</h2>
+        </div>
+        <a class="home-section-link" href="results.html#stats">Full stats page</a>
+      </div>
+      <div class="home-leaderboard-panel">
+        <div id="homeLeaderboardPills" class="home-leaderboard-pills" aria-label="Season leader filters"></div>
+        <div id="homeLeaderboardsGrid" class="home-leaderboards-grid">
+          <div class="loading-season-leaders">
+            <div class="spinner"></div>
+            <p>Loading Season Leaders...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="team" class="home-section home-story">
+      <div class="home-section-heading">
+        <p>The team</p>
+        <h2>Bull or Bust</h2>
+      </div>
+      <div class="home-story-grid">
+        <img src="images/team1.jpg" alt="Oche Ness Monsters team">
+        <div class="home-story-copy">
+          <p>
+            The Oche Ness Monsters are a London darts team built around competitive nights, sharp stats, dubious fines
+            and very sincere belief in the bullseye.
+          </p>
+          <p>
+            We track the matches, celebrate the specials, punish the nonsense, and occasionally throw something
+            beautiful enough to justify all of it.
+          </p>
+          <div class="home-story-actions">
+            <a class="home-btn" href="players-landing.html">Meet the players</a>
+            <a class="home-btn" href="results.html">Results & stats</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer id="contact" class="home-footer">
+      <div>
+        <p>Get in touch</p>
+        <h2>Oche Ness Monsters</h2>
+      </div>
+      <div class="home-footer-links">
+        <a href="mailto:ochenessmonsters@gmail.com">ochenessmonsters@gmail.com</a>
+        <a href="https://www.instagram.com/ochenessmonsters" target="_blank" rel="noopener">Instagram</a>
+      </div>
+    </footer>
 
     <div id="paymentModal" class="payment-modal hidden" aria-hidden="true">
       <div class="payment-modal-card">
@@ -223,6 +360,7 @@
         </div>
       </div>
     </div>
+  </main>
 
 </body>
 <script>
@@ -241,5 +379,6 @@
 <script src="scripts/profile.js"></script>
 <script src="scripts/fixtures.js"></script>
 <script src="scripts/index.js"></script>
+<script src="scripts/comps.js"></script>
 
 </html>

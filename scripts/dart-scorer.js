@@ -282,6 +282,7 @@ let onlineBullSubmitted = false;
 let onlineResultSaved = false;
 let competitiveLobbyMode = false;
 let competitiveLegsCount = 3;
+let competitiveGameType = "bestOf";
 let molVictoryShownForMatchId = null;
 let rematchStarting = false;
 let currentLeagueProfile = null;
@@ -503,6 +504,15 @@ function getLeagueResumeOpponentName(match) {
   return match.guestName || match.hostName || "Opponent";
 }
 
+function getMatchFormatLabel(gameType = "bestOf", legsCount = 3) {
+  const count = Number(legsCount || 3);
+  return gameType === "firstTo" ? `FT${count}` : `BO${count}`;
+}
+
+function getMatchInviteText(hostName, gameType = "bestOf", legsCount = 3) {
+  return `${hostName} has invited you to a competitive leaderboard ${getMatchFormatLabel(gameType, legsCount)} game.`;
+}
+
 function showLeagueResumePrompt(match) {
   const card = document.getElementById("leagueResumeMatchCard");
   const title = document.getElementById("leagueResumeMatchTitle");
@@ -513,7 +523,8 @@ function showLeagueResumePrompt(match) {
   const opponentName = getLeagueResumeOpponentName(match);
   const statusText = String(match.status || "playing").replace(/([a-z])([A-Z])/g, "$1 $2");
   const legsCount = Number(match.settings?.legsCount || match.legsCount || els.legsCount?.textContent || 3);
-  const format = legsCount === 1 ? "1 Leg Shootout" : `BO${legsCount}`;
+  const gameType = match.settings?.gameType || match.gameType || "bestOf";
+  const format = getMatchFormatLabel(gameType, legsCount);
 
   if (title) title.textContent = `Continue vs ${opponentName}`;
   if (meta) meta.textContent = `${format} · ${statusText}`;
@@ -1621,7 +1632,7 @@ function openMolVictoryScreen(matchData) {
   els.molVictoryTitle.textContent =
     isCasualResult
       ? `${STARTING_SCORE} · ${GAME_TYPE === "bestOf" ? `BO${Number(els.legsCount.textContent)}` : `FT${Number(els.legsCount.textContent)}`}`
-      : `${STARTING_SCORE} · BO${Number(els.legsCount.textContent)}`;
+      : `${STARTING_SCORE} · ${getMatchFormatLabel(GAME_TYPE, Number(els.legsCount.textContent))}`;
 
   els.molVictoryPlayerOneWon.textContent = p1.isWinner ? "WINNER" : "LOSER";
   els.molVictoryPlayerTwoWon.textContent = p2.isWinner ? "WINNER" : "LOSER";
@@ -1785,6 +1796,7 @@ function openCompetitiveInviteFlow() {
 
   competitiveLobbyMode = true;
   competitiveLegsCount = 3;
+  competitiveGameType = "bestOf";
 
   MATCH_MODE = "online";
   STATS_MODE = "competitive";
@@ -1851,15 +1863,17 @@ async function openOpponentModal() {
 
       <div class="molInviteSettings">
         <div class="molInviteLabel">Settings</div>
-        <div class="molLegButtons">
-          <button type="button" data-comp-legs="1" class="shootoutBtn">
-            1 Leg Shootout
-          </button>
+        <div class="molMatchSettings">
+          <div id="molBestFirstToggle" class="homeAwayToggle">
+            <div class="toggleSlider"></div>
+            <button id="molBestOfBtn" type="button" class="toggleBtn active">Best of</button>
+            <button id="molFirstToBtn" type="button" class="toggleBtn">First to</button>
+          </div>
 
-          <div class="molLegButtonsRow">
-            <button type="button" class="active" data-comp-legs="3">BO3</button>
-            <button type="button" data-comp-legs="5">BO5</button>
-            <button type="button" data-comp-legs="7">BO7</button>
+          <div class="legCounter">
+            <button id="molLegsUpBtn" type="button">+</button>
+            <strong id="molLegsCount">${competitiveLegsCount}</strong>
+            <button id="molLegsDownBtn" type="button">−</button>
           </div>
         </div>
       </div>
@@ -1883,16 +1897,47 @@ async function openOpponentModal() {
 
   document.getElementById("molRefreshPlayersBtn")?.addEventListener("click", openOpponentModal);
 
-  els.linkedPlayersList.querySelectorAll("[data-comp-legs]").forEach(button => {
-    button.addEventListener("click", () => {
-      els.linkedPlayersList.querySelectorAll("[data-comp-legs]").forEach(btn => {
-        btn.classList.remove("active");
-      });
+  const molBestFirstToggle = document.getElementById("molBestFirstToggle");
+  const molBestOfBtn = document.getElementById("molBestOfBtn");
+  const molFirstToBtn = document.getElementById("molFirstToBtn");
+  const molLegsCount = document.getElementById("molLegsCount");
+  const molLegsUpBtn = document.getElementById("molLegsUpBtn");
+  const molLegsDownBtn = document.getElementById("molLegsDownBtn");
 
-      button.classList.add("active");
-      competitiveLegsCount = Number(button.dataset.compLegs);
-    });
+  const syncMolGameTypeToggle = () => {
+    if (!molBestFirstToggle || !molBestOfBtn || !molFirstToBtn) return;
+
+    molBestFirstToggle.classList.toggle("away", competitiveGameType === "firstTo");
+    molBestOfBtn.classList.toggle("active", competitiveGameType === "bestOf");
+    molFirstToBtn.classList.toggle("active", competitiveGameType === "firstTo");
+  };
+
+  const syncMolLegsCount = () => {
+    if (molLegsCount) molLegsCount.textContent = competitiveLegsCount;
+  };
+
+  molBestOfBtn?.addEventListener("click", () => {
+    competitiveGameType = "bestOf";
+    syncMolGameTypeToggle();
   });
+
+  molFirstToBtn?.addEventListener("click", () => {
+    competitiveGameType = "firstTo";
+    syncMolGameTypeToggle();
+  });
+
+  molLegsUpBtn?.addEventListener("click", () => {
+    competitiveLegsCount = Math.min(21, Number(competitiveLegsCount || 3) + 1);
+    syncMolLegsCount();
+  });
+
+  molLegsDownBtn?.addEventListener("click", () => {
+    competitiveLegsCount = Math.max(1, Number(competitiveLegsCount || 3) - 1);
+    syncMolLegsCount();
+  });
+
+  syncMolGameTypeToggle();
+  syncMolLegsCount();
 
   try {
     const result = await postDartMatch({ action: "getLinkedPlayers" });
@@ -2067,11 +2112,11 @@ async function openOpponentModal() {
             settings: {
               statsMode: "competitive",
               startScore: 501,
-              gameType: "bestOf",
+              gameType: competitiveGameType,
               legsCount: competitiveLegsCount,
               inMode: "straight",
               competitive: true,
-              inviteText: `${hostFullName} has invited you to a competitive leaderboard BO${competitiveLegsCount} game.`
+              inviteText: getMatchInviteText(hostFullName, competitiveGameType, competitiveLegsCount)
             }
           });
 
@@ -2091,11 +2136,11 @@ async function openOpponentModal() {
 
             statsMode: "competitive",
             startScore: 501,
-            gameType: "bestOf",
+            gameType: competitiveGameType,
             legsCount: competitiveLegsCount,
             inMode: "straight",
 
-            inviteText: `${hostFullName} has invited you to a competitive leaderboard BO${competitiveLegsCount} game.`,
+            inviteText: getMatchInviteText(hostFullName, competitiveGameType, competitiveLegsCount),
             createdAt: Date.now()
           });
 
@@ -6095,7 +6140,11 @@ function listenForDartInvites() {
 
       const inviteText =
         invite.inviteText ||
-        `${invite.fromName} has invited you to a competitive leaderboard BO${invite.legsCount || invite.settings?.legsCount || 3} game.`;
+        getMatchInviteText(
+          invite.fromName,
+          invite.gameType || invite.settings?.gameType || "bestOf",
+          invite.legsCount || invite.settings?.legsCount || 3
+        );
 
       els.dartInviteText.textContent = inviteText;
       els.dartInviteOverlay.classList.remove("hidden");
@@ -6129,11 +6178,12 @@ async function acceptDartInvite(invite) {
   window.STATS_MODE = STATS_MODE;
 
   competitiveLobbyMode = invite.statsMode === "competitive";
-  competitiveLegsCount = Number(invite.legsCount || 3);
+  competitiveLegsCount = Number(invite.legsCount || invite.settings?.legsCount || 3);
+  competitiveGameType = invite.gameType || invite.settings?.gameType || "bestOf";
 
-  STARTING_SCORE = Number(invite.startScore || 501);
-  GAME_TYPE = invite.gameType || "bestOf";
-  IN_MODE = invite.inMode || "straight";
+  STARTING_SCORE = Number(invite.startScore || invite.settings?.startScore || 501);
+  GAME_TYPE = invite.gameType || invite.settings?.gameType || "bestOf";
+  IN_MODE = invite.inMode || invite.settings?.inMode || "straight";
 
   els.setupPlayerTwoName.value = invite.fromName || "Player 2";
 
@@ -6203,7 +6253,7 @@ async function startOnlineMatchDecider() {
   const settings = {
     status: "decider",
     "settings/startScore": isCompetitive ? 501 : STARTING_SCORE,
-    "settings/gameType": "bestOf",
+    "settings/gameType": isCompetitive ? (match.settings?.gameType || competitiveGameType || "bestOf") : GAME_TYPE,
     "settings/legsCount": isCompetitive ? Number(match.settings?.legsCount || competitiveLegsCount || 3) : Number(els.legsCount.textContent),
     "settings/inMode": isCompetitive ? "straight" : IN_MODE,
     startedDeciderAt: Date.now()
@@ -6523,9 +6573,10 @@ function applyReadyLobby(match) {
   applyMatchSettings(match.settings);
 
   const legsCount = Number(match.settings?.legsCount || 3);
+  const gameType = match.settings?.gameType || "bestOf";
 
   els.readyMatchTitle.textContent =
-  legsCount === 1 ? "501 · 1 Leg Shootout" : `501 · Best of ${legsCount}`;
+    `501 · ${getMatchFormatLabel(gameType, legsCount)}`;
 
   els.readyHostName.innerHTML = `${match.hostName || "Player 1"} <span class="readyNameFlag">${countryToFlag(match.hostNationality)}</span>`;
   els.readyGuestName.innerHTML = `${match.guestName || "Player 2"} <span class="readyNameFlag">${countryToFlag(match.guestNationality)}</span>`;
