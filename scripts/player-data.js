@@ -9,11 +9,11 @@
 
   const SHEETS = {
     banks: {
-      "25-26": liveStatsCsvUrl("1530331549"),
+      "25-26": "data/banks-stats-25-26.json",
       "24-25": "data/banks-stats-24-25.json"
     },
     traf: {
-      "25-26": liveStatsCsvUrl("1168072831"),
+      "25-26": "data/trafalgar-stats-25-26.json",
       "24-25": null
     },
     smithfield: {

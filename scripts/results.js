@@ -1095,11 +1095,11 @@ async function fetchStats(season) {
       "24-25": null
     },
     banks: {
-      "25-26": liveStatsCsvUrl("1530331549"),
-      "24-25": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSeeA_wG4oiO36aIbXiYRYVxw_5jrIeL-ZG9hPHS5XD9nZuzFbGf7Tn64Tu6PrS_hb0UAArz-m7MQoE/pub?gid=1483412373&single=true&output=csv"
+      "25-26": "data/banks-stats-25-26.json",
+      "24-25": "data/banks-stats-24-25.json"
     },
     traf: {
-      "25-26": liveStatsCsvUrl("1168072831"),
+      "25-26": "data/trafalgar-stats-25-26.json",
       "24-25": null
     },
     smithfield: {
@@ -1156,12 +1156,53 @@ async function fetchStats(season) {
     return trimmed.includes(",");
   }
 
+  function statsJsonToCsv(text) {
+    const rows = JSON.parse(text);
+    if (!Array.isArray(rows)) return null;
+
+    const csvRows = rows.map(row => {
+      const played = numberFromCell(row.Played);
+      const checkouts = numberFromCell(row.Checkouts);
+      const fines = numberFromCell(row.Fines);
+      const doubleFines = numberFromCell(row["Double Fines"]);
+      const oneEighties = numberFromCell(row["180s"] ?? row["180 Count"]);
+      const bullOuts = numberFromCell(row["Bull-outs"]);
+      const tonOuts = numberFromCell(row["Ton+ Outs"]);
+
+      return [
+        row.Player || "",
+        played,
+        checkouts,
+        played ? checkouts / played : 0,
+        fines,
+        played ? fines / played : 0,
+        doubleFines,
+        oneEighties,
+        bullOuts,
+        tonOuts
+      ];
+    });
+
+    return [
+      STATS_TABLE_HEADERS.map(csvEscape).join(","),
+      ...csvRows.map(row => row.map(csvEscape).join(","))
+    ].join("\n");
+  }
+
   async function fetchCSV(url, fallbackUrl = null) {
     if (!url) return null;
     try {
-      const res = await fetch(url + "&t=" + Date.now());
+      const noCacheUrl = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
+      const res = await fetch(noCacheUrl);
       if (!res.ok) throw new Error("Network error");
       const text = await res.text();
+      const trimmed = text.trim();
+
+      if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+        const csv = statsJsonToCsv(trimmed);
+        if (csv) return csv;
+      }
+
       if (isUsableCsv(text)) return text;
       if (fallbackUrl) return fetchCSV(fallbackUrl);
       return null;
