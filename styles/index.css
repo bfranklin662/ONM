@@ -1371,14 +1371,16 @@ a.forward:hover {
   .home-jump-pills,
   .home-leaderboard-pills {
     justify-content: flex-start;
-    overflow-x: auto;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     padding-bottom: 4px;
   }
 
   .home-jump-pills a,
   .home-leaderboard-pills button {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 10px;
   }
 
   .home-leaderboard-panel {
@@ -1405,5 +1407,73 @@ a.forward:hover {
 @media (max-width: 1180px) {
   .home-comps-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .home-panel-row,
+  .home-section {
+    width: min(100% - 20px, 1500px);
+  }
+
+  .home-section {
+    margin-top: 42px;
+  }
+
+  .home-competitions {
+    margin-top: 54px;
+  }
+
+  .home-comp-card {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .home-comp-card img {
+    height: 180px;
+  }
+
+  .home-comp-top {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .home-comp-card .pwl-grid {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 5px;
+  }
+
+  .home-comp-card .pwl-grid .pwl {
+    min-height: 25px;
+    padding: 0 7px;
+    font-size: 11px;
+    border-radius: 5px;
+  }
+
+  .home-comp-card h3 {
+    font-size: 1.55rem;
+  }
+
+  .home-leaderboard-pills {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .home-leaderboard-pills button {
+    width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 7px;
+    white-space: normal;
+    line-height: 1.05;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-leaderboard-pills {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
