@@ -193,8 +193,50 @@ function normalizeName(s) {
     .replace(/\s+/g, " ");
 }
 
+function isOnmTeam(teamName) {
+  const team = normalizeName(teamName);
+  return team === normalizeName("Oche Ness Monsters") ||
+    team === normalizeName("Oche Ness Monsters A") ||
+    team === normalizeName("Oche Ness Monsters B");
+}
+
+function getOnmMatchSide(match) {
+  const homeIsOnm = isOnmTeam(match.HomeTeam);
+  const awayIsOnm = isOnmTeam(match.AwayTeam);
+
+  if (homeIsOnm && !awayIsOnm) {
+    return { opponent: match.AwayTeam, ha: "Home" };
+  }
+
+  if (awayIsOnm && !homeIsOnm) {
+    return { opponent: match.HomeTeam, ha: "Away" };
+  }
+
+  return { opponent: match.AwayTeam || match.HomeTeam || "", ha: "Home" };
+}
+
+function hasResultQuery() {
+  const params = new URLSearchParams(window.location.search);
+  return !!(params.get("date") && params.get("opp") && params.get("ha"));
+}
+
 function getMatchValue(match, key) {
   return match[key] ?? match[key.replace(/(\D+)(\d+)/, "$1 $2")] ?? "";
+}
+
+function isColdaCompetition(competition) {
+  return competition === "COLDA A" || competition === "COLDA B";
+}
+
+function getMatchField(match, ...keys) {
+  for (const key of keys) {
+    const value = match[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+
+  return "";
 }
 
 async function fetchLeagueStats(url) {
@@ -519,17 +561,6 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
   const grid = document.getElementById("resultsGrid");
   updateLeagueFilterBar();
 
-  if (season === "all" && viewMode !== "stats") {
-    currentViewMode = "stats";
-    localStorage.setItem("viewMode", currentViewMode);
-    document.querySelectorAll(".view-btn").forEach(btn => {
-      btn.classList.toggle("active", btn.dataset.view === "stats");
-    });
-    updateTitle(currentViewMode, currentSeason);
-    await fetchStats(season);
-    return;
-  }
-
   if (appendFrom === null && viewMode !== "stats") {
     grid.innerHTML = `<div class="loading-results"><div class="spinner"></div> Loading ${viewMode}...</div>`;
   }
@@ -541,23 +572,14 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
       return;
     }
 
-    // 🎯 Select season URLs
-    const urls =
-      season === "24-25"
-        ? {
-          main: "data/result-data-24-25.json",
-          leagueStats:
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1942826343&single=true&output=csv",
-        }
-        : {
-          main: CSV_URL.main,
-          leagueStats: CSV_URL.leagueStats,
-        };
-
-    // 📊 Fetch both CSVs
-    const mainData = urls.main.endsWith(".json")
-      ? await fetchJSONData(urls.main)
-      : await fetchCSVData(urls.main);
+    const mainData = season === "all"
+      ? [
+        ...await fetchCSVData(CSV_URL.main),
+        ...await fetchJSONData("data/result-data-24-25.json")
+      ]
+      : season === "24-25"
+        ? await fetchJSONData("data/result-data-24-25.json")
+        : await fetchCSVData(CSV_URL.main);
 
     updateLeagueFilterBar(
       availableLeagueFiltersForSeason(
@@ -567,10 +589,6 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           .map(match => ({ Competition: match.Competition }))
       )
     );
-
-    const leagueStats = urls.leagueStats.endsWith(".json")
-      ? await fetchJSONData(urls.leagueStats)
-      : await fetchLeagueStats(urls.leagueStats);
 
     const allMatches = mainData
       .filter(match => currentLeagueFilter === "all" || match.Competition === currentLeagueFilter)
@@ -594,6 +612,11 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           }
 
           const meta = getLeagueMeta(match.Competition);
+          const homePoints = getMatchField(match, "HomePoints", "Home Points", "homePoints");
+          const awayPoints = getMatchField(match, "AwayPoints", "Away Points", "awayPoints");
+          const pointsHtml = isColdaCompetition(match.Competition) && homePoints !== "" && awayPoints !== ""
+            ? `<span class="points-score">${homePoints} – ${awayPoints} pts</span>`
+            : "";
 
           const matchInfo = {
             homeTeam: match.HomeTeam || "",
@@ -625,7 +648,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           <div class="gallery-header">
             <h3>${match.HomeTeam} vs ${match.AwayTeam}</h3>
             <p class="gallery-meta">${match.Date} • ${match.Venue || "Venue TBA"}</p>
-            <span class="gallery-result-label">${match.HomeScore} – ${match.AwayScore}</span>
+            <span class="gallery-result-label">${match.HomeScore} – ${match.AwayScore}${pointsHtml}</span>
           </div>
 
           ${galleryImages}
@@ -708,15 +731,17 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           .sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
 
         const isoDate = toISO(parseDate(match.Date));
-        const teamN = normalizeName("Oche Ness Monsters");
-        const homeN = normalizeName(match.HomeTeam);
-        const awayN = normalizeName(match.AwayTeam);
-
-        const opp = homeN === teamN ? match.AwayTeam : match.HomeTeam;
-        const ha = homeN === teamN ? "Home" : "Away";
+        const onmSide = getOnmMatchSide(match);
+        const opp = onmSide.opponent;
+        const ha = onmSide.ha;
         const cardKey = `${isoDate}|${normalizeName(opp)}|${ha.toLowerCase()}`;
 
         const meta = getLeagueMeta(match.Competition);
+        const homePoints = getMatchField(match, "HomePoints", "Home Points", "homePoints");
+        const awayPoints = getMatchField(match, "AwayPoints", "Away Points", "awayPoints");
+        const pointsHtml = isColdaCompetition(match.Competition) && homePoints !== "" && awayPoints !== ""
+          ? `<span class="points-score">${homePoints} – ${awayPoints} pts</span>`
+          : "";
 
         let images = [];
         const folderUrl = match.IMGFOLDER?.trim();
@@ -826,7 +851,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
         <div class="teams">
           <span class="team home">${match.HomeTeam}</span>
           <span class="score ${match.Result?.toLowerCase() === "won" ? "score-win" : "score-loss"}">
-            ${match.HomeScore} – ${match.AwayScore}
+            ${match.HomeScore} – ${match.AwayScore}${pointsHtml}
           </span>
           <span class="team away">${match.AwayTeam}</span>
         </div>
@@ -984,6 +1009,13 @@ function initPage() {
   window.currentLeague = "banks";
 
   applyHashViewMode();
+
+  if (hasResultQuery()) {
+    currentViewMode = "results";
+    currentLeagueFilter = "all";
+    localStorage.setItem("viewMode", currentViewMode);
+    localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
+  }
 
   // 2️⃣ Apply visual active states
   document.querySelectorAll(".season-tab").forEach(btn => {
@@ -1709,6 +1741,12 @@ function updateTitle(currentViewMode, currentSeason) {
   titleEl.textContent = `${viewLabel} ${formatSeason(currentSeason)}`;
 }
 
+function togglePlayers(button) {
+  button?.closest(".result-card")?.click();
+}
+
+window.togglePlayers = togglePlayers;
+
 // cancel an existing animation and return the current computed height (px) if any
 function cancelAndGetCurrentHeight(el) {
   if (!el) return 0;
@@ -1851,19 +1889,27 @@ function openResultFromQuery() {
   if (!date || !opp || !ha) return;
 
   const key = `${date}|${opp}|${ha}`;
-  const card = document.querySelector(`.result-card[data-key="${CSS.escape(key)}"]`);
+  const card = Array.from(document.querySelectorAll(".result-card"))
+    .find(resultCard => resultCard.dataset.key === key);
   if (!card) return;
 
   // scroll to it
   card.scrollIntoView({ behavior: "smooth", block: "center" });
 
-  // “open” it: click the toggle button if it exists
+  // Open it directly; synthetic button clicks can be swallowed by inline handlers.
   const btn = card.querySelector(".toggle-players");
-  if (btn) {
-    // Only open if currently closed
-    const playerData = card.querySelector(".player-data");
-    const isHidden = playerData && window.getComputedStyle(playerData).display === "none";
-    if (isHidden) btn.click();
+  const playerData = card.querySelector(".player-data");
+  const isHidden = playerData && window.getComputedStyle(playerData).display === "none";
+
+  if (isHidden) {
+    const imageIcon = card.querySelector(".result-images-corner");
+    if (imageIcon) imageIcon.style.display = "none";
+
+    animateOpen(playerData).then(() => {
+      if (!btn) return;
+      btn.textContent = "△";
+      btn.setAttribute("aria-expanded", "true");
+    });
   }
 
   // optional highlight flash

@@ -730,6 +730,16 @@
   font-size: 1.05rem;
 }
 
+.fixture-points-score {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.68rem;
+  line-height: 1;
+  letter-spacing: 0;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
 .fxMainRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -1331,9 +1341,13 @@
 
   .score {
     min-width: 0;
-    width: 58px;
+    width: 66px;
     padding: 0.28rem 0.35rem;
     font-size: 1rem;
+  }
+
+  .fixture-points-score {
+    font-size: 0.58rem;
   }
 
   .fxBottomRow {

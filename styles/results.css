@@ -279,6 +279,13 @@
   user-select: none;
 }
 
+.points-score {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .date {
   font-size: 0.8rem;
   opacity: 0.8;

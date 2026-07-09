@@ -102,6 +102,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const matchAwayTeam = document.getElementById("matchAwayTeam");
   const matchHomeScore = document.getElementById("matchHomeScore");
   const matchAwayScore = document.getElementById("matchAwayScore");
+  const matchHomePoints = document.getElementById("matchHomePoints");
+  const matchAwayPoints = document.getElementById("matchAwayPoints");
   const matchVenue = document.getElementById("matchVenue");
   const matchCup = document.getElementById("matchCup");
   const matchDate = document.getElementById("matchDate");
@@ -393,7 +395,7 @@ document.addEventListener("DOMContentLoaded", () => {
       m.result
     ];
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 12; i++) {
       const p = resultSubmitData.players[i];
 
       row.push(
@@ -411,7 +413,9 @@ document.addEventListener("DOMContentLoaded", () => {
       "", // IMGFOLDER gets filled after Drive upload
       m.venue || "",
       m.cup ? "TRUE" : "FALSE",
-      m.stage || ""
+      m.stage || "",
+      m.homePoints ?? m.HomePoints ?? "",
+      m.awayPoints ?? m.AwayPoints ?? ""
     );
 
     return row;
@@ -426,12 +430,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function readMatchInfo() {
+    const isColda = isColdaLeague();
+    const homePoints = isColda ? Number(document.getElementById("matchHomePoints")?.value || 0) : "";
+    const awayPoints = isColda ? Number(document.getElementById("matchAwayPoints")?.value || 0) : "";
+
     resultSubmitData.match = {
       league: document.getElementById("matchLeague")?.value || "",
       homeTeam: document.getElementById("matchHomeTeam")?.value.trim() || "",
       awayTeam: document.getElementById("matchAwayTeam")?.value.trim() || "",
       homeScore: Number(document.getElementById("matchHomeScore")?.value || 0),
       awayScore: Number(document.getElementById("matchAwayScore")?.value || 0),
+      homePoints,
+      awayPoints,
+      HomePoints: homePoints,
+      AwayPoints: awayPoints,
       result: document.getElementById("matchResult")?.value || "",
       date: document.getElementById("matchDate")?.value || "",
       venue: document.getElementById("matchVenue")?.value.trim() || "",
@@ -511,6 +523,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const reviewImages = reviewImageUrls;
     const visibleImages = reviewImages.slice(0, 4);
     const extraCount = Math.max(0, reviewImages.length - visibleImages.length);
+    const pointsHtml = isColdaLeague(m.league)
+      ? `<span class="points-score">${m.homePoints} – ${m.awayPoints} pts</span>`
+      : "";
 
     const imageGrid = reviewImages.length
       ? `
@@ -537,7 +552,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         <div class="teams">
           <span class="team home">${escapeHtml(m.homeTeam)}</span>
-          <span class="score">${m.homeScore} – ${m.awayScore}</span>
+          <span class="score">${m.homeScore} – ${m.awayScore}${pointsHtml}</span>
           <span class="team away">${escapeHtml(m.awayTeam)}</span>
         </div>
 
@@ -929,6 +944,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const awayTeam = matchAwayTeam?.value.trim();
     const homeScore = matchHomeScore?.value;
     const awayScore = matchAwayScore?.value;
+    const homePoints = matchHomePoints?.value;
+    const awayPoints = matchAwayPoints?.value;
     const date = matchDate?.value;
 
     if (!homeTeam) {
@@ -948,6 +965,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (awayScore === "" || Number(awayScore) < 0) {
       showToast("Enter away score");
+      return false;
+    }
+
+    if (isColdaLeague() && (homePoints === "" || Number(homePoints) < 0)) {
+      showToast("Enter home points");
+      return false;
+    }
+
+    if (isColdaLeague() && (awayPoints === "" || Number(awayPoints) < 0)) {
+      showToast("Enter away points");
       return false;
     }
 
@@ -1050,6 +1077,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (matchAwayTeam && m.awayTeam) matchAwayTeam.value = m.awayTeam;
     if (matchHomeScore && m.homeScore !== undefined) matchHomeScore.value = m.homeScore;
     if (matchAwayScore && m.awayScore !== undefined) matchAwayScore.value = m.awayScore;
+    if (matchHomePoints && m.homePoints !== undefined) matchHomePoints.value = m.homePoints;
+    if (matchAwayPoints && m.awayPoints !== undefined) matchAwayPoints.value = m.awayPoints;
     if (matchDate && m.date) matchDate.value = m.date;
     if (matchVenue && m.venue) matchVenue.value = m.venue;
 
@@ -1066,6 +1095,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cupToggle?.classList.toggle("away", !!m.cup);
     matchStageField?.classList.toggle("hidden", !m.cup);
 
+    updateColdaPointsFields();
     updateVenueFromHomeTeam();
     updateResultFromScore();
     readMatchInfo();
@@ -1363,6 +1393,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function isColdaLeague(leagueName = matchLeague?.value) {
+    return leagueName === "COLDA A" || leagueName === "COLDA B";
+  }
+
+  function updateColdaPointsFields() {
+    const showPoints = isColdaLeague();
+
+    matchInfoCard?.classList.toggle("coldaPointsFields", showPoints);
+
+    [matchHomePoints, matchAwayPoints].forEach(input => {
+      input?.closest(".pointsField")?.classList.toggle("hidden", !showPoints);
+      if (!showPoints && input) input.value = "";
+    });
+  }
+
   function updateScoreAutofill(changedSide) {
     updateResultFromScore();
     readMatchInfo();
@@ -1373,8 +1418,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const resultEl = document.getElementById("matchResult");
     if (!resultEl || matchHomeScore.value === "" || matchAwayScore.value === "") return;
 
-    const home = Number(matchHomeScore.value);
-    const away = Number(matchAwayScore.value);
+    const usePoints = isColdaLeague();
+
+    if (usePoints && (matchHomePoints.value === "" || matchAwayPoints.value === "")) return;
+
+    const home = Number(usePoints ? matchHomePoints.value : matchHomeScore.value);
+    const away = Number(usePoints ? matchAwayPoints.value : matchAwayScore.value);
 
     const onmIsHome = isOnmTeam(matchHomeTeam.value);
     const onmScore = onmIsHome ? home : away;
@@ -1419,6 +1468,7 @@ document.addEventListener("DOMContentLoaded", () => {
     homeAwayToggle?.classList.toggle("away", onmSide === "away");
 
     populateLeagueTeamSuggestions();
+    updateColdaPointsFields();
     updateVenueFromHomeTeam();
     readMatchInfo();
     saveGameSnapshot();
@@ -1487,9 +1537,12 @@ document.addEventListener("DOMContentLoaded", () => {
   matchLeague?.addEventListener("change", () => {
     if (matchHomeScore) matchHomeScore.value = "";
     if (matchAwayScore) matchAwayScore.value = "";
+    if (matchHomePoints) matchHomePoints.value = "";
+    if (matchAwayPoints) matchAwayPoints.value = "";
 
     populateLeagueTeamSuggestions({ applyDefaults: true });
 
+    updateColdaPointsFields();
     updateVenueFromHomeTeam();
     updateResultFromScore();
     readMatchInfo();
@@ -1504,13 +1557,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   matchHomeScore?.addEventListener("input", () => updateScoreAutofill("home"));
   matchAwayScore?.addEventListener("input", () => updateScoreAutofill("away"));
+  matchHomePoints?.addEventListener("input", () => updateScoreAutofill("home"));
+  matchAwayPoints?.addEventListener("input", () => updateScoreAutofill("away"));
 
   matchCup?.addEventListener("change", () => {
     readMatchInfo();
     saveGameSnapshot();
   });
 
-  [matchHomeScore, matchAwayScore].forEach(el => {
+  [matchHomeScore, matchAwayScore, matchHomePoints, matchAwayPoints].forEach(el => {
     el?.addEventListener("focus", () => {
       el.value = "";
     });
@@ -1521,6 +1576,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   setDefaultLeague();
+  updateColdaPointsFields();
 
   submitFineBtn?.addEventListener("click", () => {
     if (selectedPlayerIndex === null) return;
@@ -1754,6 +1810,8 @@ document.addEventListener("DOMContentLoaded", () => {
       "matchAwayTeam",
       "matchHomeScore",
       "matchAwayScore",
+      "matchHomePoints",
+      "matchAwayPoints",
       "matchVenue",
       "matchStage",
       "matchDate"
@@ -1768,6 +1826,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (matchCup) matchCup.checked = false;
+    updateColdaPointsFields();
 
     onmHomeBtn?.classList.add("active");
     onmAwayBtn?.classList.remove("active");
@@ -2813,6 +2872,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const images = await Promise.all(
         selectedMatchImages.map(fileToBase64)
       );
+      const resultsRow = buildResultsRow();
 
       const payload = {
         action: isResubmit ? "updateResult" : "submitResult",
@@ -2822,6 +2882,8 @@ document.addEventListener("DOMContentLoaded", () => {
         linkedPlayerKey: currentUser.linkedPlayerKey,
         match: resultSubmitData.match,
         players: resultSubmitData.players,
+        row: resultsRow,
+        resultsRow,
         images
       };
 

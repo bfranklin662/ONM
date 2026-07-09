@@ -52,10 +52,10 @@
         { "name": "Fast Ponies", "venue": "Brown Bear" }
       ]
     },
-    "COLDA A": {
+    "COLDA B": {
       "legs": 0,
       "teams": [
-        { "name": "Oche Ness Monsters B", "venue": "The Horseshoe" },
+        { "name": "Oche Ness Monsters A", "venue": "The Horseshoe" },
         { "name": "Madhouse Specialists", "venue": "The Horseshoe" },
         { "name": "Shark Hunters", "venue": "Nolans" },
         { "name": "Albany Allstars", "venue": "The Horseshoe" },
@@ -63,10 +63,10 @@
         { "name": "The Blue Boar", "venue": "Nolans" }
       ]
     },
-    "COLDA B": {
+    "COLDA A": {
       "legs": 0,
       "teams": [
-        { "name": "Oche Ness Monsters A", "venue": "The Horseshoe" },
+        { "name": "Oche Ness Monsters B", "venue": "The Horseshoe" },
         { "name": "Black Arrows", "venue": "Nolans" },
         { "name": "Nolans D", "venue": "The Horseshoe" },
         { "name": "Abosh", "venue": "The Horseshoe" },

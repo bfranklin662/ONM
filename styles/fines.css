@@ -1358,6 +1358,13 @@ input[type="number"] {
   user-select: none;
 }
 
+.points-score {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .team {
   flex: 1 1 40%;
   font-weight: 500;
@@ -2130,6 +2137,20 @@ textarea {
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(72px, 1fr);
+  gap: 8px;
+}
+
+.scoreInputs {
+  display: contents;
+}
+
+#matchInfoCard.coldaPointsFields .teamScoreRow {
+  grid-template-columns: 1fr;
+}
+
+#matchInfoCard.coldaPointsFields .scoreInputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
 }
 

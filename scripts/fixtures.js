@@ -41,13 +41,12 @@
   function getOpponentAndHAFromResultRow(homeTeam, awayTeam) {
     const homeN = normalizeName(homeTeam);
     const awayN = normalizeName(awayTeam);
-    const teamN = normalizeName(TEAM);
 
-    if (homeN === teamN && awayN && awayN !== teamN) {
+    if (isOnmTeam(homeTeam) && awayN && !isOnmTeam(awayTeam)) {
       // We were home, opponent away
       return { opponent: awayTeam, ha: "Home" };
     }
-    if (awayN === teamN && homeN && homeN !== teamN) {
+    if (isOnmTeam(awayTeam) && homeN && !isOnmTeam(homeTeam)) {
       // We were away, opponent home
       return { opponent: homeTeam, ha: "Away" };
     }
@@ -157,15 +156,16 @@
 
   function buildFixtureTeams(fx) {
     const haRaw = String(fx.HA || "").trim().toLowerCase();
+    const onmTeam = getOnmTeamForFixture(fx);
 
     const isHome = (haRaw === "home" || haRaw === "h");
     const isAway = (haRaw === "away" || haRaw === "a");
 
-    if (isHome) return { home: TEAM, away: fx.Opponent };
-    if (isAway) return { home: fx.Opponent, away: TEAM };
+    if (isHome) return { home: onmTeam, away: fx.Opponent };
+    if (isAway) return { home: fx.Opponent, away: onmTeam };
 
     // Unknown/NA: keep a sane default but DO NOT truncate names
-    return { home: TEAM, away: fx.Opponent };
+    return { home: onmTeam, away: fx.Opponent };
   }
 
 
@@ -174,13 +174,29 @@
     const awayScore = Number(as);
     if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) return "neutral";
 
-    const weAreHome = String(home).trim().toLowerCase() === TEAM.toLowerCase();
+    const weAreHome = isOnmTeam(home);
     const ourScore = weAreHome ? homeScore : awayScore;
     const theirScore = weAreHome ? awayScore : homeScore;
 
     if (ourScore > theirScore) return "win";
     if (ourScore < theirScore) return "loss";
     return "neutral";
+  }
+
+  function isColdaLeague(league) {
+    return String(league || "").trim().toUpperCase() === "COLDA A" ||
+      String(league || "").trim().toUpperCase() === "COLDA B";
+  }
+
+  function getResultField(row, ...keys) {
+    for (const key of keys) {
+      const value = row[key];
+      if (value !== undefined && value !== null && String(value).trim() !== "") {
+        return String(value).trim();
+      }
+    }
+
+    return "";
   }
 
   function todayNoon() {
@@ -208,7 +224,9 @@
         opponent: derived.opponent,
         ha: derived.ha,
         homeScore: (r.HomeScore ?? r.homeScore ?? r["Home Score"] ?? "").trim(),
-        awayScore: (r.AwayScore ?? r.awayScore ?? r["Away Score"] ?? "").trim()
+        awayScore: (r.AwayScore ?? r.awayScore ?? r["Away Score"] ?? "").trim(),
+        homePoints: getResultField(r, "HomePoints", "Home Points", "homePoints"),
+        awayPoints: getResultField(r, "AwayPoints", "Away Points", "awayPoints")
       });
     }
 
@@ -224,6 +242,8 @@
 
       let displayHomeScore = null;
       let displayAwayScore = null;
+      let displayHomePoints = null;
+      let displayAwayPoints = null;
 
       if (isCompleted) {
         const fxHomeN = normalizeName(fx.homeTeam);
@@ -231,14 +251,27 @@
 
         const sheetHomeScore = Number(res.homeScore);
         const sheetAwayScore = Number(res.awayScore);
+        const sheetHomePoints = res.homePoints === "" ? null : Number(res.homePoints);
+        const sheetAwayPoints = res.awayPoints === "" ? null : Number(res.awayPoints);
 
         const swapped = fxHomeN !== resHomeN;
         displayHomeScore = swapped ? sheetAwayScore : sheetHomeScore;
         displayAwayScore = swapped ? sheetHomeScore : sheetAwayScore;
+        displayHomePoints = swapped ? sheetAwayPoints : sheetHomePoints;
+        displayAwayPoints = swapped ? sheetHomePoints : sheetAwayPoints;
       }
 
+      const usePointsForOutcome = isCompleted &&
+        isColdaLeague(fx.League) &&
+        displayHomePoints !== null &&
+        displayAwayPoints !== null;
       const outcome = isCompleted
-        ? computeOutcome(fx.homeTeam, fx.awayTeam, displayHomeScore, displayAwayScore)
+        ? computeOutcome(
+          fx.homeTeam,
+          fx.awayTeam,
+          usePointsForOutcome ? displayHomePoints : displayHomeScore,
+          usePointsForOutcome ? displayAwayPoints : displayAwayScore
+        )
         : "neutral";
 
       return {
@@ -247,6 +280,8 @@
         pendingResult: !isCompleted && (fx.dateObj < today),
         homeScore: isCompleted ? displayHomeScore : null,
         awayScore: isCompleted ? displayAwayScore : null,
+        homePoints: isCompleted ? displayHomePoints : null,
+        awayPoints: isCompleted ? displayAwayPoints : null,
         outcome
       };
     });
@@ -260,6 +295,22 @@
       .replace(/&/g, "and")
       .replace(/[’']/g, "")
       .replace(/\s+/g, " ");
+  }
+
+  function isOnmTeam(teamName) {
+    const team = normalizeName(teamName);
+    return team === normalizeName(TEAM) ||
+      team === normalizeName(`${TEAM} A`) ||
+      team === normalizeName(`${TEAM} B`);
+  }
+
+  function getOnmTeamForFixture(fx) {
+    const league = String(fx.League || "").trim().toUpperCase();
+
+    if (league === "COLDA A") return `${TEAM} B`;
+    if (league === "COLDA B") return `${TEAM} A`;
+
+    return TEAM;
   }
 
   function daysBetween(a, b) {
@@ -325,6 +376,8 @@
 
       const homeScore = (r.HomeScore ?? r.homeScore ?? r["Home Score"] ?? "").trim();
       const awayScore = (r.AwayScore ?? r.awayScore ?? r["Away Score"] ?? "").trim();
+      const homePoints = getResultField(r, "HomePoints", "Home Points", "homePoints");
+      const awayPoints = getResultField(r, "AwayPoints", "Away Points", "awayPoints");
 
       resultsArr.push({
         dateObj: d,
@@ -335,6 +388,8 @@
         ha: derived.ha, // "Home" or "Away" from OUR perspective
         homeScore,
         awayScore,
+        homePoints,
+        awayPoints,
         resultText: (r.Result ?? r.result ?? "").trim()
       });
     }
@@ -365,6 +420,8 @@
       // Translate sheet scores into fixture home/away scores correctly
       let displayHomeScore = null;
       let displayAwayScore = null;
+      let displayHomePoints = null;
+      let displayAwayPoints = null;
 
       if (isCompleted) {
         // res.homeScore is score for res.homeTeam, etc.
@@ -374,16 +431,29 @@
 
         const sheetHomeScore = Number(res.homeScore);
         const sheetAwayScore = Number(res.awayScore);
+        const sheetHomePoints = res.homePoints === "" ? null : Number(res.homePoints);
+        const sheetAwayPoints = res.awayPoints === "" ? null : Number(res.awayPoints);
 
         // If fixture homeTeam == sheet homeTeam, keep as-is. Otherwise swap.
         const swapped = fxHomeN !== resHomeN;
 
         displayHomeScore = swapped ? sheetAwayScore : sheetHomeScore;
         displayAwayScore = swapped ? sheetHomeScore : sheetAwayScore;
+        displayHomePoints = swapped ? sheetAwayPoints : sheetHomePoints;
+        displayAwayPoints = swapped ? sheetHomePoints : sheetAwayPoints;
       }
 
+      const usePointsForOutcome = isCompleted &&
+        isColdaLeague(leagueTitle) &&
+        displayHomePoints !== null &&
+        displayAwayPoints !== null;
       const outcome = isCompleted
-        ? computeOutcome(teams.home, teams.away, displayHomeScore, displayAwayScore)
+        ? computeOutcome(
+          teams.home,
+          teams.away,
+          usePointsForOutcome ? displayHomePoints : displayHomeScore,
+          usePointsForOutcome ? displayAwayPoints : displayAwayScore
+        )
         : "neutral";
 
       return {
@@ -397,6 +467,8 @@
         completed: isCompleted,
         homeScore: isCompleted ? displayHomeScore : null,
         awayScore: isCompleted ? displayAwayScore : null,
+        homePoints: isCompleted ? displayHomePoints : null,
+        awayPoints: isCompleted ? displayAwayPoints : null,
         outcome
       };
     }).filter(Boolean);
@@ -416,8 +488,15 @@
 
 
 
+    const pointsHtml = fx.completed &&
+      isColdaLeague(fx.leagueTitle) &&
+      fx.homePoints !== null &&
+      fx.awayPoints !== null
+      ? `<span class="fixture-points-score">${fx.homePoints} - ${fx.awayPoints} pts</span>`
+      : "";
+
     const scoreBoxHtml = fx.completed
-      ? `<div class="score ${fx.outcome}">${fx.homeScore} - ${fx.awayScore}</div>`
+      ? `<div class="score ${fx.outcome}">${fx.homeScore} - ${fx.awayScore}${pointsHtml}</div>`
       : fx.pendingResult
         ? `<div class="score pending"><span class="miniSpinner"></span></div>`
         : `<div class="score vs">VS</div>`;
