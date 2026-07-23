@@ -6,6 +6,7 @@
       "accolades": ["banks_winner_24_25", "alex_beckett_winner_25"],
       "song": "https://open.spotify.com/track/7x8dCjCr0x6x2lXKujYD34?si=0a48cbc12f664492",
       "role": "captain",
+      "highest-checkout": "104",
       "gooch": "yes"
     },
     "Nick": {
@@ -172,5 +173,9 @@
     "Rob G": {
       "nickname": "Creepy Rob",
       "photo": "images/players/robg.jpg"
+    },
+    "Charlie S": {
+      "nickname": "Monster checkout",
+      "highest checkout": "154"
     }
 }
