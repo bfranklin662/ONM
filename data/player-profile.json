@@ -166,7 +166,7 @@
       "gooch": "yes"
     },
     "Remzi": {
-      "nickname": "The Turkish Warrior",
+      "nickname": "Istan-bullseye",
       "photo": "images/players/remzi.jpg",
       "gooch": "yes"
     },
@@ -176,6 +176,7 @@
     },
     "Charlie S": {
       "nickname": "Monster checkout",
+      "photo": "images/players/charlieS.JPG",
       "highest checkout": "154"
     }
 }
