@@ -13,7 +13,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     getAllPlayersFromSheets,
     getStatFromRow,
     escapeHtml,
-    photoKey
+    photoKey,
+    playerAppearsInRow,
+    safeParseDate
   } = window.PlayerData;
 
   function applyFanAnimationDelays(sortedPlayers) {
@@ -459,6 +461,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       index: makeIndex(item.rows)
     }));
 
+    function getJoinedTimestamp(name) {
+      if (typeof playerAppearsInRow !== "function" || typeof safeParseDate !== "function") return 0;
+
+      const joinedDates = allAppsRows
+        .filter(row => playerAppearsInRow(row, name))
+        .map(row => safeParseDate(row["Date Played"] || row["Match Date"] || row.Date || row["Date"]))
+        .filter(date => date instanceof Date && !isNaN(date));
+
+      if (!joinedDates.length) return 0;
+      joinedDates.sort((a, b) => a - b);
+      return joinedDates[0].getTime();
+    }
+
     const playersWithStats = allPlayers.map(name => {
       const keyName = name.trim().toLowerCase();
       const rows = statIndexes.map(item => item.index.get(keyName) || {});
@@ -481,6 +496,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const coRatio = played ? (checkouts / played) : 0;
       const fineRatio = played ? (fines / played) : 0;
+      const joinedAt = getJoinedTimestamp(name);
 
       return {
         name,
@@ -491,6 +507,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         pct,
         coRatio,
         fineRatio,
+        joinedAt,
         specials,
         key: photoKey(name)
 
@@ -503,6 +520,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     function getSortValue(p, sortKey) {
       switch (sortKey) {
         case "checkouts": return p.checkouts;
+        case "joined": return p.joinedAt || 0;
         case "coRatio": return p.coRatio;
         case "played": return p.played;
         case "wins": return p.wins;
