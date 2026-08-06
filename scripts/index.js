@@ -369,13 +369,47 @@ function closePaymentDetailsModal() {
   document.body.classList.remove("modal-open");
 }
 
+function getHomeSectionNavOffset() {
+  const header = document.querySelector(".site-header");
+  const sectionNav = document.querySelector(".home-jumpbar");
+  const headerHeight = header?.getBoundingClientRect().height || 0;
+  const sectionNavHeight = sectionNav?.getBoundingClientRect().height || 0;
+
+  return Math.ceil(headerHeight + sectionNavHeight);
+}
+
+function scrollToHomeSection(hash, updateHash = true) {
+  if (!hash || hash === "#") return false;
+
+  const target = document.querySelector(hash);
+  if (!target) return false;
+
+  const targetTop = target.getBoundingClientRect().top + window.scrollY;
+  const nextTop = Math.max(0, targetTop - getHomeSectionNavOffset());
+
+  window.scrollTo({ top: nextTop, behavior: "smooth" });
+
+  if (updateHash) {
+    history.pushState(null, "", hash);
+  }
+
+  return true;
+}
+
 document.addEventListener("click", async (e) => {
+  const homeSectionLink = e.target.closest(".home-jump-pills a[href^='#']");
   const homeLeaderboardPill = e.target.closest("[data-home-leaderboard-filter]");
   const homeLeaderboardExpand = e.target.closest("[data-home-leaderboard-expand]");
   const infoBtn = e.target.closest(".leaderboard-info-btn");
   const closeBtn = e.target.closest("#closePaymentModal");
   const copyBtn = e.target.closest(".copy-btn");
   const paymentModal = document.getElementById("paymentModal");
+
+  if (homeSectionLink) {
+    e.preventDefault();
+    scrollToHomeSection(homeSectionLink.getAttribute("href"));
+    return;
+  }
 
   if (homeLeaderboardPill) {
     activeHomeLeaderboardKey = homeLeaderboardPill.dataset.homeLeaderboardFilter;
@@ -420,4 +454,10 @@ document.addEventListener("click", async (e) => {
   }
 });
 
-document.addEventListener("DOMContentLoaded", loadHomeLeaderboards);
+document.addEventListener("DOMContentLoaded", () => {
+  loadHomeLeaderboards();
+
+  if (location.hash && document.querySelector(location.hash)) {
+    requestAnimationFrame(() => scrollToHomeSection(location.hash, false));
+  }
+});

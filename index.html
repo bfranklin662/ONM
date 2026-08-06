@@ -30,7 +30,6 @@
     <nav class="nav-links desktop-nav">
       <ul>
         <li><a href="/" class="active">Home</a></li>
-        <li><a href="#competitions">Comps</a></li>
         <li><a href="results.html">Results & Stats</a></li>
         <li><a href="players-landing.html">Players</a></li>
         <li><a href="games.html">Games</a></li>
@@ -48,7 +47,6 @@
     <button class="close-btn" type="button" onclick="toggleSidebar()">✖</button>
 
     <a href="/" class="active">Home</a>
-    <a href="#competitions">Comps</a>
     <a href="results.html">Results & Stats</a>
     <a href="players-landing.html">Players</a>
     <a href="games.html">Games</a>
@@ -57,14 +55,53 @@
   <main class="home-shell">
     <section class="home-jumpbar" aria-label="Homepage sections">
       <nav class="home-jump-pills">
+        <a href="#merch">Merch</a>
         <a href="#fixtures">Fixtures</a>
         <a href="#competitions">Competitions</a>
         <a href="#stats">Stats</a>
         <a href="#play-darts">Play darts</a>
-        <a href="#merch">Merch</a>
-        <a href="#team">Team</a>
-        <a href="#contact">Contact</a>
+        <a href="#team">About</a>
       </nav>
+    </section>
+
+    <section id="merch" class="home-section home-merch">
+      <div class="home-section-heading home-section-heading-row">
+        <div>
+          <p>New merch</p>
+          <h2>Monster kit</h2>
+        </div>
+        <a class="home-section-link" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">Shop merch</a>
+      </div>
+
+      <div class="home-merch-card">
+        <div class="home-merch-copy">
+          <p class="home-comp-tag">Three shirts • official club shop</p>
+          <h3>Oche Ness Monsters dartswear is live</h3>
+          <p>Browse the new club tees, pick your size, and order directly through the PrintMyKit store.</p>
+          <a class="home-btn primary" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">Visit the shop</a>
+        </div>
+
+        <div class="home-merch-rail" aria-label="Oche Ness Monsters shirt range">
+          <a class="home-merch-shirt" href="https://ochenessmonstersdarts.printmykit.co.uk/shop/view_product/28230696/Monsters-Club-T-White-Standard-Weight" target="_blank" rel="noopener">
+            <img src="images/merch/shirt1.JPG" alt="Monsters Club T - White">
+            <span>Monsters Club T - White</span>
+            <strong>Clean white club tee with the Monsters look front and centre.</strong>
+            <em>Shop this shirt</em>
+          </a>
+          <a class="home-merch-shirt" href="https://ochenessmonstersdarts.printmykit.co.uk/shop/view_product/28230631/Monsters-Apocalypse-T-Black-Heavyweight" target="_blank" rel="noopener">
+            <img src="images/merch/shirt2.JPG" alt="Monsters Apocalypse T - Black">
+            <span>Monsters Apocalypse T - Black</span>
+            <strong>Heavyweight black tee with the full Apocalypse artwork.</strong>
+            <em>Shop this shirt</em>
+          </a>
+          <a class="home-merch-shirt" href="https://ochenessmonstersdarts.printmykit.co.uk/shop/view_product/28230626/Monsters-Club-T-Black-Heavyweight-" target="_blank" rel="noopener">
+            <img src="images/merch/shirt3.JPG" alt="Monsters Club T - Black">
+            <span>Monsters Club T - Black</span>
+            <strong>Heavyweight black club tee for match night and pub nights.</strong>
+            <em>Shop this shirt</em>
+          </a>
+        </div>
+      </div>
     </section>
 
     <section id="fixtures" class="home-section fixturesContainer">
@@ -82,6 +119,7 @@
         </div>
       </div>
     </section>
+
 
     <section id="competitions" class="home-section home-competitions">
       <div class="home-section-heading">
@@ -239,44 +277,6 @@
       </a>
     </section>
 
-    <section id="merch" class="home-section home-merch">
-      <div class="home-section-heading home-section-heading-row">
-        <div>
-          <p>New merch</p>
-          <h2>Monster kit</h2>
-        </div>
-        <a class="home-section-link" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">Shop merch</a>
-      </div>
-
-      <div class="home-merch-card">
-        <div class="home-merch-copy">
-          <p class="home-comp-tag">Four shirts • official club shop</p>
-          <h3>Oche Ness Monsters dartswear is live</h3>
-          <p>Browse the new shirts, pick your size, and order directly through the PrintMyKit store.</p>
-          <a class="home-btn primary" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">Visit the shop</a>
-        </div>
-
-        <div class="home-merch-rail" aria-label="Oche Ness Monsters shirt range">
-          <a class="home-merch-shirt" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">
-            <span>01</span>
-            <strong>Match shirt</strong>
-          </a>
-          <a class="home-merch-shirt alt" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">
-            <span>02</span>
-            <strong>Away shirt</strong>
-          </a>
-          <a class="home-merch-shirt green" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">
-            <span>03</span>
-            <strong>Training shirt</strong>
-          </a>
-          <a class="home-merch-shirt gold" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">
-            <span>04</span>
-            <strong>Club shirt</strong>
-          </a>
-        </div>
-      </div>
-    </section>
-
     <section id="team" class="home-section home-story">
       <div class="home-section-heading">
         <p>The team</p>
@@ -301,14 +301,15 @@
       </div>
     </section>
 
-    <footer id="contact" class="home-footer">
+    <footer class="home-footer">
       <div>
-        <p>Get in touch</p>
-        <h2>Oche Ness Monsters</h2>
+        <p>Oche Ness Monsters</p>
+        <h2>Follow the Monsters</h2>
       </div>
       <div class="home-footer-links">
-        <a href="mailto:ochenessmonsters@gmail.com">ochenessmonsters@gmail.com</a>
         <a href="https://www.instagram.com/ochenessmonsters" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">Merch shop</a>
+        <a href="dart-scorer.html?mode=league&v=20260602">Play online</a>
       </div>
     </footer>
 
