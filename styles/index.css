@@ -1037,6 +1037,114 @@ a.forward:hover {
   padding: 0;
 }
 
+.home-merch-card {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 18px;
+  border-radius: 8px;
+  background: rgba(20, 24, 34, .72);
+  border: 1px solid rgba(255, 255, 255, .12);
+  overflow: hidden;
+}
+
+.home-merch-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
+.home-merch-copy h3 {
+  margin: 0;
+  font-size: clamp(1.45rem, 3vw, 2.4rem);
+  line-height: 1;
+}
+
+.home-merch-copy p:not(.home-comp-tag) {
+  margin: 0;
+  color: rgba(255, 255, 255, .80);
+  font-size: 1rem;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.home-merch-copy .home-btn {
+  width: fit-content;
+  margin-top: 4px;
+}
+
+.home-merch-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(170px, 1fr);
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x mandatory;
+}
+
+.home-merch-shirt {
+  min-height: 230px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 217, 26, .22), transparent 28%),
+    linear-gradient(155deg, rgba(6, 12, 10, .92), rgba(21, 28, 38, .88));
+  color: #fff;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  scroll-snap-align: start;
+  position: relative;
+  overflow: hidden;
+}
+
+.home-merch-shirt::before {
+  content: "";
+  position: absolute;
+  inset: 38px 38px 50px;
+  border-radius: 28px 28px 10px 10px;
+  background:
+    linear-gradient(90deg, transparent 0 19%, rgba(255, 255, 255, .18) 19% 22%, transparent 22% 78%, rgba(255, 255, 255, .18) 78% 81%, transparent 81%),
+    linear-gradient(180deg, rgba(0, 184, 148, .72), rgba(4, 9, 13, .95));
+  border: 1px solid rgba(255, 255, 255, .18);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, .28);
+}
+
+.home-merch-shirt.alt::before {
+  background: linear-gradient(180deg, rgba(120, 128, 142, .78), rgba(6, 9, 13, .95));
+}
+
+.home-merch-shirt.green::before {
+  background: linear-gradient(180deg, rgba(0, 132, 72, .82), rgba(2, 16, 12, .95));
+}
+
+.home-merch-shirt.gold::before {
+  background: linear-gradient(180deg, rgba(255, 217, 26, .80), rgba(19, 16, 8, .96));
+}
+
+.home-merch-shirt span,
+.home-merch-shirt strong {
+  position: relative;
+  z-index: 1;
+}
+
+.home-merch-shirt span {
+  color: #ffd91a;
+  font-size: .8rem;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.home-merch-shirt strong {
+  font-size: 1.08rem;
+  line-height: 1.1;
+}
+
 @media (max-width: 1180px) {
   .home-comps-grid,
   .home-panel-row {
@@ -1053,6 +1161,18 @@ a.forward:hover {
   .hero-actions,
   .home-story-actions {
     flex-direction: column;
+  }
+
+  .home-merch-card {
+    grid-template-columns: 1fr;
+  }
+
+  .home-merch-rail {
+    grid-auto-columns: minmax(160px, 76%);
+  }
+
+  .home-merch-copy .home-btn {
+    width: 100%;
   }
 
   .home-btn {
