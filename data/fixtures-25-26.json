@@ -520,20 +520,12 @@
     "Location": "The Horseshoe EC1R 0AG"
   },
   {
-    "League": "COLDA B",
-    "Day": "Wednesday",
-    "Date": "19th August 2026",
-    "Opponent": "Shark Hunters",
-    "HA": "Home",
-    "Location": "The Horseshoe EC1R 0AG"
-  },
-  {
     "League": "COLDA A",
     "Day": "Wednesday",
     "Date": "19th August 2026",
     "Opponent": "Nolans D",
-    "HA": "Home",
-    "Location": "The Horseshoe EC1R 0AG"
+    "HA": "Away",
+    "Location": "Nolans"
   },
   {
     "League": "COLDA B",
@@ -552,10 +544,10 @@
     "Location": "The Horseshoe EC1R 0AG"
   },
   {
-    "League": "Smithfield",
-    "Day": "Thursday",
-    "Date": "27th August 2026",
-    "Opponent": "Fast Ponies",
+    "League": "COLDA B",
+    "Day": "Wednesday",
+    "Date": "3rd Sept 2026",
+    "Opponent": "Shark Hunters",
     "HA": "Home",
     "Location": "The Horseshoe EC1R 0AG"
   },
