@@ -4,6 +4,23 @@
   margin: 0 0 0 0;
 }
 
+/* Homepage welcome title */
+.home-welcome {
+  width: min(1500px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: clamp(12px, 2.5vw, 30px) 0 clamp(26px, 4vw, 48px);
+  text-align: center;
+}
+
+.home-welcome h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2rem, 5vw, 4.2rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
 html {
   scroll-behavior: smooth;
 }

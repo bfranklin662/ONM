@@ -2838,7 +2838,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const currentUser = window.ONMSession?.getUser?.();
 
     if (!currentUser) {
-      window.location.href = `auth.html?redirect=${encodeURIComponent("fines.html")}&mode=login`;
+      window.location.href = `auth.html?redirect=${encodeURIComponent("/match")}&mode=login`;
       return;
     }
 

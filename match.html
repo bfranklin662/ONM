@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oche Ness Monsters | Match</title>
+  <link rel="stylesheet" href="styles/header.css">
+  <link rel="stylesheet" href="styles/buttons.css">
+  <link rel="stylesheet" href="styles/fines.css" />
+  <link rel="stylesheet" href="styles/profile.css" />
+  <link rel="icon" type="image/png" href="/graphics/favicon1.png" sizes="32x32">
+  <meta property="og:title" content="Oche Ness Monsters">
+  <meta property="og:description" content="London based darts team">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ochenessmonsters.com">
+  <meta property="og:image" content="https://i.ibb.co/FbGDQDjq/ONMmeta.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+</head>
+
+<body>
+  <header class="site-header">
+    <a href="/" class="brand-left">
+      <img class="top-left-logo" src="graphics/logoWText.png" alt="Oche Ness Monsters">
+    </a>
+
+    <img class="logo" src="graphics/onmLogoWhiteFit.png" alt="Oche Ness Monsters">
+
+    <nav class="nav-links desktop-nav">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="results.html">Results & Stats</a></li>
+        <li><a href="players-landing.html">Players</a></li>
+        <li><a href="/match" class="active">Match</a></li>
+      </ul>
+    </nav>
+
+    <button id="authNavBtn" type="button" class="authProfileBtn">
+      <span class="authProfileInitial">👤</span>
+    </button>
+
+    <button class="hamburger" type="button" onclick="toggleSidebar()">☰</button>
+  </header>
+
+  <div id="sidebar" class="sidebar">
+    <button class="close-btn" type="button" onclick="toggleSidebar()">✖</button>
+
+    <a href="/">Home</a>
+    <a href="results.html">Results & Stats</a>
+    <a href="players-landing.html">Players</a>
+    <a href="/match" class="active">Match</a>
+  </div>
+
+  <div class="wrap">
+    <div class="header appSwitcher" id="appHeader">
+      <div>
+        <div class="title" id="screenTitleText">Fine Tracker</div>
+      </div>
+
+      <div class="screenSwitch" id="screenSwitch">
+        <button type="button" class="screenSwitchBtn" data-screen-target="setup" title="Players">👥</button>
+        <button type="button" class="screenSwitchBtn active" data-screen-target="tracker"
+          title="Fine Tracker">💸</button>
+        <button type="button" class="screenSwitchBtn" data-screen-target="results" title="Double Fines">🎰</button>
+        <button type="button" class="screenSwitchBtn" data-screen-target="resultStats" title="Player Stats">📊</button>
+        <button type="button" class="screenSwitchBtn" data-screen-target="matchInfo" title="Match Info">📝</button>
+        <button type="button" class="screenSwitchBtn" data-screen-target="reviewResult" title="Result Submit">✅</button>
+      </div>
+    </div>
+
+    <div id="resultsCard" class="card hidden">
+      <div class="sectionTitle">Double Fine Spinner</div>
+      <div id="resultsList" class="resultsGrid"></div>
+
+      <div style="margin-top:14px;">
+        <button id="spinBtn" class="btn btnPrimary">Spin for Double Fines</button>
+      </div>
+
+      <div class="wheelWrap">
+        <canvas id="wheelCanvas" width="320" height="320"></canvas>
+        <div class="wheelPointer" aria-hidden="true"></div>
+      </div>
+
+      <div class="bottomBar">
+        <div class="row">
+          <button id="wheelBackBtn" class="btn btnGhost">Back</button>
+          <button id="confirmResultBtn" class="btn btnDisabled" disabled>Next</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FINAL RESULT SCREEN -->
+    <div id="finalCard" class="card hidden">
+      <div class="sectionTitle" style="margin:0 0 12px;">Match Result</div>
+
+      <div id="finalList" class="resultsList"></div>
+
+      <div class="bottomBar">
+        <button id="continueResultSubmitBtn" class="btn btnPrimary fullWidthBtn">
+          Continue to Result Submit
+        </button>
+
+        <div class="row" style="margin-top:10px;">
+          <button id="finalBackBtn" class="btn btnGhost">Back</button>
+          <button id="resetGameBtn" class="btn btnGhost">Reset Game</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT STATS SCREEN -->
+    <div id="resultStatsCard" class="card hidden">
+      <div class="sectionTitle">Player Match Stats</div>
+      <div id="resultStatsList" class="resultsList"></div>
+
+      <div class="bottomBar">
+
+        <div class="row" style="margin-top:10px;">
+          <button id="resultStatsBackBtn" class="btn btnGhost">Back</button>
+          <button id="resultStatsNextBtn" class="btn btnPrimary">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MATCH INFO SCREEN -->
+    <div id="matchInfoCard" class="card hidden">
+      <div class="sectionTitle">Match Info</div>
+
+      <div class="matchGrid">
+        <div class="field leagueField">
+          <label>League</label>
+          <div class="inputWithArrow">
+            <select id="matchLeague">
+              <option value="Trafalgar League">Trafalgar League</option>
+              <option value="Banks League">Banks League</option>
+              <option value="Smithfield League">Smithfield League</option>
+              <option value="COLDA A">COLDA A</option>
+              <option value="COLDA B">COLDA B</option>
+            </select>
+            <span class="selectArrow">▾</span>
+          </div>
+        </div>
+
+        <div id="homeAwayToggle" class="homeAwayToggle">
+          <div class="toggleSlider"></div>
+          <button id="onmHomeBtn" type="button" class="toggleBtn active">Home</button>
+          <button id="onmAwayBtn" type="button" class="toggleBtn">Away</button>
+        </div>
+
+        <div class="teamScoreRow">
+          <div class="field teamField">
+            <label>Home team</label>
+            <div class="inputWithArrow">
+              <select id="matchHomeTeam" spellcheck="false"></select>
+              <span class="selectArrow">▾</span>
+            </div>
+          </div>
+
+          <div class="scoreInputs">
+            <div class="field scoreField">
+              <label>Home score</label>
+              <input id="matchHomeScore" type="number" inputmode="numeric" min="0">
+            </div>
+
+            <div class="field scoreField pointsField hidden">
+              <label>Home points</label>
+              <input id="matchHomePoints" type="number" inputmode="numeric" min="0">
+            </div>
+          </div>
+        </div>
+
+        <div class="teamScoreRow">
+          <div class="field teamField">
+            <label>Away team</label>
+            <div class="inputWithArrow">
+              <select id="matchAwayTeam" spellcheck="false"></select>
+              <span class="selectArrow">▾</span>
+            </div>
+          </div>
+
+          <div class="scoreInputs">
+            <div class="field scoreField">
+              <label>Away score</label>
+              <input id="matchAwayScore" type="number" inputmode="numeric" min="0">
+            </div>
+
+            <div class="field scoreField pointsField hidden">
+              <label>Away points</label>
+              <input id="matchAwayPoints" type="number" inputmode="numeric" min="0">
+            </div>
+          </div>
+        </div>
+
+        <input id="matchResult" type="hidden" value="Won">
+        <input id="matchVenue" type="hidden">
+
+        <div class="field">
+          <label>Date</label>
+          <input id="matchDate" type="date">
+        </div>
+
+        <div class="field">
+          <label>Cup?</label>
+          <div id="cupToggle" class="homeAwayToggle cupSwitch">
+            <div class="toggleSlider"></div>
+            <button id="cupNoBtn" type="button" class="toggleBtn active">No</button>
+            <button id="cupYesBtn" type="button" class="toggleBtn">Yes</button>
+          </div>
+          <input id="matchCup" type="checkbox" hidden>
+        </div>
+
+        <div id="matchStageField" class="field matchStageField hidden">
+          <label>Stage</label>
+          <input id="matchStage" type="text" placeholder="Group / Quarter-Final / Final" spellcheck="false">
+        </div>
+      </div>
+
+      <div class="bottomBar">
+        <div class="row" style="margin-top:10px;">
+          <button id="matchInfoBackBtn" class="btn btnGhost">Back</button>
+          <button id="matchInfoNextBtn" class="btn btnPrimary">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REVIEW RESULT SCREEN -->
+    <div id="reviewResultCard" class="card hidden">
+
+      <div id="reviewLeagueTitle" class="fixturesTitle"></div>
+      <div id="reviewResultBody" class="resultsList"></div>
+
+      <div class="bottomBar">
+        <div class="row">
+          <button id="reviewBackBtn" class="btn btnGhost">Back</button>
+          <button id="reviewSubmitBtn" class="btn btnPrimary">Submit Result</button>
+        </div>
+        <div id="submittedActions" class="row hidden">
+          <button id="resetAfterSubmitBtn" type="button" class="btn btnGhost">Reset game</button>
+          <button id="shareResultBtn" type="button" class="btn btnPrimary">Share</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- WINNER POPUP -->
+    <div id="winnerOverlay" class="modalOverlay hidden" aria-hidden="true">
+      <div class="modalCard">
+        <div class="modalHeader">
+          <div class="modalTitle">Double Fine Winner</div>
+          <button id="closeWinnerBtn" class="modalClose">✕</button>
+        </div>
+        <div class="modalBody">
+          <div id="winnerName" style="font-weight:900; font-size:18px; margin-bottom:10px;"></div>
+          <div class="mutedSmall" style="margin-bottom:8px;">Amount:</div>
+
+          <!-- NEW: shows £4.50 × 2 = £9.00 -->
+          <div id="winnerMath" class="resultMath" style="margin-bottom:10px;"></div>
+
+          <div id="winnerAmount" style="font-weight:900; font-size:28px;"></div>
+
+
+          <div style="display:flex; gap:10px; margin-top:14px;">
+            <button id="winnerContinueBtn" class="btn btnPrimary" style="height:44px;">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- SETUP SCREEN -->
+    <div id="setupCard" class="card">
+      <div class="sectionHeaderRow">
+        <div class="sectionTitle">Enter players</div>
+        <div class="miniActions">
+          <button id="addPlayerBtn" class="iconSquare" type="button">+</button>
+          <button id="removePlayerBtn" class="iconSquare" type="button">−</button>
+        </div>
+      </div>
+
+      <div class="setupGrid" id="setupGrid"></div>
+
+      <button id="startBtn" class="btn btnPrimary" style="margin-top:12px;">Submit Players</button>
+
+      <div id="setupGameActions" class="row hidden" style="margin-top:12px;">
+        <button id="setupResetBtn" class="btn btnGhost" type="button">Reset game</button>
+        <button id="setupNextBtn" class="btn btnPrimary" type="button">Next</button>
+      </div>
+
+      <div class="smallNote">Starts with 6 players. Add up to 12, or remove unused rows.</div>
+    </div>
+
+    <!-- TRACKER SCREEN -->
+    <div id="trackerCard" class="card hidden">
+      <div class="sectionHeaderRow">
+        <div class="sectionTitle">Players</div>
+        <div class="miniActions">
+          <button id="undoBtn" class="iconSquare" type="button">⬅</button>
+          <button id="openHistoryBtn" class="iconSquare" type="button">H</button>
+          <button id="openFinesBtn" class="iconSquare" type="button">£</button>
+        </div>
+      </div>
+      <div id="playersGrid" class="playersGrid"></div>
+
+      <div class="sectionTitle" style="margin-top:10px;">Fine amount</div>
+      <div class="fineGrid" id="fineGrid"></div>
+
+
+      <div class="hint">
+        Select a player, select an amount, then <b>"Submit Fine"</b>. Once finished select <b>"Next"</b> to
+        proceed.
+      </div>
+
+      <div class="bottomBar1">
+        <button id="submitFineBtn" class="btn btnDisabled" disabled>Submit Fine</button>
+
+        <div class="row">
+          <button id="fineBackBtn" class="btn btnGhost" type="button">Back</button>
+          <button id="fineNextBtn" class="btn btnPrimary" type="button">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modalOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div id="modalTitle" class="modalTitle">Modal</div>
+        <button id="closeModalBtn" class="modalClose">✕</button>
+      </div>
+      <div id="modalBody" class="modalBody"></div>
+    </div>
+  </div>
+
+  <div id="profileOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard profileModalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Profile</div>
+        <button id="closeProfileBtn" class="modalClose" type="button">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <div id="profileModalContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("active");
+    }
+    document.querySelectorAll("#sidebar a").forEach(a => {
+      a.addEventListener("click", () => {
+        document.getElementById("sidebar").classList.remove("active");
+      });
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="scripts/player-data.js"></script>
+  <script src="scripts/session.js"></script>
+  <script src="scripts/profile.js"></script>
+  <script src="scripts/fines.js"></script>
+</body>
+
+</html>
