@@ -1,11 +1,11 @@
 // === CONFIG: Google Sheet CSV URLs ===
 const SHEETS = {
       banks: {
-        "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1575634851&single=true&output=csv",
+        "25-26": "data/banks-stats-25-26.json",
         "24-25": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSeeA_wG4oiO36aIbXiYRYVxw_5jrIeL-ZG9hPHS5XD9nZuzFbGf7Tn64Tu6PrS_hb0UAArz-m7MQoE/pub?gid=1483412373&single=true&output=csv"
       },
       traf: {
-        "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1817707297&single=true&output=csv"
+        "25-26": "data/trafalgar-stats-25-26.json"
       }
     };
 
@@ -210,6 +210,10 @@ const mplMatches = {
 // === CSV FETCH HELPER ===
 async function fetchCSV(url) {
   const res = await fetch(url);
+  if (/\.json($|\?)/i.test(url)) {
+    if (!res.ok) throw new Error(`Failed to load stats: ${res.status}`);
+    return res.json();
+  }
   const text = await res.text();
   const [headerLine, ...rows] = text.split("\n").filter(r => r.trim());
   const headers = headerLine.split(",").map(h => h.trim());

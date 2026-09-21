@@ -1,12 +1,6 @@
 // scripts/player-data.js
 (function () {
   // ---- CONFIG ----
-  const LIVE_STATS_SHEET_ID = "1svcwpJZujjUG-mJbYHFqiiGtKvqM2QrnyK1FC1ZdiNQ";
-
-  function liveStatsCsvUrl(gid) {
-    return `https://docs.google.com/spreadsheets/d/${LIVE_STATS_SHEET_ID}/export?format=csv&gid=${gid}`;
-  }
-
   const SHEETS = {
     banks: {
       "25-26": "data/banks-stats-25-26.json",
@@ -17,19 +11,19 @@
       "24-25": null
     },
     smithfield: {
-      "25-26": liveStatsCsvUrl("455815630"),
+      "25-26": "data/smithfield-stats-25-26.json",
       "24-25": null
     },
     coldaA: {
-      "25-26": liveStatsCsvUrl("1813256931"),
+      "25-26": "data/colda-a-stats-25-26.json",
       "24-25": null
     },
     coldaB: {
-      "25-26": liveStatsCsvUrl("230091598"),
+      "25-26": "data/colda-b-stats-25-26.json",
       "24-25": null
     },
     appearances: {
-      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=858987471&single=true&output=csv",
+      "25-26": "data/result-data-25-26.json",
       "24-25": "data/result-data-24-25.json"
     }
   };

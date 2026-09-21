@@ -1,0 +1,314 @@
+[
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "29th Sep 2026",
+    "Opponent": "DOGS No More",
+    "HA": "Home",
+    "Location": "Sir Sydney Smith"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Thursday",
+    "Date": "8th Oct 2026",
+    "Opponent": "Schroders Mugs",
+    "HA": "Away",
+    "Location": "The Brown Bear"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "13th Oct 2026",
+    "Opponent": "Michaels",
+    "HA": "Home",
+    "Location": "Sir Sydney Smith"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "14th Oct 2026",
+    "Opponent": "Feeleys",
+    "HA": "Away",
+    "Location": "Feeleys"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "21st Oct 2026",
+    "Opponent": "Sliverbacks",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "BANKS CUP - FIRST ROUND",
+    "Day": "Monday",
+    "Date": "26th Oct 2026",
+    "Opponent": "TBC",
+    "HA": "TBC",
+    "Location": "TBC"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "28th Oct 2026",
+    "Opponent": "Nolans Rawdogs",
+    "HA": "Away",
+    "Location": "Nolans"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "3rd Nov 2026",
+    "Opponent": "Standard Chartered A",
+    "HA": "Home",
+    "Location": "Sir Sydney Smith"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "4th Nov 2026",
+    "Opponent": "X-Men",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "11th Nov 2026",
+    "Opponent": "The Pandas",
+    "HA": "Away",
+    "Location": "Nolans"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "18th Nov 2026",
+    "Opponent": "The Black Arrows",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Wednesday",
+    "Date": "18th Nov 2026",
+    "Opponent": "Exiles",
+    "HA": "Away",
+    "Location": "The Brown Bear"
+  },
+  {
+    "League": "TRAFALGAR - TDL MEMORIAL TROPHY / CHARITY KO",
+    "Day": "Wednesday",
+    "Date": "18th Nov 2026",
+    "Opponent": "TBC",
+    "HA": "TBC",
+    "Location": "TBC"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "24th Nov 2026",
+    "Opponent": "Singer & Friedlander",
+    "HA": "Home",
+    "Location": "Sir Sydney Smith"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "25th Nov 2026",
+    "Opponent": "Holland Club",
+    "HA": "Away",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "1st Dec 2026",
+    "Opponent": "Cazenove Old Boys",
+    "HA": "Away",
+    "Location": "The Horseshoe (Clerkenwell)"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "6th Jan 2027",
+    "Opponent": "Feeleys",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "13th Jan 2027",
+    "Opponent": "Sliverbacks",
+    "HA": "Away",
+    "Location": "Artful Dodger"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "19th Jan 2027",
+    "Opponent": "Schroders Mugs",
+    "HA": "Home",
+    "Location": "Sir Sydney Smith"
+  },
+  {
+    "League": "TRAFALGAR - PAIRS KO ROUND ONE",
+    "Day": "Wednesday",
+    "Date": "27th Jan 2027",
+    "Opponent": "TBC",
+    "HA": "TBC",
+    "Location": "TBC"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "2nd Feb 2027",
+    "Opponent": "Michaels",
+    "HA": "Away",
+    "Location": "The Brown Bear"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "3rd Feb 2027",
+    "Opponent": "Nolans Rawdogs",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "9th Feb 2027",
+    "Opponent": "Cazenove Old Boys",
+    "HA": "Home",
+    "Location": "Sir Sydney Smith"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "10th Feb 2027",
+    "Opponent": "X-Men",
+    "HA": "Away",
+    "Location": "Sheephaven Bay"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "17th Feb 2027",
+    "Opponent": "The Pandas",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "TRAFALGAR - SINGLES KO ROUND TWO / SINGLES PLATE",
+    "Day": "Wednesday",
+    "Date": "24th Feb 2027",
+    "Opponent": "TBC",
+    "HA": "TBC",
+    "Location": "TBC"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Wednesday",
+    "Date": "3rd Mar 2027",
+    "Opponent": "Exiles",
+    "HA": "Home",
+    "Location": "Sir Sydney Smith"
+  },
+  {
+    "League": "TRAFALGAR - PAIRS KO ROUND TWO / PAIRS PLATE",
+    "Day": "Wednesday",
+    "Date": "3rd Mar 2027",
+    "Opponent": "TBC",
+    "HA": "TBC",
+    "Location": "TBC"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "9th Mar 2027",
+    "Opponent": "DOGS No More",
+    "HA": "Away",
+    "Location": "The Brown Bear"
+  },
+  {
+    "League": "TRAFALGAR - CHALLENGE CUP TEAM KO",
+    "Day": "Wednesday",
+    "Date": "10th Mar 2027",
+    "Opponent": "TBC",
+    "HA": "TBC",
+    "Location": "TBC"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "16th Mar 2027",
+    "Opponent": "Lovells Old Boys",
+    "HA": "Home",
+    "Location": "Sir Sydney Smith"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "17th Mar 2027",
+    "Opponent": "The Black Arrows",
+    "HA": "Away",
+    "Location": "Nolans"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Tuesday",
+    "Date": "23rd Mar 2027",
+    "Opponent": "Singer & Friedlander",
+    "HA": "Away",
+    "Location": "Sir Sydney Smith"
+  },
+  {
+    "League": "Trafalgar League",
+    "Day": "Wednesday",
+    "Date": "24th Mar 2027",
+    "Opponent": "Holland Club",
+    "HA": "Home",
+    "Location": "The Horseshoe"
+  },
+  {
+    "League": "TRAFALGAR - HOUSE CHAMPIONSHIP",
+    "Day": "Wednesday",
+    "Date": "31st Mar 2027",
+    "Opponent": "TBC",
+    "HA": "TBC",
+    "Location": "TBC"
+  },
+  {
+    "League": "TRAFALGAR - SECRETARY'S CUP",
+    "Day": "Wednesday",
+    "Date": "7th Apr 2027",
+    "Opponent": "TBC",
+    "HA": "TBC",
+    "Location": "TBC"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Wednesday",
+    "Date": "14th Apr 2027",
+    "Opponent": "Standard Chartered A",
+    "HA": "Away",
+    "Location": "The Blue Anchor (Bermondsey)"
+  },
+  {
+    "League": "TRAFALGAR - JUBILEE KO",
+    "Day": "Wednesday",
+    "Date": "14th Apr 2027",
+    "Opponent": "TBC",
+    "HA": "TBC",
+    "Location": "TBC"
+  },
+  {
+    "League": "Banks League",
+    "Day": "Wednesday",
+    "Date": "21st Apr 2027",
+    "Opponent": "Schroders Mugs",
+    "HA": "Away",
+    "Location": "The Brown Bear"
+  }
+]

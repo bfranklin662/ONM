@@ -6,15 +6,9 @@ document.getElementById("resultsGrid").innerHTML = `
     `;
 
 const CSV_URL = {
-  main: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=858987471&single=true&output=csv",
-  leagueStats: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1287781750&single=true&output=csv"
+  main: "data/result-data-25-26.json",
+  leagueStats: "data/won-lost-25-26.json"
 };
-const LIVE_STATS_SHEET_ID = "1svcwpJZujjUG-mJbYHFqiiGtKvqM2QrnyK1FC1ZdiNQ";
-
-function liveStatsCsvUrl(gid) {
-  return `https://docs.google.com/spreadsheets/d/${LIVE_STATS_SHEET_ID}/export?format=csv&gid=${gid}`;
-}
-
 let resultsVisibleCount = 10;
 const RESULTS_PAGE_SIZE = 10;
 let currentLeagueFilter = localStorage.getItem("resultsLeagueFilter") || "all";
@@ -147,6 +141,7 @@ function updateLeagueFilterBar(matches = availableLeagueFiltersForSeason(current
 
 // ✅ Reusable CSV fetch + parse
 async function fetchCSVData(url) {
+  if (/\.json($|\?)/i.test(url)) return fetchJSONData(url);
   const noCacheUrl = `${url}&t=${Date.now()}`;
   const response = await fetch(noCacheUrl);
   const csvText = await response.text();
@@ -220,6 +215,17 @@ function hasResultQuery() {
   return !!(params.get("date") && params.get("opp") && params.get("ha"));
 }
 
+function matchesResultQuery(match) {
+  const params = new URLSearchParams(window.location.search);
+  if (!hasResultQuery()) return false;
+  const side = getOnmMatchSide(match);
+  const competition = params.get("competition");
+  return toISO(parseDate(match.Date)) === params.get("date") &&
+    normalizeName(side.opponent) === normalizeName(params.get("opp")) &&
+    side.ha.toLowerCase() === params.get("ha").toLowerCase() &&
+    (!competition || normalizeName(match.Competition) === normalizeName(competition));
+}
+
 function getMatchValue(match, key) {
   return match[key] ?? match[key.replace(/(\D+)(\d+)/, "$1 $2")] ?? "";
 }
@@ -240,18 +246,9 @@ function getMatchField(match, ...keys) {
 }
 
 async function fetchLeagueStats(url) {
-  const noCacheUrl = `${url}&t=${Date.now()}`;
-  const response = await fetch(noCacheUrl);
-  const csvText = await response.text();
-  const rows = csvText.trim().split("\n").map(r => r.split(","));
-  const headers = rows.shift().map(h => h.trim());
-  const values = rows[0].map(v => v.trim());
-
-  // Build object from CSV headers and first row
-  const stats = {};
-  headers.forEach((header, i) => {
-    stats[header] = values[i];
-  });
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to load league stats: ${response.status}`);
+  const [stats = {}] = await response.json();
 
   // Transform into easy-to-use format
   const leagueStats = {
@@ -513,6 +510,7 @@ function saveUserPrefs() {
 
 async function fetchJSONData(url) {
   const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to load results: ${response.status}`);
   const data = await response.json();
 
   data.sort((a, b) => parseDate(b.Date) - parseDate(a.Date));
@@ -522,11 +520,11 @@ async function fetchJSONData(url) {
 
 const SHEETS = {
   banks: {
-    "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1575634851&single=true&output=csv",
+    "25-26": "data/banks-stats-25-26.json",
     "24-25": "data/banks-stats-24-25.json",
   },
   traf: {
-    "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1817707297&single=true&output=csv",
+    "25-26": "data/trafalgar-stats-25-26.json",
   },
 };
 
@@ -707,6 +705,12 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
       return;
     }
 
+    // Include the linked match even when it is beyond the first page of results.
+    if (appendFrom === null && hasResultQuery()) {
+      const linkedIndex = allMatches.findIndex(matchesResultQuery);
+      if (linkedIndex >= 0) resultsVisibleCount = Math.max(resultsVisibleCount, linkedIndex + 1);
+    }
+
     const visibleMatches =
       appendFrom === null
         ? allMatches.slice(0, resultsVisibleCount)
@@ -837,6 +841,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
         return `
       <div class="result-card result-card-wide ${(match.Result || "").toLowerCase()} league-${meta.key}"
+        data-competition="${meta.key}"
         data-key="${cardKey}"
         data-date="${isoDate}"
         data-opp="${normalizeName(opp)}"
@@ -1011,6 +1016,10 @@ function initPage() {
   applyHashViewMode();
 
   if (hasResultQuery()) {
+    const requestedSeason = new URLSearchParams(window.location.search).get("season");
+    // A direct result link takes precedence over a previously selected season.
+    currentSeason = ["24-25", "25-26"].includes(requestedSeason) ? requestedSeason : "all";
+    localStorage.setItem("season", currentSeason);
     currentViewMode = "results";
     currentLeagueFilter = "all";
     localStorage.setItem("viewMode", currentViewMode);
@@ -1123,7 +1132,7 @@ async function fetchStats(season) {
   // === Sheet URLs ===
   const SHEETS = {
     all: {
-      "25-26": liveStatsCsvUrl("590387953"),
+      "25-26": "data/all-stats-25-26.json",
       "24-25": null
     },
     banks: {
@@ -1135,15 +1144,15 @@ async function fetchStats(season) {
       "24-25": null
     },
     smithfield: {
-      "25-26": liveStatsCsvUrl("455815630"),
+      "25-26": "data/smithfield-stats-25-26.json",
       "24-25": null
     },
     coldaA: {
-      "25-26": liveStatsCsvUrl("1813256931"),
+      "25-26": "data/colda-a-stats-25-26.json",
       "24-25": null
     },
     coldaB: {
-      "25-26": liveStatsCsvUrl("230091598"),
+      "25-26": "data/colda-b-stats-25-26.json",
       "24-25": null
     }
   };
@@ -1154,11 +1163,11 @@ async function fetchStats(season) {
       "24-25": null
     },
     banks: {
-      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1575634851&single=true&output=csv",
+      "25-26": null,
       "24-25": null
     },
     traf: {
-      "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1817707297&single=true&output=csv",
+      "25-26": null,
       "24-25": null
     },
     smithfield: {
@@ -1177,8 +1186,8 @@ async function fetchStats(season) {
 
   // === League Stats URLs (P/W/L) ===
   const LEAGUE_STATS_URLS = {
-    "25-26": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1287781750&single=true&output=csv",
-    "24-25": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1942826343&single=true&output=csv"
+    "25-26": "data/won-lost-25-26.json",
+    "24-25": "data/won-lost-24-25.json"
   };
 
   function isUsableCsv(text) {
@@ -1205,9 +1214,9 @@ async function fetchStats(season) {
         row.Player || "",
         played,
         checkouts,
-        played ? checkouts / played : 0,
-        fines,
-        played ? fines / played : 0,
+        (played ? checkouts / played : 0).toFixed(2),
+        `£${fines.toFixed(2)}`,
+        `£${(played ? fines / played : 0).toFixed(2)}`,
         doubleFines,
         oneEighties,
         bullOuts,
@@ -1647,9 +1656,10 @@ async function fetchSheetToTableSafe(leagueKey, seasonKey) {
   }
 
   try {
-    const resp = await fetch(CSV_URL + "&t=" + Date.now(), { cache: "no-store" });
+    const resp = await fetch(CSV_URL, { cache: "no-store" });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const csv = await resp.text();
+    const rows = await resp.json();
+    const csv = [STATS_TABLE_HEADERS.join(","), ...rows.map(row => STATS_TABLE_HEADERS.map(h => String(row[h] ?? "").replace(/,/g, "")).join(","))].join("\n");
 
     // build minimal stylable table (you can keep your csvToStyledTable impl)
     const tableHtml = csvToStyledTable(csv);
@@ -1889,8 +1899,10 @@ function openResultFromQuery() {
   if (!date || !opp || !ha) return;
 
   const key = `${date}|${opp}|${ha}`;
+  const competition = params.get("competition");
   const card = Array.from(document.querySelectorAll(".result-card"))
-    .find(resultCard => resultCard.dataset.key === key);
+    .find(resultCard => resultCard.dataset.key === key &&
+      (!competition || resultCard.dataset.competition === getLeagueMeta(competition).key));
   if (!card) return;
 
   // scroll to it

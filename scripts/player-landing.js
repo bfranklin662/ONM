@@ -168,7 +168,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const CSV_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
   async function fetchCSVWithCache(cacheKey, sheetUrlOrId) {
-    const key = `csvcache:${cacheKey}`;
+    const key = `csvcache:${sheetUrlOrId}:${cacheKey}`;
     try {
       const cached = localStorage.getItem(key);
       if (cached) {

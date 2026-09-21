@@ -1,5 +1,5 @@
 const LEAGUE_STATS_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1287781750&single=true&output=csv";
+  "data/won-lost-25-26.json";
 
 function setText(id, value) {
   const el = document.getElementById(id);
@@ -7,16 +7,9 @@ function setText(id, value) {
 }
 
 async function fetchLeagueStats(url) {
-  const noCacheUrl = `${url}&t=${Date.now()}`;
-  const res = await fetch(noCacheUrl);
-  const csvText = await res.text();
-
-  const rows = csvText.trim().split("\n").map(r => r.split(","));
-  const headers = rows.shift().map(h => h.trim());
-  const values = rows[0].map(v => v.trim());
-
-  const stats = {};
-  headers.forEach((h, i) => (stats[h] = values[i]));
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to load league stats: ${res.status}`);
+  const [stats = {}] = await res.json();
 
   return {
     banks: {

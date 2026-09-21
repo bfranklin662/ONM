@@ -1,0 +1,122 @@
+[
+  {
+    "Player": "Charlie S",
+    "Played": "9",
+    "Checkouts": "24",
+    "Checkouts/game": "2.666666667",
+    "Fines": "20.5",
+    "Fines/game": "2.277777778",
+    "Double Fines": "1",
+    "180s": "0",
+    "Bull-outs": "0",
+    "Ton+ Outs": "1"
+  },
+  {
+    "Player": "Remzi",
+    "Played": "6",
+    "Checkouts": "12",
+    "Checkouts/game": "2",
+    "Fines": "15",
+    "Fines/game": "2.5",
+    "Double Fines": "0",
+    "180s": "0",
+    "Bull-outs": "0",
+    "Ton+ Outs": "0"
+  },
+  {
+    "Player": "Seb",
+    "Played": "4",
+    "Checkouts": "12",
+    "Checkouts/game": "3",
+    "Fines": "9.3",
+    "Fines/game": "2.325",
+    "Double Fines": "0",
+    "180s": "0",
+    "Bull-outs": "0",
+    "Ton+ Outs": "0"
+  },
+  {
+    "Player": "Alfie",
+    "Played": "5",
+    "Checkouts": "11",
+    "Checkouts/game": "2.2",
+    "Fines": "22.3",
+    "Fines/game": "4.46",
+    "Double Fines": "2",
+    "180s": "0",
+    "Bull-outs": "0",
+    "Ton+ Outs": "0"
+  },
+  {
+    "Player": "Ricky",
+    "Played": "6",
+    "Checkouts": "10",
+    "Checkouts/game": "1.666666667",
+    "Fines": "25.5",
+    "Fines/game": "4.25",
+    "Double Fines": "3",
+    "180s": "2",
+    "Bull-outs": "0",
+    "Ton+ Outs": "0"
+  },
+  {
+    "Player": "Paul",
+    "Played": "5",
+    "Checkouts": "8",
+    "Checkouts/game": "1.6",
+    "Fines": "10",
+    "Fines/game": "2",
+    "Double Fines": "0",
+    "180s": "2",
+    "Bull-outs": "0",
+    "Ton+ Outs": "0"
+  },
+  {
+    "Player": "Rob",
+    "Played": "4",
+    "Checkouts": "6",
+    "Checkouts/game": "1.5",
+    "Fines": "12.1",
+    "Fines/game": "3.025",
+    "Double Fines": "1",
+    "180s": "0",
+    "Bull-outs": "0",
+    "Ton+ Outs": "0"
+  },
+  {
+    "Player": "George M",
+    "Played": "1",
+    "Checkouts": "5",
+    "Checkouts/game": "5",
+    "Fines": "5",
+    "Fines/game": "5",
+    "Double Fines": "0",
+    "180s": "0",
+    "Bull-outs": "0",
+    "Ton+ Outs": "1"
+  },
+  {
+    "Player": "Ian",
+    "Played": "2",
+    "Checkouts": "5",
+    "Checkouts/game": "2.5",
+    "Fines": "4",
+    "Fines/game": "2",
+    "Double Fines": "0",
+    "180s": "0",
+    "Bull-outs": "0",
+    "Ton+ Outs": "0"
+  },
+  {
+    "Player": "Luke",
+    "Played": "1",
+    "Checkouts": "0",
+    "Checkouts/game": "0",
+    "Fines": "2",
+    "Fines/game": "2",
+    "Double Fines": "0",
+    "180s": "0",
+    "Bull-outs": "0",
+    "Ton+ Outs": "0"
+  }
+]

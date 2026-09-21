@@ -1,17 +1,16 @@
 const HOME_CSVS = {
-  allStats: "https://docs.google.com/spreadsheets/d/1svcwpJZujjUG-mJbYHFqiiGtKvqM2QrnyK1FC1ZdiNQ/export?format=csv&gid=590387953",
-  banksStats: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1575634851&single=true&output=csv",
-  trafStats: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1817707297&single=true&output=csv"
+  allStats: "data/all-stats-25-26.json",
+  banksStats: "data/banks-stats-25-26.json",
+  trafStats: "data/trafalgar-stats-25-26.json"
 };
 
 async function fetchCsvRows(url) {
-  const res = await fetch(`${url}&t=${Date.now()}`);
-  const text = await res.text();
-
-  return text
-    .trim()
-    .split("\n")
-    .map(row => row.split(",").map(cell => cell.trim()));
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to load stats: ${res.status}`);
+  const rows = await res.json();
+  if (!rows.length) return [];
+  const headers = Object.keys(rows[0]);
+  return [headers, ...rows.map(row => headers.map(header => String(row[header] ?? "")))];
 }
 
 const LB_SLIDE_DURATION = 260;

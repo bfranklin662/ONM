@@ -1,12 +1,11 @@
 /* fixtures.js */
 (() => {
   const TEAM = "Oche Ness Monsters";
-  const FIXTURES_URL = "./data/fixtures-25-26.json";
-  const RESULTS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=858987471&single=true&output=csv";
+  const FIXTURES_URL = "./data/fixtures-26-27.json";
+  const RESULTS_URL = "data/result-data-25-26.json";
 
-  // Change this to match your site:
   const RESULTS_PAGE_URL = (fx) =>
-    `results.html?date=${encodeURIComponent(fx.dateISO)}&opp=${encodeURIComponent(fx.Opponent)}&ha=${encodeURIComponent(fx.HA)}`;
+    `results.html?date=${encodeURIComponent(fx.dateISO)}&opp=${encodeURIComponent(fx.Opponent)}&ha=${encodeURIComponent(fx.HA)}&season=${encodeURIComponent(fx.season || "25-26")}&competition=${encodeURIComponent(fx.Competition || fx.League)}`;
 
 
   const el = (sel) => document.querySelector(sel);
@@ -91,7 +90,12 @@
   }
 
   function normalizeLeague(raw) {
-    const s = String(raw || "").toLowerCase();
+    const s = String(raw || "").trim().toLowerCase();
+    if (s === "colda a") return "COLDA A";
+    if (s === "colda b") return "COLDA B";
+    if (s.includes("smithfield")) return "Smithfield";
+    if (s.includes("banks") && s.includes("cup")) return "Banks Cup";
+    if (s.includes("trafalgar") && s !== "trafalgar league" && s !== "trafalgar") return "Trafalgar Cup";
     if (s.includes("banks")) return "Banks";
     if (s.includes("trafalgar")) return "Trafalgar";
     if (s.includes("cup") || s.includes("ko")) return "Cup";
@@ -100,6 +104,11 @@
 
   function leagueClass(league) {
     const l = String(league || "").toLowerCase();
+    if (l === "colda a") return "colda-a";
+    if (l === "colda b") return "colda-b";
+    if (l === "smithfield") return "smithfield";
+    if (l === "banks cup") return "banks-cup";
+    if (l === "trafalgar cup") return "trafalgar-cup";
     if (l === "banks") return "banks";
     if (l === "trafalgar") return "trafalgar";
     if (l === "cup") return "cup";
@@ -354,12 +363,11 @@
   async function loadData() {
     const [fixturesRes, resultsRes] = await Promise.all([
       fetch(FIXTURES_URL, { cache: "no-store" }),
-      fetch(RESULTS_CSV_URL, { cache: "no-store" })
+      fetch(RESULTS_URL, { cache: "no-store" })
     ]);
 
     const fixtures = await fixturesRes.json();
-    const csvText = await resultsRes.text();
-    const resultsRows = parseCSV(csvText);
+    const resultsRows = await resultsRes.json();
 
     // Build results array that only includes rows involving Oche Ness Monsters,
     // and adds derived opponent + HA ("Home"/"Away")
@@ -574,6 +582,11 @@
     }
 
     function update() {
+      if (!fixtures.length) {
+        stage.innerHTML = '<p class="fixtureCalendarEmpty">No fixtures scheduled yet.</p>';
+        prevBtn.disabled = nextBtn.disabled = true;
+        return;
+      }
       const max = fixtures.length - 1;
       const view = perView();
 
@@ -683,7 +696,185 @@
   }
 
 
+  function escapeFixtureText(value) {
+    return String(value ?? "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  function calendarResultEvents(rows) {
+    return rows.flatMap(row => {
+      const dateObj = parseCsvDate(row.Date);
+      const side = getOpponentAndHAFromResultRow(row.HomeTeam, row.AwayTeam);
+      const homeScore = getResultField(row, "HomeScore");
+      const awayScore = getResultField(row, "AwayScore");
+      if (!dateObj || !side || homeScore === "" || awayScore === "" ||
+          !Number.isFinite(Number(homeScore)) || !Number.isFinite(Number(awayScore))) return [];
+
+      const competition = String(row.Competition || "").trim();
+      const isCup = /^(true|yes)$/i.test(String(row["Cup?"] || "").trim());
+      const leagueTitle = isCup ? `${competition.replace(/ League$/i, "")} Cup` : competition;
+      const result = String(row.Result || "").trim().toLowerCase();
+      const outcome = result === "won" ? "win" : result === "lost" ? "loss" :
+        computeOutcome(row.HomeTeam, row.AwayTeam, homeScore, awayScore);
+      const day = dateObj.getDate();
+      const suffix = day % 100 >= 11 && day % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" }[day % 10] || "th");
+      return [{
+        League: leagueTitle,
+        Competition: competition,
+        Day: dateObj.toLocaleDateString("en-GB", { weekday: "long" }),
+        Date: `${day}${suffix} ${dateObj.toLocaleDateString("en-GB", { month: "short" })} ${dateObj.getFullYear()}`,
+        Opponent: side.opponent,
+        HA: side.ha,
+        Location: row.Venue || "TBC",
+        dateObj,
+        dateISO: toISODate(dateObj),
+        leagueTitle,
+        leagueClass: leagueClass(normalizeLeague(leagueTitle)),
+        homeTeam: row.HomeTeam,
+        awayTeam: row.AwayTeam,
+        homeScore: Number(homeScore),
+        awayScore: Number(awayScore),
+        completed: true,
+        outcome,
+        season: "25-26"
+      }];
+    });
+  }
+
+  function mergeCalendarResults(fixtures, rows) {
+    const results = calendarResultEvents(rows);
+    const matchKey = fixture => [
+      fixture.dateISO, normalizeName(fixture.Competition || fixture.League),
+      normalizeName(fixture.Opponent), fixture.HA.toLowerCase()
+    ].join("|");
+    const resultsByMatch = new Map(results.map(result => [matchKey(result), result]));
+    // A fixture that is already in the schedule appears once, with its result.
+    const combined = fixtures.filter(fixture => !resultsByMatch.has(matchKey(fixture)));
+    return [...combined, ...resultsByMatch.values()].sort((a, b) => a.dateObj - b.dateObj);
+  }
+
+  function renderCalendarEvent(fixture, index) {
+    const escape = escapeFixtureText;
+    const resultCode = fixture.outcome === "win" ? "W" : fixture.outcome === "loss" ? "L" : "D";
+    const ourScore = fixture.HA === "Home" ? fixture.homeScore : fixture.awayScore;
+    const theirScore = fixture.HA === "Home" ? fixture.awayScore : fixture.homeScore;
+    const resultText = fixture.completed ? `${ourScore}-${theirScore} ${resultCode}` : "";
+    const label = escape(`${fixture.Opponent}, ${fixture.HA}, ${fixture.League}, ${fixture.Date}. ${fixture.completed ? `${resultText}. View result` : "View details"}`);
+    const attrs = `class="fixtureCalendarEvent ${fixture.leagueClass}" aria-label="${label}"`;
+    const content = `<span class="fixtureEventSummary">
+      <span class="fixtureEventOpponent">${escape(fixture.Opponent)}</span>
+      ${fixture.completed ? `<span class="fixtureEventResult ${fixture.outcome}">${escape(resultText)}</span>` : ""}
+      </span><span class="fixtureEventSide">${escape(fixture.HA === "TBC" ? "H/A TBC" : fixture.HA)}</span>`;
+    return fixture.completed
+      ? `<a ${attrs} href="${escape(RESULTS_PAGE_URL(fixture))}">${content}</a>`
+      : `<button type="button" ${attrs} data-fixture-index="${index}" aria-haspopup="dialog">${content}</button>`;
+  }
+
+  function mountCalendar(initialFixtures) {
+    let fixtures = initialFixtures;
+    const monthNumber = date => date.getFullYear() * 12 + date.getMonth();
+    const firstMonth = () => fixtures.length ? monthNumber(fixtures[0].dateObj) : monthNumber(todayNoon());
+    const lastMonth = () => fixtures.length ? monthNumber(fixtures[fixtures.length - 1].dateObj) : firstMonth();
+    const nextMonth = () => fixtures.length ? monthNumber(fixtures[initialIndex(fixtures)].dateObj) : firstMonth();
+    let month = nextMonth();
+    const grid = el("#fixtureCalendarGrid");
+    const previous = el("#fixtureMonthPrev");
+    const next = el("#fixtureMonthNext");
+    const dialog = el("#fixtureDetails");
+
+    function openDetails(fixture) {
+      const confirmedOpponent = fixture.Opponent && fixture.Opponent !== "TBC";
+      el("#fixtureDetailsContent").innerHTML = `
+        <span class="fixtureCategory ${fixture.leagueClass}">${escapeFixtureText(fixture.League)}</span>
+        <h3 id="fixtureDetailsTitle">${confirmedOpponent ? `vs ${escapeFixtureText(fixture.Opponent)}` : "Opponent to be confirmed"}</h3>
+        <p class="fixtureDetailsTeam">${escapeFixtureText(getOnmTeamForFixture(fixture))}</p>
+        <dl>
+          <div><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div>
+          <div><dt>Home / Away</dt><dd>${escapeFixtureText(fixture.HA === "TBC" ? "To be confirmed" : fixture.HA)}</dd></div>
+          <div><dt>Location</dt><dd>${escapeFixtureText(fixture.Location === "TBC" ? "To be confirmed" : fixture.Location || "To be confirmed")}</dd></div>
+        </dl>
+        ${fixture.completed ? `<a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View result →</a>` : ""}
+      `;
+      dialog.showModal();
+    }
+
+    function render() {
+      const date = new Date(Math.floor(month / 12), month % 12, 1, 12);
+      const title = date.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+      const monthFixtures = fixtures.filter(fixture => monthNumber(fixture.dateObj) === month);
+      el("#fixtureCalendarMonth").textContent = title;
+      const resultsCount = monthFixtures.filter(fixture => fixture.completed).length;
+      const fixturesCount = monthFixtures.length - resultsCount;
+      el("#fixtureCalendarCount").textContent = [
+        resultsCount ? `${resultsCount} ${resultsCount === 1 ? "result" : "results"}` : "",
+        fixturesCount ? `${fixturesCount} ${fixturesCount === 1 ? "fixture" : "fixtures"}` : ""
+      ].filter(Boolean).join(" · ") || "No matches";
+      previous.disabled = month <= firstMonth();
+      next.disabled = month >= lastMonth();
+      const offset = (date.getDay() + 6) % 7;
+      const days = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+      const cellCount = Math.ceil((offset + days) / 7) * 7;
+      const today = toISODate(todayNoon());
+      let cells = "";
+      for (let i = 0; i < cellCount; i++) {
+        if (i % 7 === 0) cells += "<tr>";
+        const day = i - offset + 1;
+        if (day < 1 || day > days) {
+          cells += '<td class="fixtureCalendarOutside" aria-hidden="true"></td>';
+        } else {
+          const cellDate = new Date(date.getFullYear(), date.getMonth(), day, 12);
+          const iso = toISODate(cellDate);
+          const events = fixtures.map((fixture, index) => ({ fixture, index })).filter(({ fixture }) => fixture.dateISO === iso);
+          const isToday = iso === today;
+          cells += `<td class="fixtureCalendarDay ${events.length ? "hasFixtures" : "noFixtures"} ${isToday ? "isToday" : ""}">
+            <time datetime="${iso}" ${isToday ? 'aria-current="date"' : ""}>
+              <span class="fixtureDayNumber">${day}</span>
+              <span class="fixtureMobileWeekday">${cellDate.toLocaleDateString("en-GB", { weekday: "short" })}</span>
+            </time>
+            <div class="fixtureDayEvents">${events.map(({ fixture, index }) => renderCalendarEvent(fixture, index)).join("")}</div>
+          </td>`;
+        }
+        if (i % 7 === 6) cells += "</tr>";
+      }
+      grid.innerHTML = cells;
+      el("#fixtureCalendarEmpty").hidden = monthFixtures.length > 0;
+    }
+
+    previous.addEventListener("click", () => { if (month > firstMonth()) { month--; render(); } });
+    next.addEventListener("click", () => { if (month < lastMonth()) { month++; render(); } });
+    el("#fixtureNextMatch").addEventListener("click", () => { month = nextMonth(); render(); });
+    grid.addEventListener("click", event => {
+      const button = event.target.closest("[data-fixture-index]");
+      if (button) openDetails(fixtures[Number(button.dataset.fixtureIndex)]);
+    });
+    el("#fixtureDetailsClose").addEventListener("click", () => dialog.close());
+    dialog.addEventListener("click", event => {
+      if (event.target !== dialog) return;
+      const bounds = dialog.getBoundingClientRect();
+      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
+    });
+    render();
+    return { setFixtures(updated) { fixtures = updated; render(); } };
+  }
+
+  function setupFixtureViews() {
+    const calendar = el("#fixtureCalendar");
+    const carousel = el("#fixturesCarousel");
+    document.querySelectorAll("[data-fixtures-view]").forEach(button => {
+      button.addEventListener("click", () => {
+        const showCalendar = button.dataset.fixturesView === "calendar";
+        calendar.hidden = !showCalendar;
+        carousel.hidden = showCalendar;
+        document.querySelectorAll("[data-fixtures-view]").forEach(option => {
+          option.setAttribute("aria-pressed", String(option === button));
+        });
+      });
+    });
+  }
+
   async function init() {
+    setupFixtureViews();
     renderLoadingSkeleton(3);
 
     // 1) Load fixtures JSON first
@@ -695,18 +886,19 @@
 
     // Mount carousel immediately with JSON-only data
     const carousel = mountCarousel(fixturesOnly);
+    const calendar = mountCalendar(fixturesOnly);
 
-    // 2) Then load results CSV and patch (non-blocking)
+    // 2) Then load results JSON and patch (non-blocking)
     try {
-      const resultsRes = await fetch(RESULTS_CSV_URL, { cache: "no-store" });
-      if (!resultsRes.ok) throw new Error(`Failed to load results CSV: ${resultsRes.status}`);
-      const csvText = await resultsRes.text();
-      const rows = parseCSV(csvText);
+      const resultsRes = await fetch(RESULTS_URL, { cache: "no-store" });
+      if (!resultsRes.ok) throw new Error(`Failed to load results JSON: ${resultsRes.status}`);
+      const rows = await resultsRes.json();
 
       const merged = applyResultsToFixtures(fixturesOnly, rows);
+      calendar.setFixtures(mergeCalendarResults(merged, rows));
       carousel.setFixtures(merged);  // updates rendered cards with scores/links
     } catch (e) {
-      console.warn("Results CSV failed, showing fixtures without scores.", e);
+      console.warn("Results JSON failed, showing fixtures without scores.", e);
     }
   }
 
@@ -716,6 +908,8 @@
     if (!el("#fixturesBanner")) return;
     init().catch(err => {
       console.error("Fixtures banner failed:", err);
+      const calendar = el("#fixtureCalendar");
+      if (calendar) calendar.innerHTML = '<p class="fixtureCalendarEmpty" role="alert">Could not load fixtures. Please try refreshing the page.</p>';
       const stage = el("#fixturesStage");
       if (stage) stage.innerHTML = `<div class="fixturesCard competition"><div class="leagueLine">Fixtures</div><div class="metaLine"><span>Could not load fixtures/results.</span></div></div>`;
     });
