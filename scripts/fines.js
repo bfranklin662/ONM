@@ -10,6 +10,99 @@ document.addEventListener("DOMContentLoaded", () => {
   const MIN_PLAYERS = 1;
   const DEFAULT_PLAYER_INPUTS = 6;
   let playerInputCount = DEFAULT_PLAYER_INPUTS;
+  const PLAYER_DIRECTORY_ENDPOINT = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
+  let signedInPlayerDirectory = [];
+
+  function normalisePlayerName(value = "") {
+    return String(value).trim().replace(/\s+/g, " ").toLowerCase();
+  }
+
+  function findPlayerDirectoryEntry(value = "") {
+    const key = normalisePlayerName(value);
+    if (!key) return null;
+
+    return signedInPlayerDirectory.find(player =>
+      normalisePlayerName(player.fullName) === key ||
+      normalisePlayerName(player.publicName) === key
+    ) || null;
+  }
+
+  function canonicalPlayer(value = "") {
+    const enteredName = String(value).trim().replace(/\s+/g, " ");
+    const directoryPlayer = findPlayerDirectoryEntry(enteredName);
+
+    return {
+      name: directoryPlayer?.publicName || enteredName,
+      fullName: directoryPlayer?.fullName || "",
+      playerKey: directoryPlayer?.playerKey || ""
+    };
+  }
+
+  function signedInPlayerDirectoryEnabled() {
+    return Boolean(window.ONMSession?.getUser?.() && signedInPlayerDirectory.length);
+  }
+
+  function updatePlayerNameOptions() {
+    document.getElementById("playerFullNameOptions")?.remove();
+    if (!signedInPlayerDirectoryEnabled()) return;
+
+    const options = document.createElement("datalist");
+    options.id = "playerFullNameOptions";
+    options.innerHTML = signedInPlayerDirectory
+      .map(player => `<option value="${escapeHtml(player.fullName)}" label="${escapeHtml(player.publicName)}"></option>`)
+      .join("");
+    document.body.appendChild(options);
+  }
+
+  function playerInputValue(value = "") {
+    if (!signedInPlayerDirectoryEnabled()) return value;
+    return findPlayerDirectoryEntry(value)?.fullName || value;
+  }
+
+  async function loadSignedInPlayerDirectory() {
+    const currentUser = window.ONMSession?.getUser?.();
+    const help = document.getElementById("playerNameHelp");
+
+    if (!currentUser) {
+      if (help) help.textContent = "Sign in to search players by their full name.";
+      return;
+    }
+
+    if (help) help.textContent = "Loading the player directory…";
+
+    try {
+      const response = await fetch(PLAYER_DIRECTORY_ENDPOINT, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "getMatchPlayerDirectory",
+          userId: currentUser.userId,
+          email: currentUser.email
+        }),
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        }
+      });
+      const result = await response.json();
+
+      if (!result.success || !Array.isArray(result.players)) {
+        throw new Error(result.error || "Could not load players.");
+      }
+
+      signedInPlayerDirectory = result.players
+        .filter(player => player?.fullName && player?.publicName && player?.playerKey)
+        .sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+      updatePlayerNameOptions();
+      renderSetupInputs();
+
+      if (help) {
+        help.textContent = "Start typing a full name and choose the player. Results and fines will use their shorter club name.";
+      }
+    } catch (error) {
+      console.warn("Could not load signed-in player directory", error);
+      if (help) help.textContent = "The full-name player search is temporarily unavailable. Public player names still work.";
+    }
+  }
 
   let resultSubmitData = {
     players: [],
@@ -385,6 +478,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       return {
         name: p.name,
+        fullName: p.fullName || existing?.fullName || "",
+        playerKey: p.playerKey || existing?.playerKey || "",
         finesPence: p.totalPence,
         doubleFine: p.name === doubleWinnerName,
         checkouts: existing?.checkouts ?? 0,
@@ -1298,9 +1393,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!g || !Array.isArray(g.players) || !g.players.length) return false;
 
     const targetScreen = g.screen || "tracker";
+    const savedPlayerDetails = Array.isArray(g.playerDetails) ? g.playerDetails : [];
 
     players = g.players.map(name => ({
       name,
+      fullName: savedPlayerDetails.find(player => player.name === name)?.fullName || "",
+      playerKey: savedPlayerDetails.find(player => player.name === name)?.playerKey || "",
       totalPence: store.totalsByName?.[name] ?? 0
     }));
 
@@ -1789,6 +1887,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   function renderSetupInputs() {
+    updatePlayerNameOptions();
     const existingValues = [];
 
     for (let i = 1; i <= playerInputCount; i++) {
@@ -1804,7 +1903,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const row = document.createElement("div");
       row.className = "nameRow";
       row.innerHTML = `
-      <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="18" value="${escapeHtml(existingValues[i] || store.setupNames?.[i - 1] || "")}" />
+      <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="40"${signedInPlayerDirectoryEnabled() ? ' list="playerFullNameOptions"' : ""} value="${escapeHtml(playerInputValue(existingValues[i] || store.setupNames?.[i - 1] || ""))}" />
     `;
       setupGrid.appendChild(row);
       const input = row.querySelector("input");
@@ -1856,7 +1955,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const oldPlayers = [...players];
 
-    players = names.map((name, index) => {
+    players = names.map((enteredName, index) => {
+      const canonical = canonicalPlayer(enteredName);
+      const name = canonical.name;
       const old = oldPlayers[index];
       const oldName = old?.name;
 
@@ -1877,6 +1978,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       return {
         name,
+        fullName: canonical.fullName || old?.fullName || "",
+        playerKey: canonical.playerKey || old?.playerKey || "",
         totalPence: store.totalsByName[name] ?? old?.totalPence ?? 0
       };
     });
@@ -2045,6 +2148,11 @@ document.addEventListener("DOMContentLoaded", () => {
       updatedAt: nowIso(),
       screen: currentScreen,
       players: players.map(p => p.name),
+      playerDetails: players.map(p => ({
+        name: p.name,
+        fullName: p.fullName || "",
+        playerKey: p.playerKey || ""
+      })),
       selectedPlayerIndex: selectedPlayerIndex ?? 0,
       excludedFromWheel: Array.from(excludedFromWheel || []),
 
@@ -2514,12 +2622,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // de-dupe (case-insensitive) by suffixing
     const seen = new Map();
-    players = names.map((n) => {
-      const key = n.toLowerCase();
+    players = names.map((enteredName) => {
+      const canonical = canonicalPlayer(enteredName);
+      const key = canonical.name.toLowerCase();
       const count = (seen.get(key) ?? 0) + 1;
       seen.set(key, count);
-      const finalName = count > 1 ? `${n} (${count})` : n;
-      return { name: finalName, totalPence: 0 };
+      const finalName = count > 1 ? `${canonical.name} (${count})` : canonical.name;
+      return {
+        name: finalName,
+        fullName: canonical.fullName,
+        playerKey: canonical.playerKey,
+        totalPence: 0
+      };
     });
 
     // ✅ NEW GAME: force these players to start at £0
@@ -2536,6 +2650,11 @@ document.addEventListener("DOMContentLoaded", () => {
       updatedAt: nowIso(),
       screen: "tracker",
       players: players.map(p => p.name),
+      playerDetails: players.map(p => ({
+        name: p.name,
+        fullName: p.fullName || "",
+        playerKey: p.playerKey || ""
+      })),
       selectedPlayerIndex: 0,
       excludedFromWheel: [],
       doubleWinnerName: null,
@@ -3281,6 +3400,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   renderSetupInputs();
+  loadSignedInPlayerDirectory();
   updateSpinButtons();
   renderFines();
   updateSubmitState();
