@@ -107,6 +107,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const matchVenue = document.getElementById("matchVenue");
   const matchCup = document.getElementById("matchCup");
   const matchDate = document.getElementById("matchDate");
+  const matchFixture = document.getElementById("matchFixture");
+  const fixtureAutofillStatus = document.getElementById("fixtureAutofillStatus");
+  const fixtureSummaryLeague = document.getElementById("fixtureSummaryLeague");
+  const fixtureSummaryDate = document.getElementById("fixtureSummaryDate");
+  const fixtureSummaryHome = document.getElementById("fixtureSummaryHome");
+  const fixtureSummaryAway = document.getElementById("fixtureSummaryAway");
+  const fixtureSummaryVenue = document.getElementById("fixtureSummaryVenue");
+  const matchHomeScoreLabel = document.getElementById("matchHomeScoreLabel");
+  const matchAwayScoreLabel = document.getElementById("matchAwayScoreLabel");
   const leagueTeamsList = document.getElementById("leagueTeamsList");
 
   const openImagesBtn = document.getElementById("openImagesBtn");
@@ -171,16 +180,35 @@ document.addEventListener("DOMContentLoaded", () => {
   let reviewImageUrls = [];
 
   let leagueTeamsData = null;
+  let seasonFixtures = [];
 
   async function loadLeagueTeamsData() {
     try {
-      const res = await fetch(`data/league-teams.json?v=${Date.now()}`, {
-        cache: "no-store"
-      });
-      leagueTeamsData = await res.json();
+      const [teamsRes, fixturesRes] = await Promise.all([
+        fetch(`data/league-teams.json?v=${Date.now()}`, { cache: "no-store" }),
+        fetch(`data/fixtures-26-27.json?v=${Date.now()}`, { cache: "no-store" })
+      ]);
+
+      if (!teamsRes.ok || !fixturesRes.ok) {
+        throw new Error("Fixture data could not be loaded");
+      }
+
+      leagueTeamsData = await teamsRes.json();
+      const fixtures = await fixturesRes.json();
+      seasonFixtures = (Array.isArray(fixtures) ? fixtures : [])
+        .filter(fixture => ["Banks League", "Trafalgar League"].includes(fixture.League))
+        .map(normaliseSeasonFixture)
+        .filter(fixture => fixture.dateValue)
+        .sort((a, b) => a.dateValue.localeCompare(b.dateValue));
     } catch (err) {
-      console.warn("Could not load league teams data", err);
+      console.warn("Could not load league or fixture data", err);
       leagueTeamsData = null;
+      seasonFixtures = [];
+
+      if (fixtureAutofillStatus) {
+        fixtureAutofillStatus.textContent = "Fixtures could not be loaded. Refresh and try again.";
+        fixtureAutofillStatus.classList.add("error");
+      }
     }
   }
 
@@ -203,7 +231,152 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function todayInputValue() {
-    return new Date().toISOString().slice(0, 10);
+    const today = new Date();
+    return [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0")
+    ].join("-");
+  }
+
+  function fixtureDateValue(dateText = "") {
+    const match = String(dateText).trim().match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,9})\s+(\d{4})$/i);
+    if (!match) return "";
+
+    const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+    const monthIndex = monthNames.indexOf(match[2].slice(0, 3).toLowerCase());
+    if (monthIndex < 0) return "";
+
+    return `${match[3]}-${String(monthIndex + 1).padStart(2, "0")}-${String(match[1]).padStart(2, "0")}`;
+  }
+
+  function normaliseSeasonFixture(fixture = {}, index = 0) {
+    const dateValue = fixtureDateValue(fixture.Date);
+    const homeAway = String(fixture.HA || "").toLowerCase() === "away" ? "Away" : "Home";
+    const opponent = String(fixture.Opponent || "").trim();
+    const league = String(fixture.League || "").trim();
+
+    return {
+      ...fixture,
+      league,
+      opponent,
+      homeAway,
+      dateValue,
+      key: [dateValue, league, opponent, homeAway, index].join("|")
+    };
+  }
+
+  function fixtureDateLabel(dateValue = "") {
+    if (!dateValue) return "";
+    const [year, month, day] = dateValue.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+
+    return date.toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric"
+    });
+  }
+
+  function getClosestFixture() {
+    if (!seasonFixtures.length) return null;
+
+    const todayValue = todayInputValue();
+    const today = new Date(`${todayValue}T12:00:00`).getTime();
+
+    return [...seasonFixtures].sort((a, b) => {
+      const aTime = new Date(`${a.dateValue}T12:00:00`).getTime();
+      const bTime = new Date(`${b.dateValue}T12:00:00`).getTime();
+      const distance = Math.abs(aTime - today) - Math.abs(bTime - today);
+      return distance || aTime - bTime;
+    })[0];
+  }
+
+  function findStoredFixture(match = {}) {
+    if (match.fixtureKey) {
+      const byKey = seasonFixtures.find(fixture => fixture.key === match.fixtureKey);
+      if (byKey) return byKey;
+    }
+
+    return seasonFixtures.find(fixture => {
+      if (match.date && fixture.dateValue !== match.date) return false;
+      if (match.league && fixture.league !== match.league) return false;
+      if (!match.homeTeam && !match.awayTeam) return true;
+      return [match.homeTeam, match.awayTeam].includes(fixture.opponent);
+    }) || null;
+  }
+
+  function updateFixtureSummary(fixture) {
+    if (!fixture) return;
+
+    const onmTeam = "Oche Ness Monsters";
+    const homeTeam = fixture.homeAway === "Away" ? fixture.opponent : onmTeam;
+    const awayTeam = fixture.homeAway === "Away" ? onmTeam : fixture.opponent;
+
+    if (fixtureSummaryLeague) fixtureSummaryLeague.textContent = fixture.league;
+    if (fixtureSummaryDate) fixtureSummaryDate.textContent = fixtureDateLabel(fixture.dateValue);
+    if (fixtureSummaryHome) fixtureSummaryHome.textContent = homeTeam;
+    if (fixtureSummaryAway) fixtureSummaryAway.textContent = awayTeam;
+    if (fixtureSummaryVenue) fixtureSummaryVenue.textContent = fixture.Location || "Venue TBA";
+    if (matchHomeScoreLabel) matchHomeScoreLabel.textContent = `${homeTeam} score`;
+    if (matchAwayScoreLabel) matchAwayScoreLabel.textContent = `${awayTeam} score`;
+  }
+
+  function applyFixture(fixture, { clearScores = false, save = true } = {}) {
+    if (!fixture) return;
+
+    const onmTeam = "Oche Ness Monsters";
+    const homeTeam = fixture.homeAway === "Away" ? fixture.opponent : onmTeam;
+    const awayTeam = fixture.homeAway === "Away" ? onmTeam : fixture.opponent;
+
+    matchLeague.value = fixture.league;
+    populateLeagueTeamSuggestions({ applyDefaults: false });
+    matchHomeTeam.value = homeTeam;
+    matchAwayTeam.value = awayTeam;
+    matchDate.value = fixture.dateValue;
+    matchVenue.value = fixture.Location || "";
+    if (matchCup) matchCup.checked = false;
+
+    onmSide = fixture.homeAway === "Away" ? "away" : "home";
+
+    if (clearScores) {
+      matchHomeScore.value = "";
+      matchAwayScore.value = "";
+      const resultEl = document.getElementById("matchResult");
+      if (resultEl) resultEl.value = "";
+    }
+
+    updateFixtureSummary(fixture);
+    updateResultFromScore();
+
+    if (fixtureAutofillStatus) {
+      fixtureAutofillStatus.textContent = "Selected automatically from the 2026/27 fixtures. Change it only if needed.";
+      fixtureAutofillStatus.classList.remove("error");
+    }
+
+    if (save) {
+      readMatchInfo();
+      saveGameSnapshot();
+    }
+  }
+
+  function populateFixtureSelector({ preferredKey = "", storedMatch = resultSubmitData.match, clearScores = false } = {}) {
+    if (!matchFixture || !seasonFixtures.length) return;
+
+    const currentKey = preferredKey || matchFixture.value;
+    matchFixture.innerHTML = seasonFixtures.map(fixture => {
+      const leagueName = fixture.league === "Banks League" ? "Banks" : "Trafalgar";
+      return `<option value="${escapeHtml(fixture.key)}">${escapeHtml(fixtureDateLabel(fixture.dateValue))} · ${leagueName} · ${escapeHtml(fixture.opponent)} · ${fixture.homeAway}</option>`;
+    }).join("");
+
+    const selected = seasonFixtures.find(fixture => fixture.key === currentKey)
+      || findStoredFixture(storedMatch)
+      || getClosestFixture();
+
+    if (!selected) return;
+    matchFixture.value = selected.key;
+    applyFixture(selected, { clearScores, save: false });
   }
 
   function renderResultStatsScreen() {
@@ -422,11 +595,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function hydrateMatchInfoDefaults() {
-    const dateEl = document.getElementById("matchDate");
-
-    if (dateEl && !dateEl.value) {
-      dateEl.value = todayInputValue();
-    }
+    populateFixtureSelector({
+      preferredKey: resultSubmitData.match?.fixtureKey || "",
+      storedMatch: resultSubmitData.match,
+      clearScores: false
+    });
   }
 
   function readMatchInfo() {
@@ -435,11 +608,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const awayPoints = isColda ? Number(document.getElementById("matchAwayPoints")?.value || 0) : "";
 
     resultSubmitData.match = {
+      fixtureKey: matchFixture?.value || "",
       league: document.getElementById("matchLeague")?.value || "",
       homeTeam: document.getElementById("matchHomeTeam")?.value.trim() || "",
       awayTeam: document.getElementById("matchAwayTeam")?.value.trim() || "",
-      homeScore: Number(document.getElementById("matchHomeScore")?.value || 0),
-      awayScore: Number(document.getElementById("matchAwayScore")?.value || 0),
+      homeScore: document.getElementById("matchHomeScore")?.value === ""
+        ? ""
+        : Number(document.getElementById("matchHomeScore")?.value),
+      awayScore: document.getElementById("matchAwayScore")?.value === ""
+        ? ""
+        : Number(document.getElementById("matchAwayScore")?.value),
       homePoints,
       awayPoints,
       HomePoints: homePoints,
@@ -940,6 +1118,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function validateMatchInfo() {
+    if (!matchFixture?.value || !seasonFixtures.length) {
+      showToast("Select a fixture");
+      return false;
+    }
+
     const homeTeam = matchHomeTeam?.value.trim();
     const awayTeam = matchAwayTeam?.value.trim();
     const homeScore = matchHomeScore?.value;
@@ -1096,7 +1279,16 @@ document.addEventListener("DOMContentLoaded", () => {
     matchStageField?.classList.toggle("hidden", !m.cup);
 
     updateColdaPointsFields();
-    updateVenueFromHomeTeam();
+    populateFixtureSelector({
+      preferredKey: m.fixtureKey || "",
+      storedMatch: m,
+      clearScores: false
+    });
+
+    if (!matchFixture?.value) {
+      updateVenueFromHomeTeam();
+    }
+
     updateResultFromScore();
     readMatchInfo();
   }
@@ -1308,8 +1500,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getLeagueTeamNames() {
     const league = getCurrentLeagueConfig();
-    const teams = league?.teams?.map(t => t.name) || [];
-    return teams;
+    const configuredTeams = league?.teams?.map(t => t.name) || [];
+    const fixtureTeams = seasonFixtures
+      .filter(fixture => fixture.league === matchLeague?.value)
+      .map(fixture => fixture.opponent);
+
+    return [...new Set(["Oche Ness Monsters", ...configuredTeams, ...fixtureTeams]
+      .filter(name => name && name !== "TBC"))];
   }
 
   function populateLeagueTeamSuggestions({ applyDefaults = true } = {}) {
@@ -1375,8 +1572,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function getTeamVenue(teamName) {
-    if (isOnmTeam(teamName)) return "The Horseshoe";
-
     const league = getCurrentLeagueConfig();
     if (!league) return "";
 
@@ -1384,7 +1579,8 @@ document.addEventListener("DOMContentLoaded", () => {
       t.name.toLowerCase() === String(teamName || "").trim().toLowerCase()
     );
 
-    return team?.venue || "";
+    if (team?.venue) return team.venue;
+    return isOnmTeam(teamName) ? "The Horseshoe" : "";
   }
 
   function updateVenueFromHomeTeam() {
@@ -1394,7 +1590,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function isColdaLeague(leagueName = matchLeague?.value) {
-    return leagueName === "COLDA A" || leagueName === "COLDA B";
+    return false;
   }
 
   function updateColdaPointsFields() {
@@ -1434,7 +1630,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function setDefaultLeague() {
     if (matchLeague && !matchLeague.value) {
-      matchLeague.value = "Trafalgar League";
+      matchLeague.value = "Banks League";
     }
 
     if (matchHomeTeam && !matchHomeTeam.value) {
@@ -1452,39 +1648,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function autofillFixtureForDate(dateValue = matchDate?.value) {
-    if (!dateValue || !leagueTeamsData?.fixtures?.length) return;
+    if (!dateValue || !seasonFixtures.length) return;
 
-    const fixture = leagueTeamsData.fixtures.find(f => f.date === dateValue);
+    const fixture = seasonFixtures.find(item =>
+      item.dateValue === dateValue && item.league === matchLeague?.value
+    ) || seasonFixtures.find(item => item.dateValue === dateValue);
     if (!fixture) return;
 
-    matchLeague.value = fixture.league;
-    matchHomeTeam.value = fixture.homeTeam;
-    matchAwayTeam.value = fixture.awayTeam;
-
-    onmSide = isOnmTeam(fixture.homeTeam) ? "home" : "away";
-
-    onmHomeBtn?.classList.toggle("active", onmSide === "home");
-    onmAwayBtn?.classList.toggle("active", onmSide === "away");
-    homeAwayToggle?.classList.toggle("away", onmSide === "away");
-
-    populateLeagueTeamSuggestions();
-    updateColdaPointsFields();
-    updateVenueFromHomeTeam();
-    readMatchInfo();
-    saveGameSnapshot();
+    if (matchFixture) matchFixture.value = fixture.key;
+    applyFixture(fixture, { clearScores: false });
   }
 
   function getDefaultOnmTeamForLeague() {
-    const leagueName = matchLeague?.value || "";
-
-    if (leagueName === "COLDA A") {
-      return "Oche Ness Monsters A";
-    }
-
-    if (leagueName === "COLDA B") {
-      return "Oche Ness Monsters B";
-    }
-
     return "Oche Ness Monsters";
   }
 
@@ -1534,6 +1709,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  matchFixture?.addEventListener("change", () => {
+    const fixture = seasonFixtures.find(item => item.key === matchFixture.value);
+    applyFixture(fixture, { clearScores: true });
+  });
+
   matchLeague?.addEventListener("change", () => {
     if (matchHomeScore) matchHomeScore.value = "";
     if (matchAwayScore) matchAwayScore.value = "";
@@ -1566,10 +1746,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   [matchHomeScore, matchAwayScore, matchHomePoints, matchAwayPoints].forEach(el => {
-    el?.addEventListener("focus", () => {
-      el.value = "";
-    });
-
     el?.addEventListener("blur", () => {
       if (el.value !== "") el.value = String(Number(el.value));
     });
@@ -1822,7 +1998,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (matchLeague) matchLeague.value = "Trafalgar League";
     if (document.getElementById("matchResult")) {
-      document.getElementById("matchResult").value = "Won";
+      document.getElementById("matchResult").value = "";
     }
 
     if (matchCup) matchCup.checked = false;
@@ -1835,6 +2011,8 @@ document.addEventListener("DOMContentLoaded", () => {
     cupNoBtn?.classList.add("active");
     cupYesBtn?.classList.remove("active");
     cupToggle?.classList.remove("away");
+
+    populateFixtureSelector({ clearScores: true });
 
     if (imageText) imageText.textContent = "📷 Add images";
 
@@ -3090,8 +3268,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadLeagueTeamsData().then(() => {
     setDefaultLeague();
-    populateLeagueTeamSuggestions();
-    updateVenueFromHomeTeam();
+    populateLeagueTeamSuggestions({ applyDefaults: false });
+    populateFixtureSelector({
+      preferredKey: resultSubmitData.match?.fixtureKey || "",
+      storedMatch: resultSubmitData.match,
+      clearScores: false
+    });
 
     if (!store.game?.players?.length) {
       hydrateMatchInfoDefaults();

@@ -128,101 +128,59 @@
 
     <!-- MATCH INFO SCREEN -->
     <div id="matchInfoCard" class="card hidden">
-      <div class="sectionTitle">Match Info</div>
+      <div class="sectionTitle">Match Result</div>
 
-      <div class="matchGrid">
-        <div class="field leagueField">
-          <label>League</label>
+      <div class="matchGrid fixtureMatchGrid">
+        <div class="field fixturePickerField">
+          <label for="matchFixture">Fixture</label>
           <div class="inputWithArrow">
-            <select id="matchLeague">
-              <option value="Trafalgar League">Trafalgar League</option>
-              <option value="Banks League">Banks League</option>
-              <option value="Smithfield League">Smithfield League</option>
-              <option value="COLDA A">COLDA A</option>
-              <option value="COLDA B">COLDA B</option>
-            </select>
+            <select id="matchFixture" aria-describedby="fixtureAutofillStatus"></select>
             <span class="selectArrow">▾</span>
           </div>
+          <p id="fixtureAutofillStatus" class="fixtureAutofillStatus">Finding the closest Banks or Trafalgar fixture…</p>
         </div>
 
-        <div id="homeAwayToggle" class="homeAwayToggle">
-          <div class="toggleSlider"></div>
-          <button id="onmHomeBtn" type="button" class="toggleBtn active">Home</button>
-          <button id="onmAwayBtn" type="button" class="toggleBtn">Away</button>
+        <div id="selectedFixtureSummary" class="selectedFixtureSummary" aria-live="polite">
+          <div class="fixtureSummaryTop">
+            <span id="fixtureSummaryLeague">League fixture</span>
+            <time id="fixtureSummaryDate" class="fixtureSummaryDate"></time>
+          </div>
+          <div class="fixtureSummaryTeams">
+            <strong id="fixtureSummaryHome">Home team</strong>
+            <span>vs</span>
+            <strong id="fixtureSummaryAway">Away team</strong>
+          </div>
+          <div id="fixtureSummaryVenue" class="fixtureSummaryVenue"></div>
         </div>
 
-        <div class="teamScoreRow">
-          <div class="field teamField">
-            <label>Home team</label>
-            <div class="inputWithArrow">
-              <select id="matchHomeTeam" spellcheck="false"></select>
-              <span class="selectArrow">▾</span>
-            </div>
+        <div class="scoreOnlyGrid">
+          <div class="field scoreField">
+            <label id="matchHomeScoreLabel" for="matchHomeScore">Home score</label>
+            <input id="matchHomeScore" type="number" inputmode="numeric" min="0" placeholder="0">
           </div>
 
-          <div class="scoreInputs">
-            <div class="field scoreField">
-              <label>Home score</label>
-              <input id="matchHomeScore" type="number" inputmode="numeric" min="0">
-            </div>
-
-            <div class="field scoreField pointsField hidden">
-              <label>Home points</label>
-              <input id="matchHomePoints" type="number" inputmode="numeric" min="0">
-            </div>
+          <div class="field scoreField">
+            <label id="matchAwayScoreLabel" for="matchAwayScore">Away score</label>
+            <input id="matchAwayScore" type="number" inputmode="numeric" min="0" placeholder="0">
           </div>
         </div>
 
-        <div class="teamScoreRow">
-          <div class="field teamField">
-            <label>Away team</label>
-            <div class="inputWithArrow">
-              <select id="matchAwayTeam" spellcheck="false"></select>
-              <span class="selectArrow">▾</span>
-            </div>
-          </div>
-
-          <div class="scoreInputs">
-            <div class="field scoreField">
-              <label>Away score</label>
-              <input id="matchAwayScore" type="number" inputmode="numeric" min="0">
-            </div>
-
-            <div class="field scoreField pointsField hidden">
-              <label>Away points</label>
-              <input id="matchAwayPoints" type="number" inputmode="numeric" min="0">
-            </div>
-          </div>
-        </div>
-
-        <input id="matchResult" type="hidden" value="Won">
+        <select id="matchLeague" hidden>
+          <option value="Banks League">Banks League</option>
+          <option value="Trafalgar League">Trafalgar League</option>
+        </select>
+        <select id="matchHomeTeam" hidden></select>
+        <select id="matchAwayTeam" hidden></select>
+        <input id="matchResult" type="hidden" value="">
         <input id="matchVenue" type="hidden">
-
-        <div class="field">
-          <label>Date</label>
-          <input id="matchDate" type="date">
-        </div>
-
-        <div class="field">
-          <label>Cup?</label>
-          <div id="cupToggle" class="homeAwayToggle cupSwitch">
-            <div class="toggleSlider"></div>
-            <button id="cupNoBtn" type="button" class="toggleBtn active">No</button>
-            <button id="cupYesBtn" type="button" class="toggleBtn">Yes</button>
-          </div>
-          <input id="matchCup" type="checkbox" hidden>
-        </div>
-
-        <div id="matchStageField" class="field matchStageField hidden">
-          <label>Stage</label>
-          <input id="matchStage" type="text" placeholder="Group / Quarter-Final / Final" spellcheck="false">
-        </div>
+        <input id="matchDate" type="date" hidden>
+        <input id="matchCup" type="checkbox" hidden>
       </div>
 
       <div class="bottomBar">
         <div class="row" style="margin-top:10px;">
           <button id="matchInfoBackBtn" class="btn btnGhost">Back</button>
-          <button id="matchInfoNextBtn" class="btn btnPrimary">Next</button>
+          <button id="matchInfoNextBtn" class="btn btnPrimary">Review result</button>
         </div>
       </div>
     </div>
@@ -366,7 +324,7 @@
   <script src="scripts/player-data.js"></script>
   <script src="scripts/session.js"></script>
   <script src="scripts/profile.js"></script>
-  <script src="scripts/fines.js"></script>
+  <script src="scripts/fines.js?v=20260930-current-teams"></script>
 </body>
 
 </html>

@@ -2,6 +2,7 @@
 <html>
 
 <head>
+  <meta charset="utf-8">
   <title>Oche Ness Monsters | Home</title>
   <meta name="viewport" content="width=device-width initial-scale=1">
   <link rel="stylesheet" href="styles/index.css">
@@ -122,13 +123,31 @@
           <p>New merch</p>
           <h2>Monster kit</h2>
         </div>
-        <a class="home-section-link" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">Shop merch</a>
+        <div class="home-merch-tabs" role="tablist" aria-label="Choose merch type">
+          <button type="button" role="tab" id="merch-shirt-tab" aria-selected="true" aria-controls="merch-shirt-panel" data-merch-tab="shirt">Shirt</button>
+          <button type="button" role="tab" id="merch-tshirt-tab" aria-selected="false" aria-controls="merch-tshirt-panel" data-merch-tab="tshirt">T-shirts</button>
+        </div>
       </div>
 
-      <div class="home-merch-card">
+      <div id="merch-shirt-panel" class="home-merch-card home-merch-panel" role="tabpanel" aria-labelledby="merch-shirt-tab" data-merch-panel="shirt">
         <div class="home-merch-copy">
-          <p class="home-comp-tag">Three shirts • official club shop</p>
-          <h3>Oche Ness Monsters dartswear is live</h3>
+          <p class="home-comp-tag">New • custom match shirt</p>
+          <h3>The Monsters match shirt has landed</h3>
+          <p>Our new Oche Ness Monsters darts shirt brings the full green-and-black design to match night, with club details on the front and the Monster across the back.</p>
+          <a class="home-btn primary" href="https://westlondondarts.com/services/custom-darts-shirts/" target="_blank" rel="noopener">View the shirt</a>
+        </div>
+
+        <a class="home-merch-feature" href="https://westlondondarts.com/services/custom-darts-shirts/" target="_blank" rel="noopener" aria-label="View the Oche Ness Monsters custom darts shirt">
+          <img src="images/merch/ONM%20Shirt.png" alt="Front and back of the green and black Oche Ness Monsters darts shirt">
+          <span>Oche Ness Monsters custom darts shirt</span>
+          <em>View shirt details</em>
+        </a>
+      </div>
+
+      <div id="merch-tshirt-panel" class="home-merch-card home-merch-panel" role="tabpanel" aria-labelledby="merch-tshirt-tab" data-merch-panel="tshirt" hidden>
+        <div class="home-merch-copy">
+          <p class="home-comp-tag">Three T-shirts • official club shop</p>
+          <h3>Oche Ness Monsters club tees</h3>
           <p>Browse the new club tees, pick your size, and order directly through the PrintMyKit store.</p>
           <a class="home-btn primary" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">Visit the shop</a>
         </div>
@@ -321,5 +340,6 @@
 <script src="scripts/profile.js"></script>
 <script src="scripts/fixtures.js"></script>
 <script src="scripts/comps.js"></script>
+<script src="scripts/merch.js?v=20261001-shirt-tabs"></script>
 
 </html>

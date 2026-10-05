@@ -1,77 +1,31 @@
 {
   "homeTeam": "Oche Ness Monsters",
-  "homeVenue": "The Horseshoe",
   "leagues": {
     "Banks League": {
       "legs": 9,
       "teams": [
-        { "name": "Oche Ness Monsters", "venue": "The Horseshoe" },
+        { "name": "Oche Ness Monsters", "venue": "Sir Sydney Smith" },
+        { "name": "BB Kings", "venue": "The Brown Bear" },
+        { "name": "Schroders Mugs", "venue": "The Brown Bear" },
         { "name": "Michaels", "venue": "The Brown Bear" },
-        { "name": "Vikings", "venue": "The Artful Dodger" },
-        { "name": "Barclays", "venue": "Sir Sydney Smith" },
-        { "name": "Standard Chartered", "venue": "The Artful Dodger" },
-        { "name": "British Library", "venue": "The Libertine" },
-        { "name": "NatWest Allstars", "venue": "The Artful Dodger" },
-        { "name": "Off Our Ed", "venue": "The Walrus & Carpenter" },
-        { "name": "Lloyds City", "venue": "The Artful Dodger" },
-        { "name": "Willis Old Boys", "venue": "The Artful Dodger" },
-        { "name": "Slaters", "venue": "The Horseshoe" },
-        { "name": "Brown Bear", "venue": "The Brown Bear" },
-        { "name": "HSBC", "venue": "The Horseshoe" },
-        { "name": "Bank of England", "venue": "The Horseshoe" },
-        { "name": "Dartful Dodger", "venue": "The Artful Dodger" },
-        { "name": "Newsom's Twosomes", "venue": "Sir Sydney Smith" }
+        { "name": "Standard Chartered A", "venue": "The Blue Anchor (Bermondsey)" },
+        { "name": "Exiles", "venue": "The Brown Bear" },
+        { "name": "Singer & Friedlander", "venue": "Sir Sydney Smith" },
+        { "name": "Cazenove Old Boys", "venue": "The Horseshoe (Clerkenwell)" },
+        { "name": "Lovells Old Boys", "venue": "" }
       ]
     },
     "Trafalgar League": {
       "legs": 13,
       "teams": [
         { "name": "Oche Ness Monsters", "venue": "The Horseshoe" },
-        { "name": "Black Arrows", "venue": "Nolans" },
-        { "name": "Orcs Shoe Inns", "venue": "The Libertine" },
-        { "name": "Horseshoe Mis-fits", "venue": "The Horseshoe" },
-        { "name": "Holland Club", "venue": "The Horseshoe" },
-        { "name": "Ordinary Punters", "venue": "Sheephaven Bay" },
-        { "name": "Feeleys", "venue": "The Feeleys" },
+        { "name": "Feeleys", "venue": "Feeleys" },
+        { "name": "Silverbacks", "venue": "Artful Dodger" },
         { "name": "Nolans Rawdogs", "venue": "Nolans" },
-        { "name": "XLT", "venue": "The Libertine" },
-        { "name": "Silverbacks", "venue": "Nolans" },
-        { "name": "Albany", "venue": "Sir Sydney Smith" },
         { "name": "X-Men", "venue": "Sheephaven Bay" },
-        { "name": "The Panda's", "venue": "Nolans" },
-        { "name": "Boomers", "venue": "North Star" }
-      ]
-    },
-    "Smithfield League": {
-      "legs": 13,
-      "teams": [
-        { "name": "Oche Ness Monsters", "venue": "The Horseshoe" },
-        { "name": "Southwark Huntsmen Too", "venue": "The Royal Oak" },
-        { "name": "Invicta", "venue": "Three Tuns" },
-        { "name": "Slaters", "venue": "Brown Bear" },
-        { "name": "Fast Ponies", "venue": "Brown Bear" }
-      ]
-    },
-    "COLDA B": {
-      "legs": 0,
-      "teams": [
-        { "name": "Oche Ness Monsters A", "venue": "The Horseshoe" },
-        { "name": "Madhouse Specialists", "venue": "The Horseshoe" },
-        { "name": "Shark Hunters", "venue": "Nolans" },
-        { "name": "Albany Allstars", "venue": "The Horseshoe" },
-        { "name": "Flashing Arrows", "venue": "Artful Dodger" },
-        { "name": "The Blue Boar", "venue": "Nolans" }
-      ]
-    },
-    "COLDA A": {
-      "legs": 0,
-      "teams": [
-        { "name": "Oche Ness Monsters B", "venue": "The Horseshoe" },
-        { "name": "Black Arrows", "venue": "Nolans" },
-        { "name": "Nolans D", "venue": "The Horseshoe" },
-        { "name": "Abosh", "venue": "The Horseshoe" },
-        { "name": "Silverbacks", "venue": "The Horseshoe" },
-        { "name": "Bada Bing", "venue": "Nolans" }
+        { "name": "The Pandas", "venue": "Nolans" },
+        { "name": "The Black Arrows", "venue": "Nolans" },
+        { "name": "Holland Club", "venue": "The Horseshoe" }
       ]
     }
   }

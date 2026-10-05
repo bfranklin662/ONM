@@ -1092,6 +1092,102 @@ a.forward:hover {
   margin-top: 4px;
 }
 
+.home-merch-tabs {
+  display: inline-flex;
+  gap: 5px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 9px;
+  background: rgba(5, 9, 15, .62);
+}
+
+.home-merch-tabs button {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(255, 255, 255, .72);
+  cursor: pointer;
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  transition: color .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.home-merch-tabs button:hover,
+.home-merch-tabs button:focus-visible {
+  color: #fff;
+  border-color: rgba(0, 184, 148, .45);
+  outline: none;
+}
+
+.home-merch-tabs button[aria-selected="true"] {
+  color: #07110e;
+  border-color: #ffd91a;
+  background: #ffd91a;
+}
+
+.home-merch-panel[hidden] {
+  display: none;
+}
+
+.home-merch-feature {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 8px;
+  background: rgba(5, 9, 15, .58);
+  color: #fff;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px 14px;
+  text-decoration: none;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.home-merch-feature:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 184, 148, .62);
+  background: rgba(8, 16, 22, .76);
+}
+
+.home-merch-feature img {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-height: 420px;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  border: 1px solid rgba(255, 255, 255, .10);
+  border-radius: 6px;
+  background: #002811;
+}
+
+.home-merch-feature span {
+  align-self: center;
+  color: #ffd91a;
+  font-size: .9rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.home-merch-feature em {
+  align-self: center;
+  justify-self: end;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 184, 148, .52);
+  border-radius: 7px;
+  background: rgba(0, 184, 148, .18);
+  color: #fff;
+  font-size: .8rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
 .home-merch-rail {
   display: grid;
   grid-auto-flow: column;
@@ -1191,6 +1287,28 @@ a.forward:hover {
 
   .home-merch-copy .home-btn {
     width: 100%;
+  }
+
+  .home-section-heading-row {
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .home-merch-tabs {
+    width: 100%;
+  }
+
+  .home-merch-tabs button {
+    flex: 1;
+  }
+
+  .home-merch-feature {
+    grid-template-columns: 1fr;
+  }
+
+  .home-merch-feature span,
+  .home-merch-feature em {
+    justify-self: start;
   }
 
   .home-btn {

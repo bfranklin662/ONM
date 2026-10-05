@@ -983,6 +983,100 @@ input[type="number"] {
   gap: 12px 10px;
 }
 
+.fixtureMatchGrid {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.fixturePickerField {
+  width: 100%;
+}
+
+.fixtureAutofillStatus {
+  margin: 7px 2px 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.fixtureAutofillStatus.error {
+  color: #ff7b7b;
+}
+
+.selectedFixtureSummary {
+  padding: 16px;
+  border: 1px solid rgba(0, 214, 158, .42);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(0, 214, 158, .12), rgba(0, 0, 0, .22));
+}
+
+.fixtureSummaryTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--yellow);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.fixtureSummaryDate {
+  color: var(--muted);
+}
+
+.fixtureSummaryTeams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+  text-align: center;
+}
+
+.fixtureSummaryTeams strong {
+  font-size: 17px;
+  line-height: 1.15;
+}
+
+.fixtureSummaryTeams span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.fixtureSummaryVenue {
+  margin-top: 13px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.fixtureSummaryVenue::before {
+  content: "Venue: ";
+  color: rgba(255, 255, 255, .72);
+}
+
+.scoreOnlyGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.scoreOnlyGrid .scoreField input {
+  height: 64px;
+  font-size: 28px;
+}
+
+.scoreOnlyGrid .scoreField label {
+  min-height: 29px;
+  display: flex;
+  align-items: flex-end;
+}
+
 .field {
   min-width: 0;
 }
@@ -1090,6 +1184,21 @@ input[type="number"] {
   .cupToggle {
     height: 44px;
     font-size: 13.5px;
+  }
+
+  .fixtureSummaryTop {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .fixtureSummaryTeams strong {
+    font-size: 15px;
+  }
+
+  .scoreOnlyGrid .scoreField input {
+    height: 58px;
+    font-size: 25px;
   }
 }
 
