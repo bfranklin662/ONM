@@ -1,6 +1,6 @@
 // scripts/player-profile.js
 let playerName = "";
-let selectedSeason = "all";
+let selectedSeason = "26-27";
 let selectedLeague = "all";
 let selectedProfileView = "stats";
 let overallTotals = null;
@@ -9,8 +9,6 @@ let playerStatsRows = [];
 if (!window.PlayerData) {
   console.error("PlayerData not found. Is scripts/player-data.js loaded before player-profile.js?");
 }
-
-const FINES_26_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOwv79tu3ymEo-hs92a68mmdm4z6BB2eX1ty10iZfa4JjBgBQOsEbRavREU5ewFOuiZITHkJ7VH4pu/pub?gid=1227331675&single=true&output=csv";
 
 const {
   SHEETS,
@@ -104,26 +102,10 @@ async function loadOutstandingFines() {
   card?.classList.remove("has-outstanding", "no-outstanding");
 
   try {
-    const res = await fetch(`${FINES_26_CSV_URL}&t=${Date.now()}`);
-    const csv = await res.text();
-
-    const rows = csv
-      .trim()
-      .split("\n")
-      .map(row => row.split(",").map(cell => cell.trim()));
-
-    let owedValue = "£0.00";
-
-    rows.forEach(row => {
-      const name = row[0]; // Column A
-      const owed = row[9]; // Column J
-
-      if (name && name.toLowerCase() === playerName.toLowerCase()) {
-        owedValue = owed || "£0.00";
-      }
-    });
-
-    const amount = Number(String(owedValue).replace(/[£,\s]/g, "")) || 0;
+    const rows = await fetchCSV(SHEETS.appearances["26-27"]);
+    const amount = rows
+      .filter(row => playerAppearsInRow(row, playerName))
+      .reduce((total, row) => total + extractPlayerMatchStatsFromRow(row, playerName).fines, 0);
 
     el.classList.remove("loading-dots");
     el.textContent = `£${amount.toFixed(2)}`;
@@ -277,7 +259,7 @@ async function loadOverallTotals() {
     `;
   }
 
-  const seasons = ["24-25", "25-26"];
+  const seasons = ["24-25", "25-26", "26-27"];
   const grand = { Played: 0, Checkouts: 0, Fines: 0, "180s": 0, Bulls: 0, "Ton+": 0 };
 
   await Promise.all(seasons.map(async season => {
@@ -305,6 +287,7 @@ async function loadOverallTotals() {
   overallTotals = grand;
 
   const allAppsRows = [
+    ...(await fetchCSV(SHEETS.appearances["26-27"])),
     ...(await fetchCSV(SHEETS.appearances["25-26"])),
     ...(await fetchCSV(SHEETS.appearances["24-25"]))
   ];
@@ -439,12 +422,13 @@ async function loadOverallTotals() {
 
 
   // Form (last 5 across BOTH seasons)
-  const [apps2526, apps2425] = await Promise.all([
+  const [apps2627, apps2526, apps2425] = await Promise.all([
+    fetchCSV(SHEETS.appearances["26-27"]),
     fetchCSV(SHEETS.appearances["25-26"]),
     fetchCSV(SHEETS.appearances["24-25"])
   ]);
 
-  const allMatches = [...apps2425, ...apps2526];
+  const allMatches = [...apps2425, ...apps2526, ...apps2627];
 
   // sort by date ascending so "last 5" is truly most recent
   allMatches.sort((a, b) => {
@@ -718,13 +702,15 @@ function formatSeasonLabel(season) {
 
 
 async function renderFilteredAppearances() {
+  const apps2726 = await fetchCSV(SHEETS.appearances["26-27"]);
   const apps2625 = await fetchCSV(SHEETS.appearances["25-26"]);
   const apps2425 = await fetchCSV(SHEETS.appearances["24-25"]);
 
   let rows = [];
-  if (selectedSeason === "24-25") rows = apps2425;
+  if (selectedSeason === "26-27") rows = apps2726;
+  else if (selectedSeason === "24-25") rows = apps2425;
   else if (selectedSeason === "25-26") rows = apps2625;
-  else rows = [...apps2625, ...apps2425];
+  else rows = [...apps2726, ...apps2625, ...apps2425];
 
   if (selectedLeague !== "all") {
     rows = rows.filter(r => leagueInfoFromRow(r).name === selectedLeague);
@@ -754,6 +740,7 @@ async function renderFilteredAppearances() {
   await new Promise(r => setTimeout(r, 150));
 
   const groups = {
+    "26-27": apps2726.filter(r => playerAppearsInRow(r, playerName)),
     "25-26": apps2625.filter(r => playerAppearsInRow(r, playerName)),
     "24-25": apps2425.filter(r => playerAppearsInRow(r, playerName))
   };
@@ -766,7 +753,7 @@ async function renderFilteredAppearances() {
 
   const seasonsToRender =
     selectedSeason === "all"
-      ? ["25-26", "24-25"]
+      ? ["26-27", "25-26", "24-25"]
       : [selectedSeason];
 
   let html = "";
@@ -1239,7 +1226,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // --- 11. Finally, load stats & appearances (they replace the spinners) ---
   if (isProfileMode) {
     await loadOverallTotals();
-    await loadSeasonData("all");
+    await loadSeasonData("26-27");
     await loadOutstandingFines();
     await updateMedals(overallTotals);
     updateProfileDataPanels();
@@ -1289,6 +1276,13 @@ document.addEventListener("click", (e) => {
   }
 });
 
+document.getElementById("profileSeasonSelect")?.addEventListener("change", e => {
+  selectedSeason = e.target.value;
+  updateStatsVisibility();
+  updateProfileDataPanels();
+  renderFilteredAppearances();
+});
+
 // ---------- SEASON DATA (table + appearances) ----------
 async function loadSeasonData(season) {
   selectedSeason = season;
@@ -1309,8 +1303,9 @@ async function loadSeasonData(season) {
       }))
     );
 
-    const [statSheets, apps2625, apps2425] = await Promise.all([
+    const [statSheets, apps2726, apps2625, apps2425] = await Promise.all([
       Promise.all(statFetches.map(item => item.promise)),
+      fetchCSV(SHEETS.appearances["26-27"]),
       fetchCSV(SHEETS.appearances["25-26"]),
       fetchCSV(SHEETS.appearances["24-25"])
     ]);
@@ -1371,6 +1366,7 @@ async function loadSeasonData(season) {
     });
 
     function rowsForSeason(seasonKey) {
+      if (seasonKey === "26-27") return apps2726;
       return seasonKey === "24-25" ? apps2425 : apps2625;
     }
 
@@ -1412,7 +1408,7 @@ async function loadSeasonData(season) {
       };
     }).filter(row => row.Played || row.Wins || row.Losses || row.Checkouts || row.Fines || row["180s"] || row.Bulls || row["Ton+"]);
 
-    const seasonRows = ["25-26", "24-25"].map(seasonKey => {
+    const seasonRows = ["26-27", "25-26", "24-25"].map(seasonKey => {
       const seasonStats = combineStats(leagueRows.filter(row => row.season === seasonKey));
       return {
         ...seasonStats,

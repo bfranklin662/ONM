@@ -2,10 +2,10 @@
 (() => {
   const TEAM = "Oche Ness Monsters";
   const FIXTURES_URL = "./data/fixtures-26-27.json";
-  const RESULTS_URL = "data/result-data-25-26.json";
+  const RESULTS_URL = "data/result-data-26-27.json";
 
   const RESULTS_PAGE_URL = (fx) =>
-    `results.html?date=${encodeURIComponent(fx.dateISO)}&opp=${encodeURIComponent(fx.Opponent)}&ha=${encodeURIComponent(fx.HA)}&season=${encodeURIComponent(fx.season || "25-26")}&competition=${encodeURIComponent(fx.Competition || fx.League)}`;
+    `results.html?date=${encodeURIComponent(fx.dateISO)}&opp=${encodeURIComponent(fx.Opponent)}&ha=${encodeURIComponent(fx.HA)}&season=${encodeURIComponent(fx.season || "26-27")}&competition=${encodeURIComponent(fx.Competition || fx.League)}`;
 
 
   const el = (sel) => document.querySelector(sel);
@@ -361,13 +361,12 @@
   }
 
   async function loadData() {
-    const [fixturesRes, resultsRes] = await Promise.all([
+    const [fixturesRes, resultsRows] = await Promise.all([
       fetch(FIXTURES_URL, { cache: "no-store" }),
-      fetch(RESULTS_URL, { cache: "no-store" })
+      window.ONMSeasonData?.fetchResults() || fetch(RESULTS_URL, { cache: "no-store" }).then(res => res.json())
     ]);
 
     const fixtures = await fixturesRes.json();
-    const resultsRows = await resultsRes.json();
 
     // Build results array that only includes rows involving Oche Ness Monsters,
     // and adds derived opponent + HA ("Home"/"Away")
@@ -737,7 +736,7 @@
         awayScore: Number(awayScore),
         completed: true,
         outcome,
-        season: "25-26"
+        season: "26-27"
       }];
     });
   }
@@ -890,9 +889,12 @@
 
     // 2) Then load results JSON and patch (non-blocking)
     try {
-      const resultsRes = await fetch(RESULTS_URL, { cache: "no-store" });
-      if (!resultsRes.ok) throw new Error(`Failed to load results JSON: ${resultsRes.status}`);
-      const rows = await resultsRes.json();
+      const rows = window.ONMSeasonData?.fetchResults
+        ? await window.ONMSeasonData.fetchResults()
+        : await fetch(RESULTS_URL, { cache: "no-store" }).then(res => {
+          if (!res.ok) throw new Error(`Failed to load results JSON: ${res.status}`);
+          return res.json();
+        });
 
       const merged = applyResultsToFixtures(fixturesOnly, rows);
       calendar.setFixtures(mergeCalendarResults(merged, rows));

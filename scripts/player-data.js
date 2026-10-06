@@ -3,10 +3,12 @@
   // ---- CONFIG ----
   const SHEETS = {
     banks: {
+      "26-27": "onm-live:stats:banks",
       "25-26": "data/banks-stats-25-26.json",
       "24-25": "data/banks-stats-24-25.json"
     },
     traf: {
+      "26-27": "onm-live:stats:trafalgar",
       "25-26": "data/trafalgar-stats-25-26.json",
       "24-25": null
     },
@@ -23,14 +25,15 @@
       "24-25": null
     },
     appearances: {
+      "26-27": "onm-live:results",
       "25-26": "data/result-data-25-26.json",
       "24-25": "data/result-data-24-25.json"
     }
   };
 
   const STAT_LEAGUES = [
-    { id: "banks", label: "Banks", competition: "Banks League", sheetKey: "banks", seasons: ["25-26", "24-25"] },
-    { id: "traf", label: "Trafalgar", competition: "Trafalgar League", sheetKey: "traf", seasons: ["25-26"] },
+    { id: "banks", label: "Banks", competition: "Banks League", sheetKey: "banks", seasons: ["26-27", "25-26", "24-25"] },
+    { id: "traf", label: "Trafalgar", competition: "Trafalgar League", sheetKey: "traf", seasons: ["26-27", "25-26"] },
     { id: "smithfield", label: "Smithfield", competition: "Smithfield League", sheetKey: "smithfield", seasons: ["25-26"] },
     { id: "colda-a", label: "COLDA A", competition: "COLDA A", sheetKey: "coldaA", seasons: ["25-26"] },
     { id: "colda-b", label: "COLDA B", competition: "COLDA B", sheetKey: "coldaB", seasons: ["25-26"] }
@@ -66,6 +69,9 @@
 
   async function fetchCSV(url) {
     if (!url) return [];
+    if (url.startsWith("onm-live:")) {
+      return window.ONMSeasonData?.fetchSource(url) || [];
+    }
     // JSON shortcuts
     if (/\.json($|\?)/i.test(url) || url.trim().endsWith(".json")) {
       try {
@@ -105,12 +111,13 @@
         league.seasons.map(season => fetchCSV(SHEETS[league.sheetKey]?.[season]))
       )
     );
-    const apps25 = await fetchCSV(SHEETS.appearances["25-26"]);
-    const apps24 = await fetchCSV(SHEETS.appearances["24-25"]);
+    const appearanceRows = await Promise.all(
+      Object.values(SHEETS.appearances).filter(Boolean).map(fetchCSV)
+    );
 
     const all = [
       ...statRows.flat(),
-      ...apps25, ...apps24
+      ...appearanceRows.flat()
     ];
 
     all.forEach(row => {

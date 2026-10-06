@@ -57,12 +57,16 @@
   <section class="results-container">
     <div class="results-header-bar">
       <div class="season-selector">
-        <button class="season-tab" data-season="all" title="All time stats">All</button>
-        <button class="season-tab active" data-season="25-26" title="25/26 season">25/26</button>
-        <button class="season-tab" data-season="24-25" title="24/25 season">24/25</button>
+        <label class="season-dropdown-label" for="resultsSeasonSelect">Season</label>
+        <select id="resultsSeasonSelect" class="season-dropdown" aria-label="Select season">
+          <option value="26-27" selected>2026/27</option>
+          <option value="25-26">2025/26</option>
+          <option value="24-25">2024/25</option>
+          <option value="all">All time</option>
+        </select>
       </div>
 
-      <h2 class="results-title">Match Results 25/26</h2>
+      <h2 class="results-title">Match Results 26/27</h2>
 
       <div class="view-selector">
         <button class="view-btn active" data-view="results" title="Result view">🧾</button>
@@ -70,7 +74,7 @@
         <button class="view-btn" data-view="gallery" title="Gallery view">🖼️</button>
       </div>
 
-      <h2 class="results-title2">Match Results 25/26</h2>
+      <h2 class="results-title2">Match Results 26/27</h2>
     </div>
 
 
@@ -94,6 +98,7 @@
       <button class="lightbox-next" onclick="nextImage()">❯</button>
     </div>
   </div>
+  <script src="scripts/season-data.js"></script>
   <script src="scripts/results.js"></script>
   <script src="scripts/player-data.js"></script>
   <script src="scripts/session.js"></script>

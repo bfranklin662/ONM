@@ -173,9 +173,13 @@
             <div class="stats-and-appearances-wrapper">
               <div class="profile-data-header">
                 <div class="stats-toggle-left">
-                  <button class="season-btn active" data-season="all">All</button>
-                  <button class="season-btn" data-season="25-26">25/26</button>
-                  <button class="season-btn" data-season="24-25">24/25</button>
+                  <label class="profile-season-label" for="profileSeasonSelect">Season</label>
+                  <select id="profileSeasonSelect" class="profile-season-dropdown" aria-label="Select player-stat season">
+                    <option value="26-27" selected>2026/27</option>
+                    <option value="25-26">2025/26</option>
+                    <option value="24-25">2024/25</option>
+                    <option value="all">All time</option>
+                  </select>
                 </div>
 
                 <div class="stats-title" id="statsTitle">
@@ -333,6 +337,7 @@
 
   </main>
 
+  <script src="scripts/season-data.js"></script>
   <script src="scripts/player-data.js"></script>
   <script src="scripts/player-profile.js"></script>
   <script>

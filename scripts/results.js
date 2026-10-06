@@ -5,9 +5,10 @@ document.getElementById("resultsGrid").innerHTML = `
       </div>
     `;
 
-const CSV_URL = {
-  main: "data/result-data-25-26.json",
-  leagueStats: "data/won-lost-25-26.json"
+const RESULTS_URLS = {
+  "26-27": "onm-live:results",
+  "25-26": "data/result-data-25-26.json",
+  "24-25": "data/result-data-24-25.json"
 };
 let resultsVisibleCount = 10;
 const RESULTS_PAGE_SIZE = 10;
@@ -33,6 +34,10 @@ const STATS_FILTER_MATCHES = [
 
 const ALL_LEAGUE_FILTER_MATCHES = STATS_FILTER_MATCHES;
 const STATIC_LEAGUE_FILTERS_BY_SEASON = {
+  "26-27": [
+    { Competition: "Banks League" },
+    { Competition: "Trafalgar League" }
+  ],
   "24-25": [{ Competition: "Banks League" }]
 };
 const STATS_TABLE_HEADERS = [
@@ -246,9 +251,14 @@ function getMatchField(match, ...keys) {
 }
 
 async function fetchLeagueStats(url) {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to load league stats: ${response.status}`);
-  const [stats = {}] = await response.json();
+  let stats = {};
+  if (url.startsWith("onm-live:")) {
+    [stats = {}] = await window.ONMSeasonData.fetchSource(url);
+  } else {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to load league stats: ${response.status}`);
+    [stats = {}] = await response.json();
+  }
 
   // Transform into easy-to-use format
   const leagueStats = {
@@ -499,7 +509,7 @@ async function fetchDriveImages(folderId) {
   }
 }
 // 🔹 Restore saved preferences before DOM ready
-let currentSeason = localStorage.getItem("season") || "25-26";
+let currentSeason = localStorage.getItem("season") || "26-27";
 let currentViewMode = localStorage.getItem("viewMode") || "results";
 let currentLeague = "banks"; // if applicable
 
@@ -509,6 +519,10 @@ function saveUserPrefs() {
 }
 
 async function fetchJSONData(url) {
+  if (url.startsWith("onm-live:")) {
+    const data = await window.ONMSeasonData.fetchSource(url);
+    return [...data].sort((a, b) => parseDate(b.Date) - parseDate(a.Date));
+  }
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Failed to load results: ${response.status}`);
   const data = await response.json();
@@ -520,10 +534,12 @@ async function fetchJSONData(url) {
 
 const SHEETS = {
   banks: {
+    "26-27": "data/banks-stats-26-27.json",
     "25-26": "data/banks-stats-25-26.json",
     "24-25": "data/banks-stats-24-25.json",
   },
   traf: {
+    "26-27": "data/trafalgar-stats-26-27.json",
     "25-26": "data/trafalgar-stats-25-26.json",
   },
 };
@@ -570,14 +586,10 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
       return;
     }
 
-    const mainData = season === "all"
-      ? [
-        ...await fetchCSVData(CSV_URL.main),
-        ...await fetchJSONData("data/result-data-24-25.json")
-      ]
-      : season === "24-25"
-        ? await fetchJSONData("data/result-data-24-25.json")
-        : await fetchCSVData(CSV_URL.main);
+    const resultSeasons = season === "all" ? ["26-27", "25-26", "24-25"] : [season];
+    const mainData = (await Promise.all(
+      resultSeasons.map(seasonKey => fetchJSONData(RESULTS_URLS[seasonKey]))
+    )).flat();
 
     updateLeagueFilterBar(
       availableLeagueFiltersForSeason(
@@ -718,7 +730,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
     const resultCards = await Promise.all(
       visibleMatches.map(async match => {
-        const players = Array.from({ length: 10 }, (_, i) => {
+        const players = Array.from({ length: 12 }, (_, i) => {
           const n = i + 1;
 
           return {
@@ -816,7 +828,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
           return `
                     <tr>
-                      <td>${p.name ? `<a href="player.html?name=${encodeURIComponent(p.name)}" class="player-link">${p.name}</a>` : ""}</td>
+                      <td>${p.name ? `<a href="player-profile.html?name=${encodeURIComponent(p.name)}" class="player-link">${p.name}</a>` : ""}</td>
                       <td>${p.score && Number(p.score) === 0 ? `<span class="bagel">🥯</span>` : p.score || ""}</td>
                       <td class="${fineClass}">${formatCurrency(p.fines)}</td>
                       <td><div class="specials-container">${specials.join(" ")}</div></td>
@@ -849,7 +861,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
         <div class="league-pill league-pill-${meta.key}">${meta.label}</div>
 
-        ${match["Cup?"]?.toLowerCase() === "true" || match["Cup?"]?.toLowerCase() === "yes"
+        ${["true", "yes"].includes(String(match["Cup?"] || "").toLowerCase())
             ? `<img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/trophy.svg" alt="Cup Match" class="cup-icon" title="Cup Match">`
             : ""}
 
@@ -1009,7 +1021,7 @@ function initPage() {
   let savedSeason = localStorage.getItem("season");
   let savedView = localStorage.getItem("viewMode");
 
-  window.currentSeason = savedSeason || "25-26";
+  window.currentSeason = savedSeason || "26-27";
   window.currentViewMode = savedView || "results";
   window.currentLeague = "banks";
 
@@ -1018,7 +1030,7 @@ function initPage() {
   if (hasResultQuery()) {
     const requestedSeason = new URLSearchParams(window.location.search).get("season");
     // A direct result link takes precedence over a previously selected season.
-    currentSeason = ["24-25", "25-26"].includes(requestedSeason) ? requestedSeason : "all";
+    currentSeason = ["24-25", "25-26", "26-27"].includes(requestedSeason) ? requestedSeason : "all";
     localStorage.setItem("season", currentSeason);
     currentViewMode = "results";
     currentLeagueFilter = "all";
@@ -1027,22 +1039,15 @@ function initPage() {
   }
 
   // 2️⃣ Apply visual active states
-  document.querySelectorAll(".season-tab").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.season === currentSeason);
-  });
+  const seasonSelect = document.getElementById("resultsSeasonSelect");
+  if (seasonSelect) seasonSelect.value = currentSeason;
   document.querySelectorAll(".view-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.view === currentViewMode);
   });
 
   // 3️⃣ Season switching
-  document.querySelectorAll(".season-tab").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (btn.classList.contains("active")) return;
-
-      document.querySelectorAll(".season-tab").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-
-      currentSeason = btn.dataset.season;
+  seasonSelect?.addEventListener("change", () => {
+      currentSeason = seasonSelect.value;
       resultsVisibleCount = RESULTS_PAGE_SIZE;
 
       saveUserPrefs();
@@ -1052,7 +1057,6 @@ function initPage() {
       } else {
         fetchResults(currentSeason, currentViewMode);
       }
-    });
   });
 
   // 4️⃣ View switching
@@ -1132,14 +1136,17 @@ async function fetchStats(season) {
   // === Sheet URLs ===
   const SHEETS = {
     all: {
+      "26-27": "onm-live:stats:all",
       "25-26": "data/all-stats-25-26.json",
       "24-25": null
     },
     banks: {
+      "26-27": "onm-live:stats:banks",
       "25-26": "data/banks-stats-25-26.json",
       "24-25": "data/banks-stats-24-25.json"
     },
     traf: {
+      "26-27": "onm-live:stats:trafalgar",
       "25-26": "data/trafalgar-stats-25-26.json",
       "24-25": null
     },
@@ -1186,6 +1193,7 @@ async function fetchStats(season) {
 
   // === League Stats URLs (P/W/L) ===
   const LEAGUE_STATS_URLS = {
+    "26-27": "onm-live:won-lost",
     "25-26": "data/won-lost-25-26.json",
     "24-25": "data/won-lost-24-25.json"
   };
@@ -1233,6 +1241,10 @@ async function fetchStats(season) {
   async function fetchCSV(url, fallbackUrl = null) {
     if (!url) return null;
     try {
+      if (url.startsWith("onm-live:")) {
+        const rows = await window.ONMSeasonData.fetchSource(url);
+        return statsJsonToCsv(JSON.stringify(rows));
+      }
       const noCacheUrl = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
       const res = await fetch(noCacheUrl);
       if (!res.ok) throw new Error("Network error");
@@ -1297,7 +1309,7 @@ async function fetchStats(season) {
           ${row.map((cell, j) => {
         const text = cell.trim();
         if (j === 0 && text && text !== "-") {
-          const href = `player.html?name=${encodeURIComponent(text)}`;
+          const href = `player-profile.html?name=${encodeURIComponent(text)}`;
           return `<td><a href="${href}" class="player-link">${text}</a></td>`;
         }
         return `<td>${text}</td>`;
@@ -1422,7 +1434,7 @@ async function fetchStats(season) {
     return csvs.filter(Boolean);
   }
 
-  const statSeasons = season === "all" ? ["25-26", "24-25"] : [season];
+  const statSeasons = season === "all" ? ["26-27", "25-26", "24-25"] : [season];
 
   let allCsv = null;
   let banksCsv = null;

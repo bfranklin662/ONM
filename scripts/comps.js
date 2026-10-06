@@ -1,5 +1,5 @@
 const LEAGUE_STATS_URL =
-  "data/won-lost-25-26.json";
+  "onm-live:won-lost";
 
 function setText(id, value) {
   const el = document.getElementById(id);
@@ -7,9 +7,14 @@ function setText(id, value) {
 }
 
 async function fetchLeagueStats(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to load league stats: ${res.status}`);
-  const [stats = {}] = await res.json();
+  let stats = {};
+  if (url.startsWith("onm-live:")) {
+    [stats = {}] = await window.ONMSeasonData.fetchSource(url);
+  } else {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to load league stats: ${res.status}`);
+    [stats = {}] = await res.json();
+  }
 
   return {
     banks: {

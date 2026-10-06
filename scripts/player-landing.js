@@ -231,6 +231,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       promise: fetchCSVWithCache(`${league.id}_${season}`, SHEETS[league.sheetKey]?.[season])
     }))
   );
+  const apps26Promise = fetchCSVWithCache("apps_26-27", SHEETS.appearances["26-27"]);
   const apps25Promise = fetchCSVWithCache("apps_25-26", SHEETS.appearances["25-26"]);
   const apps24Promise = fetchCSVWithCache("apps_24-25", SHEETS.appearances["24-25"]);
 
@@ -417,8 +418,9 @@ document.addEventListener("DOMContentLoaded", async () => {
      LOAD STATS (already in-flight) & update UI
   -------------------------------------------- */
   try {
-    const [statResults, apps25, apps24] = await Promise.all([
+    const [statResults, apps26, apps25, apps24] = await Promise.all([
       Promise.all(statPromises.map(item => item.promise)),
+      apps26Promise,
       apps25Promise,
       apps24Promise
     ]);
@@ -430,6 +432,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
     const allAppsRows = [
+      ...(Array.isArray(apps26) ? apps26 : []),
       ...(Array.isArray(apps25) ? apps25 : []),
       ...(Array.isArray(apps24) ? apps24 : [])
     ];

@@ -1,7 +1,7 @@
 const HOME_CSVS = {
-  allStats: "data/all-stats-25-26.json",
-  banksStats: "data/banks-stats-25-26.json",
-  trafStats: "data/trafalgar-stats-25-26.json"
+  allStats: "data/all-stats-26-27.json",
+  banksStats: "data/banks-stats-26-27.json",
+  trafStats: "data/trafalgar-stats-26-27.json"
 };
 
 async function fetchCsvRows(url) {
