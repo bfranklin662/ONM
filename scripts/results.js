@@ -509,12 +509,12 @@ async function fetchDriveImages(folderId) {
   }
 }
 // 🔹 Restore saved preferences before DOM ready
-let currentSeason = localStorage.getItem("season") || "26-27";
+let currentSeason = localStorage.getItem("resultsSeason") || "26-27";
 let currentViewMode = localStorage.getItem("viewMode") || "results";
 let currentLeague = "banks"; // if applicable
 
 function saveUserPrefs() {
-  localStorage.setItem("season", currentSeason);
+  localStorage.setItem("resultsSeason", currentSeason);
   localStorage.setItem("viewMode", currentViewMode);
 }
 
@@ -1018,7 +1018,7 @@ saveUserPrefs();
 
 function initPage() {
   // 1️⃣ Load saved preferences
-  let savedSeason = localStorage.getItem("season");
+  let savedSeason = localStorage.getItem("resultsSeason");
   let savedView = localStorage.getItem("viewMode");
 
   window.currentSeason = savedSeason || "26-27";
@@ -1031,7 +1031,7 @@ function initPage() {
     const requestedSeason = new URLSearchParams(window.location.search).get("season");
     // A direct result link takes precedence over a previously selected season.
     currentSeason = ["24-25", "25-26", "26-27"].includes(requestedSeason) ? requestedSeason : "all";
-    localStorage.setItem("season", currentSeason);
+    localStorage.setItem("resultsSeason", currentSeason);
     currentViewMode = "results";
     currentLeagueFilter = "all";
     localStorage.setItem("viewMode", currentViewMode);

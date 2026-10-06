@@ -1,6 +1,6 @@
 // scripts/player-profile.js
 let playerName = "";
-let selectedSeason = "26-27";
+let selectedSeason = "all";
 let selectedLeague = "all";
 let selectedProfileView = "stats";
 let overallTotals = null;
@@ -1226,7 +1226,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // --- 11. Finally, load stats & appearances (they replace the spinners) ---
   if (isProfileMode) {
     await loadOverallTotals();
-    await loadSeasonData("26-27");
+    await loadSeasonData("all");
     await loadOutstandingFines();
     await updateMedals(overallTotals);
     updateProfileDataPanels();
