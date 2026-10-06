@@ -3,6 +3,7 @@
   const TEAM = "Oche Ness Monsters";
   const FIXTURES_URL = "./data/fixtures-26-27.json";
   const RESULTS_URL = "data/result-data-26-27.json";
+  const LAST_SEASON_RESULTS_URL = "data/result-data-25-26.json";
 
   const RESULTS_PAGE_URL = (fx) =>
     `results.html?date=${encodeURIComponent(fx.dateISO)}&opp=${encodeURIComponent(fx.Opponent)}&ha=${encodeURIComponent(fx.HA)}&season=${encodeURIComponent(fx.season || "26-27")}&competition=${encodeURIComponent(fx.Competition || fx.League)}`;
@@ -220,8 +221,8 @@
       const d = parseCsvDate(r.Date || r.date);
       if (!d) continue;
 
-      const homeTeam = (r.HomeTeam ?? r.homeTeam ?? r.Home ?? "").trim();
-      const awayTeam = (r.AwayTeam ?? r.awayTeam ?? r.Away ?? "").trim();
+      const homeTeam = getResultField(r, "HomeTeam", "homeTeam", "Home");
+      const awayTeam = getResultField(r, "AwayTeam", "awayTeam", "Away");
 
       const derived = getOpponentAndHAFromResultRow(homeTeam, awayTeam);
       if (!derived) continue;
@@ -232,8 +233,8 @@
         awayTeam,
         opponent: derived.opponent,
         ha: derived.ha,
-        homeScore: (r.HomeScore ?? r.homeScore ?? r["Home Score"] ?? "").trim(),
-        awayScore: (r.AwayScore ?? r.awayScore ?? r["Away Score"] ?? "").trim(),
+        homeScore: getResultField(r, "HomeScore", "homeScore", "Home Score"),
+        awayScore: getResultField(r, "AwayScore", "awayScore", "Away Score"),
         homePoints: getResultField(r, "HomePoints", "Home Points", "homePoints"),
         awayPoints: getResultField(r, "AwayPoints", "Away Points", "awayPoints")
       });
@@ -375,14 +376,14 @@
       const d = parseCsvDate(r.Date || r.date);
       if (!d) continue;
 
-      const homeTeam = (r.HomeTeam ?? r.homeTeam ?? r.Home ?? "").trim();
-      const awayTeam = (r.AwayTeam ?? r.awayTeam ?? r.Away ?? "").trim();
+      const homeTeam = getResultField(r, "HomeTeam", "homeTeam", "Home");
+      const awayTeam = getResultField(r, "AwayTeam", "awayTeam", "Away");
 
       const derived = getOpponentAndHAFromResultRow(homeTeam, awayTeam);
       if (!derived) continue;
 
-      const homeScore = (r.HomeScore ?? r.homeScore ?? r["Home Score"] ?? "").trim();
-      const awayScore = (r.AwayScore ?? r.awayScore ?? r["Away Score"] ?? "").trim();
+      const homeScore = getResultField(r, "HomeScore", "homeScore", "Home Score");
+      const awayScore = getResultField(r, "AwayScore", "awayScore", "Away Score");
       const homePoints = getResultField(r, "HomePoints", "Home Points", "homePoints");
       const awayPoints = getResultField(r, "AwayPoints", "Away Points", "awayPoints");
 
@@ -397,7 +398,7 @@
         awayScore,
         homePoints,
         awayPoints,
-        resultText: (r.Result ?? r.result ?? "").trim()
+        resultText: getResultField(r, "Result", "result")
       });
     }
 
@@ -489,9 +490,16 @@
 
 
 
-  function renderCard(fx, showMonthDivider, isNextFixture) {
+  function formatFixtureSeason(season) {
+    return String(season || "26-27").replace("-", "/");
+  }
+
+  function renderCard(fx, showSeasonDivider, isNextFixture) {
     const pillClass = fx.leagueClass; // banks/trafalgar/cup/competition
     const nextBadgeHtml = isNextFixture ? `<div class="nextFixtureBadge">Next Fixture</div>` : "";
+    const seasonDividerHtml = showSeasonDivider
+      ? `<div class="fxSeasonDivider"><span>${formatFixtureSeason(fx.season)} season starts</span></div>`
+      : "";
 
 
 
@@ -526,13 +534,17 @@
     return `
     <div class="fxCard ${fx.leagueClass} ${(fx.completed || fx.pendingResult) ? "" : "upcoming"}">
 
+      ${seasonDividerHtml}
 
 
       <div class="fxTopRow">
         <div class="fxLeaguePill ${pillClass}">
           ${String(fx.leagueTitle || "").toUpperCase()}
         </div>
-        ${nextBadgeHtml}
+        <div class="fxCardMeta">
+          <span class="fxSeasonPill">${formatFixtureSeason(fx.season)}</span>
+          ${nextBadgeHtml}
+        </div>
       </div>
 
       <div class="fxMainRow">
@@ -603,7 +615,11 @@
 
       // Render cards
       let html = indices
-        .map(i => renderCard(fixtures[i], false, i === nxtIdx))
+        .map(i => {
+          const previousSeason = i > 0 ? fixtures[i - 1].season : "";
+          const showSeasonDivider = !!previousSeason && previousSeason !== fixtures[i].season;
+          return renderCard(fixtures[i], showSeasonDivider, i === nxtIdx);
+        })
         .join("");
 
       // End-of-season message when you're at the last fixture
@@ -645,7 +661,7 @@
     return {
       setFixtures(newFixtures) {
         fixtures = newFixtures;
-        anchor = Math.min(anchor, fixtures.length - 1);
+        anchor = initialIndex(fixtures);
         update();
       }
     };
@@ -670,6 +686,7 @@
 
       return {
         ...fx,
+        season: fx.season || "26-27",
         leagueTitle,
         leagueClass: leagueCls,
         dateObj: d,
@@ -701,7 +718,7 @@
     }[c]));
   }
 
-  function calendarResultEvents(rows) {
+  function calendarResultEvents(rows, season) {
     return rows.flatMap(row => {
       const dateObj = parseCsvDate(row.Date);
       const side = getOpponentAndHAFromResultRow(row.HomeTeam, row.AwayTeam);
@@ -736,13 +753,15 @@
         awayScore: Number(awayScore),
         completed: true,
         outcome,
-        season: "26-27"
+        season
       }];
     });
   }
 
-  function mergeCalendarResults(fixtures, rows) {
-    const results = calendarResultEvents(rows);
+  function mergeCalendarResults(fixtures, resultSources) {
+    const results = resultSources.flatMap(source =>
+      calendarResultEvents(source.rows, source.season)
+    );
     const matchKey = fixture => [
       fixture.dateISO, normalizeName(fixture.Competition || fixture.League),
       normalizeName(fixture.Opponent), fixture.HA.toLowerCase()
@@ -876,10 +895,13 @@
     setupFixtureViews();
     renderLoadingSkeleton(3);
 
-    // 1) Load fixtures JSON first
-    const fixturesRes = await fetch(FIXTURES_URL, { cache: "no-store" });
-    if (!fixturesRes.ok) throw new Error(`Failed to load fixtures JSON: ${fixturesRes.status}`);
-    const fixturesRaw = await fixturesRes.json();
+    // 1) Load the live fixture sheet, with the packaged JSON as a fallback.
+    const fixturesRaw = window.ONMSeasonData?.fetchFixtures
+      ? await window.ONMSeasonData.fetchFixtures()
+      : await fetch(FIXTURES_URL, { cache: "no-store" }).then(res => {
+        if (!res.ok) throw new Error(`Failed to load fixtures JSON: ${res.status}`);
+        return res.json();
+      });
 
     const fixturesOnly = normalizeFixturesOnly(fixturesRaw);
 
@@ -889,16 +911,26 @@
 
     // 2) Then load results JSON and patch (non-blocking)
     try {
-      const rows = window.ONMSeasonData?.fetchResults
-        ? await window.ONMSeasonData.fetchResults()
-        : await fetch(RESULTS_URL, { cache: "no-store" }).then(res => {
-          if (!res.ok) throw new Error(`Failed to load results JSON: ${res.status}`);
+      const [rows, lastSeasonRows] = await Promise.all([
+        window.ONMSeasonData?.fetchResults
+          ? window.ONMSeasonData.fetchResults()
+          : fetch(RESULTS_URL, { cache: "no-store" }).then(res => {
+            if (!res.ok) throw new Error(`Failed to load results JSON: ${res.status}`);
+            return res.json();
+          }),
+        fetch(LAST_SEASON_RESULTS_URL, { cache: "no-store" }).then(res => {
+          if (!res.ok) throw new Error(`Failed to load 25/26 results JSON: ${res.status}`);
           return res.json();
-        });
+        })
+      ]);
 
       const merged = applyResultsToFixtures(fixturesOnly, rows);
-      calendar.setFixtures(mergeCalendarResults(merged, rows));
-      carousel.setFixtures(merged);  // updates rendered cards with scores/links
+      const allMatches = mergeCalendarResults(merged, [
+        { rows: lastSeasonRows, season: "25-26" },
+        { rows, season: "26-27" }
+      ]);
+      calendar.setFixtures(allMatches);
+      carousel.setFixtures(allMatches);
     } catch (e) {
       console.warn("Results JSON failed, showing fixtures without scores.", e);
     }

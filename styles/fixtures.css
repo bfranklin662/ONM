@@ -993,6 +993,35 @@
   /* needed for badge positioning */
 }
 
+.fxCardMeta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.fxSeasonPill {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.fxSeasonDivider {
+  margin: -14px -14px 12px;
+  padding: 7px 12px;
+  border-bottom: 1px solid rgba(0, 184, 148, 0.55);
+  border-radius: 15px 15px 0 0;
+  background: linear-gradient(90deg, rgba(0, 184, 148, 0.30), rgba(0, 184, 148, 0.08));
+  color: #9ff5df;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .fxTopRow {
   display: flex;
   align-items: center;

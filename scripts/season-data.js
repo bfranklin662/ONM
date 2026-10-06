@@ -1,7 +1,9 @@
 (function () {
   const ENDPOINT = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
   const FALLBACK_URL = "data/result-data-26-27.json";
+  const FIXTURES_FALLBACK_URL = "data/fixtures-26-27.json";
   let resultsPromise = null;
+  let fixturesPromise = null;
 
   function num(value) {
     const parsed = Number(String(value ?? "").replace(/[£,\s]/g, ""));
@@ -18,7 +20,7 @@
     resultsPromise = (async () => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         const response = await fetch(ENDPOINT, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -40,6 +42,36 @@
     })();
 
     return resultsPromise;
+  }
+
+  async function fetchFixtures() {
+    if (fixturesPromise) return fixturesPromise;
+
+    fixturesPromise = (async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const response = await fetch(ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "getPublicSeasonFixtures" }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const payload = await response.json();
+        if (!payload.success || !Array.isArray(payload.fixtures)) {
+          throw new Error(payload.error || "Live fixtures are unavailable.");
+        }
+        return payload.fixtures;
+      } catch (error) {
+        console.warn("Using the packaged 26/27 fixture data.", error);
+        const fallback = await fetch(`${FIXTURES_FALLBACK_URL}?t=${Date.now()}`);
+        if (!fallback.ok) throw new Error(`Failed to load 26/27 fixtures: ${fallback.status}`);
+        return fallback.json();
+      }
+    })();
+
+    return fixturesPromise;
   }
 
   function buildPlayerStats(rows, competition = "all") {
@@ -116,5 +148,5 @@
     return [];
   }
 
-  window.ONMSeasonData = { fetchResults, fetchSource };
+  window.ONMSeasonData = { fetchResults, fetchFixtures, fetchSource };
 })();
