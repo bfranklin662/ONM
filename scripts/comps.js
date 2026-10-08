@@ -26,11 +26,6 @@ async function fetchLeagueStats(url) {
       P: stats["Played Trafalgar"] || 0,
       W: stats["Won Trafalgar"] || 0,
       L: stats["Lost Trafalgar"] || 0,
-    },
-    smithfield: {
-      P: stats["Played Smithfield"] || 0,
-      W: stats["Won Smithfield"] || 0,
-      L: stats["Lost Smithfield"] || 0,
     }
   };
 }
@@ -47,9 +42,6 @@ async function initCompsPWL() {
     setText("traf-w", data.traf.W);
     setText("traf-l", data.traf.L);
 
-    setText("smithfield-p", data.smithfield.P);
-    setText("smithfield-w", data.smithfield.W);
-    setText("smithfield-l", data.smithfield.L);
   } catch (err) {
     console.warn("Failed to load league stats:", err);
   }
