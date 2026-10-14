@@ -1,6 +1,8 @@
 // scripts/player-data.js
 (function () {
   // ---- CONFIG ----
+  const PLAYER_PROFILE_ENDPOINT = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
+  let livePlayerProfilesCache = null;
   const SHEETS = {
     banks: {
       "26-27": "onm-live:stats:banks",
@@ -101,6 +103,66 @@
       console.error("fetchCSV failed:", url, err);
       return [];
     }
+  }
+
+  function normaliseLiveProfile(profile = {}) {
+    return {
+      playerKey: profile.playerKey || "",
+      nickname: profile.nickname || "",
+      photo: profile.photoUrl || "",
+      bio: profile.bio || "",
+      accolades: Array.isArray(profile.accolades) ? profile.accolades : [],
+      role: profile.role || "",
+      song: profile.song || "",
+      highestCheckout: String(profile.highestCheckout || "").trim(),
+      gooch: String(profile.gooch || "").trim().toLowerCase(),
+      profileVisible: profile.profileVisible !== false
+    };
+  }
+
+  async function fetchPublicPlayerProfiles({ force = false } = {}) {
+    if (!force && livePlayerProfilesCache) return livePlayerProfilesCache;
+
+    try {
+      const response = await fetch(PLAYER_PROFILE_ENDPOINT, {
+        method: "POST",
+        body: JSON.stringify({ action: "getPublicPlayerProfiles" }),
+        headers: { "Content-Type": "text/plain;charset=utf-8" }
+      });
+      const result = await response.json();
+      if (!result.success || !Array.isArray(result.profiles)) throw new Error(result.error || "Profile load failed");
+
+      livePlayerProfilesCache = {};
+      result.profiles.forEach(profile => {
+        if (profile?.publicName) {
+          livePlayerProfilesCache[profile.publicName] = normaliseLiveProfile(profile);
+        }
+      });
+      return livePlayerProfilesCache;
+    } catch (error) {
+      console.warn("Could not load live player profiles", error);
+      return {};
+    }
+  }
+
+  async function updatePublicPlayerProfile({ user, playerKey, profile }) {
+    if (!user?.userId || !user?.email) throw new Error("Sign in to edit player profiles.");
+
+    const response = await fetch(PLAYER_PROFILE_ENDPOINT, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "updatePlayerProfile",
+        userId: user.userId,
+        email: user.email,
+        playerKey,
+        profile
+      }),
+      headers: { "Content-Type": "text/plain;charset=utf-8" }
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || "Profile update failed");
+    livePlayerProfilesCache = null;
+    return normaliseLiveProfile(result.profile || {});
   }
 
   async function getAllPlayersFromSheets() {
@@ -433,6 +495,8 @@
     safeParseDate,
     formatPrettyDate,
     countWinsAndLosses,
+    fetchPublicPlayerProfiles,
+    updatePublicPlayerProfile,
     fetchPlayerPhotosFromDrive,
     photoKey
   };

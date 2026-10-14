@@ -208,6 +208,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       return {};
     });
 
+  const liveProfilesPromise = window.PlayerData?.fetchPublicPlayerProfiles
+    ? window.PlayerData.fetchPublicPlayerProfiles()
+    : Promise.resolve({});
+
   const allPlayersPromise = getAllPlayersFromSheets();
 
   const fetchPlayerPhotosFromDrive =
@@ -241,8 +245,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* -------------------------------------------
      WAIT for the minimum needed to show UI (players + profiles)
   -------------------------------------------- */
-  const [manualProfiles, allPlayers, drivePhotos] = await Promise.all([
+  const [manualProfiles, liveProfiles, allPlayers, drivePhotos] = await Promise.all([
     manualProfilesPromise,
+    liveProfilesPromise,
     allPlayersPromise,
     drivePhotosPromise
   ]);
@@ -266,17 +271,25 @@ document.addEventListener("DOMContentLoaded", async () => {
      BUILD PROFILES
   -------------------------------------------- */
   window.playerProfiles = {};
-  allPlayers.forEach(name => {
-    const src = manualProfiles[name] || {};
+  const profileNames = Array.from(new Set([
+    ...allPlayers,
+    ...Object.keys(manualProfiles),
+    ...Object.keys(liveProfiles)
+  ])).sort();
+
+  profileNames.forEach(name => {
+    const fallback = manualProfiles[name] || {};
+    const live = liveProfiles[name] || {};
     const key = photoKey(name);
 
     window.playerProfiles[name] = {
-      nickname: src.nickname || "",
-      bio: src.bio || "",
-      accolades: Array.isArray(src.accolades) ? src.accolades : [],
-      role: src.role || "",
-      song: src.song || "",
-      photo: drivePhotos[key] || src.photo || "images/default.jpg"
+      playerKey: live.playerKey || "",
+      nickname: live.nickname || fallback.nickname || "",
+      bio: live.bio || fallback.bio || "",
+      accolades: live.accolades?.length ? live.accolades : (Array.isArray(fallback.accolades) ? fallback.accolades : []),
+      role: live.role || fallback.role || "",
+      song: live.song || fallback.song || "",
+      photo: live.photo || drivePhotos[key] || fallback.photo || "images/default.jpg"
     };
   });
 

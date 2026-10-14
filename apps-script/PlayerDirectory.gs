@@ -6,7 +6,22 @@
  */
 
 const PLAYER_DIRECTORY_SHEET_NAME = "Player Directory";
-const PLAYER_DIRECTORY_HEADERS = ["FullName", "PublicName", "PlayerKey", "AddedAt"];
+const PLAYER_PROFILE_SEED_URL = "https://ochenessmonsters.com/data/player-profile.json";
+const PLAYER_DIRECTORY_HEADERS = [
+  "FullName",
+  "PublicName",
+  "PlayerKey",
+  "Nickname",
+  "PhotoURL",
+  "Bio",
+  "Accolades",
+  "Role",
+  "Song",
+  "HighestCheckout",
+  "Gooch",
+  "ProfileVisible",
+  "AddedAt"
+];
 
 // Used only to seed the directory sheet the first time it is created.
 // New players are added automatically after a successful result submission.
@@ -67,11 +82,41 @@ function getPlayerDirectorySheet_() {
     sheet = spreadsheet.insertSheet(PLAYER_DIRECTORY_SHEET_NAME);
   }
 
-  sheet.getRange(1, 1, 1, PLAYER_DIRECTORY_HEADERS.length)
-    .setValues([PLAYER_DIRECTORY_HEADERS]);
+  ensurePlayerDirectorySchema_(sheet);
   sheet.setFrozenRows(1);
 
   return sheet;
+}
+
+function ensurePlayerDirectorySchema_(sheet) {
+  const oldColumnCount = Math.max(sheet.getLastColumn(), 1);
+  const oldHeaders = sheet.getRange(1, 1, 1, oldColumnCount).getDisplayValues()[0]
+    .map(function(value) { return String(value || "").trim(); });
+  const schemaMatches = PLAYER_DIRECTORY_HEADERS.every(function(header, index) {
+    return oldHeaders[index] === header;
+  }) && oldHeaders.length === PLAYER_DIRECTORY_HEADERS.length;
+
+  if (schemaMatches) return;
+
+  const oldRows = sheet.getLastRow() > 1
+    ? sheet.getRange(2, 1, sheet.getLastRow() - 1, oldColumnCount).getValues()
+    : [];
+  const migratedRows = oldRows.map(function(row) {
+    const record = {};
+    oldHeaders.forEach(function(header, index) {
+      if (header) record[header] = row[index];
+    });
+    return PLAYER_DIRECTORY_HEADERS.map(function(header) {
+      if (header === "ProfileVisible" && record[header] === undefined) return true;
+      return record[header] === undefined ? "" : record[header];
+    });
+  });
+
+  sheet.clearContents();
+  sheet.getRange(1, 1, 1, PLAYER_DIRECTORY_HEADERS.length).setValues([PLAYER_DIRECTORY_HEADERS]);
+  if (migratedRows.length) {
+    sheet.getRange(2, 1, migratedRows.length, PLAYER_DIRECTORY_HEADERS.length).setValues(migratedRows);
+  }
 }
 
 function readPlayerDirectoryRows_(sheet) {
@@ -86,11 +131,20 @@ function readPlayerDirectoryRows_(sheet) {
         fullName: canonicalDirectoryFullName_(row[0]),
         publicName: String(row[1] || "").trim(),
         playerKey: String(row[2] || "").trim(),
-        addedAt: row[3] || ""
+        nickname: String(row[3] || "").trim(),
+        photoUrl: String(row[4] || "").trim(),
+        bio: String(row[5] || "").trim(),
+        accolades: String(row[6] || "").trim(),
+        role: String(row[7] || "").trim(),
+        song: String(row[8] || "").trim(),
+        highestCheckout: String(row[9] || "").trim(),
+        gooch: String(row[10] || "").trim().toLowerCase(),
+        profileVisible: row[11] === "" ? true : String(row[11]).toLowerCase() !== "false",
+        addedAt: row[12] || ""
       };
     })
     .filter(function(player) {
-      return player.fullName && player.publicName;
+      return player.publicName;
     });
 }
 
@@ -99,10 +153,12 @@ function seedPlayerDirectory_(sheet) {
   const existingFullNames = {};
 
   existingPlayers.forEach(function(player) {
-    existingFullNames[normaliseDirectoryName_(player.fullName)] = true;
+    if (player.fullName) {
+      existingFullNames[normaliseDirectoryName_(player.fullName)] = true;
+    }
 
     // Correct the old spelling if it is already present in the sheet.
-    if (sheet.getRange(player.rowNumber, 1).getDisplayValue() !== player.fullName) {
+    if (player.fullName && sheet.getRange(player.rowNumber, 1).getDisplayValue() !== player.fullName) {
       sheet.getRange(player.rowNumber, 1).setValue(player.fullName);
     }
   });
@@ -116,6 +172,15 @@ function seedPlayerDirectory_(sheet) {
         player.fullName,
         player.publicName,
         makePlayerKey(player.publicName),
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        true,
         new Date()
       ];
     });
@@ -126,9 +191,83 @@ function seedPlayerDirectory_(sheet) {
   }
 }
 
+function profileAccoladesCell_(value) {
+  if (Array.isArray(value)) return value.join(",");
+  return String(value || "").trim();
+}
+
+function importPlayerProfilesFromWebsite_(sheet) {
+  let profiles = {};
+
+  try {
+    const response = UrlFetchApp.fetch(PLAYER_PROFILE_SEED_URL, { muteHttpExceptions: true });
+    if (response.getResponseCode() !== 200) return;
+    profiles = JSON.parse(response.getContentText()) || {};
+  } catch (error) {
+    console.warn("Could not import existing player profiles", error);
+    return;
+  }
+
+  const directory = readPlayerDirectoryRows_(sheet);
+  const directoryByPublicName = {};
+  directory.forEach(function(player) {
+    directoryByPublicName[normaliseDirectoryName_(player.publicName)] = player;
+  });
+
+  const missingRows = [];
+  Object.keys(profiles).forEach(function(publicName) {
+    if (directoryByPublicName[normaliseDirectoryName_(publicName)]) return;
+    const profile = profiles[publicName] || {};
+    missingRows.push([
+      "",
+      publicName,
+      makePlayerKey(publicName),
+      profile.nickname || "",
+      profile.photo || "",
+      profile.bio || "",
+      profileAccoladesCell_(profile.accolades),
+      profile.role || "",
+      profile.song || "",
+      profile["highest-checkout"] || profile["highest checkout"] || "",
+      profile.gooch || "",
+      true,
+      new Date()
+    ]);
+  });
+
+  if (missingRows.length) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, missingRows.length, PLAYER_DIRECTORY_HEADERS.length)
+      .setValues(missingRows);
+  }
+
+  directory.forEach(function(player) {
+    const profile = profiles[player.publicName];
+    if (!profile) return;
+
+    const existing = sheet.getRange(player.rowNumber, 4, 1, 9).getValues()[0];
+    const imported = [
+      profile.nickname || "",
+      profile.photo || "",
+      profile.bio || "",
+      profileAccoladesCell_(profile.accolades),
+      profile.role || "",
+      profile.song || "",
+      profile["highest-checkout"] || profile["highest checkout"] || "",
+      profile.gooch || "",
+      true
+    ];
+
+    const merged = existing.map(function(value, index) {
+      return value === "" ? imported[index] : value;
+    });
+    sheet.getRange(player.rowNumber, 4, 1, merged.length).setValues([merged]);
+  });
+}
+
 function setupPlayerDirectory() {
   const sheet = getPlayerDirectorySheet_();
   seedPlayerDirectory_(sheet);
+  importPlayerProfilesFromWebsite_(sheet);
 
   if (!sheet.isSheetHidden()) {
     sheet.hideSheet();
@@ -157,15 +296,95 @@ function getMatchPlayerDirectory(payload) {
   const sheet = getPlayerDirectorySheet_();
   seedPlayerDirectory_(sheet);
 
-  const players = readPlayerDirectoryRows_(sheet).map(function(player) {
-    return {
-      publicName: player.publicName,
-      fullName: player.fullName,
-      playerKey: player.playerKey || makePlayerKey(player.publicName)
-    };
-  });
+  const players = readPlayerDirectoryRows_(sheet)
+    .filter(function(player) { return player.fullName; })
+    .map(function(player) {
+      return {
+        publicName: player.publicName,
+        fullName: player.fullName,
+        playerKey: player.playerKey || makePlayerKey(player.publicName)
+      };
+    });
 
   return jsonResponse({ success: true, players: players });
+}
+
+function publicPlayerProfile_(player) {
+  return {
+    publicName: player.publicName,
+    playerKey: player.playerKey || makePlayerKey(player.publicName),
+    nickname: player.nickname,
+    photoUrl: player.photoUrl,
+    bio: player.bio,
+    accolades: player.accolades
+      ? player.accolades.split(",").map(function(value) { return value.trim(); }).filter(Boolean)
+      : [],
+    role: player.role,
+    song: player.song,
+    highestCheckout: player.highestCheckout,
+    gooch: player.gooch,
+    profileVisible: player.profileVisible
+  };
+}
+
+function getPublicPlayerProfiles() {
+  const sheet = getPlayerDirectorySheet_();
+  seedPlayerDirectory_(sheet);
+  const profiles = readPlayerDirectoryRows_(sheet)
+    .filter(function(player) { return player.profileVisible; })
+    .map(publicPlayerProfile_);
+
+  return jsonResponse({ success: true, profiles: profiles });
+}
+
+function assertActiveDirectoryEditor_(payload) {
+  const userId = String(payload.userId || "").trim();
+  const email = normalizeEmail(payload.email);
+
+  if (!userId || !email) throw new Error("Sign in to edit player profiles.");
+
+  const userRecord = findUserByEmail(email);
+  if (!userRecord || String(userRecord.row[0]) !== userId) {
+    throw new Error("User session could not be verified.");
+  }
+  if (userRecord.row[8] !== "Active") throw new Error("Account inactive.");
+}
+
+function cleanProfileField_(value, maxLength) {
+  return String(value || "").trim().slice(0, maxLength);
+}
+
+function updatePlayerProfile(payload) {
+  assertActiveDirectoryEditor_(payload);
+
+  const playerKey = String(payload.playerKey || "").trim();
+  if (!playerKey) throw new Error("Player key is required.");
+
+  const sheet = getPlayerDirectorySheet_();
+  const player = readPlayerDirectoryRows_(sheet).find(function(item) {
+    return item.playerKey === playerKey;
+  });
+  if (!player) throw new Error("Player profile not found.");
+
+  const profile = payload.profile || {};
+  const values = [[
+    cleanProfileField_(profile.nickname, 80),
+    cleanProfileField_(profile.photoUrl, 500),
+    cleanProfileField_(profile.bio, 1000),
+    profileAccoladesCell_(profile.accolades).slice(0, 500),
+    cleanProfileField_(profile.role, 50),
+    cleanProfileField_(profile.song, 500),
+    cleanProfileField_(profile.highestCheckout, 10),
+    profile.gooch ? "yes" : "",
+    profile.profileVisible !== false
+  ]];
+
+  sheet.getRange(player.rowNumber, 4, 1, values[0].length).setValues(values);
+  const updated = readPlayerDirectoryRows_(sheet).find(function(item) {
+    return item.playerKey === playerKey;
+  });
+
+  return jsonResponse({ success: true, profile: publicPlayerProfile_(updated) });
 }
 
 function makeAutomaticPublicName_(fullName, existingPlayers) {
@@ -207,7 +426,9 @@ function syncSubmittedPlayersToDirectory(players) {
     const knownFullNames = {};
 
     directory.forEach(function(player) {
-      knownFullNames[normaliseDirectoryName_(player.fullName)] = true;
+      if (player.fullName) {
+        knownFullNames[normaliseDirectoryName_(player.fullName)] = true;
+      }
     });
 
     const newRows = [];
@@ -220,6 +441,17 @@ function syncSubmittedPlayersToDirectory(players) {
       // Do not permanently save blanks or first-name-only entries.
       if (parts.length < 2 || knownFullNames[fullNameKey]) return;
 
+      const matchingPlaceholder = directory.find(function(existingPlayer) {
+        return !existingPlayer.fullName &&
+          normaliseDirectoryName_(existingPlayer.publicName) === normaliseDirectoryName_(player.name);
+      });
+      if (matchingPlaceholder) {
+        sheet.getRange(matchingPlaceholder.rowNumber, 1).setValue(fullName);
+        matchingPlaceholder.fullName = fullName;
+        knownFullNames[fullNameKey] = true;
+        return;
+      }
+
       const publicName = makeAutomaticPublicName_(fullName, directory);
       const savedPlayer = {
         fullName: fullName,
@@ -227,7 +459,21 @@ function syncSubmittedPlayersToDirectory(players) {
         playerKey: makePlayerKey(publicName)
       };
 
-      newRows.push([savedPlayer.fullName, savedPlayer.publicName, savedPlayer.playerKey, new Date()]);
+      newRows.push([
+        savedPlayer.fullName,
+        savedPlayer.publicName,
+        savedPlayer.playerKey,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        true,
+        new Date()
+      ]);
       directory.push(savedPlayer);
       knownFullNames[fullNameKey] = true;
     });

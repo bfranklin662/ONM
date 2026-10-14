@@ -24,6 +24,8 @@ const {
   safeParseDate,
   formatPrettyDate,
   countWinsAndLosses,
+  fetchPublicPlayerProfiles,
+  updatePublicPlayerProfile,
   fetchPlayerPhotosFromDrive,
   photoKey
 } = window.PlayerData || {};
@@ -67,6 +69,118 @@ function updateProfileDataPanels() {
   });
 
   updateProfileDataTitle();
+}
+
+function initPlayerProfileEditor(name, profileData) {
+  const user = window.ONMSession?.getUser?.();
+  if (!user || !profileData?.playerKey || typeof updatePublicPlayerProfile !== "function") return;
+  if (document.getElementById("editPlayerProfileBtn")) return;
+
+  const buttonWrap = document.querySelector(".main-profile-header .stats-header-right");
+  if (!buttonWrap) return;
+
+  const editButton = document.createElement("button");
+  editButton.id = "editPlayerProfileBtn";
+  editButton.type = "button";
+  editButton.className = "profile-edit-button";
+  editButton.textContent = "Edit player";
+  buttonWrap.appendChild(editButton);
+
+  const overlay = document.createElement("div");
+  overlay.className = "profile-edit-overlay hidden";
+  overlay.setAttribute("aria-hidden", "true");
+  overlay.innerHTML = `
+    <div class="profile-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="profileEditTitle">
+      <div class="profile-edit-header">
+        <div>
+          <span class="profile-edit-kicker">Player profile</span>
+          <h2 id="profileEditTitle">Edit ${escapeHtml(name)}</h2>
+        </div>
+        <button class="profile-edit-close" type="button" aria-label="Close">×</button>
+      </div>
+      <form id="playerProfileEditForm" class="profile-edit-form">
+        <label>Nickname<input name="nickname" type="text" maxlength="80"></label>
+        <label>Photo link<input name="photoUrl" type="text" maxlength="500" placeholder="Drive link or images/players/photo.jpg"></label>
+        <label class="profile-edit-wide">Bio<textarea name="bio" rows="4" maxlength="1000"></textarea></label>
+        <label>Role<input name="role" type="text" maxlength="50" placeholder="Captain, vice-captain…"></label>
+        <label>Highest checkout<input name="highestCheckout" type="number" min="0" max="170"></label>
+        <label class="profile-edit-wide">Walkout song link<input name="song" type="url" maxlength="500" placeholder="Spotify link"></label>
+        <label class="profile-edit-wide">Accolades<input name="accolades" type="text" maxlength="500" placeholder="Comma-separated accolade keys"></label>
+        <label class="profile-edit-check"><input name="gooch" type="checkbox"> Gooch</label>
+        <div class="profile-edit-status" role="status"></div>
+        <div class="profile-edit-actions">
+          <button class="profile-edit-cancel" type="button">Cancel</button>
+          <button class="profile-edit-save" type="submit">Save changes</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const form = overlay.querySelector("#playerProfileEditForm");
+  const status = overlay.querySelector(".profile-edit-status");
+  const setValue = (field, value) => {
+    const control = form.elements.namedItem(field);
+    if (control) control.value = value || "";
+  };
+  setValue("nickname", profileData.nickname);
+  setValue("photoUrl", profileData.photo && !profileData.photo.includes("images/default.jpg") ? profileData.photo : "");
+  setValue("bio", profileData.bio);
+  setValue("role", profileData.role);
+  setValue("highestCheckout", profileData.highestCheckout);
+  setValue("song", profileData.song);
+  setValue("accolades", (profileData.accolades || []).join(", "));
+  form.elements.namedItem("gooch").checked = profileData.gooch === "yes" || profileData.gooch === "true";
+
+  const closeEditor = () => {
+    overlay.classList.add("hidden");
+    overlay.setAttribute("aria-hidden", "true");
+  };
+  const openEditor = () => {
+    status.textContent = "";
+    overlay.classList.remove("hidden");
+    overlay.setAttribute("aria-hidden", "false");
+    form.elements.namedItem("nickname")?.focus();
+  };
+
+  editButton.addEventListener("click", openEditor);
+  overlay.querySelector(".profile-edit-close").addEventListener("click", closeEditor);
+  overlay.querySelector(".profile-edit-cancel").addEventListener("click", closeEditor);
+  overlay.addEventListener("click", event => {
+    if (event.target === overlay) closeEditor();
+  });
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const saveButton = overlay.querySelector(".profile-edit-save");
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving…";
+    status.textContent = "";
+
+    try {
+      await updatePublicPlayerProfile({
+        user,
+        playerKey: profileData.playerKey,
+        profile: {
+          nickname: form.elements.namedItem("nickname").value,
+          photoUrl: form.elements.namedItem("photoUrl").value,
+          bio: form.elements.namedItem("bio").value,
+          role: form.elements.namedItem("role").value,
+          highestCheckout: form.elements.namedItem("highestCheckout").value,
+          song: form.elements.namedItem("song").value,
+          accolades: form.elements.namedItem("accolades").value.split(",").map(value => value.trim()).filter(Boolean),
+          gooch: form.elements.namedItem("gooch").checked,
+          profileVisible: profileData.profileVisible !== false
+        }
+      });
+      status.textContent = "Saved. Refreshing the profile…";
+      window.setTimeout(() => window.location.reload(), 450);
+    } catch (error) {
+      status.textContent = error.message || "Could not save this profile.";
+      saveButton.disabled = false;
+      saveButton.textContent = "Save changes";
+    }
+  });
 }
 
 // ---------- ANIMATION HELPERS ----------
@@ -1012,6 +1126,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.warn("Failed to load player-profile.json", e);
   }
 
+  const liveProfiles = typeof fetchPublicPlayerProfiles === "function"
+    ? await fetchPublicPlayerProfiles()
+    : {};
+
   // --- 8. Load Drive photos ---
   const drivePhotos = (typeof fetchPlayerPhotosFromDrive === "function")
     ? await fetchPlayerPhotosFromDrive()
@@ -1022,24 +1140,27 @@ document.addEventListener("DOMContentLoaded", async () => {
   const sheetPlayers = await getAllPlayersFromSheets();
   const jsonPlayers = Object.keys(manualProfiles);
 
-  const fullList = Array.from(new Set([...sheetPlayers, ...jsonPlayers])).sort();
+  const fullList = Array.from(new Set([...sheetPlayers, ...jsonPlayers, ...Object.keys(liveProfiles)])).sort();
 
   window.playerProfiles = {};
   fullList.forEach(name => {
     const key = photoKey(name);
     const src = manualProfiles[name] || {};
+    const live = liveProfiles[name] || {};
 
     window.playerProfiles[name] = {
-      nickname: src.nickname || "",
-      bio: src.bio || "",
-      accolades: Array.isArray(src.accolades) ? src.accolades : [],
-      role: src.role || "",
-      song: src.song || "",
-      photo: drivePhotos[key] || src.photo || "images/default.jpg",
+      playerKey: live.playerKey || "",
+      nickname: live.nickname || src.nickname || "",
+      bio: live.bio || src.bio || "",
+      accolades: live.accolades?.length ? live.accolades : (Array.isArray(src.accolades) ? src.accolades : []),
+      role: live.role || src.role || "",
+      song: live.song || src.song || "",
+      photo: live.photo || drivePhotos[key] || src.photo || "images/default.jpg",
 
       // ✅ NEW
-      highestCheckout: (src["highest-checkout"] || "").toString().trim(),
-      gooch: (src.gooch || "").toString().trim().toLowerCase()
+      highestCheckout: (live.highestCheckout || src["highest-checkout"] || src["highest checkout"] || "").toString().trim(),
+      gooch: (live.gooch || src.gooch || "").toString().trim().toLowerCase(),
+      profileVisible: live.profileVisible !== false
     };
   });
 
@@ -1186,6 +1307,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         accEl.style.display = "none"; // fully gone
       }
     }
+
+    initPlayerProfileEditor(playerName, profileData);
   }
 
 
