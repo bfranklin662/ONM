@@ -59,6 +59,63 @@ function setCachedProfileImage(user, imageUrl) {
   localStorage.setItem(`onmProfileImage:${user.userId}`, imageUrl);
 }
 
+function normaliseProfileImageUrl(url) {
+  const value = String(url || "").trim();
+  if (!value) return "";
+  if (/^(images|graphics)\//i.test(value)) return `/${value}`;
+  return value;
+}
+
+function imageLoads(url) {
+  return new Promise(resolve => {
+    if (!url) return resolve(false);
+    const image = new Image();
+    image.onload = () => resolve(true);
+    image.onerror = () => resolve(false);
+    image.src = url;
+  });
+}
+
+async function resolveLinkedPlayerImage(user) {
+  if (!user) return "";
+
+  const candidates = [user.photoUrl, getCachedProfileImage(user)];
+  const linkedName = user.linkedPlayerName || "";
+
+  if (linkedName && window.PlayerData?.fetchPublicPlayerProfiles) {
+    const profiles = await window.PlayerData.fetchPublicPlayerProfiles();
+    candidates.push(profiles?.[linkedName]?.photo || "");
+  }
+
+  if (linkedName && window.PlayerData?.fetchPlayerPhotosFromDrive) {
+    const photos = await window.PlayerData.fetchPlayerPhotosFromDrive();
+    const key = window.PlayerData.photoKey(linkedName);
+    candidates.push(photos[key] || "");
+  }
+
+  if (linkedName) {
+    try {
+      const response = await fetch("/data/player-profile.json");
+      const profiles = response.ok ? await response.json() : {};
+      candidates.push(profiles?.[linkedName]?.photo || "");
+    } catch { }
+  }
+
+  const uniqueCandidates = [...new Set(candidates.map(normaliseProfileImageUrl).filter(Boolean))];
+  for (const candidate of uniqueCandidates) {
+    if (await imageLoads(candidate)) return candidate;
+  }
+  return "";
+}
+
+function renderAuthInitial(authBtn, profileName) {
+  authBtn.innerHTML = "";
+  const initial = document.createElement("span");
+  initial.className = "authProfileInitial";
+  initial.textContent = String(profileName || "P").charAt(0).toUpperCase();
+  authBtn.appendChild(initial);
+}
+
 function updateAuthHeader(user) {
   const authBtn = document.getElementById("authNavBtn");
   if (!authBtn) return;
@@ -87,26 +144,36 @@ function updateAuthHeader(user) {
 
   authBtn.className = "authProfileBtn";
 
-  authBtn.innerHTML = cachedImage
-    ? `<img src="${cachedImage}" alt="${profileName}">`
-    : `<span class="authProfileInitial">${profileName.charAt(0).toUpperCase()}</span>`;
+  if (!cachedImage) {
+    renderAuthInitial(authBtn, profileName);
+    return;
+  }
+
+  authBtn.innerHTML = "";
+  const image = document.createElement("img");
+  image.src = normaliseProfileImageUrl(cachedImage);
+  image.alt = profileName;
+  image.addEventListener("error", () => renderAuthInitial(authBtn, profileName), { once: true });
+  authBtn.appendChild(image);
 }
 
 async function loadHeaderProfileImage(authBtn, user, profileName) {
-  let imageUrl = user.photoUrl || "graphics/logoWoText.png";
-
+  if (!authBtn || !user) return;
   try {
-    if (!user.photoUrl && user.linkedPlayerName && window.PlayerData?.fetchPlayerPhotosFromDrive) {
-      const photos = await window.PlayerData.fetchPlayerPhotosFromDrive();
-      const key = window.PlayerData.photoKey(user.linkedPlayerName);
-      imageUrl = photos[key] || imageUrl;
+    const imageUrl = await resolveLinkedPlayerImage(user);
+    if (!imageUrl) {
+      renderAuthInitial(authBtn, profileName);
+      return;
     }
+
+    user.photoUrl = imageUrl;
+    localStorage.setItem("onmUser", JSON.stringify(user));
+    setCachedProfileImage(user, imageUrl);
+    updateAuthHeader(user);
   } catch (err) {
     console.warn("Could not load header image", err);
+    renderAuthInitial(authBtn, profileName);
   }
-
-  authBtn.classList.remove("isLoading");
-  authBtn.innerHTML = `<img src="${imageUrl}" alt="${profileName}">`;
 }
 
 async function initOnmSession() {
@@ -114,6 +181,11 @@ async function initOnmSession() {
 
   // instant UI
   updateAuthHeader(cachedUser);
+  if (cachedUser) {
+    const authBtn = document.getElementById("authNavBtn");
+    const profileName = cachedUser.linkedPlayerName || cachedUser.firstName || "Profile";
+    loadHeaderProfileImage(authBtn, cachedUser, profileName);
+  }
 
   // background refresh, don't block page
   checkOnmSession().then(async freshUser => {
@@ -124,20 +196,9 @@ async function initOnmSession() {
 
     updateAuthHeader(freshUser);
 
-    try {
-      if (!freshUser.photoUrl && freshUser.linkedPlayerName && window.PlayerData?.fetchPlayerPhotosFromDrive) {
-        const photos = await window.PlayerData.fetchPlayerPhotosFromDrive();
-        const key = window.PlayerData.photoKey(freshUser.linkedPlayerName);
-        const imageUrl = photos[key];
-
-        if (imageUrl) {
-          freshUser.photoUrl = imageUrl;
-          localStorage.setItem("onmUser", JSON.stringify(freshUser));
-          setCachedProfileImage(freshUser, imageUrl);
-          updateAuthHeader(freshUser);
-        }
-      }
-    } catch { }
+    const authBtn = document.getElementById("authNavBtn");
+    const profileName = freshUser.linkedPlayerName || freshUser.firstName || "Profile";
+    loadHeaderProfileImage(authBtn, freshUser, profileName);
   });
 
   return cachedUser;
@@ -148,7 +209,8 @@ window.ONMSession = {
   clearUser: clearOnmUser,
   check: checkOnmSession,
   init: initOnmSession,
-  updateHeader: updateAuthHeader
+  updateHeader: updateAuthHeader,
+  resolveProfileImage: resolveLinkedPlayerImage
 };
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -61,6 +61,11 @@ function profileFieldHtml(label, key, value, type = "text") {
 }
 
 async function getProfileImage(user) {
+  if (window.ONMSession?.resolveProfileImage) {
+    const resolvedImage = await window.ONMSession.resolveProfileImage(user);
+    if (resolvedImage) return resolvedImage;
+  }
+
   let imageUrl = user.photoUrl || "graphics/logoWoText.png";
 
   try {
@@ -384,7 +389,7 @@ async function openProfileModal() {
   content.innerHTML = `
     <div class="profileTopCard">
       <div class="profileImageEditor">
-        <img id="profileTopImage" class="profileTopImage" src="${escapeProfileHtml(user.photoUrl || "graphics/logoWoText.png")}" alt="">
+        <img id="profileTopImage" class="profileTopImage" src="graphics/logoWoText.png" alt="${escapeProfileHtml(profileData.name)}">
         <button type="button" id="editProfilePhotoBtn" class="profilePhotoEditBtn" aria-label="Edit profile picture">✎</button>
       </div>
 
