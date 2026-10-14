@@ -344,16 +344,16 @@
     const snapshot = await firestoreSdk.getDocs(firestoreSdk.collection(db, collectionName));
     return snapshot.docs
       .map(item => item.data())
-      .filter(item => !season || item.season === season)
+      .filter(item => !season || season === "all" || item.season === season)
       .map(item => item[fieldName] || item);
   }
 
-  async function getPublicSeasonResults() {
-    return { success: true, results: await getCollectionRows("results", "sheetRow", "26-27") };
+  async function getPublicSeasonResults(payload = {}) {
+    return { success: true, results: await getCollectionRows("results", "sheetRow", clean(payload.season) || "26-27") };
   }
 
-  async function getPublicSeasonFixtures() {
-    return { success: true, fixtures: await getCollectionRows("fixtures", "sheetRow", "26-27") };
+  async function getPublicSeasonFixtures(payload = {}) {
+    return { success: true, fixtures: await getCollectionRows("fixtures", "sheetRow", clean(payload.season) || "26-27") };
   }
 
   function resultSheetRow(payload, imageUrls) {

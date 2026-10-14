@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Club admin | Oche Ness Monsters</title>
+  <link rel="stylesheet" href="styles/header.css">
+  <link rel="stylesheet" href="styles/buttons.css">
+  <link rel="stylesheet" href="styles/admin.css?v=20261014-admin">
+  <link rel="icon" type="image/png" href="graphics/favicon1.png">
+</head>
+<body>
+  <header class="adminHeader">
+    <a href="index.html" class="adminBrand">
+      <img src="graphics/logoWoText.png" alt="Oche Ness Monsters">
+      <span>Club admin</span>
+    </a>
+    <a class="btn btnGhost" href="index.html">Back to website</a>
+  </header>
+
+  <main class="adminShell">
+    <section id="adminGate" class="adminGate">
+      <div class="adminSpinner"></div>
+      <p>Checking administrator access…</p>
+    </section>
+
+    <section id="adminApp" class="hidden">
+      <div class="adminIntro">
+        <div>
+          <span class="adminEyebrow">Firebase backend</span>
+          <h1>Fixtures and results</h1>
+          <p>Changes made here update the live website immediately.</p>
+        </div>
+        <div id="adminIdentity" class="adminIdentity"></div>
+      </div>
+
+      <div class="adminTabs" role="tablist">
+        <button class="adminTab active" type="button" data-admin-tab="fixtures">Fixtures</button>
+        <button class="adminTab" type="button" data-admin-tab="results">Results</button>
+      </div>
+
+      <section id="fixturesPanel" class="adminPanel">
+        <div class="adminToolbar">
+          <div class="adminFilters">
+            <label>Season
+              <select id="fixtureSeasonFilter">
+                <option value="26-27">2026/27</option>
+                <option value="25-26">2025/26</option>
+                <option value="all">All seasons</option>
+              </select>
+            </label>
+            <label>Search
+              <input id="fixtureSearch" type="search" placeholder="Opponent, league or venue">
+            </label>
+          </div>
+          <button id="addFixtureBtn" class="btn btnPrimary" type="button">Add fixture</button>
+        </div>
+        <div id="fixturesList" class="adminList"></div>
+      </section>
+
+      <section id="resultsPanel" class="adminPanel hidden">
+        <div class="adminToolbar">
+          <div class="adminFilters">
+            <label>Season
+              <select id="resultSeasonFilter">
+                <option value="26-27">2026/27</option>
+                <option value="25-26">2025/26</option>
+                <option value="24-25">2024/25</option>
+                <option value="all">All seasons</option>
+              </select>
+            </label>
+            <label>Search
+              <input id="resultSearch" type="search" placeholder="Team, player or competition">
+            </label>
+          </div>
+          <button id="addResultBtn" class="btn btnPrimary" type="button">Add result</button>
+        </div>
+        <div id="resultsList" class="adminList"></div>
+      </section>
+    </section>
+  </main>
+
+  <div id="adminEditorOverlay" class="adminOverlay hidden" aria-hidden="true">
+    <div class="adminEditor" role="dialog" aria-modal="true" aria-labelledby="adminEditorTitle">
+      <div class="adminEditorHeader">
+        <div>
+          <span id="adminEditorType" class="adminEyebrow"></span>
+          <h2 id="adminEditorTitle">Edit</h2>
+        </div>
+        <button id="closeAdminEditor" class="adminClose" type="button" aria-label="Close">×</button>
+      </div>
+      <form id="adminEditorForm" class="adminForm"></form>
+    </div>
+  </div>
+
+  <div id="adminToast" class="adminToast hidden" role="status"></div>
+
+  <script src="scripts/firebase-client.js?v=20261014-admin"></script>
+  <script src="scripts/admin.js?v=20261014-admin"></script>
+</body>
+</html>

@@ -412,6 +412,17 @@
   margin-top: auto;
 }
 
+.profileAdminBtn {
+  flex: 0 0 auto;
+  margin-top: 18px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.profileAdminBtn + .profileLogoutBtn {
+  margin-top: 10px;
+}
+
 .loggedOutProfile {
   text-align: center;
   padding: 18px 4px 8px;

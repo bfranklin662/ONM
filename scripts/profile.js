@@ -402,7 +402,7 @@ async function openProfileModal() {
     <div id="profilePhotoEditor" class="profilePhotoEditor hidden">
       <label for="profilePhotoFileInput">Upload profile picture</label>
       <input id="profilePhotoFileInput" class="profileFileInput" type="file" accept="image/*">
-      <div class="profilePhotoHelp">Choose a JPG, PNG, or WebP image. It will be saved to the ONM Google Drive.</div>
+      <div class="profilePhotoHelp">Choose a JPG, PNG, or WebP image. It will be saved securely in Firebase.</div>
       <div class="profileEditActions">
         <button type="button" class="btn btnGhost" id="cancelProfilePhotoBtn">Cancel</button>
         <button type="button" class="btn btnPrimary" id="saveProfilePhotoBtn">Upload photo</button>
@@ -435,6 +435,12 @@ async function openProfileModal() {
 
     <div id="profileAveragesTab" class="hidden">
     </div>
+
+    ${["owner", "admin"].includes(user.role) ? `
+      <a href="admin.html" class="btn btnPrimary profileAdminBtn">
+        Manage fixtures and results
+      </a>
+    ` : ""}
 
     <button type="button" id="logoutProfileBtn" class="btn btnGhost profileLogoutBtn">
       Log out

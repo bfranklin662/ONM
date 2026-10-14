@@ -1,8 +1,15 @@
 (function () {
-  const FALLBACK_URL = "data/result-data-26-27.json";
-  const FIXTURES_FALLBACK_URL = "data/fixtures-26-27.json";
-  let resultsPromise = null;
-  let fixturesPromise = null;
+  const RESULTS_FALLBACKS = {
+    "26-27": "data/result-data-26-27.json",
+    "25-26": "data/result-data-25-26.json",
+    "24-25": "data/result-data-24-25.json"
+  };
+  const FIXTURE_FALLBACKS = {
+    "26-27": "data/fixtures-26-27.json",
+    "25-26": "data/fixtures-25-26.json"
+  };
+  const resultsPromises = new Map();
+  const fixturesPromises = new Map();
 
   function num(value) {
     const parsed = Number(String(value ?? "").replace(/[£,\s]/g, ""));
@@ -13,50 +20,54 @@
     return row[`${prefix}${index}`] ?? row[`${prefix} ${index}`] ?? "";
   }
 
-  async function fetchResults() {
-    if (resultsPromise) return resultsPromise;
+  async function fetchResults(season = "26-27") {
+    if (resultsPromises.has(season)) return resultsPromises.get(season);
 
-    resultsPromise = (async () => {
+    const promise = (async () => {
       try {
         if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
-        const payload = await window.ONMFirebase.post({ action: "getPublicSeasonResults" });
+        const payload = await window.ONMFirebase.post({ action: "getPublicSeasonResults", season });
         if (!payload.success || !Array.isArray(payload.results)) {
           throw new Error(payload.error || "Live results are unavailable.");
         }
         if (!payload.results.length) throw new Error("Firebase results have not been imported yet.");
         return payload.results;
       } catch (error) {
-        console.warn("Using the packaged 26/27 result data.", error);
-        const fallback = await fetch(`${FALLBACK_URL}?t=${Date.now()}`);
-        if (!fallback.ok) throw new Error(`Failed to load 26/27 results: ${fallback.status}`);
+        const fallbackUrl = RESULTS_FALLBACKS[season];
+        if (!fallbackUrl) throw error;
+        console.warn(`Using the packaged ${season.replace("-", "/")} result data.`, error);
+        const fallback = await fetch(`${fallbackUrl}?t=${Date.now()}`);
+        if (!fallback.ok) throw new Error(`Failed to load ${season} results: ${fallback.status}`);
         return fallback.json();
       }
     })();
-
-    return resultsPromise;
+    resultsPromises.set(season, promise);
+    return promise;
   }
 
-  async function fetchFixtures() {
-    if (fixturesPromise) return fixturesPromise;
+  async function fetchFixtures(season = "26-27") {
+    if (fixturesPromises.has(season)) return fixturesPromises.get(season);
 
-    fixturesPromise = (async () => {
+    const promise = (async () => {
       try {
         if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
-        const payload = await window.ONMFirebase.post({ action: "getPublicSeasonFixtures" });
+        const payload = await window.ONMFirebase.post({ action: "getPublicSeasonFixtures", season });
         if (!payload.success || !Array.isArray(payload.fixtures)) {
           throw new Error(payload.error || "Live fixtures are unavailable.");
         }
         if (!payload.fixtures.length) throw new Error("Firebase fixtures have not been imported yet.");
         return payload.fixtures;
       } catch (error) {
-        console.warn("Using the packaged 26/27 fixture data.", error);
-        const fallback = await fetch(`${FIXTURES_FALLBACK_URL}?t=${Date.now()}`);
-        if (!fallback.ok) throw new Error(`Failed to load 26/27 fixtures: ${fallback.status}`);
+        const fallbackUrl = FIXTURE_FALLBACKS[season];
+        if (!fallbackUrl) throw error;
+        console.warn(`Using the packaged ${season.replace("-", "/")} fixture data.`, error);
+        const fallback = await fetch(`${fallbackUrl}?t=${Date.now()}`);
+        if (!fallback.ok) throw new Error(`Failed to load ${season} fixtures: ${fallback.status}`);
         return fallback.json();
       }
     })();
-
-    return fixturesPromise;
+    fixturesPromises.set(season, promise);
+    return promise;
   }
 
   function buildPlayerStats(rows, competition = "all") {
@@ -124,12 +135,17 @@
   }
 
   async function fetchSource(source) {
-    const rows = await fetchResults();
-    if (source === "onm-live:results") return rows;
-    if (source === "onm-live:stats:all") return buildPlayerStats(rows);
-    if (source === "onm-live:stats:banks") return buildPlayerStats(rows, "Banks League");
-    if (source === "onm-live:stats:trafalgar") return buildPlayerStats(rows, "Trafalgar League");
-    if (source === "onm-live:won-lost") return buildWonLost(rows);
+    const parts = String(source || "").split(":");
+    const season = /^\d{2}-\d{2}$/.test(parts.at(-1)) ? parts.at(-1) : "26-27";
+    const rows = await fetchResults(season);
+    if (parts[1] === "results") return rows;
+    if (parts[1] === "stats" && parts[2] === "all") return buildPlayerStats(rows);
+    if (parts[1] === "stats" && parts[2] === "banks") return buildPlayerStats(rows, "Banks League");
+    if (parts[1] === "stats" && parts[2] === "trafalgar") return buildPlayerStats(rows, "Trafalgar League");
+    if (parts[1] === "stats" && parts[2] === "smithfield") return buildPlayerStats(rows, "Smithfield League");
+    if (parts[1] === "stats" && parts[2] === "colda-a") return buildPlayerStats(rows, "COLDA A");
+    if (parts[1] === "stats" && parts[2] === "colda-b") return buildPlayerStats(rows, "COLDA B");
+    if (parts[1] === "won-lost") return buildWonLost(rows);
     return [];
   }
 

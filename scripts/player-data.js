@@ -5,30 +5,30 @@
   const SHEETS = {
     banks: {
       "26-27": "onm-live:stats:banks",
-      "25-26": "data/banks-stats-25-26.json",
-      "24-25": "data/banks-stats-24-25.json"
+      "25-26": "onm-live:stats:banks:25-26",
+      "24-25": "onm-live:stats:banks:24-25"
     },
     traf: {
       "26-27": "onm-live:stats:trafalgar",
-      "25-26": "data/trafalgar-stats-25-26.json",
+      "25-26": "onm-live:stats:trafalgar:25-26",
       "24-25": null
     },
     smithfield: {
-      "25-26": "data/smithfield-stats-25-26.json",
+      "25-26": "onm-live:stats:smithfield:25-26",
       "24-25": null
     },
     coldaA: {
-      "25-26": "data/colda-a-stats-25-26.json",
+      "25-26": "onm-live:stats:colda-a:25-26",
       "24-25": null
     },
     coldaB: {
-      "25-26": "data/colda-b-stats-25-26.json",
+      "25-26": "onm-live:stats:colda-b:25-26",
       "24-25": null
     },
     appearances: {
       "26-27": "onm-live:results",
-      "25-26": "data/result-data-25-26.json",
-      "24-25": "data/result-data-24-25.json"
+      "25-26": "onm-live:results:25-26",
+      "24-25": "onm-live:results:24-25"
     }
   };
 

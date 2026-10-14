@@ -897,7 +897,10 @@
 
     // 1) Load the live fixture sheet, with the packaged JSON as a fallback.
     const fixturesRaw = window.ONMSeasonData?.fetchFixtures
-      ? await window.ONMSeasonData.fetchFixtures()
+      ? (await Promise.all([
+          window.ONMSeasonData.fetchFixtures("25-26"),
+          window.ONMSeasonData.fetchFixtures("26-27")
+        ])).flat()
       : await fetch(FIXTURES_URL, { cache: "no-store" }).then(res => {
         if (!res.ok) throw new Error(`Failed to load fixtures JSON: ${res.status}`);
         return res.json();
@@ -911,21 +914,30 @@
 
     // 2) Then load results JSON and patch (non-blocking)
     try {
-      const [rows, lastSeasonRows] = await Promise.all([
+      const [rows, lastSeasonRows, earlierRows] = await Promise.all([
         window.ONMSeasonData?.fetchResults
           ? window.ONMSeasonData.fetchResults()
           : fetch(RESULTS_URL, { cache: "no-store" }).then(res => {
             if (!res.ok) throw new Error(`Failed to load results JSON: ${res.status}`);
             return res.json();
           }),
-        fetch(LAST_SEASON_RESULTS_URL, { cache: "no-store" }).then(res => {
-          if (!res.ok) throw new Error(`Failed to load 25/26 results JSON: ${res.status}`);
-          return res.json();
-        })
+        window.ONMSeasonData?.fetchResults
+          ? window.ONMSeasonData.fetchResults("25-26")
+          : fetch(LAST_SEASON_RESULTS_URL, { cache: "no-store" }).then(res => {
+              if (!res.ok) throw new Error(`Failed to load 25/26 results JSON: ${res.status}`);
+              return res.json();
+            }),
+        window.ONMSeasonData?.fetchResults
+          ? window.ONMSeasonData.fetchResults("24-25")
+          : fetch("data/result-data-24-25.json", { cache: "no-store" }).then(res => {
+              if (!res.ok) throw new Error(`Failed to load 24/25 results JSON: ${res.status}`);
+              return res.json();
+            })
       ]);
 
-      const merged = applyResultsToFixtures(fixturesOnly, rows);
+      const merged = applyResultsToFixtures(fixturesOnly, [...earlierRows, ...lastSeasonRows, ...rows]);
       const allMatches = mergeCalendarResults(merged, [
+        { rows: earlierRows, season: "24-25" },
         { rows: lastSeasonRows, season: "25-26" },
         { rows, season: "26-27" }
       ]);
