@@ -1997,11 +1997,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const row = document.createElement("div");
       row.className = "nameRow";
       row.innerHTML = `
-      <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="40"${signedInPlayerDirectoryEnabled() ? ' list="playerFullNameOptions"' : ""} value="${escapeHtml(playerInputValue(existingValues[i] || store.setupNames?.[i - 1] || ""))}" />
-    `;
+        <div class="playerNameInputWrap">
+          <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="40"${signedInPlayerDirectoryEnabled() ? ' list="playerFullNameOptions"' : ""} value="${escapeHtml(playerInputValue(existingValues[i] || store.setupNames?.[i - 1] || ""))}" />
+          <span class="newPlayerBadge" hidden>NEW</span>
+        </div>
+      `;
       setupGrid.appendChild(row);
       const input = row.querySelector("input");
+      updateNewPlayerState(input);
       input?.addEventListener("input", () => {
+        updateNewPlayerState(input);
         const names = [];
 
         for (let j = 1; j <= playerInputCount; j++) {
@@ -2020,6 +2025,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (addPlayerBtn) addPlayerBtn.disabled = playerInputCount >= MAX_PLAYERS;
     if (removePlayerBtn) removePlayerBtn.disabled = playerInputCount <= MIN_PLAYERS;
+  }
+
+  function updateNewPlayerState(input) {
+    const row = input?.closest(".nameRow");
+    const badge = row?.querySelector(".newPlayerBadge");
+    if (!row || !badge) return;
+
+    const name = String(input.value || "").trim();
+    const isNewPlayer = Boolean(
+      name && signedInPlayerDirectoryEnabled() && !findPlayerDirectoryEntry(name)
+    );
+
+    row.classList.toggle("is-new-player", isNewPlayer);
+    badge.hidden = !isNewPlayer;
   }
 
   function saveSetupNamesToStore() {
