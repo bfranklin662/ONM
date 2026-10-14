@@ -311,8 +311,31 @@
   async function getPublicPlayerProfiles() {
     const { db, firestoreSdk } = await ready;
     const snapshot = await firestoreSdk.getDocs(firestoreSdk.collection(db, "publicPlayers"));
-    const profiles = snapshot.docs.map(item => ({ playerKey: item.id, ...item.data() }))
-      .filter(item => item.profileVisible !== false);
+    const liveProfiles = snapshot.docs.map(item => ({ playerKey: item.id, ...item.data() }));
+    let legacyProfiles = {};
+    try {
+      const response = await fetch("data/player-profile.json");
+      if (response.ok) legacyProfiles = await response.json();
+    } catch { }
+    const byName = new Map(liveProfiles.map(profile => [profile.publicName, profile]));
+    Object.entries(legacyProfiles).forEach(([publicName, legacy]) => {
+      const live = byName.get(publicName) || {};
+      byName.set(publicName, {
+        ...legacy,
+        ...live,
+        publicName,
+        playerKey: live.playerKey || playerKey(publicName),
+        nickname: live.nickname || legacy.nickname || "",
+        photoUrl: live.photoUrl || legacy.photo || "",
+        bio: live.bio || legacy.bio || "",
+        accolades: live.accolades?.length ? live.accolades : (legacy.accolades || []),
+        role: live.role || legacy.role || "",
+        song: live.song || legacy.song || "",
+        highestCheckout: live.highestCheckout || legacy["highest-checkout"] || "",
+        gooch: live.gooch || legacy.gooch || ""
+      });
+    });
+    const profiles = [...byName.values()].filter(item => item.profileVisible !== false);
     return { success: true, profiles };
   }
 

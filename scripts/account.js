@@ -38,7 +38,7 @@
     document.getElementById("accountLinkedPlayer").textContent = user.linkedPlayerName
       ? `Linked to ${user.linkedPlayerName}`
       : "This account is not linked to an ONM player yet.";
-    document.getElementById("accountPhoto").src = user.photoUrl || user.photo || "graphics/logoWoText.png";
+    document.getElementById("accountPhoto").src = user.photoUrl || user.photo || user.linkedPhotoUrl || "graphics/logoWoText.png";
     document.getElementById("accountRole").textContent = clean(user.role || "member").replace(/^./, character => character.toUpperCase());
     document.getElementById("accountStatus").textContent = user.status || "Active";
     document.getElementById("accountPlayer").textContent = user.linkedPlayerName || "Not linked";
@@ -53,6 +53,29 @@
     actions.innerHTML = user.linkedPlayerName
       ? `<a class="btn btnGhost" href="player-profile.html?name=${encodeURIComponent(user.linkedPlayerName)}">View player profile</a>`
       : "";
+  }
+
+  async function loadLinkedPlayerPhoto() {
+    if (user.photoUrl || user.photo || !user.linkedPlayerName) return;
+    let photoUrl = "";
+    try {
+      const result = await window.ONMFirebase.post({ action: "getPublicPlayerProfiles" });
+      const linked = (result.profiles || []).find(profile =>
+        profile.playerKey === user.linkedPlayerKey || profile.publicName === user.linkedPlayerName
+      );
+      photoUrl = linked?.photoUrl || linked?.photo || "";
+    } catch { }
+    if (!photoUrl) {
+      try {
+        const response = await fetch("data/player-profile.json");
+        const profiles = response.ok ? await response.json() : {};
+        photoUrl = profiles[user.linkedPlayerName]?.photo || "";
+      } catch { }
+    }
+    if (photoUrl) {
+      user.linkedPhotoUrl = photoUrl;
+      document.getElementById("accountPhoto").src = photoUrl;
+    }
   }
 
   function fileAsBase64(file) {
@@ -138,6 +161,7 @@
       }
       localStorage.setItem("onmUser", JSON.stringify(user));
       populate();
+      await loadLinkedPlayerPhoto();
       form.addEventListener("submit", saveProfile);
       document.getElementById("accountPhotoInput").addEventListener("change", uploadPhoto);
       document.getElementById("accountLogout").addEventListener("click", logout);

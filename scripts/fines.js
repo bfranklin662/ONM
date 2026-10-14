@@ -1510,6 +1510,7 @@ document.addEventListener("DOMContentLoaded", () => {
     excludedFromWheel = new Set(Array.isArray(g.excludedFromWheel) ? g.excludedFromWheel : []);
 
     resultSubmitData = g.resultSubmitData || { players: [], match: {} };
+    submittedResultRow = g.submittedResultRow || null;
 
     doubleWinnerName = g.doubleWinnerName ?? null;
     doubleBatchId = g.doubleBatchId ?? null;
@@ -2183,6 +2184,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentScreen = "setup"; // "setup" | "tracker" | "results" | "final"
 
   function hardResetAll() {
+    submittedResultRow = null;
     store = { totalsByName: {}, history: [], game: null, setupNames: [] };
     saveStore(store);
 
@@ -2297,7 +2299,8 @@ document.addEventListener("DOMContentLoaded", () => {
       doubleFromPence: doubleFromPence ?? null,
       doubleToPence: doubleToPence ?? null,
 
-      resultSubmitData
+      resultSubmitData,
+      submittedResultRow
     };
 
     saveStore(store);
@@ -2753,6 +2756,10 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast("Add at least 1 player name.");
       return;
     }
+
+    // A fresh match must create a new Firebase result document. Retaining
+    // the last row id here caused the next submission to overwrite it.
+    submittedResultRow = null;
 
     saveSetupNamesToStore();
 
@@ -3326,6 +3333,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       submittedResultRow = data.rowNumber || submittedResultRow;
+      saveGameSnapshot();
       if (resultSubmitData.match?.fixtureKey) {
         submittedFixtureKeys.add(resultSubmitData.match.fixtureKey);
       }

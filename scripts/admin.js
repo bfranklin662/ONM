@@ -101,6 +101,85 @@
     return Number.isNaN(number) ? text : number;
   }
 
+  function normaliseTeam(value) {
+    const name = clean(value).toLowerCase().replace(/&/g, "and").replace(/[’']/g, "").replace(/\s+/g, " ");
+    return name === "dogs no more" ? "bb kings" : name;
+  }
+
+  function fixtureHasResult(item) {
+    const fixture = rowFor(item);
+    const fixtureDate = inputDate(fixture.Date);
+    const away = clean(fixture.HA).toLowerCase() === "away";
+    const expectedHome = away ? fixture.Opponent : "Oche Ness Monsters";
+    const expectedAway = away ? "Oche Ness Monsters" : fixture.Opponent;
+    return state.results.some(resultItem => {
+      const result = rowFor(resultItem);
+      return inputDate(result.Date) === fixtureDate &&
+        normaliseTeam(result.HomeTeam) === normaliseTeam(expectedHome) &&
+        normaliseTeam(result.AwayTeam) === normaliseTeam(expectedAway);
+    });
+  }
+
+  function fixtureTitle(row) {
+    const side = clean(row.HA).toLowerCase() === "away" ? "A" : clean(row.HA).toLowerCase() === "neutral" ? "N" : "H";
+    return `${row.Opponent || "Opponent TBA"} (${side})`;
+  }
+
+  function resultOutcome(row) {
+    const explicit = clean(row.Result).toLowerCase();
+    if (explicit.startsWith("won") || explicit === "win" || explicit === "w") return "win";
+    if (explicit.startsWith("lost") || explicit === "loss" || explicit === "l") return "loss";
+    if (explicit.startsWith("draw") || explicit === "d") return "draw";
+    const home = Number(row.HomeScore);
+    const away = Number(row.AwayScore);
+    if (!Number.isFinite(home) || !Number.isFinite(away)) return "";
+    const onmHome = normaliseTeam(row.HomeTeam) === "oche ness monsters";
+    const ourScore = onmHome ? home : away;
+    const theirScore = onmHome ? away : home;
+    return ourScore > theirScore ? "win" : ourScore < theirScore ? "loss" : "draw";
+  }
+
+  function fixtureCard(item, actions = true) {
+    const row = rowFor(item);
+    return `<article class="adminMatchCard">
+      <div><div class="adminMatchCardTitle">${escapeHtml(fixtureTitle(row))}</div>
+        <div class="adminMatchCardMeta">${escapeHtml(row.Date || "Date TBA")} · ${escapeHtml(row.League || "Competition TBA")} · ${escapeHtml(row.Location || "Venue TBA")}</div></div>
+      ${actions ? `<div class="adminMatchCardActions"><button class="adminSmallBtn" type="button" data-edit-fixture="${escapeHtml(item.id)}">Edit</button><button class="adminSmallBtn danger" type="button" data-delete-fixture="${escapeHtml(item.id)}">Delete</button></div>` : ""}
+    </article>`;
+  }
+
+  function resultCard(item, actions = true) {
+    const row = rowFor(item);
+    const outcome = resultOutcome(row);
+    const score = clean(row.HomeScore) !== "" && clean(row.AwayScore) !== "" ? `${row.HomeScore} - ${row.AwayScore}` : "TBA";
+    const outcomeLabel = { win: "W", loss: "L", draw: "D" }[outcome] || "";
+    return `<article class="adminMatchCard">
+      <div><div class="adminMatchCardTitle">${escapeHtml(row.HomeTeam || "Home")} v ${escapeHtml(row.AwayTeam || "Away")}</div>
+        <div class="adminMatchCardMeta">${escapeHtml(row.Date || "Date TBA")} · ${escapeHtml(row.Competition || "Competition TBA")} · ${escapeHtml(row.Venue || "Venue TBA")}</div></div>
+      <div class="adminMatchCardActions"><div class="adminScoreBox ${escapeHtml(outcome)}">${escapeHtml(score)}${outcomeLabel ? `<small>${outcomeLabel}</small>` : ""}</div>
+        ${actions ? `<button class="adminSmallBtn" type="button" data-edit-result="${escapeHtml(item.id)}">Edit</button><button class="adminSmallBtn danger" type="button" data-delete-result="${escapeHtml(item.id)}">Delete</button>` : ""}
+      </div>
+    </article>`;
+  }
+
+  function renderOverview() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const upcoming = state.fixtures
+      .filter(item => !fixtureHasResult(item) && dateValue(rowFor(item).Date) >= today.getTime())
+      .sort((a, b) => dateValue(rowFor(a).Date) - dateValue(rowFor(b).Date))
+      .slice(0, 4);
+    const recent = [...state.results]
+      .sort((a, b) => dateValue(rowFor(b).Date) - dateValue(rowFor(a).Date))
+      .slice(0, 4);
+    document.getElementById("upcomingFixtures").innerHTML = upcoming.length
+      ? upcoming.map(item => fixtureCard(item, false)).join("")
+      : '<div class="adminCompactEmpty">No upcoming fixtures.</div>';
+    document.getElementById("recentResults").innerHTML = recent.length
+      ? recent.map(item => resultCard(item, false)).join("")
+      : '<div class="adminCompactEmpty">No results have been submitted.</div>';
+  }
+
   function filtered(items, seasonId, searchId, haystack) {
     const season = document.getElementById(seasonId).value;
     const query = clean(document.getElementById(searchId).value).toLowerCase();
@@ -115,25 +194,14 @@
     const fixtures = filtered(state.fixtures, "fixtureSeasonFilter", "fixtureSearch", item => {
       const row = rowFor(item);
       return `${row.Opponent || ""} ${row.League || ""} ${row.Location || ""}`;
-    }).sort((a, b) => dateValue(rowFor(b).Date) - dateValue(rowFor(a).Date));
+    }).filter(item => !fixtureHasResult(item))
+      .sort((a, b) => dateValue(rowFor(a).Date) - dateValue(rowFor(b).Date));
 
     if (!fixtures.length) {
       list.innerHTML = '<div class="adminEmpty">No fixtures match these filters.</div>';
       return;
     }
-    list.innerHTML = fixtures.map(item => {
-      const row = rowFor(item);
-      return `<article class="adminRow">
-        <div class="adminRowDate">${escapeHtml(row.Date || "Date TBA")}</div>
-        <div><div class="adminRowTitle">${escapeHtml(row.HA || "")} ${escapeHtml(row.Opponent || "Opponent TBA")}</div>
-          <div class="adminRowMeta">${escapeHtml(row.League || "Competition TBA")}</div></div>
-        <div class="adminRowMeta">${escapeHtml(row.Location || "Venue TBA")}</div>
-        <div class="adminRowActions">
-          <button class="adminSmallBtn" type="button" data-edit-fixture="${escapeHtml(item.id)}">Edit</button>
-          <button class="adminSmallBtn danger" type="button" data-delete-fixture="${escapeHtml(item.id)}">Delete</button>
-        </div>
-      </article>`;
-    }).join("");
+    list.innerHTML = `<div class="adminManagedCards">${fixtures.map(item => fixtureCard(item)).join("")}</div>`;
   }
 
   function renderResults() {
@@ -147,20 +215,7 @@
       list.innerHTML = '<div class="adminEmpty">No results match these filters.</div>';
       return;
     }
-    list.innerHTML = results.map(item => {
-      const row = rowFor(item);
-      const score = clean(row.HomeScore) && clean(row.AwayScore) ? `${row.HomeScore}–${row.AwayScore}` : "Score TBA";
-      return `<article class="adminRow">
-        <div class="adminRowDate">${escapeHtml(row.Date || "Date TBA")}</div>
-        <div><div class="adminRowTitle">${escapeHtml(row.HomeTeam || "Home")} ${escapeHtml(score)} ${escapeHtml(row.AwayTeam || "Away")}</div>
-          <div class="adminRowMeta">${escapeHtml(row.Competition || "Competition TBA")}</div></div>
-        <div class="adminRowMeta">${escapeHtml(row.Venue || "Venue TBA")}</div>
-        <div class="adminRowActions">
-          <button class="adminSmallBtn" type="button" data-edit-result="${escapeHtml(item.id)}">Edit</button>
-          <button class="adminSmallBtn danger" type="button" data-delete-result="${escapeHtml(item.id)}">Delete</button>
-        </div>
-      </article>`;
-    }).join("");
+    list.innerHTML = `<div class="adminManagedCards">${results.map(item => resultCard(item)).join("")}</div>`;
   }
 
   function selectOptions(selected) {
@@ -275,6 +330,7 @@
     const local = { ...(existing || {}), id, ...saved, sheetRow };
     state.fixtures = existing ? state.fixtures.map(item => item.id === id ? local : item) : [...state.fixtures, local];
     renderFixtures();
+    renderOverview();
   }
 
   async function saveResult(data) {
@@ -318,6 +374,8 @@
     const local = { ...(existing || {}), id, ...saved, sheetRow };
     state.results = existing ? state.results.map(item => item.id === id ? local : item) : [...state.results, local];
     renderResults();
+    renderFixtures();
+    renderOverview();
   }
 
   async function deleteItem(type, id) {
@@ -338,7 +396,9 @@
       } else {
         state.results = state.results.filter(entry => entry.id !== id);
         renderResults();
+        renderFixtures();
       }
+      renderOverview();
       showToast(`${type === "fixture" ? "Fixture" : "Result"} deleted.`);
     } catch (error) {
       console.error(error);
@@ -415,6 +475,7 @@
       gate.classList.add("hidden");
       app.classList.remove("hidden");
       attachListeners();
+      renderOverview();
       renderFixtures();
       renderResults();
     } catch (error) {

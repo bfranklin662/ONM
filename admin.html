@@ -7,7 +7,7 @@
   <title>Club admin | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css">
-  <link rel="stylesheet" href="styles/admin.css?v=20261014-admin">
+  <link rel="stylesheet" href="styles/admin.css?v=20261014-admin-2">
   <link rel="icon" type="image/png" href="graphics/favicon1.png">
 </head>
 <body>
@@ -34,6 +34,17 @@
         </div>
         <div id="adminIdentity" class="adminIdentity"></div>
       </div>
+
+      <section class="adminOverview" aria-label="Club data overview">
+        <div class="adminOverviewColumn">
+          <div class="adminOverviewHeading"><div><span class="adminEyebrow">Next up</span><h2>Upcoming fixtures</h2></div></div>
+          <div id="upcomingFixtures" class="adminCardList"></div>
+        </div>
+        <div class="adminOverviewColumn">
+          <div class="adminOverviewHeading"><div><span class="adminEyebrow">Latest scores</span><h2>Recent results</h2></div></div>
+          <div id="recentResults" class="adminCardList"></div>
+        </div>
+      </section>
 
       <div class="adminTabs" role="tablist">
         <button class="adminTab active" type="button" data-admin-tab="fixtures">Fixtures</button>
@@ -96,7 +107,7 @@
 
   <div id="adminToast" class="adminToast hidden" role="status"></div>
 
-  <script src="scripts/firebase-client.js?v=20261014-admin"></script>
-  <script src="scripts/admin.js?v=20261014-admin"></script>
+  <script src="scripts/firebase-client.js?v=20261014-admin-2"></script>
+  <script src="scripts/admin.js?v=20261014-admin-2"></script>
 </body>
 </html>

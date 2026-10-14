@@ -37,6 +37,12 @@ body { margin:0; min-height:100vh; background:radial-gradient(circle at 85% 0,#1
 .accountSummary dt { color:#9fb0bf; }
 .accountSummary dd { margin:0; font-weight:900; text-align:right; }
 .accountFullButton { width:100%; display:block; text-align:center; text-decoration:none; }
+.accountShell .btn,.accountHeader .btn { position:relative; overflow:hidden; border:1px solid #17a58c; border-radius:9px; background:linear-gradient(135deg,#0d6d5c,#06483f); color:#fff; font-weight:900; box-shadow:0 5px 0 #032e28,0 10px 24px rgba(0,0,0,.24); transition:transform .15s ease,box-shadow .15s ease,filter .15s ease; }
+.accountShell .btn::after,.accountHeader .btn::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(115deg,transparent 20%,rgba(255,212,29,.16),transparent 70%); }
+.accountShell .btn:hover,.accountHeader .btn:hover { transform:translateY(-2px); filter:brightness(1.08); box-shadow:0 7px 0 #032e28,0 13px 28px rgba(0,0,0,.3); }
+.accountShell .btn:active,.accountHeader .btn:active { transform:translateY(3px); box-shadow:0 2px 0 #032e28; }
+.accountShell .btn.btnGhost,.accountHeader .btn.btnGhost { border-color:#dac126; background:linear-gradient(135deg,#28260f,#151b19); color:#ffe247; box-shadow:0 5px 0 #151306,0 10px 24px rgba(0,0,0,.2); }
+.accountPhotoButton { border:1px solid #ffd41d; color:#ffe55c; }
 @media (max-width:760px) {
   .accountHero { align-items:flex-start; }
   .accountPhotoWrap img { width:96px; height:96px; border-radius:18px; }
