@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>ONM Firebase migration</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <style>
+    body { background:#070c13; color:#fff; font-family:Arial,sans-serif; margin:0; }
+    .migrationCard { width:min(620px,calc(100% - 32px)); margin:60px auto; padding:28px; border:1px solid #284052; border-radius:16px; background:#101722; }
+    .migrationCard h1 { margin-top:0; }
+    .migrationCard label { display:block; margin:16px 0 6px; font-weight:700; }
+    .migrationCard input { box-sizing:border-box; width:100%; padding:12px; border-radius:8px; border:1px solid #456; }
+    .migrationCard button { margin-top:18px; padding:12px 18px; border:0; border-radius:8px; background:#008d78; color:#fff; font-weight:800; cursor:pointer; }
+    .migrationCard button:disabled { opacity:.55; cursor:wait; }
+    #migrationLog { margin-top:20px; padding:14px; min-height:54px; white-space:pre-line; border-radius:8px; background:#080d14; color:#d4e5ed; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <main class="migrationCard">
+    <h1>Firebase migration</h1>
+    <p>This private utility copies the packaged ONM players, results and fixtures into Firebase. It is safe to run again.</p>
+
+    <form id="migrationLogin">
+      <label for="migrationFirstName">First name (needed only when creating the account)</label>
+      <input id="migrationFirstName" type="text" autocomplete="given-name">
+      <label for="migrationSurname">Surname (needed only when creating the account)</label>
+      <input id="migrationSurname" type="text" autocomplete="family-name">
+      <label for="migrationEmail">Firebase account email</label>
+      <input id="migrationEmail" type="email" autocomplete="username" required>
+      <label for="migrationPassword">Password</label>
+      <input id="migrationPassword" type="password" autocomplete="current-password" required>
+      <button type="submit">Sign in</button>
+      <button id="createFirebaseOwner" type="button">Create Firebase account</button>
+    </form>
+
+    <section id="migrationActions" class="hidden">
+      <p id="migrationUser"></p>
+      <button id="runMigration" type="button">Import existing website data</button>
+    </section>
+
+    <div id="migrationLog" role="status">Sign in with the Firebase owner account.</div>
+  </main>
+
+  <script src="scripts/firebase-client.js"></script>
+  <script src="scripts/firebase-migrate.js"></script>
+</body>
+</html>

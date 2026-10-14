@@ -1,5 +1,4 @@
 (function () {
-  const ENDPOINT = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
   const FALLBACK_URL = "data/result-data-26-27.json";
   const FIXTURES_FALLBACK_URL = "data/fixtures-26-27.json";
   let resultsPromise = null;
@@ -19,19 +18,12 @@
 
     resultsPromise = (async () => {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        const response = await fetch(ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action: "getPublicSeasonResults" }),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        const payload = await response.json();
+        if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
+        const payload = await window.ONMFirebase.post({ action: "getPublicSeasonResults" });
         if (!payload.success || !Array.isArray(payload.results)) {
           throw new Error(payload.error || "Live results are unavailable.");
         }
+        if (!payload.results.length) throw new Error("Firebase results have not been imported yet.");
         return payload.results;
       } catch (error) {
         console.warn("Using the packaged 26/27 result data.", error);
@@ -49,19 +41,12 @@
 
     fixturesPromise = (async () => {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        const response = await fetch(ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action: "getPublicSeasonFixtures" }),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        const payload = await response.json();
+        if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
+        const payload = await window.ONMFirebase.post({ action: "getPublicSeasonFixtures" });
         if (!payload.success || !Array.isArray(payload.fixtures)) {
           throw new Error(payload.error || "Live fixtures are unavailable.");
         }
+        if (!payload.fixtures.length) throw new Error("Firebase fixtures have not been imported yet.");
         return payload.fixtures;
       } catch (error) {
         console.warn("Using the packaged 26/27 fixture data.", error);

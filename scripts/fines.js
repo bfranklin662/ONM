@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const MIN_PLAYERS = 1;
   const DEFAULT_PLAYER_INPUTS = 6;
   let playerInputCount = DEFAULT_PLAYER_INPUTS;
-  const PLAYER_DIRECTORY_ENDPOINT = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
   let signedInPlayerDirectory = [];
   const PLAYER_FULL_NAME_CORRECTIONS = {
     "alfie sells": "Alfie Sell"
@@ -111,18 +110,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (help) help.textContent = "Loading the player directory…";
 
     try {
-      const response = await fetch(PLAYER_DIRECTORY_ENDPOINT, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "getMatchPlayerDirectory",
-          userId: currentUser.userId,
-          email: currentUser.email
-        }),
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        }
+      if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
+      const result = await window.ONMFirebase.post({
+        action: "getMatchPlayerDirectory",
+        userId: currentUser.userId,
+        email: currentUser.email
       });
-      const result = await response.json();
 
       if (!result.success || !Array.isArray(result.players)) {
         throw new Error(result.error || "Could not load players.");
@@ -3172,8 +3165,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   reviewBackBtn?.addEventListener("click", goBack);
 
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
-
   function fileToBase64(file) {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -3327,24 +3318,8 @@ document.addEventListener("DOMContentLoaded", () => {
         images
       };
 
-      const res = await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify(payload),
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        }
-      });
-
-      const text = await res.text();
-      console.log("Apps Script raw response:", text);
-
-      let data;
-
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("The server did not return a valid response.");
-      }
+      if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
+      const data = await window.ONMFirebase.post(payload);
 
       if (!data.success) {
         throw new Error(data.error || "Submit failed.");

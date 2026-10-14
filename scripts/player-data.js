@@ -1,7 +1,6 @@
 // scripts/player-data.js
 (function () {
   // ---- CONFIG ----
-  const PLAYER_PROFILE_ENDPOINT = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
   let livePlayerProfilesCache = null;
   const SHEETS = {
     banks: {
@@ -124,12 +123,8 @@
     if (!force && livePlayerProfilesCache) return livePlayerProfilesCache;
 
     try {
-      const response = await fetch(PLAYER_PROFILE_ENDPOINT, {
-        method: "POST",
-        body: JSON.stringify({ action: "getPublicPlayerProfiles" }),
-        headers: { "Content-Type": "text/plain;charset=utf-8" }
-      });
-      const result = await response.json();
+      if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
+      const result = await window.ONMFirebase.post({ action: "getPublicPlayerProfiles" });
       if (!result.success || !Array.isArray(result.profiles)) throw new Error(result.error || "Profile load failed");
 
       livePlayerProfilesCache = {};
@@ -148,18 +143,14 @@
   async function updatePublicPlayerProfile({ user, playerKey, profile }) {
     if (!user?.userId || !user?.email) throw new Error("Sign in to edit player profiles.");
 
-    const response = await fetch(PLAYER_PROFILE_ENDPOINT, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "updatePlayerProfile",
-        userId: user.userId,
-        email: user.email,
-        playerKey,
-        profile
-      }),
-      headers: { "Content-Type": "text/plain;charset=utf-8" }
+    if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
+    const result = await window.ONMFirebase.post({
+      action: "updatePlayerProfile",
+      userId: user.userId,
+      email: user.email,
+      playerKey,
+      profile
     });
-    const result = await response.json();
     if (!result.success) throw new Error(result.error || "Profile update failed");
     livePlayerProfilesCache = null;
     return normaliseLiveProfile(result.profile || {});

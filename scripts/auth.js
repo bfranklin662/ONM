@@ -1,5 +1,3 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
-
 const els = {
   authToggle: document.getElementById("authToggle"),
   showRegisterBtn: document.getElementById("showRegisterBtn"),
@@ -13,6 +11,7 @@ const els = {
   customTeamInput: document.getElementById("customTeamInput"),
   registerSubmitBtn: document.getElementById("registerSubmitBtn"),
   loginSubmitBtn: document.getElementById("loginSubmitBtn"),
+  resetPasswordBtn: document.getElementById("resetPasswordBtn"),
   linkPlayerOverlay: document.getElementById("linkPlayerOverlay"),
   closeLinkPlayerBtn: document.getElementById("closeLinkPlayerBtn"),
   linkPlayerList: document.getElementById("linkPlayerList"),
@@ -21,15 +20,8 @@ const els = {
 };
 
 async function postToAppScript(payload) {
-  const response = await fetch(APPS_SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "text/plain;charset=utf-8"
-    }
-  });
-
-  return response.json();
+  if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
+  return window.ONMFirebase.post(payload);
 }
 
 function setButtonLoading(button, isLoading, text) {
@@ -331,6 +323,20 @@ els.loginForm.addEventListener("submit", async event => {
     els.authMsg.textContent = "Could not connect to the server.";
     setButtonLoading(els.loginSubmitBtn, false, "Login");
   }
+});
+
+els.resetPasswordBtn?.addEventListener("click", async () => {
+  const email = String(new FormData(els.loginForm).get("email") || "").trim();
+  if (!email) {
+    els.authMsg.textContent = "Enter your email address first.";
+    els.authMsg.classList.remove("hidden");
+    return;
+  }
+  const result = await window.ONMFirebase.post({ action: "resetPassword", email });
+  els.authMsg.textContent = result.success
+    ? "Password reset email sent."
+    : result.error || "Could not send the reset email.";
+  els.authMsg.classList.remove("hidden");
 });
 
 els.showRegisterBtn.addEventListener("click", showRegisterView);

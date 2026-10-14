@@ -74,6 +74,8 @@ function updateProfileDataPanels() {
 function initPlayerProfileEditor(name, profileData) {
   const user = window.ONMSession?.getUser?.();
   if (!user || !profileData?.playerKey || typeof updatePublicPlayerProfile !== "function") return;
+  const canEdit = ["admin", "owner"].includes(user.role) || user.linkedPlayerKey === profileData.playerKey;
+  if (!canEdit) return;
   if (document.getElementById("editPlayerProfileBtn")) return;
 
   const buttonWrap = document.querySelector(".main-profile-header .stats-header-right");

@@ -1,5 +1,3 @@
-const ONM_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
-
 function getOnmUser() {
   try {
     return JSON.parse(localStorage.getItem("onmUser"));
@@ -10,18 +8,12 @@ function getOnmUser() {
 
 function clearOnmUser() {
   localStorage.removeItem("onmUser");
+  window.ONMFirebase?.signOut?.().catch(() => {});
 }
 
 async function postToOnmAppScript(payload) {
-  const response = await fetch(ONM_APPS_SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "text/plain;charset=utf-8"
-    }
-  });
-
-  return response.json();
+  if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
+  return window.ONMFirebase.post(payload);
 }
 
 async function checkOnmSession() {

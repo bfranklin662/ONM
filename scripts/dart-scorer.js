@@ -5041,32 +5041,13 @@ function newGame() {
   render();
 }
 
-const DART_MATCH_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
-
 let matchSaved = false;
 
 async function postDartMatch(payload) {
-  const response = await fetch(DART_MATCH_APPS_SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "text/plain;charset=utf-8"
-    }
-  });
-
-  const text = await response.text();
-
-  console.log("[APPS SCRIPT RAW RESPONSE]", text);
-
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    console.error("[APPS SCRIPT JSON PARSE FAILED]", err, text);
-    return {
-      success: false,
-      error: text || "Invalid Apps Script response"
-    };
+  if (!window.ONMFirebase?.post) {
+    return { success: false, error: "Firebase is not ready." };
   }
+  return window.ONMFirebase.post(payload);
 }
 
 function cleanStatNumber(value) {

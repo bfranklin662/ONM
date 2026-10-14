@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getApp, getApps, initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
   getDatabase,
   ref,
@@ -26,7 +26,7 @@ const firebaseConfig = {
   databaseURL: "https://oche-ness-monsters-default-rtdb.europe-west1.firebasedatabase.app/",
 };
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 async function createOnlineInvite({ fromUser, toPlayer, settings = {} }) {

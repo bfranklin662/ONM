@@ -508,6 +508,23 @@ async function fetchDriveImages(folderId) {
     return [];
   }
 }
+
+async function fetchMatchImages(match) {
+  const value = String(match?.IMGFOLDER || "").trim();
+  if (!value) return [];
+
+  const directUrls = value
+    .split(/\r?\n/)
+    .map(item => item.trim())
+    .filter(item => /^https?:\/\//i.test(item));
+
+  if (directUrls.length && directUrls.every(item => !/drive\.google\.com\/drive\/folders/i.test(item))) {
+    return directUrls;
+  }
+
+  const folderMatch = value.match(/(?:[?&]id=|\/folders\/)([a-zA-Z0-9_-]+)/);
+  return folderMatch ? fetchDriveImages(folderMatch[1]) : directUrls;
+}
 // 🔹 Restore saved preferences before DOM ready
 let currentSeason = localStorage.getItem("resultsSeason") || "26-27";
 let currentViewMode = localStorage.getItem("viewMode") || "results";
@@ -612,14 +629,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
       const galleryCards = await Promise.all(
         visibleGalleryMatches.map(async match => {
-          let images = [];
-          const folderUrl = match.IMGFOLDER?.trim();
-
-          if (folderUrl) {
-            const folderMatch = folderUrl.match(/(?:[?&]id=|\/folders\/)([a-zA-Z0-9_-]+)/);
-            const folderId = folderMatch ? folderMatch[1] : null;
-            if (folderId) images = await fetchDriveImages(folderId);
-          }
+          const images = await fetchMatchImages(match);
 
           const meta = getLeagueMeta(match.Competition);
           const homePoints = getMatchField(match, "HomePoints", "Home Points", "homePoints");
@@ -759,14 +769,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           ? `<span class="points-score">${homePoints} – ${awayPoints} pts</span>`
           : "";
 
-        let images = [];
-        const folderUrl = match.IMGFOLDER?.trim();
-
-        if (folderUrl) {
-          const folderMatch = folderUrl.match(/(?:[?&]id=|\/folders\/)([a-zA-Z0-9_-]+)/);
-          const folderId = folderMatch ? folderMatch[1] : null;
-          if (folderId) images = await fetchDriveImages(folderId);
-        }
+        const images = await fetchMatchImages(match);
 
         const visibleCount = window.innerWidth >= 1100 ? 8 : 4;
         const visible = images.slice(0, visibleCount);
