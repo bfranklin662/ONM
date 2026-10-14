@@ -1,6 +1,6 @@
 :root { color-scheme: dark; }
 * { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; background: #07101b; color: #f7fafc; font-family: Arial, sans-serif; }
+body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20% -10%,#28304a 0,transparent 55%),radial-gradient(900px 600px at 110% 10%,#2a3d2e 0,transparent 45%),#0f1115; color:#f4f6fb; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
 .hidden { display: none !important; }
 .adminHeader { min-height: 72px; padding: 12px clamp(16px,4vw,48px); display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #273443; background:#0a1320; }
 .adminBrand { display:flex; align-items:center; gap:12px; color:#fff; text-decoration:none; font-weight:900; font-size:20px; }
@@ -41,6 +41,15 @@ body { margin: 0; min-height: 100vh; background: #07101b; color: #f7fafc; font-f
 .adminFilters input { width:min(320px,65vw); }
 .adminList { display:grid; }
 .adminManagedCards { display:grid; gap:10px; padding:14px; }
+.adminPlayerList { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:14px; }
+.adminPlayerCard { display:grid; grid-template-columns:64px minmax(0,1fr); gap:12px; align-items:center; padding:13px; border:1px solid #2c3c4d; border-radius:12px; background:linear-gradient(135deg,#111e2c,#09131e); }
+.adminPlayerCard img { width:64px; height:64px; border:2px solid #168f79; border-radius:12px; background:#07101b; object-fit:cover; }
+.adminPlayerCard h3 { margin:0; font-size:17px; }
+.adminPlayerCard p { min-height:16px; margin:4px 0 9px; color:#9fb0bf; font-size:12px; }
+.adminPlayerPhotoPreview { width:110px; height:110px; border:2px solid #168f79; border-radius:15px; background:#07101b; object-fit:cover; }
+.adminPhotoEditRow { display:flex; gap:14px; align-items:end; }
+.adminPhotoEditRow label { flex:1; }
+.adminFieldHelp { color:#8fa0b0; font-size:11px; font-weight:600; line-height:1.4; }
 .adminRow { display:grid; grid-template-columns:minmax(125px,.8fr) minmax(220px,2fr) minmax(150px,1fr) auto; gap:16px; align-items:center; padding:15px 16px; border-bottom:1px solid #202e3d; }
 .adminRow:last-child { border-bottom:0; }
 .adminRowDate { color:#ffd41d; font-weight:900; }
@@ -66,6 +75,8 @@ body { margin: 0; min-height: 100vh; background: #07101b; color: #f7fafc; font-f
 .adminPlayerRow .doubleFine { align-content:end; justify-items:center; }
 .adminFormActions { position:sticky; bottom:0; display:flex; justify-content:space-between; gap:10px; padding-top:18px; margin-top:20px; background:#0c1622; }
 .adminToast { position:fixed; right:20px; bottom:20px; z-index:1200; max-width:360px; padding:13px 16px; border-radius:9px; background:#126b5d; color:#fff; font-weight:800; box-shadow:0 14px 40px rgba(0,0,0,.35); }
+.adminShell .btn,.adminHeader .btn { min-height:48px; padding:0 18px; border:0; border-radius:12px; background:#ffd740; color:#151515; font-size:15px; font-weight:900; cursor:pointer; }
+.adminShell .btn.btnGhost,.adminHeader .btn.btnGhost { border:1px solid rgba(255,255,255,.14); background:transparent; color:#a9b0c3; }
 @media (max-width:760px) {
   .adminOverview { grid-template-columns:1fr; }
   .adminIntro,.adminToolbar { align-items:stretch; flex-direction:column; }
@@ -77,4 +88,6 @@ body { margin: 0; min-height: 100vh; background: #07101b; color: #f7fafc; font-f
   .adminGrid { grid-template-columns:1fr; }
   .adminPlayerRow { grid-template-columns:repeat(3,1fr); }
   .adminPlayerRow label:first-child { grid-column:1/-1; }
+  .adminPlayerList { grid-template-columns:1fr; }
+  .adminPhotoEditRow { align-items:stretch; flex-direction:column; }
 }

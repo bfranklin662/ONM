@@ -293,6 +293,26 @@
     return { success: true, photoUrl };
   }
 
+  async function uploadPlayerPhoto(payload) {
+    const user = await currentFirebaseUser();
+    const ownUser = await loadOwnUser();
+    if (!user || !["owner", "admin"].includes(ownUser?.role)) {
+      throw new Error("Only club administrators can upload photos for other players.");
+    }
+    const key = clean(payload.playerKey);
+    if (!key) throw new Error("Choose a player before uploading a photo.");
+    const { db, storage, firestoreSdk, storageSdk } = await ready;
+    const extension = clean(payload.fileName).split(".").pop() || "jpg";
+    const target = storageSdk.ref(storage, `profile-images/${user.uid}/player-${key}.${extension}`);
+    await storageSdk.uploadBytes(target, base64Blob(payload.imageBase64, payload.mimeType), {
+      contentType: payload.mimeType || "image/jpeg"
+    });
+    const photoUrl = await storageSdk.getDownloadURL(target);
+    await firestoreSdk.setDoc(firestoreSdk.doc(db, "publicPlayers", key), { photoUrl }, { merge: true });
+    await firestoreSdk.setDoc(firestoreSdk.doc(db, "players", key), { photoUrl }, { merge: true });
+    return { success: true, photoUrl };
+  }
+
   async function getMatchPlayerDirectory() {
     if (!(await currentFirebaseUser())) throw new Error("Sign in to search the player directory.");
     const { db, firestoreSdk } = await ready;
@@ -709,6 +729,7 @@
     linkPlayer,
     updateProfile,
     uploadProfilePhoto,
+    uploadPlayerPhoto,
     getMatchPlayerDirectory,
     getPublicPlayerProfiles,
     updatePlayerProfile,

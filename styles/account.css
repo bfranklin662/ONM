@@ -1,6 +1,6 @@
 :root { color-scheme: dark; }
 * { box-sizing: border-box; }
-body { margin:0; min-height:100vh; background:radial-gradient(circle at 85% 0,#123348 0,transparent 30%),#07101b; color:#f7fafc; font-family:Arial,sans-serif; }
+body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20% -10%,#28304a 0,transparent 55%),radial-gradient(900px 600px at 110% 10%,#2a3d2e 0,transparent 45%),#0f1115; color:#f4f6fb; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
 .hidden { display:none !important; }
 .accountHeader { min-height:72px; padding:12px clamp(16px,4vw,48px); display:flex; align-items:center; justify-content:space-between; gap:16px; border-bottom:1px solid #273443; background:rgba(10,19,32,.94); }
 .accountBrand { display:flex; align-items:center; gap:12px; color:#fff; text-decoration:none; font-size:20px; font-weight:900; }
@@ -31,17 +31,18 @@ body { margin:0; min-height:100vh; background:radial-gradient(circle at 85% 0,#1
 .accountGrid .wide { grid-column:1/-1; }
 .accountGrid input,.accountGrid textarea { width:100%; padding:11px 12px; border:1px solid #3a4b5e; border-radius:8px; background:#07111c; color:#fff; font:inherit; }
 .accountGrid textarea { resize:vertical; }
+.accountGrid .accountCheck { display:flex; align-items:center; gap:9px; padding-top:24px; }
+.accountGrid .accountCheck input { width:18px; height:18px; }
 .accountSidebar { display:grid; gap:18px; }
 .accountSummary dl { margin:14px 0 0; }
 .accountSummary dl div { display:flex; justify-content:space-between; gap:14px; padding:11px 0; border-top:1px solid #253444; }
 .accountSummary dt { color:#9fb0bf; }
 .accountSummary dd { margin:0; font-weight:900; text-align:right; }
 .accountFullButton { width:100%; display:block; text-align:center; text-decoration:none; }
-.accountShell .btn,.accountHeader .btn { position:relative; overflow:hidden; border:1px solid #17a58c; border-radius:9px; background:linear-gradient(135deg,#0d6d5c,#06483f); color:#fff; font-weight:900; box-shadow:0 5px 0 #032e28,0 10px 24px rgba(0,0,0,.24); transition:transform .15s ease,box-shadow .15s ease,filter .15s ease; }
-.accountShell .btn::after,.accountHeader .btn::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(115deg,transparent 20%,rgba(255,212,29,.16),transparent 70%); }
-.accountShell .btn:hover,.accountHeader .btn:hover { transform:translateY(-2px); filter:brightness(1.08); box-shadow:0 7px 0 #032e28,0 13px 28px rgba(0,0,0,.3); }
-.accountShell .btn:active,.accountHeader .btn:active { transform:translateY(3px); box-shadow:0 2px 0 #032e28; }
-.accountShell .btn.btnGhost,.accountHeader .btn.btnGhost { border-color:#dac126; background:linear-gradient(135deg,#28260f,#151b19); color:#ffe247; box-shadow:0 5px 0 #151306,0 10px 24px rgba(0,0,0,.2); }
+.accountShell .btn,.accountHeader .btn { min-height:48px; padding:0 18px; border:0; border-radius:12px; background:#ffd740; color:#151515; font-size:15px; font-weight:900; box-shadow:none; transition:transform .08s ease,filter .15s ease; }
+.accountShell .btn:hover,.accountHeader .btn:hover { filter:brightness(1.05); }
+.accountShell .btn:active,.accountHeader .btn:active { transform:translateY(1px); }
+.accountShell .btn.btnGhost,.accountHeader .btn.btnGhost { border:1px solid rgba(255,255,255,.14); background:transparent; color:#a9b0c3; }
 .accountPhotoButton { border:1px solid #ffd41d; color:#ffe55c; }
 @media (max-width:760px) {
   .accountHero { align-items:flex-start; }

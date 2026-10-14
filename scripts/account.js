@@ -6,6 +6,7 @@
   const form = document.getElementById("accountForm");
   const message = document.getElementById("accountMessage");
   let user = null;
+  let linkedProfile = null;
 
   function clean(value) {
     return String(value == null ? "" : value).trim();
@@ -44,10 +45,11 @@
     document.getElementById("accountPlayer").textContent = user.linkedPlayerName || "Not linked";
     document.getElementById("accountAdminCard").classList.toggle("hidden", !["owner", "admin"].includes(user.role));
 
-    ["firstName", "surname", "email", "team", "nationality", "nickname", "walkoutSong", "bio"].forEach(field => {
+    ["firstName", "surname", "email", "team", "nationality", "nickname", "walkoutSong", "bio", "playerRole", "highestCheckout", "accolades"].forEach(field => {
       const input = form.elements[field];
       if (input) input.value = user[field] || "";
     });
+    form.elements.gooch.checked = user.gooch === "yes" || user.gooch === true;
 
     const actions = document.getElementById("accountHeroActions");
     actions.innerHTML = user.linkedPlayerName
@@ -55,21 +57,33 @@
       : "";
   }
 
-  async function loadLinkedPlayerPhoto() {
-    if (user.photoUrl || user.photo || !user.linkedPlayerName) return;
-    let photoUrl = "";
+  async function loadLinkedPlayerProfile() {
+    if (!user.linkedPlayerName) return;
     try {
       const result = await window.ONMFirebase.post({ action: "getPublicPlayerProfiles" });
-      const linked = (result.profiles || []).find(profile =>
+      linkedProfile = (result.profiles || []).find(profile =>
         profile.playerKey === user.linkedPlayerKey || profile.publicName === user.linkedPlayerName
       );
-      photoUrl = linked?.photoUrl || linked?.photo || "";
     } catch { }
-    if (!photoUrl) {
+    if (!linkedProfile) return;
+
+    const profileValues = {
+      nickname: linkedProfile.nickname || user.nickname || "",
+      bio: linkedProfile.bio || user.bio || "",
+      walkoutSong: linkedProfile.song || user.walkoutSong || "",
+      playerRole: linkedProfile.role || "",
+      highestCheckout: linkedProfile.highestCheckout || "",
+      accolades: (linkedProfile.accolades || []).join(", "),
+      gooch: linkedProfile.gooch || ""
+    };
+    Object.assign(user, profileValues);
+    populate();
+
+    let photoUrl = user.photoUrl || user.photo || linkedProfile.photoUrl || linkedProfile.photo || "";
+    if (/^\/?images\/players\//i.test(photoUrl) || !photoUrl) {
       try {
-        const response = await fetch("data/player-profile.json");
-        const profiles = response.ok ? await response.json() : {};
-        photoUrl = profiles[user.linkedPlayerName]?.photo || "";
+        const photos = await window.PlayerData?.fetchPlayerPhotosFromDrive?.();
+        photoUrl = photos?.[window.PlayerData.photoKey(user.linkedPlayerName)] || "";
       } catch { }
     }
     if (photoUrl) {
@@ -98,7 +112,23 @@
         .map(field => [field, clean(data.get(field))]));
       const result = await window.ONMFirebase.post({ action: "updateProfile", profile });
       if (!result.success) throw new Error(result.error || "Could not save your profile.");
-      updateLocalUser(profile);
+      const playerValues = {
+        nickname: profile.nickname,
+        bio: profile.bio,
+        song: profile.walkoutSong,
+        role: clean(data.get("playerRole")),
+        highestCheckout: clean(data.get("highestCheckout")),
+        accolades: clean(data.get("accolades")).split(",").map(value => value.trim()).filter(Boolean),
+        gooch: data.get("gooch") === "on",
+        photoUrl: linkedProfile?.photoUrl || linkedProfile?.photo || "",
+        profileVisible: linkedProfile?.profileVisible !== false
+      };
+      if (user.linkedPlayerKey) {
+        const playerResult = await window.ONMFirebase.post({ action: "updatePlayerProfile", playerKey: user.linkedPlayerKey, profile: playerValues });
+        if (!playerResult.success) throw new Error(playerResult.error || "Your account saved, but the player profile could not be updated.");
+        linkedProfile = { ...(linkedProfile || {}), ...playerValues };
+      }
+      updateLocalUser({ ...profile, playerRole: playerValues.role, highestCheckout: playerValues.highestCheckout, accolades: playerValues.accolades.join(", "), gooch: playerValues.gooch ? "yes" : "" });
       populate();
       showMessage("Your account details have been saved.");
     } catch (error) {
@@ -116,8 +146,8 @@
       showMessage("Please choose a JPG, PNG, or WebP image.", true);
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      showMessage("Please choose an image smaller than 8 MB.", true);
+    if (file.size > 5 * 1024 * 1024) {
+      showMessage("Please choose an image smaller than 5 MB.", true);
       return;
     }
     try {
@@ -130,6 +160,7 @@
       });
       if (!result.success) throw new Error(result.error || "Could not upload your picture.");
       updateLocalUser({ photoUrl: result.photoUrl, photo: result.photoUrl });
+      linkedProfile = { ...(linkedProfile || {}), photoUrl: result.photoUrl };
       document.getElementById("accountPhoto").src = result.photoUrl;
       showMessage("Your profile picture has been updated.");
     } catch (error) {
@@ -161,7 +192,7 @@
       }
       localStorage.setItem("onmUser", JSON.stringify(user));
       populate();
-      await loadLinkedPlayerPhoto();
+      await loadLinkedPlayerProfile();
       form.addEventListener("submit", saveProfile);
       document.getElementById("accountPhotoInput").addEventListener("change", uploadPhoto);
       document.getElementById("accountLogout").addEventListener("click", logout);

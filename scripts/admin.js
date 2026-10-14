@@ -5,6 +5,8 @@
     user: null,
     fixtures: [],
     results: [],
+    players: [],
+    playerPhotos: {},
     activeTab: "fixtures",
     editor: null
   };
@@ -44,6 +46,13 @@
 
   function playerValue(row, index) {
     return row[`Player${index}`] ?? row[`Player ${index}`] ?? "";
+  }
+
+  function playerPhoto(profile) {
+    const stored = clean(profile.photoUrl || profile.photo);
+    if (stored && !/^\/?images\/players\//i.test(stored)) return stored;
+    const key = window.PlayerData?.photoKey?.(profile.publicName) || "";
+    return state.playerPhotos[key] || "images/default.jpg";
   }
 
   function dateValue(value) {
@@ -218,6 +227,23 @@
     list.innerHTML = `<div class="adminManagedCards">${results.map(item => resultCard(item)).join("")}</div>`;
   }
 
+  function renderPlayers() {
+    const list = document.getElementById("playersList");
+    const query = clean(document.getElementById("playerSearch").value).toLowerCase();
+    const players = state.players
+      .filter(player => !query || `${player.publicName || ""} ${player.nickname || ""} ${player.role || ""}`.toLowerCase().includes(query))
+      .sort((a, b) => clean(a.publicName).localeCompare(clean(b.publicName)));
+    if (!players.length) {
+      list.innerHTML = '<div class="adminEmpty">No players match this search.</div>';
+      return;
+    }
+    list.innerHTML = players.map(player => `<article class="adminPlayerCard">
+      <img src="${escapeHtml(playerPhoto(player))}" alt="${escapeHtml(player.publicName)}">
+      <div><h3>${escapeHtml(player.publicName || "Unnamed player")}</h3><p>${escapeHtml(player.nickname || player.role || "Player profile")}</p>
+        <button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit player</button></div>
+    </article>`).join("");
+  }
+
   function selectOptions(selected) {
     return ["26-27", "25-26", "24-25"].map(value =>
       `<option value="${value}"${value === selected ? " selected" : ""}>${value.replace("-", "/")}</option>`
@@ -287,6 +313,37 @@
       <button class="btn btnGhost" type="button" data-cancel-editor>Cancel</button>
       <button class="btn btnPrimary" type="submit">Save result</button>
     </div>`;
+    showEditor();
+  }
+
+  function openPlayerEditor(player) {
+    if (!player) return;
+    state.editor = { type: "player", id: player.playerKey };
+    typeLabel.textContent = "Player profile";
+    title.textContent = `Edit ${player.publicName}`;
+    form.innerHTML = `<div class="adminPhotoEditRow wide">
+      <img id="adminPlayerPhotoPreview" class="adminPlayerPhotoPreview" src="${escapeHtml(playerPhoto(player))}" alt="${escapeHtml(player.publicName)}">
+      <label>Replace photo<input name="photoFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="adminFieldHelp">The original Drive photo remains the default until you upload a replacement.</span></label>
+    </div>
+    <div class="adminGrid">
+      <label>Public name<input value="${escapeHtml(player.publicName)}" disabled></label>
+      <label>Nickname<input name="nickname" maxlength="80" value="${escapeHtml(player.nickname)}"></label>
+      <label>Club role<input name="role" maxlength="50" value="${escapeHtml(player.role)}"></label>
+      <label>Highest checkout<input name="highestCheckout" type="number" min="0" max="170" value="${escapeHtml(player.highestCheckout)}"></label>
+      <label class="wide">Walkout song link<input name="song" type="url" maxlength="500" value="${escapeHtml(player.song)}"></label>
+      <label class="wide">Accolades<input name="accolades" value="${escapeHtml((player.accolades || []).join(", "))}" placeholder="Comma-separated accolade keys"></label>
+      <label class="wide">Bio<textarea name="bio" rows="5" maxlength="1000">${escapeHtml(player.bio)}</textarea></label>
+      <label class="adminCheckbox">Gooch<input name="gooch" type="checkbox"${[true, "yes", "true"].includes(player.gooch) ? " checked" : ""}></label>
+      <label class="adminCheckbox">Visible on website<input name="profileVisible" type="checkbox"${player.profileVisible !== false ? " checked" : ""}></label>
+    </div>
+    <div class="adminFormActions">
+      <button class="btn btnGhost" type="button" data-cancel-editor>Cancel</button>
+      <button class="btn btnPrimary" type="submit">Save player</button>
+    </div>`;
+    form.elements.photoFile.addEventListener("change", () => {
+      const file = form.elements.photoFile.files?.[0];
+      if (file) document.getElementById("adminPlayerPhotoPreview").src = URL.createObjectURL(file);
+    });
     showEditor();
   }
 
@@ -378,6 +435,52 @@
     renderOverview();
   }
 
+  function fileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+      reader.onerror = () => reject(new Error("Could not read that image."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function savePlayer(data) {
+    const player = state.players.find(item => item.playerKey === state.editor.id);
+    if (!player) throw new Error("That player profile could not be found.");
+    let photoUrl = player.photoUrl || player.photo || "";
+    const file = form.elements.photoFile?.files?.[0];
+    if (file) {
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error("Choose a JPG, PNG or WebP image.");
+      if (file.size > 5 * 1024 * 1024) throw new Error("Choose an image smaller than 5 MB.");
+      const uploaded = await window.ONMFirebase.post({
+        action: "uploadPlayerPhoto",
+        playerKey: player.playerKey,
+        fileName: file.name,
+        mimeType: file.type,
+        imageBase64: await fileAsBase64(file)
+      });
+      if (!uploaded.success) throw new Error(uploaded.error || "Could not upload that photo.");
+      photoUrl = uploaded.photoUrl;
+    }
+    const profile = {
+      nickname: clean(data.get("nickname")),
+      photoUrl,
+      bio: clean(data.get("bio")),
+      accolades: clean(data.get("accolades")).split(",").map(value => value.trim()).filter(Boolean),
+      role: clean(data.get("role")),
+      song: clean(data.get("song")),
+      highestCheckout: clean(data.get("highestCheckout")),
+      gooch: data.get("gooch") === "on",
+      profileVisible: data.get("profileVisible") === "on"
+    };
+    const result = await window.ONMFirebase.post({ action: "updatePlayerProfile", playerKey: player.playerKey, profile });
+    if (!result.success) throw new Error(result.error || "Could not save that player.");
+    state.players = state.players.map(item => item.playerKey === player.playerKey
+      ? { ...item, ...profile, gooch: profile.gooch ? "yes" : "" }
+      : item);
+    renderPlayers();
+  }
+
   async function deleteItem(type, id) {
     const items = type === "fixture" ? state.fixtures : state.results;
     const item = items.find(entry => entry.id === id);
@@ -418,11 +521,13 @@
       document.querySelectorAll("[data-admin-tab]").forEach(item => item.classList.toggle("active", item === button));
       document.getElementById("fixturesPanel").classList.toggle("hidden", state.activeTab !== "fixtures");
       document.getElementById("resultsPanel").classList.toggle("hidden", state.activeTab !== "results");
+      document.getElementById("playersPanel").classList.toggle("hidden", state.activeTab !== "players");
     }));
     document.getElementById("fixtureSeasonFilter").addEventListener("change", renderFixtures);
     document.getElementById("fixtureSearch").addEventListener("input", renderFixtures);
     document.getElementById("resultSeasonFilter").addEventListener("change", renderResults);
     document.getElementById("resultSearch").addEventListener("input", renderResults);
+    document.getElementById("playerSearch").addEventListener("input", renderPlayers);
     document.getElementById("addFixtureBtn").addEventListener("click", () => openFixtureEditor());
     document.getElementById("addResultBtn").addEventListener("click", () => openResultEditor());
     document.getElementById("closeAdminEditor").addEventListener("click", closeEditor);
@@ -434,6 +539,7 @@
       if (button.hasAttribute("data-cancel-editor")) closeEditor();
       if (button.dataset.editFixture) openFixtureEditor(state.fixtures.find(item => item.id === button.dataset.editFixture));
       if (button.dataset.editResult) openResultEditor(state.results.find(item => item.id === button.dataset.editResult));
+      if (button.dataset.editPlayer) openPlayerEditor(state.players.find(item => item.playerKey === button.dataset.editPlayer));
       if (button.dataset.deleteFixture) deleteItem("fixture", button.dataset.deleteFixture);
       if (button.dataset.deleteResult) deleteItem("result", button.dataset.deleteResult);
     });
@@ -445,15 +551,16 @@
       try {
         const data = new FormData(form);
         if (state.editor.type === "fixture") await saveFixture(data);
-        else await saveResult(data);
-        const label = state.editor.type === "fixture" ? "Fixture" : "Result";
+        else if (state.editor.type === "result") await saveResult(data);
+        else await savePlayer(data);
+        const label = state.editor.type === "fixture" ? "Fixture" : state.editor.type === "result" ? "Result" : "Player";
         closeEditor();
         showToast(`${label} saved. The live website has been updated.`);
       } catch (error) {
         console.error(error);
         showToast(error.message || "Could not save those changes.", true);
         submit.disabled = false;
-        submit.textContent = state.editor.type === "fixture" ? "Save fixture" : "Save result";
+        submit.textContent = state.editor.type === "fixture" ? "Save fixture" : state.editor.type === "result" ? "Save result" : "Save player";
       }
     });
   }
@@ -471,13 +578,22 @@
         return;
       }
       document.getElementById("adminIdentity").textContent = `Signed in as ${state.user.firstName || state.user.email}`;
-      [state.fixtures, state.results] = await Promise.all([loadCollection("fixtures"), loadCollection("results")]);
+      const profilesRequest = window.ONMFirebase.post({ action: "getPublicPlayerProfiles" });
+      const photosRequest = window.PlayerData?.fetchPlayerPhotosFromDrive?.().catch(() => ({})) || Promise.resolve({});
+      const [fixtures, results, profileResult, photos] = await Promise.all([
+        loadCollection("fixtures"), loadCollection("results"), profilesRequest, photosRequest
+      ]);
+      state.fixtures = fixtures;
+      state.results = results;
+      state.players = profileResult.success ? profileResult.profiles : [];
+      state.playerPhotos = photos || {};
       gate.classList.add("hidden");
       app.classList.remove("hidden");
       attachListeners();
       renderOverview();
       renderFixtures();
       renderResults();
+      renderPlayers();
     } catch (error) {
       console.error(error);
       gate.innerHTML = `<h2>Could not open the admin area</h2><p>${escapeHtml(error.message || "Please try again.")}</p>`;

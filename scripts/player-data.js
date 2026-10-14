@@ -105,10 +105,14 @@
   }
 
   function normaliseLiveProfile(profile = {}) {
+    const storedPhoto = profile.photoUrl || "";
     return {
       playerKey: profile.playerKey || "",
       nickname: profile.nickname || "",
-      photo: profile.photoUrl || "",
+      // The old JSON filenames point to the Drive photo folder; those files
+      // are not bundled in the website. Leave them empty here so the Drive
+      // lookup below supplies the real, working thumbnail URL.
+      photo: /^\/?images\/players\//i.test(storedPhoto) ? "" : storedPhoto,
       bio: profile.bio || "",
       accolades: Array.isArray(profile.accolades) ? profile.accolades : [],
       role: profile.role || "",
@@ -398,7 +402,7 @@
   const DRIVE_API_KEY = "AIzaSyDlAZ7wv_8BNA1Nes1uBMrbZWhL0aaz1xw";
   const PLAYER_PHOTO_FOLDER_ID = "1wIsRGnYOvD_v0QGc3nEPraoHSqj62pNc";
 
-  const DRIVE_CACHE_KEY = "playerDrivePhotos";
+  const DRIVE_CACHE_KEY = "playerDrivePhotos:v2";
   let drivePhotoMemoryCache = null;
 
   function photoKey(s) {

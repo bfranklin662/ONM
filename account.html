@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow">
   <title>My account | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/buttons.css">
-  <link rel="stylesheet" href="styles/account.css?v=20261014-account-2">
+  <link rel="stylesheet" href="styles/account.css?v=20261014-player-profiles">
   <link rel="icon" type="image/png" href="graphics/favicon1.png">
 </head>
 <body>
@@ -54,7 +54,11 @@
             <label>Team<input name="team"></label>
             <label>Nationality<input name="nationality"></label>
             <label>Nickname<input name="nickname"></label>
+            <label>Club role<input name="playerRole" placeholder="Captain, vice-captain…"></label>
+            <label>Highest checkout<input name="highestCheckout" type="number" min="0" max="170"></label>
+            <label class="accountCheck"><input name="gooch" type="checkbox"> Gooch</label>
             <label class="wide">Walkout song Spotify link<input name="walkoutSong" type="url" placeholder="https://open.spotify.com/…"></label>
+            <label class="wide">Accolades<input name="accolades" placeholder="Comma-separated accolade keys"></label>
             <label class="wide">Bio<textarea name="bio" rows="6"></textarea></label>
           </div>
         </form>
@@ -87,7 +91,8 @@
     </section>
   </main>
 
-  <script src="scripts/firebase-client.js?v=20261014-account-2"></script>
-  <script src="scripts/account.js?v=20261014-account-2"></script>
+  <script src="scripts/firebase-client.js?v=20261014-player-profiles"></script>
+  <script src="scripts/player-data.js?v=20261014-player-photo-fallback"></script>
+  <script src="scripts/account.js?v=20261014-player-profiles"></script>
 </body>
 </html>
