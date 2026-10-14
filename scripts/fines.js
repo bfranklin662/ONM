@@ -71,13 +71,21 @@ document.addEventListener("DOMContentLoaded", () => {
     return Boolean(window.ONMSession?.getUser?.() && signedInPlayerDirectory.length);
   }
 
-  function updatePlayerNameOptions() {
+  function updatePlayerNameOptions(query = "") {
     document.getElementById("playerFullNameOptions")?.remove();
     if (!signedInPlayerDirectoryEnabled()) return;
 
+    const queryKey = normalisePlayerName(query);
+    const matchingPlayers = queryKey
+      ? signedInPlayerDirectory.filter(player =>
+          normalisePlayerName(player.fullName).startsWith(queryKey) ||
+          normalisePlayerName(player.publicName).startsWith(queryKey)
+        )
+      : signedInPlayerDirectory;
+
     const options = document.createElement("datalist");
     options.id = "playerFullNameOptions";
-    options.innerHTML = signedInPlayerDirectory
+    options.innerHTML = matchingPlayers
       .map(player => `<option value="${escapeHtml(player.fullName)}" label="${escapeHtml(player.publicName)}"></option>`)
       .join("");
     document.body.appendChild(options);
@@ -1998,7 +2006,7 @@ document.addEventListener("DOMContentLoaded", () => {
       row.className = "nameRow";
       row.innerHTML = `
         <div class="playerNameInputWrap">
-          <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="40"${signedInPlayerDirectoryEnabled() ? ' list="playerFullNameOptions"' : ""} value="${escapeHtml(playerInputValue(existingValues[i] || store.setupNames?.[i - 1] || ""))}" />
+          <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="40" autocomplete="off"${signedInPlayerDirectoryEnabled() ? ' list="playerFullNameOptions"' : ""} value="${escapeHtml(playerInputValue(existingValues[i] || store.setupNames?.[i - 1] || ""))}" />
           <span class="newPlayerBadge" hidden>NEW</span>
         </div>
       `;
@@ -2006,6 +2014,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const input = row.querySelector("input");
       updateNewPlayerState(input);
       input?.addEventListener("input", () => {
+        updatePlayerNameOptions(input.value);
         updateNewPlayerState(input);
         const names = [];
 
@@ -2021,6 +2030,7 @@ document.addEventListener("DOMContentLoaded", () => {
           applySetupNamesToGame({ silent: true });
         }
       });
+      input?.addEventListener("focus", () => updatePlayerNameOptions(input.value));
     }
 
     if (addPlayerBtn) addPlayerBtn.disabled = playerInputCount >= MAX_PLAYERS;
