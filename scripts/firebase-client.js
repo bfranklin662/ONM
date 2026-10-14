@@ -734,6 +734,18 @@
     await authSdk.signOut(auth);
   }
 
+  // Accounts cached by the former Apps Script login do not contain a
+  // Firebase uid. Remove them before session.js renders the header so an old
+  // localStorage record can never be mistaken for an authenticated session.
+  if (FIREBASE_PRIMARY) {
+    try {
+      const cachedUser = JSON.parse(localStorage.getItem("onmUser") || "null");
+      if (cachedUser && !cachedUser.uid) localStorage.removeItem("onmUser");
+    } catch {
+      localStorage.removeItem("onmUser");
+    }
+  }
+
   window.ONMFirebase = {
     ready,
     post,
