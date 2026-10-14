@@ -78,6 +78,6 @@ Confirm all of the following on the live site:
 
 Once those checks pass, Apps Script is no longer used by the website and can
 be left in place only as a temporary archive. The final cutover is the single
-`FIREBASE_PRIMARY` switch near the top of `scripts/firebase-client.js`. Leave
-it set to `false` while setting up and importing; change it to `true` only
-after the checks above pass.
+`FIREBASE_PRIMARY` switch near the top of `scripts/firebase-client.js`. It is
+now set to `true` following the successful import of 41 players, 92 results
+and 112 fixtures.

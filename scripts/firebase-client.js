@@ -5,7 +5,7 @@
   const BASE = `https://www.gstatic.com/firebasejs/${VERSION}`;
   // Keep the live site on Apps Script until Firebase services and data have
   // been verified. Change to true for the final cutover.
-  const FIREBASE_PRIMARY = false;
+  const FIREBASE_PRIMARY = true;
   const LEGACY_ENDPOINT = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
   const config = {
     apiKey: "AIzaSyBn87XaH6f7MHC6EZZskBJF_4kJYNG1j2c",
