@@ -10,11 +10,36 @@ In `Season2026_27.gs`, delete the complete `MATCH_PLAYER_DIRECTORY` constant and
 
 Create a new Apps Script file named `PlayerDirectory.gs` and paste in the complete contents of this repository's `apps-script/PlayerDirectory.gs` file.
 
-## 2. Add the automatic save call
+## Results tab location
 
-In `Code.gs`, find the action checks inside `doPost`. Immediately after the existing `getMatchPlayerDirectory` check, add:
+The 2026/27 results tab can live inside the existing 2025/26 workbook that owns this Apps Script. Name the new tab exactly `Result data 26/27`, paste in the existing headers and results, then use this configuration in `Season2026_27.gs`:
 
 ```js
+const RESULTS_SHEET_NAME = "Result data 26/27";
+
+function getResultsDataSheet() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = spreadsheet.getSheetByName(RESULTS_SHEET_NAME);
+
+  if (!sheet) {
+    throw new Error("2026/27 results sheet not found: " + RESULTS_SHEET_NAME);
+  }
+
+  return sheet;
+}
+```
+
+Delete the old `RESULTS_SPREADSHEET_ID` constant and do not keep a second `getResultsDataSheet()` function. The player directory now automatically uses the same workbook as this results tab.
+
+## 2. Add the automatic save call
+
+In `Code.gs`, find the action checks inside `doPost`. Immediately after the existing `getMatchPlayerDirectory` check, add all three public/profile handlers if they are not already present:
+
+```js
+if (payload.action === "getPublicSeasonResults") {
+  return getPublicSeasonResults();
+}
+
 if (payload.action === "getPublicPlayerProfiles") {
   return getPublicPlayerProfiles();
 }

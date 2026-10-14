@@ -75,7 +75,7 @@ function canonicalDirectoryFullName_(value) {
 }
 
 function getPlayerDirectorySheet_() {
-  const spreadsheet = SpreadsheetApp.openById(RESULTS_SPREADSHEET_ID);
+  const spreadsheet = getResultsDataSheet().getParent();
   let sheet = spreadsheet.getSheetByName(PLAYER_DIRECTORY_SHEET_NAME);
 
   if (!sheet) {
