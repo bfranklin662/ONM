@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>My account | Oche Ness Monsters</title>
+  <link rel="stylesheet" href="styles/buttons.css">
+  <link rel="stylesheet" href="styles/account.css?v=20261014-account">
+  <link rel="icon" type="image/png" href="graphics/favicon1.png">
+</head>
+<body>
+  <header class="accountHeader">
+    <a href="index.html" class="accountBrand">
+      <img src="graphics/logoWoText.png" alt="Oche Ness Monsters">
+      <span>My account</span>
+    </a>
+    <a class="btn btnGhost" href="index.html">Back to website</a>
+  </header>
+
+  <main class="accountShell">
+    <section id="accountLoading" class="accountLoading">
+      <div class="accountSpinner"></div>
+      <p>Loading your account…</p>
+    </section>
+
+    <section id="accountApp" class="hidden">
+      <div class="accountHero">
+        <div class="accountPhotoWrap">
+          <img id="accountPhoto" src="graphics/logoWoText.png" alt="Profile picture">
+          <label class="accountPhotoButton" for="accountPhotoInput">Change photo</label>
+          <input id="accountPhotoInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+        </div>
+        <div>
+          <span class="accountEyebrow">Signed-in profile</span>
+          <h1 id="accountName">My account</h1>
+          <p id="accountLinkedPlayer" class="accountLinkedPlayer"></p>
+          <div id="accountHeroActions" class="accountHeroActions"></div>
+        </div>
+      </div>
+
+      <div id="accountMessage" class="accountMessage hidden" role="status"></div>
+
+      <div class="accountLayout">
+        <form id="accountForm" class="accountCard">
+          <div class="accountCardHeading">
+            <div><span class="accountEyebrow">Personal details</span><h2>Profile information</h2></div>
+            <button class="btn btnPrimary" type="submit">Save changes</button>
+          </div>
+          <div class="accountGrid">
+            <label>First name<input name="firstName" autocomplete="given-name" required></label>
+            <label>Surname<input name="surname" autocomplete="family-name" required></label>
+            <label class="wide">Email<input name="email" type="email" autocomplete="email" required></label>
+            <label>Team<input name="team"></label>
+            <label>Nationality<input name="nationality"></label>
+            <label>Nickname<input name="nickname"></label>
+            <label class="wide">Walkout song Spotify link<input name="walkoutSong" type="url" placeholder="https://open.spotify.com/…"></label>
+            <label class="wide">Bio<textarea name="bio" rows="6"></textarea></label>
+          </div>
+        </form>
+
+        <aside class="accountSidebar">
+          <section class="accountCard accountSummary">
+            <span class="accountEyebrow">Account</span>
+            <dl>
+              <div><dt>Access</dt><dd id="accountRole">Member</dd></div>
+              <div><dt>Status</dt><dd id="accountStatus">Active</dd></div>
+              <div><dt>Linked player</dt><dd id="accountPlayer">Not linked</dd></div>
+            </dl>
+          </section>
+
+          <section id="accountAdminCard" class="accountCard hidden">
+            <span class="accountEyebrow">Club administration</span>
+            <h2>Manage club data</h2>
+            <p>Edit fixtures and correct submitted results.</p>
+            <a class="btn btnPrimary accountFullButton" href="admin.html">Open admin area</a>
+          </section>
+
+          <section class="accountCard">
+            <span class="accountEyebrow">Session</span>
+            <h2>Sign out</h2>
+            <p>Sign out of this device when you have finished.</p>
+            <button id="accountLogout" class="btn btnGhost accountFullButton" type="button">Log out</button>
+          </section>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script src="scripts/firebase-client.js?v=20261014-account"></script>
+  <script src="scripts/account.js?v=20261014-account"></script>
+</body>
+</html>

@@ -118,7 +118,7 @@ function updateAuthHeader(user) {
     authBtn.classList.add("isProfileLoading");
 
     try {
-      if (user) await openProfileModal();
+      if (user) window.location.href = "account.html";
       else openLoggedOutProfileModal();
     } finally {
       authBtn.classList.remove("isProfileLoading");

@@ -1,0 +1,53 @@
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin:0; min-height:100vh; background:radial-gradient(circle at 85% 0,#123348 0,transparent 30%),#07101b; color:#f7fafc; font-family:Arial,sans-serif; }
+.hidden { display:none !important; }
+.accountHeader { min-height:72px; padding:12px clamp(16px,4vw,48px); display:flex; align-items:center; justify-content:space-between; gap:16px; border-bottom:1px solid #273443; background:rgba(10,19,32,.94); }
+.accountBrand { display:flex; align-items:center; gap:12px; color:#fff; text-decoration:none; font-size:20px; font-weight:900; }
+.accountBrand img { width:44px; height:44px; border-radius:10px; object-fit:cover; }
+.accountShell { width:min(1120px,calc(100% - 28px)); margin:34px auto 70px; }
+.accountLoading { min-height:300px; display:grid; place-content:center; justify-items:center; color:#aebdca; }
+.accountSpinner { width:34px; height:34px; border:3px solid #304153; border-top-color:#14b89c; border-radius:50%; animation:accountSpin .8s linear infinite; }
+@keyframes accountSpin { to { transform:rotate(360deg); } }
+.accountHero { display:flex; align-items:center; gap:24px; padding:24px; margin-bottom:20px; border:1px solid #2a3a4a; border-radius:18px; background:linear-gradient(120deg,#101d2b,#0b1521); }
+.accountPhotoWrap { position:relative; flex:0 0 auto; }
+.accountPhotoWrap img { width:130px; height:130px; display:block; border:3px solid #ffd41d; border-radius:24px; background:#050b12; object-fit:cover; }
+.accountPhotoButton { position:absolute; left:10px; right:10px; bottom:8px; padding:7px 8px; border-radius:7px; background:rgba(4,10,17,.9); color:#fff; font-size:11px; font-weight:900; text-align:center; cursor:pointer; }
+.accountEyebrow { color:#ffd41d; font-size:11px; font-weight:900; letter-spacing:.13em; text-transform:uppercase; }
+.accountHero h1 { margin:5px 0 6px; font-size:clamp(32px,6vw,58px); line-height:1; }
+.accountLinkedPlayer { margin:0; color:#aebdca; }
+.accountHeroActions { display:flex; gap:9px; flex-wrap:wrap; margin-top:15px; }
+.accountHeroActions a { text-decoration:none; }
+.accountMessage { margin-bottom:18px; padding:13px 16px; border:1px solid #288172; border-radius:9px; background:#114b43; font-weight:800; }
+.accountMessage.error { border-color:#8c3e46; background:#5a272d; }
+.accountLayout { display:grid; grid-template-columns:minmax(0,2fr) minmax(250px,.8fr); gap:18px; align-items:start; }
+.accountCard { padding:22px; border:1px solid #293949; border-radius:15px; background:#0c1622; }
+.accountCard h2 { margin:5px 0 10px; }
+.accountCard p { color:#aebdca; line-height:1.5; }
+.accountCardHeading { display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:19px; margin-bottom:18px; border-bottom:1px solid #253444; }
+.accountCardHeading h2 { margin:5px 0 0; }
+.accountGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; }
+.accountGrid label { display:grid; gap:7px; color:#bac6d0; font-size:12px; font-weight:900; }
+.accountGrid .wide { grid-column:1/-1; }
+.accountGrid input,.accountGrid textarea { width:100%; padding:11px 12px; border:1px solid #3a4b5e; border-radius:8px; background:#07111c; color:#fff; font:inherit; }
+.accountGrid textarea { resize:vertical; }
+.accountSidebar { display:grid; gap:18px; }
+.accountSummary dl { margin:14px 0 0; }
+.accountSummary dl div { display:flex; justify-content:space-between; gap:14px; padding:11px 0; border-top:1px solid #253444; }
+.accountSummary dt { color:#9fb0bf; }
+.accountSummary dd { margin:0; font-weight:900; text-align:right; }
+.accountFullButton { width:100%; display:block; text-align:center; text-decoration:none; }
+@media (max-width:760px) {
+  .accountHero { align-items:flex-start; }
+  .accountPhotoWrap img { width:96px; height:96px; border-radius:18px; }
+  .accountLayout { grid-template-columns:1fr; }
+  .accountGrid { grid-template-columns:1fr; }
+  .accountGrid .wide { grid-column:auto; }
+  .accountCardHeading { align-items:stretch; flex-direction:column; }
+}
+@media (max-width:480px) {
+  .accountHeader .btn { padding:9px 10px; }
+  .accountBrand span { display:none; }
+  .accountHero { gap:15px; padding:18px; }
+  .accountPhotoWrap img { width:80px; height:80px; }
+}

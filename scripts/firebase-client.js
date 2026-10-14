@@ -223,7 +223,7 @@
     const user = await currentFirebaseUser();
     if (!user) throw new Error("Sign in to update your profile.");
     const { db, authSdk, firestoreSdk } = await ready;
-    const allowed = ["firstName", "email", "team", "nickname", "bio", "walkoutSong", "nationality", "photoUrl", "photo"];
+    const allowed = ["firstName", "surname", "email", "team", "nickname", "bio", "walkoutSong", "nationality", "photoUrl", "photo"];
     const updates = {};
     allowed.forEach(key => {
       if (payload.profile && payload.profile[key] !== undefined) {
