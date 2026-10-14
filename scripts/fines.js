@@ -27,14 +27,43 @@ document.addEventListener("DOMContentLoaded", () => {
     ) || null;
   }
 
-  function canonicalPlayer(value = "") {
+  function splitPlayerName(value = "") {
+    const parts = String(value).trim().replace(/\s+/g, " ").split(" ").filter(Boolean);
+    return {
+      firstName: parts[0] || "",
+      surname: parts.slice(1).join(" ")
+    };
+  }
+
+  function canonicalPlayer(value = "", matchNames = []) {
     const enteredName = String(value).trim().replace(/\s+/g, " ");
     const directoryPlayer = findPlayerDirectoryEntry(enteredName);
 
+    if (directoryPlayer) {
+      return {
+        name: directoryPlayer.publicName,
+        fullName: directoryPlayer.fullName,
+        playerKey: directoryPlayer.playerKey
+      };
+    }
+
+    const { firstName, surname } = splitPlayerName(enteredName);
+    const firstNameKey = normalisePlayerName(firstName);
+    const directoryCollision = signedInPlayerDirectory.some(player =>
+      normalisePlayerName(splitPlayerName(player.fullName).firstName) === firstNameKey
+    );
+    const matchCollision = matchNames.filter(name =>
+      normalisePlayerName(splitPlayerName(name).firstName) === firstNameKey
+    ).length > 1;
+    const needsSurnameInitial = surname && (directoryCollision || matchCollision);
+    const displayName = needsSurnameInitial
+      ? `${firstName} ${surname.charAt(0).toUpperCase()}`
+      : firstName || enteredName;
+
     return {
-      name: directoryPlayer?.publicName || enteredName,
-      fullName: directoryPlayer?.fullName || "",
-      playerKey: directoryPlayer?.playerKey || ""
+      name: displayName,
+      fullName: enteredName,
+      playerKey: ""
     };
   }
 
@@ -274,24 +303,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let leagueTeamsData = null;
   let seasonFixtures = [];
+  const submittedFixtureKeys = new Set();
 
   async function loadLeagueTeamsData() {
     try {
-      const [teamsRes, fixturesRes] = await Promise.all([
+      const [teamsRes, fixtures, results] = await Promise.all([
         fetch(`data/league-teams.json?v=${Date.now()}`, { cache: "no-store" }),
-        fetch(`data/fixtures-26-27.json?v=${Date.now()}`, { cache: "no-store" })
+        window.ONMSeasonData?.fetchFixtures
+          ? window.ONMSeasonData.fetchFixtures()
+          : fetch(`data/fixtures-26-27.json?v=${Date.now()}`, { cache: "no-store" }).then(response => {
+            if (!response.ok) throw new Error("Fixture data could not be loaded");
+            return response.json();
+          }),
+        window.ONMSeasonData?.fetchResults
+          ? window.ONMSeasonData.fetchResults()
+          : fetch(`data/result-data-26-27.json?v=${Date.now()}`, { cache: "no-store" }).then(response => {
+            if (!response.ok) throw new Error("Result data could not be loaded");
+            return response.json();
+          })
       ]);
 
-      if (!teamsRes.ok || !fixturesRes.ok) {
+      if (!teamsRes.ok) {
         throw new Error("Fixture data could not be loaded");
       }
 
       leagueTeamsData = await teamsRes.json();
-      const fixtures = await fixturesRes.json();
+      const today = todayInputValue();
       seasonFixtures = (Array.isArray(fixtures) ? fixtures : [])
         .filter(fixture => ["Banks League", "Trafalgar League"].includes(fixture.League))
         .map(normaliseSeasonFixture)
         .filter(fixture => fixture.dateValue)
+        .filter(fixture => fixture.dateValue <= today)
+        .filter(fixture => !fixtureHasSubmittedResult(fixture, results))
         .sort((a, b) => a.dateValue.localeCompare(b.dateValue));
     } catch (err) {
       console.warn("Could not load league or fixture data", err);
@@ -359,6 +402,40 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
+  function normaliseMatchTeam(value = "") {
+    const normalised = String(value)
+      .trim()
+      .toLowerCase()
+      .replace(/&/g, "and")
+      .replace(/[’']/g, "")
+      .replace(/\s+/g, " ");
+
+    return normalised === "dogs no more" ? "bb kings" : normalised;
+  }
+
+  function resultDateValue(value = "") {
+    const raw = String(value).trim();
+    const numeric = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+    if (numeric) {
+      const year = numeric[3].length === 2 ? `20${numeric[3]}` : numeric[3];
+      return `${year}-${numeric[2].padStart(2, "0")}-${numeric[1].padStart(2, "0")}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    return fixtureDateValue(raw);
+  }
+
+  function fixtureHasSubmittedResult(fixture, results = []) {
+    const onmTeam = "Oche Ness Monsters";
+    const expectedHome = fixture.homeAway === "Away" ? fixture.opponent : onmTeam;
+    const expectedAway = fixture.homeAway === "Away" ? onmTeam : fixture.opponent;
+
+    return (Array.isArray(results) ? results : []).some(result =>
+      resultDateValue(result.Date || result.date) === fixture.dateValue &&
+      normaliseMatchTeam(result.HomeTeam || result.homeTeam || result.Home) === normaliseMatchTeam(expectedHome) &&
+      normaliseMatchTeam(result.AwayTeam || result.awayTeam || result.Away) === normaliseMatchTeam(expectedAway)
+    );
+  }
+
   function fixtureDateLabel(dateValue = "") {
     if (!dateValue) return "";
     const [year, month, day] = dateValue.split("-").map(Number);
@@ -372,13 +449,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function getClosestFixture() {
-    if (!seasonFixtures.length) return null;
+  function getClosestFixture(fixtures = seasonFixtures) {
+    if (!fixtures.length) return null;
 
     const todayValue = todayInputValue();
     const today = new Date(`${todayValue}T12:00:00`).getTime();
 
-    return [...seasonFixtures].sort((a, b) => {
+    return [...fixtures].sort((a, b) => {
       const aTime = new Date(`${a.dateValue}T12:00:00`).getTime();
       const bTime = new Date(`${b.dateValue}T12:00:00`).getTime();
       const distance = Math.abs(aTime - today) - Math.abs(bTime - today);
@@ -386,13 +463,13 @@ document.addEventListener("DOMContentLoaded", () => {
     })[0];
   }
 
-  function findStoredFixture(match = {}) {
+  function findStoredFixture(match = {}, fixtures = seasonFixtures) {
     if (match.fixtureKey) {
-      const byKey = seasonFixtures.find(fixture => fixture.key === match.fixtureKey);
+      const byKey = fixtures.find(fixture => fixture.key === match.fixtureKey);
       if (byKey) return byKey;
     }
 
-    return seasonFixtures.find(fixture => {
+    return fixtures.find(fixture => {
       if (match.date && fixture.dateValue !== match.date) return false;
       if (match.league && fixture.league !== match.league) return false;
       if (!match.homeTeam && !match.awayTeam) return true;
@@ -455,17 +532,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function populateFixtureSelector({ preferredKey = "", storedMatch = resultSubmitData.match, clearScores = false } = {}) {
-    if (!matchFixture || !seasonFixtures.length) return;
+    if (!matchFixture) return;
+
+    const visibleFixtures = seasonFixtures.filter(fixture =>
+      !submittedFixtureKeys.has(fixture.key) || fixture.key === preferredKey
+    );
+
+    if (!visibleFixtures.length) {
+      matchFixture.innerHTML = '<option value="">No unsubmitted fixtures</option>';
+      matchFixture.value = "";
+      matchFixture.disabled = true;
+      if (fixtureAutofillStatus) {
+        fixtureAutofillStatus.textContent = "There are no unsubmitted Banks or Trafalgar fixtures up to today.";
+        fixtureAutofillStatus.classList.remove("error");
+      }
+      return;
+    }
+
+    matchFixture.disabled = false;
 
     const currentKey = preferredKey || matchFixture.value;
-    matchFixture.innerHTML = seasonFixtures.map(fixture => {
+    matchFixture.innerHTML = visibleFixtures.map(fixture => {
       const leagueName = fixture.league === "Banks League" ? "Banks" : "Trafalgar";
       return `<option value="${escapeHtml(fixture.key)}">${escapeHtml(fixtureDateLabel(fixture.dateValue))} · ${leagueName} · ${escapeHtml(fixture.opponent)} · ${fixture.homeAway}</option>`;
     }).join("");
 
-    const selected = seasonFixtures.find(fixture => fixture.key === currentKey)
-      || findStoredFixture(storedMatch)
-      || getClosestFixture();
+    const selected = visibleFixtures.find(fixture => fixture.key === currentKey)
+      || findStoredFixture(storedMatch, visibleFixtures)
+      || getClosestFixture(visibleFixtures);
 
     if (!selected) return;
     matchFixture.value = selected.key;
@@ -1956,7 +2050,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const oldPlayers = [...players];
 
     players = names.map((enteredName, index) => {
-      const canonical = canonicalPlayer(enteredName);
+      const canonical = canonicalPlayer(enteredName, names);
       const name = canonical.name;
       const old = oldPlayers[index];
       const oldName = old?.name;
@@ -2623,7 +2717,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // de-dupe (case-insensitive) by suffixing
     const seen = new Map();
     players = names.map((enteredName) => {
-      const canonical = canonicalPlayer(enteredName);
+      const canonical = canonicalPlayer(enteredName, names);
       const key = canonical.name.toLowerCase();
       const count = (seen.get(key) ?? 0) + 1;
       seen.set(key, count);
@@ -3208,6 +3302,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       submittedResultRow = data.rowNumber || submittedResultRow;
+      if (resultSubmitData.match?.fixtureKey) {
+        submittedFixtureKeys.add(resultSubmitData.match.fixtureKey);
+      }
 
       closeModal();
       showResultSubmittedBanner(isResubmit);
