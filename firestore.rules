@@ -72,8 +72,8 @@ service cloud.firestore {
 
     match /results/{resultId} {
       allow read: if true;
-      allow create: if linkedMember() &&
-        request.resource.data.submittedBy == request.auth.uid;
+      allow create: if admin() ||
+        (linkedMember() && request.resource.data.submittedBy == request.auth.uid);
       allow update: if admin() ||
         (linkedMember() && resource.data.submittedBy == request.auth.uid &&
           request.resource.data.submittedBy == resource.data.submittedBy);
