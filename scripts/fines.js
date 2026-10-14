@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let playerInputCount = DEFAULT_PLAYER_INPUTS;
   const PLAYER_DIRECTORY_ENDPOINT = "https://script.google.com/macros/s/AKfycbwXZp0rgR2xYo1S7P-512FzoOlWjMfJaRcRPpRVzTkBiWGUEWEbQ25V3_vcLBse_rt5wA/exec";
   let signedInPlayerDirectory = [];
+  const PLAYER_FULL_NAME_CORRECTIONS = {
+    "alfie sells": "Alfie Sell"
+  };
 
   function normalisePlayerName(value = "") {
     return String(value).trim().replace(/\s+/g, " ").toLowerCase();
@@ -127,13 +130,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
       signedInPlayerDirectory = result.players
         .filter(player => player?.fullName && player?.publicName && player?.playerKey)
+        .map(player => ({
+          ...player,
+          fullName: PLAYER_FULL_NAME_CORRECTIONS[normalisePlayerName(player.fullName)] || player.fullName
+        }))
         .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
       updatePlayerNameOptions();
       renderSetupInputs();
 
       if (help) {
-        help.textContent = "Start typing a full name and choose the player. Results and fines will use their shorter club name.";
+        help.textContent = "Start typing a full name and choose the player. Leave the field to confirm a new player. Results and fines will use their shorter club name.";
       }
     } catch (error) {
       console.warn("Could not load signed-in player directory", error);
@@ -2015,7 +2022,7 @@ document.addEventListener("DOMContentLoaded", () => {
       updateNewPlayerState(input);
       input?.addEventListener("input", () => {
         updatePlayerNameOptions(input.value);
-        updateNewPlayerState(input);
+        clearNewPlayerState(input);
         const names = [];
 
         for (let j = 1; j <= playerInputCount; j++) {
@@ -2030,7 +2037,11 @@ document.addEventListener("DOMContentLoaded", () => {
           applySetupNamesToGame({ silent: true });
         }
       });
-      input?.addEventListener("focus", () => updatePlayerNameOptions(input.value));
+      input?.addEventListener("focus", () => {
+        clearNewPlayerState(input);
+        updatePlayerNameOptions(input.value);
+      });
+      input?.addEventListener("blur", () => updateNewPlayerState(input));
     }
 
     if (addPlayerBtn) addPlayerBtn.disabled = playerInputCount >= MAX_PLAYERS;
@@ -2049,6 +2060,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     row.classList.toggle("is-new-player", isNewPlayer);
     badge.hidden = !isNewPlayer;
+  }
+
+  function clearNewPlayerState(input) {
+    const row = input?.closest(".nameRow");
+    const badge = row?.querySelector(".newPlayerBadge");
+    if (!row || !badge) return;
+
+    row.classList.remove("is-new-player");
+    badge.hidden = true;
   }
 
   function saveSetupNamesToStore() {
