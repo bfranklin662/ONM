@@ -1,6 +1,9 @@
 // scripts/player-data.js
 (function () {
   // ---- CONFIG ----
+  const PLAYER_DATA_SITE_ROOT = document.currentScript?.src
+    ? new URL("../", document.currentScript.src)
+    : new URL("./", window.location.href);
   let livePlayerProfilesCache = null;
   const SHEETS = {
     banks: {
@@ -402,7 +405,7 @@
   const DRIVE_API_KEY = "AIzaSyDlAZ7wv_8BNA1Nes1uBMrbZWhL0aaz1xw";
   const PLAYER_PHOTO_FOLDER_ID = "1wIsRGnYOvD_v0QGc3nEPraoHSqj62pNc";
 
-  const DRIVE_CACHE_KEY = "playerDrivePhotos:v2";
+  const DRIVE_CACHE_KEY = "playerDrivePhotos:v3";
   let drivePhotoMemoryCache = null;
 
   function photoKey(s) {
@@ -419,6 +422,26 @@
     // 1️⃣ In-memory cache (fastest)
     if (drivePhotoMemoryCache) {
       return drivePhotoMemoryCache;
+    }
+
+    // The existing photos remain hosted in Drive, but their stable file IDs
+    // are packaged with the site so browsers do not depend on a Drive folder
+    // listing request before they can render a player card.
+    try {
+      const photoMapUrl = new URL("data/player-photo-map.json", PLAYER_DATA_SITE_ROOT);
+      const response = await fetch(photoMapUrl, { cache: "no-store" });
+      if (response.ok) {
+        const savedMap = await response.json();
+        if (savedMap && Object.keys(savedMap).length) {
+          drivePhotoMemoryCache = savedMap;
+          try {
+            sessionStorage.setItem(DRIVE_CACHE_KEY, JSON.stringify(savedMap));
+          } catch { }
+          return drivePhotoMemoryCache;
+        }
+      }
+    } catch {
+      // Fall through to the Drive API for backwards compatibility.
     }
 
     // 2️⃣ sessionStorage cache (survives page navigation)
