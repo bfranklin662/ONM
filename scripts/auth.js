@@ -5,10 +5,7 @@ const els = {
   registerForm: document.getElementById("registerForm"),
   loginForm: document.getElementById("loginForm"),
   authMsg: document.getElementById("authMsg"),
-  teamSelect: document.getElementById("teamSelect"),
   nationalitySelect: document.getElementById("registerNationality"),
-  customTeamWrap: document.getElementById("customTeamWrap"),
-  customTeamInput: document.getElementById("customTeamInput"),
   registerSubmitBtn: document.getElementById("registerSubmitBtn"),
   loginSubmitBtn: document.getElementById("loginSubmitBtn"),
   resetPasswordBtn: document.getElementById("resetPasswordBtn"),
@@ -233,23 +230,6 @@ els.registerForm.addEventListener("submit", async event => {
 
   const formData = new FormData(els.registerForm);
 
-  let teamValue = els.teamSelect.value;
-
-  if (teamValue === "Other") {
-    teamValue = els.customTeamInput.value.trim();
-
-    if (!teamValue) {
-      els.authMsg.textContent = "Please enter your team name.";
-      els.authMsg.classList.remove("hidden");
-      els.customTeamInput.focus();
-      return;
-    }
-  }
-
-  if (teamValue === "None") {
-    teamValue = "";
-  }
-
   els.authMsg.textContent = "Creating account...";
   els.authMsg.classList.remove("hidden");
 
@@ -263,7 +243,7 @@ els.registerForm.addEventListener("submit", async event => {
       email: formData.get("email"),
       nationality: formData.get("nationality"),
       accountRole: formData.get("accountRole"),
-      team: teamValue,
+      team: "Oche Ness Monsters",
       password: formData.get("password")
     });
 
@@ -342,16 +322,6 @@ els.resetPasswordBtn?.addEventListener("click", async () => {
 
 els.showRegisterBtn.addEventListener("click", showRegisterView);
 els.showLoginBtn.addEventListener("click", showLoginView);
-
-els.teamSelect.addEventListener("change", () => {
-  if (els.teamSelect.value === "Other") {
-    els.customTeamWrap.classList.remove("hidden");
-    setTimeout(() => els.customTeamInput.focus(), 50);
-  } else {
-    els.customTeamWrap.classList.add("hidden");
-    els.customTeamInput.value = "";
-  }
-});
 
 els.closeLinkPlayerBtn.addEventListener("click", continueAfterAuth);
 els.skipLinkPlayerBtn.addEventListener("click", continueAfterAuth);

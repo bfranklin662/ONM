@@ -14,6 +14,25 @@ service firebase.storage {
       return request.resource.size < 5 * 1024 * 1024;
     }
 
+    function activeMember() {
+      return signedIn() && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.status == "Active";
+    }
+
+    function admin() {
+      return activeMember() && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ["admin", "owner"];
+    }
+
+    match /result-photos/{resultId}/{userId}/{photoId}/{fileName} {
+      allow read: if true;
+      allow create: if activeMember() && request.auth.uid == userId &&
+        firestore.exists(/databases/(default)/documents/results/$(resultId)) &&
+        request.resource.contentType == "image/jpeg" && request.resource.size > 0 &&
+        ((fileName == "image.jpg" && request.resource.size <= 1024 * 1024) ||
+          (fileName == "thumbnail.jpg" && request.resource.size <= 128 * 1024));
+      allow update: if false;
+      allow delete: if admin() || (activeMember() && request.auth.uid == userId);
+    }
+
     match /profile-images/{userId}/{fileName} {
       allow read: if true;
       allow write: if signedIn() && request.auth.uid == userId &&

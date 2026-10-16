@@ -4,6 +4,39 @@ The website now uses the existing `oche-ness-monsters` Firebase project for
 accounts, player profiles, fixtures, results, match images and darts matches.
 The existing Realtime Database remains in place for live online darts.
 
+## Shared result photos
+
+The results and gallery views include **Add photos** for saved Firebase results.
+Any active signed-in account, including supporters, can add JPG, PNG or WebP
+photos. Uploaders can remove their own photos; owners/admins can remove any
+member-uploaded photo. Visitors can view photos and are prompted to sign in to
+upload. Scores and fines remain under the existing result permissions.
+
+Deploy **both** rules files before testing this feature:
+
+```sh
+npx firebase-tools deploy --only firestore:rules,storage
+```
+
+If Firebase asks to enable cross-service permissions for Storage to read
+Firestore account/result records, allow that integration for this project.
+Push the website files through the usual website deployment. No Cloud
+Functions deployment is needed for result photos.
+
+Photo metadata is stored in `results/{resultId}/photos/{photoId}`; image files
+are in `result-photos/{resultId}/{uploaderUid}/{photoId}/`. Each upload has unique
+paths so members cannot overwrite each other's photos. Existing Drive photos
+and images uploaded with the original result remain in the gallery.
+
+The browser creates a JPEG up to 1600px/800 KiB and a thumbnail up to
+400px/100 KiB. Originals are not uploaded. Images larger than 20 MiB or batches
+above 10 photos are rejected. Storage rules independently cap full images at
+1 MiB and thumbnails at 128 KiB. Canvas re-encoding omits original EXIF data.
+
+Photos are public once uploaded. Test one upload and deletion as a member,
+confirm another member can contribute without editing the result, then check
+the existing gallery and the logged-out sign-in prompt.
+
 ## 1. Enable the Firebase services
 
 In the Firebase console for `oche-ness-monsters`:

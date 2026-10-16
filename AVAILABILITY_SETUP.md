@@ -1,5 +1,15 @@
 # Availability sheet connection
 
+The home-page fixture cards and calendar also show the signed-in linked
+player's response: green for Available, red for Unavailable, amber for Not sure,
+and greyscale for unanswered fixtures. Clicking a fixture opens its details
+and lets the player save a response to the same sheet. Completed matches show
+"You played" based on their result's player slots; matches the player did not
+play are greyscale. Visitors keep the regular club fixture colours. Missing
+or failed sheet matches are shown as unavailable to load, never as unanswered.
+This uses the existing deployed availability functions; no new function
+deployment is required for the personalised cards.
+
 The account page's **Upcoming fixtures** tab uses the existing availability
 sheet as the source of truth. Responses are read live and written back to one
 existing dropdown cell. No spreadsheet restructuring, Apps Script, public

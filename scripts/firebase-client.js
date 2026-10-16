@@ -126,7 +126,7 @@
       firstName: clean(payload.firstName),
       surname: clean(payload.surname),
       email,
-      team: clean(payload.team),
+      team: "Oche Ness Monsters",
       nationality: clean(payload.nationality),
       status: "Active",
       role: "member",
@@ -403,9 +403,78 @@
     const { db, firestoreSdk } = await ready;
     const snapshot = await firestoreSdk.getDocs(firestoreSdk.collection(db, collectionName));
     return snapshot.docs
-      .map(item => item.data())
+      .map(item => ({ ...item.data(), _documentId: item.id }))
       .filter(item => !season || season === "all" || item.season === season)
-      .map(item => item[fieldName] || item);
+      .map(item => collectionName === "results" ? { ...(item[fieldName] || item), _resultId: item._documentId } : item[fieldName] || item);
+  }
+
+  function validResultPhotoPath(resultId, photoId, data) {
+    return typeof data.uploaderUid === "string" && !data.uploaderUid.includes("/") &&
+      data.storagePath === `result-photos/${resultId}/${data.uploaderUid}/${photoId}`;
+  }
+
+  async function listResultPhotos(resultId) {
+    if (!resultId || resultId.includes("/")) return [];
+    const { db, storage, firestoreSdk, storageSdk } = await ready;
+    const snapshot = await firestoreSdk.getDocs(firestoreSdk.collection(db, "results", resultId, "photos"));
+    const photos = await Promise.all(snapshot.docs.map(async doc => {
+      const data = doc.data();
+      if (!validResultPhotoPath(resultId, doc.id, data)) return null;
+      try {
+        const downloads = await Promise.allSettled(["image.jpg", "thumbnail.jpg"].map(name => storageSdk.getDownloadURL(storageSdk.ref(storage, `${data.storagePath}/${name}`))));
+        const full = downloads[0].status === "fulfilled" ? downloads[0].value : "";
+        const thumb = downloads[1].status === "fulfilled" ? downloads[1].value : "";
+        if (!full && !thumb) return null;
+        const url = full || thumb;
+        const thumbnailUrl = thumb || full;
+        return { id: doc.id, url, thumbnailUrl, uploaderUid: data.uploaderUid, createdAt: data.createdAt?.toMillis?.() || 0 };
+      } catch { return null; }
+    }));
+    return photos.filter(Boolean).sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+  }
+
+  async function uploadSharedResultPhoto(resultId, image, thumbnail) {
+    const user = await loadOwnUser();
+    if (!user || user.status !== "Active") throw new Error("Sign in with an active account to add photos.");
+    if (!resultId || resultId.includes("/")) throw new Error("Choose a saved result.");
+    if (![image, thumbnail].every(blob => blob instanceof Blob && blob.type === "image/jpeg" && blob.size > 0) || image.size > 1024 * 1024 || thumbnail.size > 128 * 1024) throw new Error("That photo is too large. Please choose a smaller image.");
+    const { db, storage, firestoreSdk, storageSdk } = await ready;
+    if (!(await firestoreSdk.getDoc(firestoreSdk.doc(db, "results", resultId))).exists()) throw new Error("That result no longer exists.");
+    const ref = firestoreSdk.doc(firestoreSdk.collection(db, "results", resultId, "photos"));
+    const path = `result-photos/${resultId}/${user.uid}/${ref.id}`;
+    const uploaded = [];
+    try {
+      for (const [name, blob] of [["image.jpg", image], ["thumbnail.jpg", thumbnail]]) {
+        const target = storageSdk.ref(storage, `${path}/${name}`);
+        await storageSdk.uploadBytes(target, blob, { contentType: "image/jpeg", cacheControl: "public,max-age=31536000,immutable" });
+        uploaded.push(target);
+      }
+      await firestoreSdk.setDoc(ref, { storagePath: path, uploaderUid: user.uid, createdAt: firestoreSdk.serverTimestamp() });
+      return ref.id;
+    } catch (error) {
+      // A timed-out metadata save may have succeeded. Never remove its photos.
+      const saved = await firestoreSdk.getDoc(ref).catch(() => null);
+      if (saved && !saved.exists()) await Promise.allSettled(uploaded.map(target => storageSdk.deleteObject(target)));
+      throw error;
+    }
+  }
+
+  async function removeSharedResultPhoto(resultId, photoId) {
+    const user = await loadOwnUser();
+    if (!user || user.status !== "Active") throw new Error("Please sign in first.");
+    if (![resultId, photoId].every(value => typeof value === "string" && value && !value.includes("/"))) throw new Error("Choose a valid photo.");
+    const { db, storage, firestoreSdk, storageSdk } = await ready;
+    const ref = firestoreSdk.doc(db, "results", resultId, "photos", photoId);
+    const snapshot = await firestoreSdk.getDoc(ref);
+    if (!snapshot.exists()) return;
+    const data = snapshot.data();
+    if (data.uploaderUid !== user.uid && !["owner", "admin"].includes(user.role)) throw new Error("Only the uploader or a club administrator can remove this photo.");
+    if (!validResultPhotoPath(resultId, photoId, data)) throw new Error("The photo record needs checking by an administrator.");
+    for (const name of ["image.jpg", "thumbnail.jpg"]) {
+      try { await storageSdk.deleteObject(storageSdk.ref(storage, `${data.storagePath}/${name}`)); }
+      catch (error) { if (error.code !== "storage/object-not-found") throw error; }
+    }
+    await firestoreSdk.deleteDoc(ref);
   }
 
   async function getPublicSeasonResults(payload = {}) {
@@ -823,6 +892,7 @@
     signOut,
     loadOwnUser,
     availability,
+    resultPhotos: { list: listResultPhotos, upload: uploadSharedResultPhoto, remove: removeSharedResultPhoto },
     importSiteData,
     playerKey,
     config,

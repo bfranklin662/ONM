@@ -1,4 +1,27 @@
 /* fixtures.css */
+.fxPersonal-unanswered,.fxPersonal-not-played { filter:grayscale(1); }
+.fxCard.fxPersonal-available,.fxCard.fxPersonal-played,.fixtureCalendarEvent.fxPersonal-available,.fixtureCalendarEvent.fxPersonal-played { box-shadow:inset 0 0 0 1px #39c88488; }
+.fxCard.fxPersonal-unavailable,.fixtureCalendarEvent.fxPersonal-unavailable { box-shadow:inset 0 0 0 1px #e36f7788; }
+.fxCard.fxPersonal-unsure,.fixtureCalendarEvent.fxPersonal-unsure { box-shadow:inset 0 0 0 1px #e6bc4888; }
+.fxPersonalBadge { display:inline-flex; align-items:center; align-self:center; margin:8px 0 3px; padding:5px 9px; border:1px solid #808a95; border-radius:20px; background:#1b232b; color:#e0e4e9; font-size:11px; font-weight:800; line-height:1.4; }
+.fxPersonalBadge-available,.fxPersonalBadge-played { border-color:#36ba7b; background:#133b2a; color:#a6efc6; }
+.fxPersonalBadge-unavailable { border-color:#d86d77; background:#46252c; color:#ffc1c7; }
+.fxPersonalBadge-unsure { border-color:#d4b051; background:#453919; color:#ffe5a0; }
+.fxPersonalDetails,.fxAvailabilityForm button,.fxAvailabilityRefresh { min-height:40px; padding:8px 12px; border:1px solid #399a78; border-radius:8px; background:#153e31; color:#fff; font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
+.fxPersonalDetails { display:block; align-self:center; margin:6px auto; }
+.fxPersonalDetails:focus-visible,.fixtureEventOpen:focus-visible,.fxAvailabilityForm :focus-visible { outline:2px solid #ffd740; outline-offset:3px; }
+.fxCard[data-card-fixture-index] { cursor:pointer; }
+.fixtureEventOpen { display:flex; flex-direction:column; gap:4px; width:100%; padding:0; border:0; background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+.fixtureCalendarEvent .fxPersonalBadge { align-self:flex-start; margin:3px 0; padding:3px 5px; font-size:9px; }
+.fixtureEventResultLink { color:inherit; font-size:10px; text-decoration:underline; }
+.fxAvailabilityForm { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+.fxAvailabilityForm label { flex-basis:100%; font-weight:800; }
+.fxAvailabilityForm select { min-height:44px; flex:1; padding:8px 12px; border:1px solid #546372; border-radius:8px; background:#101b25; color:#fff; font:inherit; }
+.fxAvailabilityForm button[type=submit] { background:#ffd740; border-color:#ffd740; color:#171717; }
+.fxAvailabilityForm .fxAvailabilityHelp { flex-basis:100%; }
+.fxAvailabilityHelp { color:#abb9c7; font-size:13px; line-height:1.5; }
+.fxAvailabilityHelp a { color:#ffd740; }
+.fxAvailabilityForm :disabled { opacity:.55; cursor:wait; }
 :root {
   --banks: #1e73be;
   --traf: #f39c12;

@@ -4,6 +4,112 @@
   const FIXTURES_URL = "./data/fixtures-26-27.json";
   const RESULTS_URL = "data/result-data-26-27.json";
   const LAST_SEASON_RESULTS_URL = "data/result-data-25-26.json";
+  const personal = { user: null, fixtures: [], loading: false, error: "" };
+  let refreshPersonalViews = () => {};
+  let openedFixture = null;
+  let savingAvailability = false;
+
+  function personalLeague(value) {
+    const name = normalizeName(value);
+    if (name.includes("banks")) return name.includes("cup") ? "banks-cup" : "banks";
+    if (name.includes("trafalgar")) return /cup|trophy|memorial|charity|\bko\b/.test(name) ? "trafalgar-cup" : "trafalgar";
+    return name;
+  }
+
+  function personalTeam(value) {
+    const name = normalizeName(value);
+    return name === "dogs no more" ? "bb kings" : name === "sliverbacks" ? "silverbacks" : name;
+  }
+
+  function personalSide(value) {
+    const name = normalizeName(value);
+    return ({ h: "home", a: "away", n: "neutral" })[name] || name;
+  }
+
+  function personalFixture(fixture) {
+    if (!personal.user?.linkedPlayerKey || personal.user.accountType === "supporter") return null;
+    if (fixture.completed) {
+      if (!Array.isArray(fixture.playerNames) || !fixture.playerNames.length) return { label: "Line-up unavailable", state: "unknown" };
+      const names = [personal.user.linkedPlayerName, personal.user.linkedPlayerKey.replace(/-/g, " ")].map(normalizeName).filter(Boolean);
+      const played = fixture.playerNames.some(name => names.includes(normalizeName(name)));
+      return { label: played ? "✓ You played" : "You did not play", state: played ? "played" : "not-played" };
+    }
+    if (personal.loading) return { label: "Loading your availability…", state: "unknown" };
+    if (personal.error) return { label: "Availability unavailable", state: "unknown" };
+    const matches = personal.fixtures.filter(item => item.date === fixture.dateISO &&
+      personalLeague(item.league) === personalLeague(fixture.League) &&
+      personalTeam(item.opponent) === personalTeam(fixture.Opponent) &&
+      personalSide(item.side) === personalSide(fixture.HA));
+    if (matches.length !== 1) return { label: "Not linked in availability sheet", state: "unknown" };
+    const response = matches[0];
+    return { response, label: response.status ? `You: ${response.status}` : "Availability not answered", state: ({ Available: "available", Unavailable: "unavailable", "Not sure": "unsure" })[response.status] || "unanswered" };
+  }
+
+  function personalClass(fixture) {
+    const item = personalFixture(fixture);
+    return item ? ` fxPersonal fxPersonal-${item.state}` : "";
+  }
+
+  function personalBadge(fixture) {
+    const item = personalFixture(fixture);
+    return item ? `<span class="fxPersonalBadge fxPersonalBadge-${item.state}">${escapeFixtureText(item.label)}</span>` : "";
+  }
+
+  async function loadPersonalAvailability() {
+    if (savingAvailability || personal.loading) return;
+    personal.loading = true;
+    try {
+      const user = await window.ONMFirebase?.loadOwnUser();
+      personal.user = user?.status === "Active" ? user : null;
+      if (!personal.user?.linkedPlayerKey || personal.user.accountType === "supporter") return;
+      refreshPersonalViews();
+      const data = await window.ONMFirebase.availability("getPlayerAvailability");
+      personal.fixtures = data.fixtures;
+      personal.error = "";
+    } catch (error) {
+      personal.fixtures = [];
+      personal.error = error.message || "Your availability could not be loaded.";
+    } finally {
+      personal.loading = false;
+      refreshPersonalViews();
+    }
+  }
+
+  function availabilityDetails(fixture) {
+    const item = personalFixture(fixture);
+    if (!personal.user) return '<p class="fxAvailabilityHelp"><a href="auth.html?mode=login&redirect=index.html">Sign in</a> to view your availability.</p>';
+    if (!item) return '<p class="fxAvailabilityHelp">Link your player account to set availability. <a href="account.html">My account →</a></p>';
+    if (fixture.completed) return `<p class="fxAvailabilityHelp">${escapeFixtureText(item.label)} in this match.</p>`;
+    const response = item.response;
+    if (!response) return `<p class="fxAvailabilityHelp">${escapeFixtureText(personal.error || item.label)}. Use Refresh to try again, or open availability in <a href="account.html">My account</a>.</p><button type="button" class="fxAvailabilityRefresh">Refresh availability</button>`;
+    return `<form id="fixtureAvailabilityForm" class="fxAvailabilityForm">
+      <label for="fixtureAvailabilityChoice">Your availability</label>
+      <select id="fixtureAvailabilityChoice"${!response.editable || savingAvailability ? " disabled" : ""}>
+        ${["", "Available", "Unavailable", "Not sure"].map(choice => `<option value="${choice}"${response.status === choice ? " selected" : ""}>${choice || "Not answered"}</option>`).join("")}
+      </select>
+      <button type="submit"${!response.editable || savingAvailability ? " disabled" : ""}>${savingAvailability ? "Saving…" : "Save availability"}</button>
+      <button type="button" class="fxAvailabilityRefresh"${savingAvailability ? " disabled" : ""}>Refresh</button>
+      <p class="fxAvailabilityHelp">Changes save to the club availability sheet.${!response.editable ? " This fixture is duplicated in the sheet; ask an administrator to check it." : ""}</p>
+    </form>`;
+  }
+
+  function openFixtureDetails(fixture) {
+    openedFixture = fixture;
+    const confirmedOpponent = fixture.Opponent && fixture.Opponent !== "TBC";
+    el("#fixtureDetailsContent").innerHTML = `
+      <span class="fixtureCategory ${fixture.leagueClass}">${escapeFixtureText(fixture.League)}</span>
+      <h3 id="fixtureDetailsTitle">${confirmedOpponent ? `vs ${escapeFixtureText(fixture.Opponent)}` : "Opponent to be confirmed"}</h3>
+      <p class="fixtureDetailsTeam">${escapeFixtureText(getOnmTeamForFixture(fixture))}</p>
+      <dl><div><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div>
+      <div><dt>Time</dt><dd>${escapeFixtureText(fixture.Time || "18:30")}</dd></div>
+      <div><dt>Home / Away</dt><dd>${escapeFixtureText(fixture.HA === "TBC" ? "To be confirmed" : fixture.HA)}</dd></div>
+      <div><dt>Location</dt><dd>${escapeFixtureText(fixture.Location || "To be confirmed")}</dd></div></dl>
+      ${personalBadge(fixture)}${availabilityDetails(fixture)}
+      <p id="fixtureAvailabilityMessage" role="status" aria-live="polite"></p>
+      ${fixture.completed ? `<a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View result →</a>` : ""}`;
+    const dialog = el("#fixtureDetails");
+    if (!dialog.open) dialog.showModal();
+  }
 
   const RESULTS_PAGE_URL = (fx) =>
     `results.html?date=${encodeURIComponent(fx.dateISO)}&opp=${encodeURIComponent(fx.Opponent)}&ha=${encodeURIComponent(fx.HA)}&season=${encodeURIComponent(fx.season || "26-27")}&competition=${encodeURIComponent(fx.Competition || fx.League)}`;
@@ -236,7 +342,8 @@
         homeScore: getResultField(r, "HomeScore", "homeScore", "Home Score"),
         awayScore: getResultField(r, "AwayScore", "awayScore", "Away Score"),
         homePoints: getResultField(r, "HomePoints", "Home Points", "homePoints"),
-        awayPoints: getResultField(r, "AwayPoints", "Away Points", "awayPoints")
+        awayPoints: getResultField(r, "AwayPoints", "Away Points", "awayPoints"),
+        playerNames: Array.from({ length: 12 }, (_, i) => r[`Player${i + 1}`] ?? r[`Player ${i + 1}`] ?? "").filter(Boolean)
       });
     }
 
@@ -288,6 +395,7 @@
         ...fx,
         completed: isCompleted,
         pendingResult: !isCompleted && (fx.dateObj < today),
+        playerNames: isCompleted ? res.playerNames : undefined,
         homeScore: isCompleted ? displayHomeScore : null,
         awayScore: isCompleted ? displayAwayScore : null,
         homePoints: isCompleted ? displayHomePoints : null,
@@ -494,7 +602,7 @@
     return String(season || "26-27").replace("-", "/");
   }
 
-  function renderCard(fx, showSeasonDivider, isNextFixture) {
+  function renderCard(fx, showSeasonDivider, isNextFixture, index) {
     const pillClass = fx.leagueClass; // banks/trafalgar/cup/competition
     const nextBadgeHtml = isNextFixture ? `<div class="nextFixtureBadge">Next Fixture</div>` : "";
     const seasonDividerHtml = showSeasonDivider
@@ -532,7 +640,7 @@
 
 
     return `
-    <div class="fxCard ${fx.leagueClass} ${(fx.completed || fx.pendingResult) ? "" : "upcoming"}">
+    <div class="fxCard ${fx.leagueClass} ${(fx.completed || fx.pendingResult) ? "" : "upcoming"}${personalClass(fx)}" data-card-fixture-index="${index}">
 
       ${seasonDividerHtml}
 
@@ -554,6 +662,8 @@
       </div>
 
       <div class="fxDate">${fx.Date}</div>
+      ${personalBadge(fx)}
+      <button type="button" class="fxPersonalDetails" data-card-fixture-index="${index}" aria-haspopup="dialog">${fx.completed ? "Match details" : "Details & availability"}</button>
 
       <div class="fxBottomRow">
         ${venueHtml}
@@ -618,7 +728,7 @@
         .map(i => {
           const previousSeason = i > 0 ? fixtures[i - 1].season : "";
           const showSeasonDivider = !!previousSeason && previousSeason !== fixtures[i].season;
-          return renderCard(fixtures[i], showSeasonDivider, i === nxtIdx);
+          return renderCard(fixtures[i], showSeasonDivider, i === nxtIdx, i);
         })
         .join("");
 
@@ -649,6 +759,11 @@
     });
 
     window.addEventListener("resize", update);
+    stage.addEventListener("click", event => {
+      if (event.target.closest("a")) return;
+      const card = event.target.closest("[data-card-fixture-index]");
+      if (card && fixtures[Number(card.dataset.cardFixtureIndex)]) openFixtureDetails(fixtures[Number(card.dataset.cardFixtureIndex)]);
+    });
 
     // Start anchored to next upcoming if possible
     const t = todayNoon();
@@ -659,6 +774,7 @@
 
     // allow external updates after results load
     return {
+      refresh: update,
       setFixtures(newFixtures) {
         fixtures = newFixtures;
         anchor = initialIndex(fixtures);
@@ -752,6 +868,7 @@
         homeScore: Number(homeScore),
         awayScore: Number(awayScore),
         completed: true,
+        playerNames: Array.from({ length: 12 }, (_, i) => row[`Player${i + 1}`] ?? row[`Player ${i + 1}`] ?? "").filter(Boolean),
         outcome,
         season
       }];
@@ -778,15 +895,15 @@
     const ourScore = fixture.HA === "Home" ? fixture.homeScore : fixture.awayScore;
     const theirScore = fixture.HA === "Home" ? fixture.awayScore : fixture.homeScore;
     const resultText = fixture.completed ? `${ourScore}-${theirScore} ${resultCode}` : "";
-    const label = escape(`${fixture.Opponent}, ${fixture.HA}, ${fixture.League}, ${fixture.Date}. ${fixture.completed ? `${resultText}. View result` : "View details"}`);
-    const attrs = `class="fixtureCalendarEvent ${fixture.leagueClass}" aria-label="${label}"`;
+    const label = escape(`${fixture.Opponent}, ${fixture.HA}, ${fixture.League}, ${fixture.Date}. ${fixture.completed ? resultText : ""} ${personalFixture(fixture)?.label || ""}. View match details`);
+    const attrs = `class="fixtureCalendarEvent ${fixture.leagueClass}${personalClass(fixture)}"`;
     const content = `<span class="fixtureEventSummary">
       <span class="fixtureEventOpponent">${escape(fixture.Opponent)}</span>
       ${fixture.completed ? `<span class="fixtureEventResult ${fixture.outcome}">${escape(resultText)}</span>` : ""}
-      </span><span class="fixtureEventSide">${escape(fixture.HA === "TBC" ? "H/A TBC" : fixture.HA)}</span>`;
+      </span><span class="fixtureEventSide">${escape(fixture.HA === "TBC" ? "H/A TBC" : fixture.HA)}</span>${personalBadge(fixture)}`;
     return fixture.completed
-      ? `<a ${attrs} href="${escape(RESULTS_PAGE_URL(fixture))}">${content}</a>`
-      : `<button type="button" ${attrs} data-fixture-index="${index}" aria-haspopup="dialog">${content}</button>`;
+      ? `<div ${attrs}><button type="button" class="fixtureEventOpen" aria-label="${label}" data-fixture-index="${index}" aria-haspopup="dialog">${content}</button><a class="fixtureEventResultLink" href="${escape(RESULTS_PAGE_URL(fixture))}">View result →</a></div>`
+      : `<button type="button" ${attrs} aria-label="${label}" data-fixture-index="${index}" aria-haspopup="dialog">${content}</button>`;
   }
 
   function mountCalendar(initialFixtures) {
@@ -802,19 +919,7 @@
     const dialog = el("#fixtureDetails");
 
     function openDetails(fixture) {
-      const confirmedOpponent = fixture.Opponent && fixture.Opponent !== "TBC";
-      el("#fixtureDetailsContent").innerHTML = `
-        <span class="fixtureCategory ${fixture.leagueClass}">${escapeFixtureText(fixture.League)}</span>
-        <h3 id="fixtureDetailsTitle">${confirmedOpponent ? `vs ${escapeFixtureText(fixture.Opponent)}` : "Opponent to be confirmed"}</h3>
-        <p class="fixtureDetailsTeam">${escapeFixtureText(getOnmTeamForFixture(fixture))}</p>
-        <dl>
-          <div><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div>
-          <div><dt>Home / Away</dt><dd>${escapeFixtureText(fixture.HA === "TBC" ? "To be confirmed" : fixture.HA)}</dd></div>
-          <div><dt>Location</dt><dd>${escapeFixtureText(fixture.Location === "TBC" ? "To be confirmed" : fixture.Location || "To be confirmed")}</dd></div>
-        </dl>
-        ${fixture.completed ? `<a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View result →</a>` : ""}
-      `;
-      dialog.showModal();
+      openFixtureDetails(fixture);
     }
 
     function render() {
@@ -866,14 +971,44 @@
       const button = event.target.closest("[data-fixture-index]");
       if (button) openDetails(fixtures[Number(button.dataset.fixtureIndex)]);
     });
-    el("#fixtureDetailsClose").addEventListener("click", () => dialog.close());
+    el("#fixtureDetailsClose").addEventListener("click", () => { if (!savingAvailability) dialog.close(); });
+    dialog.addEventListener("cancel", event => { if (savingAvailability) event.preventDefault(); });
+    dialog.addEventListener("submit", async event => {
+      if (event.target.id !== "fixtureAvailabilityForm") return;
+      event.preventDefault();
+      if (savingAvailability) return;
+      const fixture = openedFixture;
+      const item = personalFixture(fixture);
+      if (!item?.response?.editable) return;
+      const status = el("#fixtureAvailabilityChoice").value;
+      savingAvailability = true;
+      openFixtureDetails(fixture);
+      el("#fixtureAvailabilityMessage").textContent = "Saving to the availability sheet…";
+      let message;
+      try {
+        const result = await window.ONMFirebase.availability("setPlayerAvailability", { fixtureId: item.response.id, status, previousStatus: item.response.status });
+        item.response.status = result.status;
+        message = "Saved to the availability sheet.";
+      } catch (error) {
+        personal.error = error.message || "Could not confirm the save. Please refresh before trying again.";
+        personal.fixtures = [];
+        message = personal.error;
+      } finally {
+        savingAvailability = false;
+        refreshPersonalViews();
+        if (dialog.open) el("#fixtureAvailabilityMessage").textContent = message;
+      }
+    });
     dialog.addEventListener("click", event => {
-      if (event.target !== dialog) return;
+      if (event.target.closest(".fxAvailabilityRefresh")) loadPersonalAvailability();
+    });
+    dialog.addEventListener("click", event => {
+      if (event.target !== dialog || savingAvailability) return;
       const bounds = dialog.getBoundingClientRect();
       if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
     });
     render();
-    return { setFixtures(updated) { fixtures = updated; render(); } };
+    return { refresh: render, setFixtures(updated) { fixtures = updated; render(); } };
   }
 
   function setupFixtureViews() {
@@ -911,6 +1046,12 @@
     // Mount carousel immediately with JSON-only data
     const carousel = mountCarousel(fixturesOnly);
     const calendar = mountCalendar(fixturesOnly);
+    refreshPersonalViews = () => {
+      carousel.refresh();
+      calendar.refresh();
+      if (el("#fixtureDetails").open && openedFixture) openFixtureDetails(openedFixture);
+    };
+    loadPersonalAvailability();
 
     // 2) Then load results JSON and patch (non-blocking)
     try {
@@ -943,6 +1084,13 @@
       ]);
       calendar.setFixtures(allMatches);
       carousel.setFixtures(allMatches);
+      if (openedFixture && el("#fixtureDetails").open) {
+        openedFixture = allMatches.find(fixture => fixture.dateISO === openedFixture.dateISO &&
+          personalTeam(fixture.Opponent) === personalTeam(openedFixture.Opponent) &&
+          personalLeague(fixture.League) === personalLeague(openedFixture.League) &&
+          personalSide(fixture.HA) === personalSide(openedFixture.HA)) || openedFixture;
+        openFixtureDetails(openedFixture);
+      }
     } catch (e) {
       console.warn("Results JSON failed, showing fixtures without scores.", e);
     }

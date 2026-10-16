@@ -510,8 +510,12 @@ async function fetchDriveImages(folderId) {
 }
 
 async function fetchMatchImages(match) {
+  let memberPhotos = [];
+  try { memberPhotos = await window.ONMResultPhotos?.list(match._resultId) || []; }
+  catch (error) { console.warn("Shared match photos unavailable", error.message); }
+  const sharedUrls = memberPhotos.map(photo => photo.url);
   const value = String(match?.IMGFOLDER || "").trim();
-  if (!value) return [];
+  if (!value) return sharedUrls;
 
   const directUrls = value
     .split(/\r?\n/)
@@ -519,11 +523,12 @@ async function fetchMatchImages(match) {
     .filter(item => /^https?:\/\//i.test(item));
 
   if (directUrls.length && directUrls.every(item => !/drive\.google\.com\/drive\/folders/i.test(item))) {
-    return directUrls;
+    return [...new Set([...directUrls, ...sharedUrls])];
   }
 
   const folderMatch = value.match(/(?:[?&]id=|\/folders\/)([a-zA-Z0-9_-]+)/);
-  return folderMatch ? fetchDriveImages(folderMatch[1]) : directUrls;
+  const existing = folderMatch ? await fetchDriveImages(folderMatch[1]) : directUrls;
+  return [...new Set([...existing, ...sharedUrls])];
 }
 // 🔹 Restore saved preferences before DOM ready
 let currentSeason = localStorage.getItem("resultsSeason") || "26-27";
@@ -651,7 +656,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
           const galleryImages = images.length
             ? `<div class="gallery-grid">${images.map((src, i) => `
-            <img src="${src}"
+            <img src="${window.ONMResultPhotos?.thumbnail(src) || src}"
               data-drive-thumb="1"
               loading="lazy"
               decoding="async"
@@ -672,6 +677,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           </div>
 
           ${galleryImages}
+          ${match._resultId ? `<button type="button" class="addResultPhotos" data-add-result-photos="${encodeURIComponent(match._resultId)}">Add photos</button>` : ""}
         </div>
       `;
         })
@@ -795,7 +801,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
               ${i === visible.length - 1 && extraCount > 0
               ? `onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'`
               : ""}>
-              <img src="${src}"
+              <img src="${window.ONMResultPhotos?.thumbnail(src) || src}"
                 data-drive-thumb="1"
                 loading="lazy"
                 decoding="async"
@@ -832,7 +838,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           return `
                     <tr>
                       <td>${p.name ? `<a href="player-profile.html?name=${encodeURIComponent(p.name)}" class="player-link">${p.name}</a>` : ""}</td>
-                      <td>${p.score && Number(p.score) === 0 ? `<span class="bagel">🥯</span>` : p.score || ""}</td>
+                      <td>${String(p.score ?? "").trim() !== "" && Number(p.score) === 0 ? `<span class="bagel" title="Zero checkouts" aria-label="Zero checkouts">🥯</span>` : p.score ?? ""}</td>
                       <td class="${fineClass}">${formatCurrency(p.fines)}</td>
                       <td><div class="specials-container">${specials.join(" ")}</div></td>
                     </tr>
@@ -892,6 +898,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
         </div>
 
         ${playerHTML}
+        ${match._resultId ? `<button type="button" class="addResultPhotos" data-add-result-photos="${encodeURIComponent(match._resultId)}">Add photos</button>` : ""}
         <button class="toggle-players" onclick="togglePlayers(this)" title="Match details">▽</button>
       </div>
     `;
@@ -1772,6 +1779,10 @@ function togglePlayers(button) {
 
 window.togglePlayers = togglePlayers;
 
+document.addEventListener("onm-result-photos-changed", () => {
+  fetchResults(currentSeason, currentViewMode);
+});
+
 // cancel an existing animation and return the current computed height (px) if any
 function cancelAndGetCurrentHeight(el) {
   if (!el) return 0;
@@ -1785,7 +1796,7 @@ function cancelAndGetCurrentHeight(el) {
 
 document.addEventListener("click", (e) => {
   // ✅ if user clicked an image (or image icon), don't toggle the card
-  if (e.target.closest(".result-images-corner, .match-image-grid, .gallery-thumb")) {
+  if (e.target.closest(".result-images-corner, .match-image-grid, .gallery-thumb, .addResultPhotos")) {
     return;
   }
 
