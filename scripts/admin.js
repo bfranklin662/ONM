@@ -148,27 +148,28 @@
     return ourScore > theirScore ? "win" : ourScore < theirScore ? "loss" : "draw";
   }
 
-  function fixtureCard(item, actions = true) {
-    const row = rowFor(item);
-    return `<article class="adminMatchCard">
-      <div><div class="adminMatchCardTitle">${escapeHtml(fixtureTitle(row))}</div>
-        <div class="adminMatchCardMeta">${escapeHtml(row.Date || "Date TBA")} · ${escapeHtml(row.League || "Competition TBA")} · ${escapeHtml(row.Location || "Venue TBA")}</div></div>
-      ${actions ? `<div class="adminMatchCardActions"><button class="adminSmallBtn" type="button" data-edit-fixture="${escapeHtml(item.id)}">Edit</button><button class="adminSmallBtn danger" type="button" data-delete-fixture="${escapeHtml(item.id)}">Delete</button></div>` : ""}
-    </article>`;
-  }
-
-  function resultCard(item, actions = true) {
-    const row = rowFor(item);
-    const outcome = resultOutcome(row);
-    const score = clean(row.HomeScore) !== "" && clean(row.AwayScore) !== "" ? `${row.HomeScore} - ${row.AwayScore}` : "TBA";
-    const outcomeLabel = { win: "W", loss: "L", draw: "D" }[outcome] || "";
-    return `<article class="adminMatchCard">
-      <div><div class="adminMatchCardTitle">${escapeHtml(row.HomeTeam || "Home")} v ${escapeHtml(row.AwayTeam || "Away")}</div>
-        <div class="adminMatchCardMeta">${escapeHtml(row.Date || "Date TBA")} · ${escapeHtml(row.Competition || "Competition TBA")} · ${escapeHtml(row.Venue || "Venue TBA")}</div></div>
-      <div class="adminMatchCardActions"><div class="adminScoreBox ${escapeHtml(outcome)}">${escapeHtml(score)}${outcomeLabel ? `<small>${outcomeLabel}</small>` : ""}</div>
-        ${actions ? `<button class="adminSmallBtn" type="button" data-edit-result="${escapeHtml(item.id)}">Edit</button><button class="adminSmallBtn danger" type="button" data-delete-result="${escapeHtml(item.id)}">Delete</button>` : ""}
-      </div>
-    </article>`;
+  function matchTable(items, type, actions = true) {
+    const isResult = type === "result";
+    const rows = items.map(item => {
+      const row = rowFor(item);
+      const home = normaliseTeam(row.HomeTeam) === "oche ness monsters";
+      const opponent = isResult ? (home ? row.AwayTeam : row.HomeTeam) : row.Opponent;
+      const side = isResult ? (home ? "H" : "A") : (clean(row.HA).toLowerCase() === "away" ? "A" : clean(row.HA).toLowerCase() === "neutral" ? "N" : "H");
+      const outcome = isResult ? resultOutcome(row) : "";
+      const score = isResult && clean(row.HomeScore) !== "" && clean(row.AwayScore) !== ""
+        ? `${row.HomeScore} - ${row.AwayScore}` : "—";
+      const timestamp = dateValue(row.Date);
+      const date = timestamp ? new Date(timestamp) : null;
+      const prettyDate = date ? `${ordinal(date.getDate())} ${date.toLocaleString("en-GB", { month: "short" })}` : "Date TBA";
+      return `<tr>
+        <td>${escapeHtml((isResult ? row.Competition : row.League) || "Competition TBA")}</td>
+        <td><span class="adminOpponent">${escapeHtml(opponent || "Opponent TBA")}</span> <span class="adminSide">(${side})</span></td>
+        <td><time datetime="${escapeHtml(inputDate(row.Date))}" title="${escapeHtml(row.Date)}">${escapeHtml(prettyDate)}</time></td>
+        <td>${isResult ? `<span class="adminScoreBox ${escapeHtml(outcome)}" aria-label="${escapeHtml(outcome || "Result")} ${escapeHtml(score)}">${escapeHtml(score)}</span>` : '<span class="adminPending">—</span>'}</td>
+        ${actions ? `<td><div class="adminRowActions"><button class="adminSmallBtn" type="button" data-edit-${type}="${escapeHtml(item.id)}">Edit ${type}</button>${actions === true ? `<button class="adminSmallBtn danger" type="button" data-delete-${type}="${escapeHtml(item.id)}">Delete</button>` : ""}</div></td>` : ""}
+      </tr>`;
+    }).join("");
+    return `<div class="adminTableScroll"><table class="adminMatchTable"><caption class="adminVisuallyHidden">${isResult ? "Results" : "Fixtures"}</caption><thead><tr><th scope="col">League</th><th scope="col">Opponent</th><th scope="col">Date</th><th scope="col">Result</th>${actions ? '<th scope="col">Actions</th>' : ""}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   function renderOverview() {
@@ -182,10 +183,10 @@
       .sort((a, b) => dateValue(rowFor(b).Date) - dateValue(rowFor(a).Date))
       .slice(0, 4);
     document.getElementById("upcomingFixtures").innerHTML = upcoming.length
-      ? upcoming.map(item => fixtureCard(item, false)).join("")
+      ? matchTable(upcoming, "fixture", "edit")
       : '<div class="adminCompactEmpty">No upcoming fixtures.</div>';
     document.getElementById("recentResults").innerHTML = recent.length
-      ? recent.map(item => resultCard(item, false)).join("")
+      ? matchTable(recent, "result", "edit")
       : '<div class="adminCompactEmpty">No results have been submitted.</div>';
   }
 
@@ -210,7 +211,7 @@
       list.innerHTML = '<div class="adminEmpty">No fixtures match these filters.</div>';
       return;
     }
-    list.innerHTML = `<div class="adminManagedCards">${fixtures.map(item => fixtureCard(item)).join("")}</div>`;
+    list.innerHTML = matchTable(fixtures, "fixture");
   }
 
   function renderResults() {
@@ -224,15 +225,22 @@
       list.innerHTML = '<div class="adminEmpty">No results match these filters.</div>';
       return;
     }
-    list.innerHTML = `<div class="adminManagedCards">${results.map(item => resultCard(item)).join("")}</div>`;
+    list.innerHTML = matchTable(results, "result");
   }
 
   function renderPlayers() {
     const list = document.getElementById("playersList");
     const query = clean(document.getElementById("playerSearch").value).toLowerCase();
+    const appearances = new Map();
+    const nameKey = value => clean(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+    state.results.filter(item => item.season === "26-27").forEach(item => {
+      const names = new Set(Array.from({ length: 12 }, (_, index) => nameKey(playerValue(rowFor(item), index + 1))).filter(Boolean));
+      names.forEach(name => appearances.set(name, (appearances.get(name) || 0) + 1));
+    });
+    const played = player => appearances.get(nameKey(player.publicName)) || 0;
     const players = state.players
       .filter(player => !query || `${player.publicName || ""} ${player.nickname || ""} ${player.role || ""}`.toLowerCase().includes(query))
-      .sort((a, b) => clean(a.publicName).localeCompare(clean(b.publicName)));
+      .sort((a, b) => played(b) - played(a) || clean(a.publicName).localeCompare(clean(b.publicName)));
     if (!players.length) {
       list.innerHTML = '<div class="adminEmpty">No players match this search.</div>';
       return;
@@ -240,6 +248,7 @@
     list.innerHTML = players.map(player => `<article class="adminPlayerCard">
       <img src="${escapeHtml(playerPhoto(player))}" alt="${escapeHtml(player.publicName)}">
       <div><h3>${escapeHtml(player.publicName || "Unnamed player")}</h3><p>${escapeHtml(player.nickname || player.role || "Player profile")}</p>
+        <p class="adminAppearances">${played(player)} ${played(player) === 1 ? "appearance" : "appearances"} · 2026/27</p>
         <button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit player</button></div>
     </article>`).join("");
   }
@@ -388,6 +397,7 @@
     state.fixtures = existing ? state.fixtures.map(item => item.id === id ? local : item) : [...state.fixtures, local];
     renderFixtures();
     renderOverview();
+    renderPlayers();
   }
 
   async function saveResult(data) {
@@ -433,6 +443,7 @@
     renderResults();
     renderFixtures();
     renderOverview();
+    renderPlayers();
   }
 
   function fileAsBase64(file) {
@@ -500,6 +511,7 @@
         state.results = state.results.filter(entry => entry.id !== id);
         renderResults();
         renderFixtures();
+        renderPlayers();
       }
       renderOverview();
       showToast(`${type === "fixture" ? "Fixture" : "Result"} deleted.`);

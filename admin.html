@@ -7,7 +7,7 @@
   <title>Club admin | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css">
-  <link rel="stylesheet" href="styles/admin.css?v=20261014-player-profiles">
+  <link rel="stylesheet" href="styles/admin.css?v=20261016-overview-edit">
   <link rel="icon" type="image/png" href="graphics/favicon1.png">
 </head>
 <body>
@@ -16,7 +16,7 @@
       <img src="graphics/logoWoText.png" alt="Oche Ness Monsters">
       <span>Club admin</span>
     </a>
-    <a class="btn btnGhost" href="index.html">Back to website</a>
+    <a class="btn btnGhost backWebsiteButton" href="index.html">Back to website</a>
   </header>
 
   <main class="adminShell">
@@ -28,7 +28,7 @@
     <section id="adminApp" class="hidden">
       <div class="adminIntro">
         <div>
-          <span class="adminEyebrow">Firebase backend</span>
+          <span class="adminEyebrow">Club administration</span>
           <h1>Club management</h1>
           <p>Manage fixtures, results and player profiles.</p>
         </div>
@@ -93,6 +93,7 @@
 
       <section id="playersPanel" class="adminPanel hidden">
         <div class="adminToolbar">
+          <span class="adminIdentity">Most appearances · 2026/27</span>
           <div class="adminFilters">
             <label>Search
               <input id="playerSearch" type="search" placeholder="Player name or nickname">
@@ -121,6 +122,6 @@
 
   <script src="scripts/firebase-client.js?v=20261014-player-profiles"></script>
   <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
-  <script src="scripts/admin.js?v=20261014-player-profiles"></script>
+  <script src="scripts/admin.js?v=20261016-overview-edit"></script>
 </body>
 </html>
