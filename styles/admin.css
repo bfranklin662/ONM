@@ -43,6 +43,13 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminFixtureSide { display:inline-grid; place-items:center; min-width:34px; height:29px; margin-left:7px; padding:0 7px; border-radius:7px; background:#174e46; color:#fff; font-size:12px; }
 .adminCompactEmpty { padding:18px 8px; color:#91a3b2; text-align:center; }
 .adminTabs { display:flex; gap:8px; padding:7px; background:#0d1825; border:1px solid #283747; border-radius:12px; margin-bottom:16px; }
+.adminTabs { flex-wrap:wrap; }
+.adminFinesSummary { display:flex; align-items:center; gap:24px; padding:20px 16px; border-bottom:1px solid #283747; }
+.adminFinesSummary h2 { margin:5px 0 0; font-size:30px; white-space:nowrap; }
+.adminFinesSummary p { margin:0; color:#aebdca; font-size:13px; line-height:1.5; }
+.adminFinesTable th:first-child,.adminFinesTable td:first-child { text-align:left; }
+.adminFinesTable th:nth-child(2),.adminFinesTable td:nth-child(2) { text-align:center; }
+.adminFinesTable td:last-child { color:#ffd740; font-weight:900; }
 .adminTab { flex:1; padding:12px; border:0; border-radius:8px; background:transparent; color:#aebdca; font-weight:900; cursor:pointer; }
 .adminTab.active { background:#124d45; color:#fff; }
 .adminPanel { border:1px solid #283747; border-radius:14px; background:#0c1622; overflow:hidden; }
@@ -88,10 +95,14 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminPlayerRow .doubleFine { align-content:end; justify-items:center; }
 .adminFormActions { position:sticky; bottom:0; display:flex; justify-content:space-between; gap:10px; padding-top:18px; margin-top:20px; background:#0c1622; }
 .adminToast { position:fixed; right:20px; bottom:20px; z-index:1200; max-width:360px; padding:13px 16px; border-radius:9px; background:#126b5d; color:#fff; font-weight:800; box-shadow:0 14px 40px rgba(0,0,0,.35); }
-.adminShell .btn,.adminHeader .btn { display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:12px 18px; border:0; border-radius:12px; background:#ffd740; color:#151515; font-size:15px; line-height:1.3; font-weight:900; cursor:pointer; }
-.adminShell .btn.btnGhost,.adminHeader .btn.btnGhost { border:1px solid rgba(255,255,255,.14); background:transparent; color:#a9b0c3; }
+.adminShell .btn,.adminHeader .btn,.adminEditor .btn { display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:12px 18px; border:0; border-radius:12px; background:#ffd740; color:#151515; font-family:inherit; font-size:15px; line-height:1.3; font-weight:900; cursor:pointer; }
+.adminShell .btn.btnGhost,.adminHeader .btn.btnGhost,.adminEditor .btn.btnGhost { border:1px solid rgba(255,255,255,.14); background:transparent; color:#a9b0c3; }
+.adminEditor .btn:hover { filter:brightness(1.1); }
+.adminEditor .btn:focus-visible { outline:2px solid #ffd740; outline-offset:3px; }
+.adminFormActions .btn { flex:1; }
 .adminHeader .backWebsiteButton { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; min-height:48px; padding:12px 18px; line-height:1.3; text-align:center; text-decoration:none; white-space:nowrap; }
 @media (max-width:760px) {
+  .adminFinesSummary { align-items:flex-start; flex-direction:column; gap:12px; }
   .adminOverview { grid-template-columns:1fr; }
   .adminIntro,.adminToolbar { align-items:stretch; flex-direction:column; }
   .adminFilters,.adminFilters label,.adminFilters input { width:100%; }

@@ -7,7 +7,7 @@
   <title>Club admin | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css">
-  <link rel="stylesheet" href="styles/admin.css?v=20261016-overview-edit">
+  <link rel="stylesheet" href="styles/admin.css?v=20261016-fines-owed">
   <link rel="icon" type="image/png" href="graphics/favicon1.png">
 </head>
 <body>
@@ -50,6 +50,7 @@
         <button class="adminTab active" type="button" data-admin-tab="fixtures">Fixtures</button>
         <button class="adminTab" type="button" data-admin-tab="results">Results</button>
         <button class="adminTab" type="button" data-admin-tab="players">Players</button>
+        <button class="adminTab" type="button" data-admin-tab="fines">Fines owed</button>
       </div>
 
       <section id="fixturesPanel" class="adminPanel">
@@ -91,6 +92,29 @@
         <div id="resultsList" class="adminList"></div>
       </section>
 
+      <section id="finesPanel" class="adminPanel hidden">
+        <div class="adminToolbar">
+          <div class="adminFilters">
+            <label>Season
+              <select id="finesSeasonFilter">
+                <option value="26-27">2026/27</option>
+                <option value="25-26">2025/26</option>
+                <option value="24-25">2024/25</option>
+                <option value="all">All seasons</option>
+              </select>
+            </label>
+            <label>Search
+              <input id="finesSearch" type="search" placeholder="Player name">
+            </label>
+          </div>
+        </div>
+        <div class="adminFinesSummary">
+          <div><span class="adminEyebrow">Fines owed</span><h2 id="finesTotal">£0.00</h2></div>
+          <p>Totals from submitted results, including double fines. Payments are not tracked here, so any amounts already paid are not deducted. Search filters the total below.</p>
+        </div>
+        <div id="finesList" class="adminList"></div>
+      </section>
+
       <section id="playersPanel" class="adminPanel hidden">
         <div class="adminToolbar">
           <span class="adminIdentity">Most appearances · 2026/27</span>
@@ -122,6 +146,6 @@
 
   <script src="scripts/firebase-client.js?v=20261014-player-profiles"></script>
   <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
-  <script src="scripts/admin.js?v=20261016-overview-edit"></script>
+  <script src="scripts/admin.js?v=20261016-fines-owed"></script>
 </body>
 </html>

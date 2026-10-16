@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  const DEFAULT_MATCH_TIME = "18:30";
 
   const state = {
     user: null,
@@ -253,6 +254,34 @@
     </article>`).join("");
   }
 
+  function renderFines() {
+    const season = document.getElementById("finesSeasonFilter").value;
+    const query = clean(document.getElementById("finesSearch").value).toLowerCase();
+    const totals = new Map();
+    state.results.filter(item => season === "all" || item.season === season).forEach(item => {
+      const row = rowFor(item);
+      for (let index = 1; index <= 12; index += 1) {
+        const name = clean(playerValue(row, index));
+        if (!name) continue;
+        const key = name.toLowerCase().replace(/\s+/g, " ");
+        const amount = Number(clean(row[`F${index}`] ?? row[`F ${index}`]).replace(/[£,\s]/g, ""));
+        const pence = Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0;
+        if (!totals.has(key)) totals.set(key, { name, pence: 0, matches: new Set() });
+        const total = totals.get(key);
+        total.pence += pence;
+        total.matches.add(item.id);
+      }
+    });
+    const players = [...totals.values()]
+      .filter(player => player.name.toLowerCase().includes(query))
+      .sort((a, b) => b.pence - a.pence || a.name.localeCompare(b.name));
+    const currency = pence => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
+    document.getElementById("finesTotal").textContent = currency(players.reduce((sum, player) => sum + player.pence, 0));
+    document.getElementById("finesList").innerHTML = players.length
+      ? `<div class="adminTableScroll"><table class="adminMatchTable adminFinesTable"><caption class="adminVisuallyHidden">Player fines from submitted results</caption><thead><tr><th scope="col">Player</th><th scope="col">Matches</th><th scope="col">Fines owed</th></tr></thead><tbody>${players.map(player => `<tr><td>${escapeHtml(player.name)}</td><td>${player.matches.size}</td><td>${currency(player.pence)}</td></tr>`).join("")}</tbody></table></div>`
+      : '<div class="adminEmpty">No player fines match these filters.</div>';
+  }
+
   function selectOptions(selected) {
     return ["26-27", "25-26", "24-25"].map(value =>
       `<option value="${value}"${value === selected ? " selected" : ""}>${value.replace("-", "/")}</option>`
@@ -270,7 +299,7 @@
       <label>Competition<input name="league" required value="${escapeHtml(row.League)}" placeholder="Banks League"></label>
       <label>Opponent<input name="opponent" required value="${escapeHtml(row.Opponent)}"></label>
       <label>Home or away<select name="ha"><option${row.HA === "Home" ? " selected" : ""}>Home</option><option${row.HA === "Away" ? " selected" : ""}>Away</option><option${row.HA === "Neutral" ? " selected" : ""}>Neutral</option></select></label>
-      <label>Time<input name="time" type="time" value="${escapeHtml(row.Time)}"></label>
+      <label>Time<input name="time" type="time" value="${escapeHtml(clean(row.Time) || DEFAULT_MATCH_TIME)}"></label>
       <label class="wide">Venue<input name="location" value="${escapeHtml(row.Location)}"></label>
     </div>
     <div class="adminFormActions">
@@ -380,7 +409,7 @@
       League: clean(data.get("league")),
       Day: dayName(date),
       Date: fixtureDate(date),
-      Time: clean(data.get("time")),
+      Time: clean(data.get("time")) || DEFAULT_MATCH_TIME,
       Opponent: clean(data.get("opponent")),
       HA: clean(data.get("ha")),
       Location: clean(data.get("location"))
@@ -441,6 +470,7 @@
     const local = { ...(existing || {}), id, ...saved, sheetRow };
     state.results = existing ? state.results.map(item => item.id === id ? local : item) : [...state.results, local];
     renderResults();
+    renderFines();
     renderFixtures();
     renderOverview();
     renderPlayers();
@@ -510,6 +540,7 @@
       } else {
         state.results = state.results.filter(entry => entry.id !== id);
         renderResults();
+        renderFines();
         renderFixtures();
         renderPlayers();
       }
@@ -534,12 +565,15 @@
       document.getElementById("fixturesPanel").classList.toggle("hidden", state.activeTab !== "fixtures");
       document.getElementById("resultsPanel").classList.toggle("hidden", state.activeTab !== "results");
       document.getElementById("playersPanel").classList.toggle("hidden", state.activeTab !== "players");
+      document.getElementById("finesPanel").classList.toggle("hidden", state.activeTab !== "fines");
     }));
     document.getElementById("fixtureSeasonFilter").addEventListener("change", renderFixtures);
     document.getElementById("fixtureSearch").addEventListener("input", renderFixtures);
     document.getElementById("resultSeasonFilter").addEventListener("change", renderResults);
     document.getElementById("resultSearch").addEventListener("input", renderResults);
     document.getElementById("playerSearch").addEventListener("input", renderPlayers);
+    document.getElementById("finesSeasonFilter").addEventListener("change", renderFines);
+    document.getElementById("finesSearch").addEventListener("input", renderFines);
     document.getElementById("addFixtureBtn").addEventListener("click", () => openFixtureEditor());
     document.getElementById("addResultBtn").addEventListener("click", () => openResultEditor());
     document.getElementById("closeAdminEditor").addEventListener("click", closeEditor);
@@ -606,6 +640,7 @@
       renderFixtures();
       renderResults();
       renderPlayers();
+      renderFines();
     } catch (error) {
       console.error(error);
       gate.innerHTML = `<h2>Could not open the admin area</h2><p>${escapeHtml(error.message || "Please try again.")}</p>`;
