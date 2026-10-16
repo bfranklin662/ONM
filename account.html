@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <title>My account | Oche Ness Monsters</title>
-  <link rel="stylesheet" href="styles/buttons.css">
-  <link rel="stylesheet" href="styles/account.css?v=20261016-header-button">
+  <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
+  <link rel="stylesheet" href="styles/account.css?v=20261016-availability">
   <link rel="icon" type="image/png" href="graphics/favicon1.png">
 </head>
 <body>
@@ -28,7 +28,9 @@
       <div class="accountHero">
         <div class="accountPhotoWrap">
           <img id="accountPhoto" src="graphics/logoWoText.png" alt="Profile picture">
-          <label class="accountPhotoButton" for="accountPhotoInput">Change photo</label>
+          <button id="accountChangePhoto" class="accountPhotoButton" type="button" aria-label="Change profile photo" title="Change photo">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m16 3 5 5M4 20l4-1L21 6a2.1 2.1 0 0 0-3-3L5 16l-1 4Z"/></svg>
+          </button>
           <input id="accountPhotoInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
         </div>
         <div>
@@ -41,7 +43,24 @@
 
       <div id="accountMessage" class="accountMessage hidden" role="status"></div>
 
-      <div class="accountLayout">
+      <div class="accountTabs" role="tablist" aria-label="My account">
+        <button id="accountDetailsTab" class="accountTab active" type="button" role="tab" aria-selected="true" aria-controls="accountDetailsPanel">My details</button>
+        <button id="accountFixturesTab" class="accountTab" type="button" role="tab" aria-selected="false" aria-controls="accountFixturesPanel" tabindex="-1">Upcoming fixtures</button>
+      </div>
+
+      <section id="accountFixturesPanel" class="accountCard hidden" role="tabpanel" aria-labelledby="accountFixturesTab">
+        <div class="accountCardHeading">
+          <div><span class="accountEyebrow">Match availability</span><h2>Upcoming fixtures</h2></div>
+          <button id="refreshAvailability" class="btn btnGhost" type="button">Refresh</button>
+        </div>
+        <p>Your choices update the club availability sheet. Use Refresh to see changes made directly in the sheet.</p>
+        <a href="https://docs.google.com/spreadsheets/d/1jrh1Ij_H2sidOam3mZY_lCwT-KC5qVp1QNUxxgrUzqQ/edit#gid=1717914264" target="_blank" rel="noopener">Open availability sheet ↗</a>
+        <p id="availabilityMessage" role="status" aria-live="polite"></p>
+        <p id="availabilitySummary"></p>
+        <div id="accountAvailabilityList" class="accountAvailabilityList"></div>
+      </section>
+
+      <div id="accountDetailsPanel" class="accountLayout" role="tabpanel" aria-labelledby="accountDetailsTab">
         <form id="accountForm" class="accountCard">
           <div class="accountCardHeading">
             <div><span class="accountEyebrow">Personal details</span><h2>Profile information</h2></div>
@@ -91,8 +110,9 @@
     </section>
   </main>
 
-  <script src="scripts/firebase-client.js?v=20261014-player-profiles"></script>
-  <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
-  <script src="scripts/account.js?v=20261014-player-profiles"></script>
+  <script src="scripts/firebase-client.js?v=20261016-registration"></script>
+  <script src="scripts/player-data.js?v=20261016-registration"></script>
+  <script src="scripts/account.js?v=20261016-registration"></script>
+  <script src="scripts/account-availability.js?v=20261016-availability"></script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 {
+  "functions": [{ "source": "functions", "codebase": "availability", "ignore": ["node_modules", "*.test.js", "*-debug.log"], "predeploy": ["npm --prefix \"$RESOURCE_DIR\" test"] }],
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"

@@ -1152,6 +1152,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     window.playerProfiles[name] = {
       playerKey: live.playerKey || "",
+      registrationPaidSeasons: live.registrationPaidSeasons || [],
       nickname: live.nickname || src.nickname || "",
       bio: live.bio || src.bio || "",
       accolades: live.accolades?.length ? live.accolades : (Array.isArray(src.accolades) ? src.accolades : []),
@@ -1174,6 +1175,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.playerProfiles[playerName] ||
       { nickname: "", bio: "", photo: "images/default.jpg", accolades: [], role: "" };
 
+    headerNameEl?.insertAdjacentHTML("beforeend", window.PlayerData.registrationBadge(profileData));
     const highestEl = document.getElementById("playerHighestCheckout");
     if (highestEl) {
       const hc = (profileData.highestCheckout || "").trim();

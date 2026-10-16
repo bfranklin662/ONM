@@ -284,6 +284,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     window.playerProfiles[name] = {
       playerKey: live.playerKey || "",
+      registrationPaidSeasons: live.registrationPaidSeasons || [],
       nickname: live.nickname || fallback.nickname || "",
       bio: live.bio || fallback.bio || "",
       accolades: live.accolades?.length ? live.accolades : (Array.isArray(fallback.accolades) ? fallback.accolades : []),
@@ -358,6 +359,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         <h3 class="player-card-name" data-name="${escapeHtml(name)}">
           ${escapeHtml(name)}
+          ${window.PlayerData.registrationBadge(profile)}
           ${profile.nickname ? `<div class="player-card-nickname">"${escapeHtml(profile.nickname)}"</div>` : ""}
         </h3>
 

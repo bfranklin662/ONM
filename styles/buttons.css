@@ -1,3 +1,5 @@
+.registrationBadge { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; margin-left:4px; border:1px solid #22c97a; border-radius:50%; background:#123e2b; color:#66ffab; font-family:system-ui,sans-serif; font-size:14px; font-weight:900; line-height:1; vertical-align:middle; }
+
  .padding {
   padding: 40px;
  }

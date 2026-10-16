@@ -54,6 +54,19 @@
         </label>
 
         <label>
+          <span>Account role</span>
+          <div class="selectWrap">
+            <select name="accountRole" aria-describedby="accountRoleHelp">
+              <option value="player" selected>Player</option>
+              <option value="player-admin">Player + admin</option>
+              <option value="supporter">Supporter</option>
+            </select>
+            <span class="selectArrow">▾</span>
+          </div>
+          <small id="accountRoleHelp">Player + admin requests club administration access. The club owner must approve it first.</small>
+        </label>
+
+        <label>
           <span>Team</span>
           <div class="selectWrap">
             <select id="teamSelect" name="team" required>
@@ -333,9 +346,9 @@
       </div>
     </div>
   </div>
-  <script src="scripts/firebase-client.js?v=20261014-firebase-cutover-2"></script>
+  <script src="scripts/firebase-client.js?v=20261016-role-requests"></script>
   <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
-  <script src="scripts/auth.js"></script>
+  <script src="scripts/auth.js?v=20261016-role-requests"></script>
   <script>
     document.querySelectorAll(".authBrand img").forEach(img => {
       img.style.cursor = "pointer";

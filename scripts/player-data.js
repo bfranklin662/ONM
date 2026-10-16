@@ -111,6 +111,7 @@
     const storedPhoto = profile.photoUrl || "";
     return {
       playerKey: profile.playerKey || "",
+      registrationPaidSeasons: Array.isArray(profile.registrationPaidSeasons) ? profile.registrationPaidSeasons : [],
       nickname: profile.nickname || "",
       // The old JSON filenames point to the Drive photo folder; those files
       // are not bundled in the website. Leave them empty here so the Drive
@@ -497,7 +498,13 @@
   }
 
 
+  function registrationBadge(profile = {}) {
+    return profile.registrationPaidSeasons?.includes("26-27")
+      ? '<span class="registrationBadge" title="Registration paid · 2026/27" role="img" aria-label="Registered for 2026/27">✓</span>' : "";
+  }
+
   window.PlayerData = {
+    registrationBadge,
     SHEETS,
     STAT_LEAGUES,
     KEYS,

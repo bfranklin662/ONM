@@ -98,6 +98,8 @@
       photo: data.photoUrl || "",
       status: data.status || "Active",
       role: data.role || "member",
+      accountType: data.accountType || "player",
+      adminRequestStatus: data.adminRequestStatus || "none",
       linkedPlayerName: data.linkedPlayerName || "",
       linkedPlayerKey: data.linkedPlayerKey || "",
       nickname: data.nickname || "",
@@ -118,6 +120,7 @@
   async function register(payload) {
     const { auth, db, authSdk, firestoreSdk } = await ready;
     const email = clean(payload.email).toLowerCase();
+    const accountRole = ["player", "player-admin", "supporter"].includes(payload.accountRole) ? payload.accountRole : "player";
     const credential = await authSdk.createUserWithEmailAndPassword(auth, email, String(payload.password || ""));
     const data = {
       firstName: clean(payload.firstName),
@@ -127,6 +130,8 @@
       nationality: clean(payload.nationality),
       status: "Active",
       role: "member",
+      accountType: accountRole === "supporter" ? "supporter" : "player",
+      adminRequestStatus: accountRole === "player-admin" ? "pending" : "none",
       linkedPlayerName: "",
       linkedPlayerKey: "",
       nickname: "",
@@ -364,6 +369,12 @@
     const { db, firestoreSdk } = await ready;
     const key = clean(payload.playerKey);
     const profile = payload.profile || {};
+    const changesRegistration = Object.prototype.hasOwnProperty.call(profile, "registrationPaid");
+    if (changesRegistration) {
+      const account = await loadOwnUser();
+      if (!["admin", "owner"].includes(account?.role) || account.status !== "Active") throw new Error("Only administrators can confirm registration payments.");
+      if (typeof profile.registrationPaid !== "boolean") throw new Error("Choose a valid registration payment status.");
+    }
     const publicData = {
       playerKey: key,
       nickname: clean(profile.nickname).slice(0, 80),
@@ -377,8 +388,14 @@
       profileVisible: profile.profileVisible !== false,
       updatedAt: firestoreSdk.serverTimestamp()
     };
-    await firestoreSdk.setDoc(firestoreSdk.doc(db, "publicPlayers", key), publicData, { merge: true });
-    await firestoreSdk.setDoc(firestoreSdk.doc(db, "players", key), publicData, { merge: true });
+    if (changesRegistration) {
+      publicData.registrationPaidSeasons = profile.registrationPaid
+        ? firestoreSdk.arrayUnion("26-27") : firestoreSdk.arrayRemove("26-27");
+    }
+    const batch = firestoreSdk.writeBatch(db);
+    batch.set(firestoreSdk.doc(db, "publicPlayers", key), publicData, { merge: true });
+    batch.set(firestoreSdk.doc(db, "players", key), publicData, { merge: true });
+    await batch.commit();
     return { success: true, profile: publicData };
   }
 
@@ -778,6 +795,15 @@
     await authSdk.signOut(auth);
   }
 
+  let availabilityFunctions;
+  async function availability(action, data = {}) {
+    const { app } = await ready;
+    if (!["getPlayerAvailability", "setPlayerAvailability"].includes(action)) throw new Error("Unknown availability action.");
+    availabilityFunctions ||= import(`${BASE}/firebase-functions.js`).then(sdk => ({ sdk, functions: sdk.getFunctions(app, "europe-west2") }));
+    const { sdk, functions } = await availabilityFunctions;
+    return (await sdk.httpsCallable(functions, action)(data)).data;
+  }
+
   // Accounts cached by the former Apps Script login do not contain a
   // Firebase uid. Remove them before session.js renders the header so an old
   // localStorage record can never be mistaken for an authenticated session.
@@ -796,6 +822,7 @@
     postFirebase,
     signOut,
     loadOwnUser,
+    availability,
     importSiteData,
     playerKey,
     config,

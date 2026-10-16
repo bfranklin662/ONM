@@ -24,32 +24,50 @@ service cloud.firestore {
       return activeMember() && userRecord().data.role in ["admin", "owner"];
     }
 
+    function owner() {
+      return activeMember() && userRecord().data.role == "owner";
+    }
+
     match /users/{userId} {
       allow create: if signedIn() && request.auth.uid == userId &&
         request.resource.data.status == "Active" &&
-        request.resource.data.role == "member";
+        request.resource.data.role == "member" &&
+        request.resource.data.get("accountType", "player") in ["player", "supporter"] &&
+        request.resource.data.get("adminRequestStatus", "none") in ["none", "pending"] &&
+        (request.resource.data.get("adminRequestStatus", "none") != "pending" ||
+          request.resource.data.get("accountType", "player") == "player") &&
+        !request.resource.data.keys().hasAny(["adminReviewedBy", "adminReviewedAt"]);
       allow read: if signedIn() && (request.auth.uid == userId || admin());
       allow update: if signedIn() && request.auth.uid == userId &&
         request.resource.data.status == resource.data.status &&
-        request.resource.data.role == resource.data.role;
-      allow update, delete: if admin();
+        request.resource.data.role == resource.data.role &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(["adminRequestStatus", "adminReviewedBy", "adminReviewedAt"]);
+      allow update: if owner() ||
+        (admin() && resource.data.role != "owner" &&
+          request.resource.data.role == resource.data.role &&
+          !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(["adminRequestStatus", "adminReviewedBy", "adminReviewedAt"]));
+      allow delete: if owner();
     }
 
     // Private player directory. Full names are visible only after sign-in.
     match /players/{playerId} {
       allow read: if activeMember();
-      allow create: if linkedMember() || admin();
+      allow create: if admin() || (linkedMember() && !request.resource.data.keys().hasAny(["registrationPaidSeasons"]));
       allow update: if admin() ||
-        (activeMember() && userRecord().data.linkedPlayerKey == playerId);
+        (activeMember() && userRecord().data.linkedPlayerKey == playerId &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(["registrationPaidSeasons"]));
       allow delete: if admin();
     }
 
     // Public copy deliberately excludes fullName and other private fields.
     match /publicPlayers/{playerId} {
       allow read: if true;
-      allow create: if linkedMember() || admin();
+      allow create: if admin() || (linkedMember() && !request.resource.data.keys().hasAny(["registrationPaidSeasons"]));
       allow update: if admin() ||
-        (activeMember() && userRecord().data.linkedPlayerKey == playerId);
+        (activeMember() && userRecord().data.linkedPlayerKey == playerId &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(["registrationPaidSeasons"]));
       allow delete: if admin();
     }
 

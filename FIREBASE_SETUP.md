@@ -33,6 +33,15 @@ a signed-in account linked to an ONM player.
 
 ## 3. Create the owner account
 
+Registration offers Player (default), Player + admin, and Supporter. All new
+accounts start with the `member` permission role. Player + admin records a
+pending request; it does not grant access to club administration. The owner
+reviews requests in **Club management → Admin requests**. Approving sets the
+permission role to `admin`; declining leaves it as `member`. Existing owners
+and administrators retain their access. Deploy the updated Firestore rules
+alongside this registration and approval interface: only the owner may change
+permission roles or review administration requests.
+
 1. Open `/firebase-migrate.html` and select **Create Firebase account**.
 2. In Firebase Console, open **Firestore Database** and then `users`.
 3. Open Nick's user document and change `role` from `member` to `owner`.

@@ -8,6 +8,7 @@
     results: [],
     players: [],
     playerPhotos: {},
+    adminRequests: [],
     activeTab: "fixtures",
     editor: null
   };
@@ -248,7 +249,8 @@
     }
     list.innerHTML = players.map(player => `<article class="adminPlayerCard">
       <img src="${escapeHtml(playerPhoto(player))}" alt="${escapeHtml(player.publicName)}">
-      <div><h3>${escapeHtml(player.publicName || "Unnamed player")}</h3><p>${escapeHtml(player.nickname || player.role || "Player profile")}</p>
+      <div><h3>${escapeHtml(player.publicName || "Unnamed player")} ${window.PlayerData?.registrationBadge(player) || ""}</h3><p>${escapeHtml(player.nickname || player.role || "Player profile")}</p>
+        <p class="adminRegistrationStatus">${player.registrationPaidSeasons?.includes("26-27") ? "Registered · 2026/27 paid" : "2026/27 registration payment not confirmed"}</p>
         <p class="adminAppearances">${played(player)} ${played(player) === 1 ? "appearance" : "appearances"} · 2026/27</p>
         <button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit player</button></div>
     </article>`).join("");
@@ -280,6 +282,67 @@
     document.getElementById("finesList").innerHTML = players.length
       ? `<div class="adminTableScroll"><table class="adminMatchTable adminFinesTable"><caption class="adminVisuallyHidden">Player fines from submitted results</caption><thead><tr><th scope="col">Player</th><th scope="col">Matches</th><th scope="col">Fines owed</th></tr></thead><tbody>${players.map(player => `<tr><td>${escapeHtml(player.name)}</td><td>${player.matches.size}</td><td>${currency(player.pence)}</td></tr>`).join("")}</tbody></table></div>`
       : '<div class="adminEmpty">No player fines match these filters.</div>';
+  }
+
+  async function loadAdminRequests() {
+    if (state.user.role !== "owner") return;
+    const list = document.getElementById("adminRequestsList");
+    list.innerHTML = '<div class="adminEmpty">Loading administration requests…</div>';
+    try {
+      const { db, firestoreSdk } = await window.ONMFirebase.ready;
+      const snapshot = await firestoreSdk.getDocs(firestoreSdk.query(
+        firestoreSdk.collection(db, "users"), firestoreSdk.where("adminRequestStatus", "==", "pending")
+      ));
+      state.adminRequests = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      renderAdminRequests();
+    } catch (error) {
+      list.innerHTML = '<div class="adminEmpty">Could not load requests. Try Refresh requests.</div>';
+      showToast(error.message || "Could not load administration requests.", true);
+    }
+  }
+
+  function renderAdminRequests() {
+    document.getElementById("adminRequestsTab").textContent = `Admin requests${state.adminRequests.length ? ` (${state.adminRequests.length})` : ""}`;
+    document.getElementById("adminRequestsList").innerHTML = state.adminRequests.length
+      ? `<div class="adminManagedCards">${state.adminRequests.map(user => `<article class="adminMatchCard">
+        <div><div class="adminMatchCardTitle">${escapeHtml(`${user.firstName || ""} ${user.surname || ""}`.trim() || user.email)}</div>
+        <div class="adminMatchCardMeta">${escapeHtml(user.email)} · Player + admin requested</div></div>
+        <div class="adminRowActions"><button class="adminSmallBtn" type="button" data-review-admin="${escapeHtml(user.id)}" data-decision="approved">Approve</button><button class="adminSmallBtn danger" type="button" data-review-admin="${escapeHtml(user.id)}" data-decision="rejected">Decline</button></div>
+      </article>`).join("")}</div>`
+      : '<div class="adminEmpty">No administration requests awaiting approval.</div>';
+  }
+
+  async function reviewAdminRequest(button) {
+    if (state.user.role !== "owner") return;
+    const uid = button.dataset.reviewAdmin;
+    const decision = button.dataset.decision;
+    if (!["approved", "rejected"].includes(decision)) return;
+    const buttons = button.closest(".adminRowActions").querySelectorAll("button");
+    buttons.forEach(item => { item.disabled = true; });
+    try {
+      const { db, firestoreSdk } = await window.ONMFirebase.ready;
+      const ref = firestoreSdk.doc(db, "users", uid);
+      await firestoreSdk.runTransaction(db, async transaction => {
+        const snapshot = await transaction.get(ref);
+        if (!snapshot.exists()) throw new Error("That account no longer exists.");
+        const user = snapshot.data();
+        if (user.adminRequestStatus !== "pending" || user.role !== "member" || user.status !== "Active") {
+          throw new Error("That request is no longer awaiting approval. Refresh requests.");
+        }
+        transaction.update(ref, {
+          role: decision === "approved" ? "admin" : "member",
+          adminRequestStatus: decision,
+          adminReviewedBy: state.user.uid,
+          adminReviewedAt: firestoreSdk.serverTimestamp()
+        });
+      });
+      state.adminRequests = state.adminRequests.filter(user => user.id !== uid);
+      renderAdminRequests();
+      showToast(decision === "approved" ? "Administration access approved." : "Administration request declined.");
+    } catch (error) {
+      showToast(error.message || "Could not review that request.", true);
+      buttons.forEach(item => { item.disabled = false; });
+    }
   }
 
   function selectOptions(selected) {
@@ -373,6 +436,7 @@
       <label class="wide">Bio<textarea name="bio" rows="5" maxlength="1000">${escapeHtml(player.bio)}</textarea></label>
       <label class="adminCheckbox">Gooch<input name="gooch" type="checkbox"${[true, "yes", "true"].includes(player.gooch) ? " checked" : ""}></label>
       <label class="adminCheckbox">Visible on website<input name="profileVisible" type="checkbox"${player.profileVisible !== false ? " checked" : ""}></label>
+      <label class="adminCheckbox wide">2026/27 registration payment received<input name="registrationPaid" type="checkbox"${player.registrationPaidSeasons?.includes("26-27") ? " checked" : ""}></label>
     </div>
     <div class="adminFormActions">
       <button class="btn btnGhost" type="button" data-cancel-editor>Cancel</button>
@@ -512,12 +576,15 @@
       song: clean(data.get("song")),
       highestCheckout: clean(data.get("highestCheckout")),
       gooch: data.get("gooch") === "on",
-      profileVisible: data.get("profileVisible") === "on"
+      profileVisible: data.get("profileVisible") === "on",
+      registrationPaid: data.get("registrationPaid") === "on"
     };
     const result = await window.ONMFirebase.post({ action: "updatePlayerProfile", playerKey: player.playerKey, profile });
     if (!result.success) throw new Error(result.error || "Could not save that player.");
     state.players = state.players.map(item => item.playerKey === player.playerKey
-      ? { ...item, ...profile, gooch: profile.gooch ? "yes" : "" }
+      ? { ...item, ...profile, registrationPaidSeasons: profile.registrationPaid
+          ? [...new Set([...(item.registrationPaidSeasons || []), "26-27"])]
+          : (item.registrationPaidSeasons || []).filter(season => season !== "26-27"), gooch: profile.gooch ? "yes" : "" }
       : item);
     renderPlayers();
   }
@@ -566,6 +633,7 @@
       document.getElementById("resultsPanel").classList.toggle("hidden", state.activeTab !== "results");
       document.getElementById("playersPanel").classList.toggle("hidden", state.activeTab !== "players");
       document.getElementById("finesPanel").classList.toggle("hidden", state.activeTab !== "fines");
+      document.getElementById("requestsPanel").classList.toggle("hidden", state.activeTab !== "requests" || state.user.role !== "owner");
     }));
     document.getElementById("fixtureSeasonFilter").addEventListener("change", renderFixtures);
     document.getElementById("fixtureSearch").addEventListener("input", renderFixtures);
@@ -574,6 +642,7 @@
     document.getElementById("playerSearch").addEventListener("input", renderPlayers);
     document.getElementById("finesSeasonFilter").addEventListener("change", renderFines);
     document.getElementById("finesSearch").addEventListener("input", renderFines);
+    document.getElementById("refreshAdminRequests").addEventListener("click", loadAdminRequests);
     document.getElementById("addFixtureBtn").addEventListener("click", () => openFixtureEditor());
     document.getElementById("addResultBtn").addEventListener("click", () => openResultEditor());
     document.getElementById("closeAdminEditor").addEventListener("click", closeEditor);
@@ -583,6 +652,7 @@
       const button = event.target.closest("button");
       if (!button) return;
       if (button.hasAttribute("data-cancel-editor")) closeEditor();
+      if (button.dataset.reviewAdmin) reviewAdminRequest(button);
       if (button.dataset.editFixture) openFixtureEditor(state.fixtures.find(item => item.id === button.dataset.editFixture));
       if (button.dataset.editResult) openResultEditor(state.results.find(item => item.id === button.dataset.editResult));
       if (button.dataset.editPlayer) openPlayerEditor(state.players.find(item => item.playerKey === button.dataset.editPlayer));
@@ -641,6 +711,10 @@
       renderResults();
       renderPlayers();
       renderFines();
+      if (state.user.role === "owner") {
+        document.getElementById("adminRequestsTab").classList.remove("hidden");
+        await loadAdminRequests();
+      }
     } catch (error) {
       console.error(error);
       gate.innerHTML = `<h2>Could not open the admin area</h2><p>${escapeHtml(error.message || "Please try again.")}</p>`;

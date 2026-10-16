@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow">
   <title>Club admin | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/header.css">
-  <link rel="stylesheet" href="styles/buttons.css">
+  <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
   <link rel="stylesheet" href="styles/admin.css?v=20261016-fines-owed">
   <link rel="icon" type="image/png" href="graphics/favicon1.png">
 </head>
@@ -51,6 +51,7 @@
         <button class="adminTab" type="button" data-admin-tab="results">Results</button>
         <button class="adminTab" type="button" data-admin-tab="players">Players</button>
         <button class="adminTab" type="button" data-admin-tab="fines">Fines owed</button>
+        <button id="adminRequestsTab" class="adminTab hidden" type="button" data-admin-tab="requests">Admin requests</button>
       </div>
 
       <section id="fixturesPanel" class="adminPanel">
@@ -115,6 +116,14 @@
         <div id="finesList" class="adminList"></div>
       </section>
 
+      <section id="requestsPanel" class="adminPanel hidden">
+        <div class="adminToolbar">
+          <div><span class="adminEyebrow">Owner approval</span><h2>Administration requests</h2></div>
+          <button id="refreshAdminRequests" class="btn btnGhost" type="button">Refresh requests</button>
+        </div>
+        <div id="adminRequestsList" class="adminList"></div>
+      </section>
+
       <section id="playersPanel" class="adminPanel hidden">
         <div class="adminToolbar">
           <span class="adminIdentity">Most appearances · 2026/27</span>
@@ -144,8 +153,8 @@
 
   <div id="adminToast" class="adminToast hidden" role="status"></div>
 
-  <script src="scripts/firebase-client.js?v=20261014-player-profiles"></script>
-  <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
-  <script src="scripts/admin.js?v=20261016-fines-owed"></script>
+  <script src="scripts/firebase-client.js?v=20261016-registration"></script>
+  <script src="scripts/player-data.js?v=20261016-registration"></script>
+  <script src="scripts/admin.js?v=20261016-registration"></script>
 </body>
 </html>

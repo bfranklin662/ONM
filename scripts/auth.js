@@ -262,6 +262,7 @@ els.registerForm.addEventListener("submit", async event => {
       surname: formData.get("surname"),
       email: formData.get("email"),
       nationality: formData.get("nationality"),
+      accountRole: formData.get("accountRole"),
       team: teamValue,
       password: formData.get("password")
     });
@@ -275,7 +276,7 @@ els.registerForm.addEventListener("submit", async event => {
     localStorage.setItem("onmUser", JSON.stringify(result.user));
     setButtonLoading(els.registerSubmitBtn, false, "Create account");
 
-    if (result.user.team === "Oche Ness Monsters") {
+    if (result.user.accountType !== "supporter" && result.user.team === "Oche Ness Monsters") {
       showLinkedPlayersModal(result.user);
     } else {
       continueAfterAuth();
@@ -313,7 +314,7 @@ els.loginForm.addEventListener("submit", async event => {
     localStorage.setItem("onmUser", JSON.stringify(result.user));
     setButtonLoading(els.loginSubmitBtn, false, "Login");
 
-    if (result.user.team === "Oche Ness Monsters" && !result.user.linkedPlayerName) {
+    if (result.user.accountType !== "supporter" && result.user.team === "Oche Ness Monsters" && !result.user.linkedPlayerName) {
       showLinkedPlayersModal(result.user);
     } else {
       continueAfterAuth();

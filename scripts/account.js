@@ -39,8 +39,10 @@
     document.getElementById("accountLinkedPlayer").textContent = user.linkedPlayerName
       ? `Linked to ${user.linkedPlayerName}`
       : "This account is not linked to an ONM player yet.";
+    document.getElementById("accountLinkedPlayer").insertAdjacentHTML("beforeend", window.PlayerData?.registrationBadge(linkedProfile || {}) || "");
     document.getElementById("accountPhoto").src = user.photoUrl || user.photo || user.linkedPhotoUrl || "graphics/logoWoText.png";
-    document.getElementById("accountRole").textContent = clean(user.role || "member").replace(/^./, character => character.toUpperCase());
+    const access = user.role === "owner" ? "Owner" : user.role === "admin" ? "Player + admin" : user.accountType === "supporter" ? "Supporter" : "Player";
+    document.getElementById("accountRole").textContent = `${access}${user.adminRequestStatus === "pending" ? " · Admin request pending" : user.adminRequestStatus === "rejected" ? " · Admin request declined" : ""}`;
     document.getElementById("accountStatus").textContent = user.status || "Active";
     document.getElementById("accountPlayer").textContent = user.linkedPlayerName || "Not linked";
     document.getElementById("accountAdminCard").classList.toggle("hidden", !["owner", "admin"].includes(user.role));
@@ -194,6 +196,7 @@
       populate();
       await loadLinkedPlayerProfile();
       form.addEventListener("submit", saveProfile);
+      document.getElementById("accountChangePhoto").addEventListener("click", () => document.getElementById("accountPhotoInput").click());
       document.getElementById("accountPhotoInput").addEventListener("change", uploadPhoto);
       document.getElementById("accountLogout").addEventListener("click", logout);
       loading.classList.add("hidden");
