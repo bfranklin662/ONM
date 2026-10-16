@@ -73,24 +73,41 @@ document.addEventListener("DOMContentLoaded", () => {
     return Boolean(window.ONMSession?.getUser?.() && signedInPlayerDirectory.length);
   }
 
-  function updatePlayerNameOptions(query = "") {
-    document.getElementById("playerFullNameOptions")?.remove();
-    if (!signedInPlayerDirectoryEnabled()) return;
-
+  function updatePlayerNameOptions(query = "", input = null) {
+    document.querySelectorAll(".playerNameSuggestions").forEach(list => {
+      list.hidden = true;
+      list.innerHTML = "";
+    });
+    document.querySelectorAll('.playerNameInputWrap input').forEach(field => {
+      field.setAttribute("aria-expanded", "false");
+      field.removeAttribute("aria-activedescendant");
+    });
     const queryKey = normalisePlayerName(query);
-    const matchingPlayers = queryKey
-      ? signedInPlayerDirectory.filter(player =>
-          normalisePlayerName(player.fullName).startsWith(queryKey) ||
-          normalisePlayerName(player.publicName).startsWith(queryKey)
-        )
-      : signedInPlayerDirectory;
-
-    const options = document.createElement("datalist");
-    options.id = "playerFullNameOptions";
-    options.innerHTML = matchingPlayers
-      .map(player => `<option value="${escapeHtml(player.fullName)}" label="${escapeHtml(player.publicName)}"></option>`)
-      .join("");
-    document.body.appendChild(options);
+    if (!input || !queryKey || !signedInPlayerDirectoryEnabled()) return;
+    if (signedInPlayerDirectory.some(player => normalisePlayerName(player.fullName) === queryKey)) return;
+    const matchingPlayers = signedInPlayerDirectory.filter(player =>
+      normalisePlayerName(player.fullName).startsWith(queryKey) ||
+      normalisePlayerName(player.publicName).startsWith(queryKey)
+    );
+    const options = input.closest(".playerNameInputWrap").querySelector(".playerNameSuggestions");
+    matchingPlayers.forEach((player, index) => {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.id = `${input.id}-option-${index}`;
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", "false");
+      option.tabIndex = -1;
+      option.textContent = player.fullName;
+      option.addEventListener("pointerdown", event => event.preventDefault());
+      option.addEventListener("click", () => {
+        input.value = player.fullName;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        updatePlayerNameOptions();
+      });
+      options.appendChild(option);
+    });
+    options.hidden = !matchingPlayers.length;
+    input.setAttribute("aria-expanded", String(matchingPlayers.length > 0));
   }
 
   function playerInputValue(value = "") {
@@ -2007,15 +2024,16 @@ document.addEventListener("DOMContentLoaded", () => {
       row.className = "nameRow";
       row.innerHTML = `
         <div class="playerNameInputWrap">
-          <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="40" autocomplete="off"${signedInPlayerDirectoryEnabled() ? ' list="playerFullNameOptions"' : ""} value="${escapeHtml(playerInputValue(existingValues[i] || store.setupNames?.[i - 1] || ""))}" />
+          <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="40" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="p${i}-suggestions" value="${escapeHtml(playerInputValue(existingValues[i] || store.setupNames?.[i - 1] || ""))}" />
           <span class="newPlayerBadge" hidden>NEW</span>
+          <div id="p${i}-suggestions" class="playerNameSuggestions" role="listbox" aria-label="Player ${i} suggestions" hidden></div>
         </div>
       `;
       setupGrid.appendChild(row);
       const input = row.querySelector("input");
       updateNewPlayerState(input);
       input?.addEventListener("input", () => {
-        updatePlayerNameOptions(input.value);
+        updatePlayerNameOptions(input.value, input);
         clearNewPlayerState(input);
         const names = [];
 
@@ -2033,9 +2051,34 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       input?.addEventListener("focus", () => {
         clearNewPlayerState(input);
-        updatePlayerNameOptions(input.value);
+        updatePlayerNameOptions();
       });
-      input?.addEventListener("blur", () => updateNewPlayerState(input));
+      input?.addEventListener("blur", () => {
+        updatePlayerNameOptions();
+        updateNewPlayerState(input);
+      });
+      input?.addEventListener("keydown", event => {
+        const list = row.querySelector(".playerNameSuggestions");
+        if (list.hidden) return;
+        const options = Array.from(list.querySelectorAll('[role="option"]'));
+        const activeIndex = options.findIndex(option => option.getAttribute("aria-selected") === "true");
+        if (event.key === "Escape") {
+          event.preventDefault();
+          updatePlayerNameOptions();
+        } else if (event.key === "Enter") {
+          if (activeIndex < 0) return;
+          event.preventDefault();
+          options[activeIndex].click();
+        } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          event.preventDefault();
+          const nextIndex = activeIndex < 0
+            ? (event.key === "ArrowDown" ? 0 : options.length - 1)
+            : (activeIndex + (event.key === "ArrowDown" ? 1 : -1) + options.length) % options.length;
+          options.forEach((option, index) => option.setAttribute("aria-selected", String(index === nextIndex)));
+          input.setAttribute("aria-activedescendant", options[nextIndex].id);
+          options[nextIndex].scrollIntoView({ block: "nearest" });
+        }
+      });
     }
 
     if (addPlayerBtn) addPlayerBtn.disabled = playerInputCount >= MAX_PLAYERS;
