@@ -1,6 +1,6 @@
 .addResultPhotos { display:inline-flex; justify-content:center; align-items:center; min-height:40px; margin:12px 0; padding:8px 16px; border:1px solid #168f79; border-radius:9px; background:#123d32; color:#fff; font:inherit; font-size:14px; font-weight:800; cursor:pointer; }
 .addResultPhotos:hover { background:#175741; }
-.resultPhotoDialog { width:min(700px,calc(100% - 28px)); max-height:85vh; padding:22px; border:1px solid #356048; border-radius:16px; background:#101a20; color:#f4f6fb; font-family:system-ui,sans-serif; overflow-y:auto; }
+.resultPhotoDialog { position:fixed; inset:0; margin:auto; box-sizing:border-box; width:min(700px,calc(100% - 28px)); height:fit-content; max-height:85vh; padding:22px; border:1px solid #356048; border-radius:16px; background:#101a20; color:#f4f6fb; font-family:system-ui,sans-serif; overflow-y:auto; }
 .resultPhotoDialog::backdrop { background:rgba(0,0,0,.8); }
 .resultPhotoHeading { display:flex; justify-content:space-between; align-items:center; gap:20px; }
 .resultPhotoHeading h2 { margin:0; }
@@ -17,3 +17,11 @@
 .resultPhotoList button { width:100%; min-height:36px; margin-top:5px; border:1px solid #854f53; border-radius:6px; background:#331e22; color:#ffbbbb; font:inherit; font-size:12px; cursor:pointer; }
 .resultPhotoDialog button:disabled,.resultPhotoDialog input:disabled { opacity:.5; cursor:wait; }
 .resultPhotoDialog :focus-visible,.addResultPhotos:focus-visible { outline:2px solid #ffd740; outline-offset:3px; }
+.resultPhotoProgress { margin:16px 0; }
+.resultPhotoProgress[hidden] { display:none; }
+.resultPhotoProgress label { display:block; margin-bottom:8px; color:#f4f6fb; font-size:13px; font-weight:800; }
+.resultPhotoProgress progress { display:block; width:100%; height:16px; accent-color:#ffd740; border:0; border-radius:8px; overflow:hidden; background:#293640; }
+.resultPhotoProgress progress::-webkit-progress-bar { background:#293640; border-radius:8px; }
+.resultPhotoProgress progress::-webkit-progress-value { background:#ffd740; border-radius:8px; }
+.resultPhotoProgress progress::-moz-progress-bar { background:#ffd740; border-radius:8px; }
+.resultPhotoProgress span { display:block; margin-top:6px; color:#b8c4cc; font-size:12px; }

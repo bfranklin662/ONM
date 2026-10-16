@@ -27,13 +27,13 @@ test("sheet responses match date, league, opponent aliases and home/away", () =>
   }
 });
 
-test("every valid response is coloured; unanswered is explicitly greyscale", () => {
+test("every response has the correct pill state and unanswered says not recorded", () => {
   const h = harness();
   for (const [status, state] of [["Available", "available"], ["Unavailable", "unavailable"], ["Not sure", "unsure"], ["", "unanswered"]]) {
     h.response.status = status;
     assert.equal(h.context.personalFixture(h.fixture).state, state);
     assert(h.context.personalClass(h.fixture).includes(`fxPersonal-${state}`));
-    assert(h.context.personalBadge(h.fixture).includes(status || "not answered"));
+    assert(h.context.personalBadge(h.fixture).includes(status || "not recorded"));
   }
 });
 
@@ -75,9 +75,12 @@ test("bank fixtures and renamed opponents match without matching a different sid
 
 test("clicking a card shows the response and saving refreshes both views", async () => {
   const elements = new Map(), documentEvents = {}, requests = [];
+  let releaseFixtures;
+  const fixturesReady = new Promise(resolve => { releaseFixtures = resolve; });
   const get = selector => {
     if (!elements.has(selector)) elements.set(selector, {
       innerHTML: "", textContent: "", value: "", open: false, events: {},
+      setAttribute() {},
       addEventListener(name, callback) { this.events[name] = callback; },
       classList: { add() {}, remove() {}, toggle() {} },
       showModal() { this.open = true; }, close() { this.open = false; }
@@ -93,7 +96,10 @@ test("clicking a card shows the response and saving refreshes both views", async
     window: {
       matchMedia: () => ({ matches: false }), addEventListener() {},
       ONMSeasonData: {
-        fetchFixtures: async season => season === "26-27" ? [{ League: "Trafalgar League", Date: "21st Oct 2026", Day: "Wednesday", Opponent: "Silverbacks", HA: "Home", Location: "The Barley Mow" }] : [],
+        fetchFixtures: async season => {
+          await fixturesReady;
+          return season === "26-27" ? [{ League: "Trafalgar League", Date: "21st Oct 2026", Day: "Wednesday", Opponent: "Silverbacks", HA: "Home", Location: "The Barley Mow" }] : [];
+        },
         fetchResults: async () => []
       },
       ONMFirebase: {
@@ -111,6 +117,11 @@ test("clicking a card shows the response and saving refreshes both views", async
   vm.createContext(context);
   vm.runInContext(source, context);
   documentEvents.DOMContentLoaded();
+  assert.equal(get("#fixtureCalendarMonth").textContent, "October 2026");
+  assert.equal((get("#fixtureCalendarGrid").innerHTML.match(/class="fixtureDayNumber"/g) || []).length, 31);
+  assert.equal(get("#fixtureCalendarCount").textContent, "Loading fixtures…");
+  assert(get("#fixtureCalendarEmpty").hidden);
+  releaseFixtures();
   await new Promise(resolve => setImmediate(resolve));
   assert(get("#fixturesStage").innerHTML.includes("You: Available"));
   get("#fixturesStage").events.click({ target: { closest: selector => selector === "a" ? null : { dataset: { cardFixtureIndex: "0" } } } });

@@ -38,6 +38,15 @@ function harness() {
       if (settings.uploadFailure && ref.endsWith("thumbnail.jpg")) throw new Error("upload failed");
       objects.set(ref, blob);
     },
+    uploadBytesResumable(ref, blob) {
+      return { on(event, progress, error, complete) {
+        progress({ bytesTransferred: 0 });
+        storageSdk.uploadBytes(ref, blob).then(() => {
+          progress({ bytesTransferred: blob.size });
+          complete();
+        }, error);
+      } };
+    },
     async deleteObject(ref) { deleted.push(ref); objects.delete(ref); },
     async getDownloadURL(ref) { if (!objects.has(ref)) throw new Error("missing image"); return `https://example.test/${ref}`; }
   };
@@ -68,6 +77,20 @@ test("each contribution has unique paths, even when uploading the same image", a
   await h.context.uploadSharedResultPhoto("match-one", h.image, h.image);
   assert.equal(h.objects.size, 4);
   assert.equal((await h.context.listResultPhotos("match-one")).length, 2);
+});
+
+test("byte progress covers both images and completion waits for the saved record", async () => {
+  const h = harness();
+  const updates = [];
+  await h.context.uploadSharedResultPhoto("match-one", h.image, h.image, update => {
+    updates.push(update);
+    if (update.phase === "complete") assert(h.documents.has("results/match-one/photos/photo1"));
+  });
+  assert.equal(updates[0].bytesTransferred, 0);
+  assert(updates.some(update => update.phase === "saving"));
+  assert.equal(updates.at(-1).phase, "complete");
+  assert.equal(updates.at(-1).bytesTransferred, h.image.size * 2);
+  assert(updates.every((update, i) => i === 0 || update.bytesTransferred >= updates[i - 1].bytesTransferred));
 });
 
 test("visitors, inactive users, missing results and oversize images are rejected", async () => {
@@ -164,4 +187,68 @@ test("compression limits dimensions, produces thumbnails and rejects unsupported
   assert(closed);
   await assert.rejects(context.compress({ type: "image/heic", size: 1000 }), /JPG, PNG or WebP/);
   await assert.rejects(context.compress({ type: "image/jpeg", size: 21000000 + 1024 * 1024 }), /smaller than 20 MB/);
+});
+
+function dialogHarness(galleryFailure = false) {
+  const ui = fs.readFileSync(path.join(__dirname, "../scripts/result-photos.js"), "utf8");
+  const nodes = new Map(), documentEvents = {}, uploads = [], percentages = [];
+  const get = selector => {
+    if (!nodes.has(selector)) {
+      const node = { innerHTML: "", textContent: "", hidden: false, events: {}, setAttribute() {},
+        addEventListener(name, fn) { this.events[name] = fn; }, appendChild() {} };
+      let value = 0;
+      Object.defineProperty(node, "value", { get: () => value, set(next) { value = next; if (selector === "#resultPhotoProgressBar") percentages.push(next); } });
+      nodes.set(selector, node);
+    }
+    return nodes.get(selector);
+  };
+  const dialog = { setAttribute() {}, innerHTML: "", events: {}, querySelector: get,
+    querySelectorAll: () => [], addEventListener(name, fn) { this.events[name] = fn; }, showModal() {}, close() {} };
+  const photos = [{ id: "new-photo", url: "https://example.test/new.jpg", thumbnailUrl: "https://example.test/new-thumb.jpg", uploaderUid: "u" }];
+  const context = { Blob, console: { warn() {} }, location: { pathname: "/results.html", search: "" },
+    document: {
+      addEventListener(name, fn) { documentEvents[name] = fn; }, body: { appendChild() {} },
+      createElement(tag) { return tag === "dialog" ? dialog : tag === "canvas" ? { getContext: () => ({ fillRect() {}, drawImage() {} }), toBlob: callback => callback(new Blob(["jpeg"], { type: "image/jpeg" })) } : {}; }
+    },
+    createImageBitmap: async () => ({ width: 3000, height: 2000, close() {} }),
+    window: { ONMFirebase: { loadOwnUser: async () => ({ uid: "u", status: "Active", role: "member" }), resultPhotos: {
+      list: async () => { if (galleryFailure) throw new Error("Missing or insufficient permissions."); return photos; },
+      upload: async (id, image, thumb, progress) => {
+        uploads.push(id);
+        for (const [bytesTransferred, phase] of [[0, "uploading"], [50, "uploading"], [100, "saving"], [100, "complete"]]) progress({ bytesTransferred, totalBytes: 100, phase });
+      }
+    } } }
+  };
+  vm.createContext(context);
+  vm.runInContext(ui, context);
+  context.window.ONMResultPhotos.setExisting("match-one", ["https://example.test/drive.jpg"]);
+  function open() { documentEvents.click({ target: { closest: () => ({ dataset: { addResultPhotos: "match-one" } }) }, preventDefault() {}, stopPropagation() {} }); }
+  return { get, uploads, percentages, open };
+}
+
+test("opening the dialog shows legacy thumbnails even when member photo reads fail", async () => {
+  const h = dialogHarness(true);
+  h.open();
+  await new Promise(resolve => setImmediate(resolve));
+  assert(h.get("#resultPhotoList").innerHTML.includes("https://example.test/drive.jpg"));
+  assert.equal(h.get("#resultPhotoStatus").textContent, "Choose photos to add to this result.");
+  assert(!h.get("#resultPhotoStatus").textContent.includes("could not"));
+  assert(h.get("#resultPhotoGalleryNotice").textContent.includes("temporarily unavailable"));
+  assert(h.get("#resultPhotoProgress").hidden);
+  assert.equal(h.uploads.length, 0);
+});
+
+test("the dialog combines old and new thumbnails and shows a live upload bar", async () => {
+  const h = dialogHarness();
+  h.open();
+  await new Promise(resolve => setImmediate(resolve));
+  const html = h.get("#resultPhotoList").innerHTML;
+  assert(html.includes("drive.jpg") && html.includes("new-thumb.jpg"));
+  assert(h.get("#resultPhotoProgress").hidden);
+  await h.get("#resultPhotoFiles").events.change({ target: { files: [{ type: "image/jpeg", size: 3000000 }], value: "photo.jpg" } });
+  assert.equal(h.uploads.length, 1);
+  assert(!h.get("#resultPhotoProgress").hidden);
+  assert(h.percentages.some(value => value > 0 && value < 100));
+  assert.equal(h.get("#resultPhotoProgressBar").value, 100);
+  assert(h.get("#resultPhotoStatus").textContent.includes("1 photo added"));
 });

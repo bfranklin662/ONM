@@ -42,7 +42,7 @@
       personalSide(item.side) === personalSide(fixture.HA));
     if (matches.length !== 1) return { label: "Not linked in availability sheet", state: "unknown" };
     const response = matches[0];
-    return { response, label: response.status ? `You: ${response.status}` : "Availability not answered", state: ({ Available: "available", Unavailable: "unavailable", "Not sure": "unsure" })[response.status] || "unanswered" };
+    return { response, label: response.status ? `You: ${response.status}` : "Availability not recorded", state: ({ Available: "available", Unavailable: "unavailable", "Not sure": "unsure" })[response.status] || "unanswered" };
   }
 
   function personalClass(fixture) {
@@ -906,8 +906,9 @@
       : `<button type="button" ${attrs} aria-label="${label}" data-fixture-index="${index}" aria-haspopup="dialog">${content}</button>`;
   }
 
-  function mountCalendar(initialFixtures) {
+  function mountCalendar(initialFixtures, loading = false) {
     let fixtures = initialFixtures;
+    let initialMonthChosen = !loading;
     const monthNumber = date => date.getFullYear() * 12 + date.getMonth();
     const firstMonth = () => fixtures.length ? monthNumber(fixtures[0].dateObj) : monthNumber(todayNoon());
     const lastMonth = () => fixtures.length ? monthNumber(fixtures[fixtures.length - 1].dateObj) : firstMonth();
@@ -929,12 +930,14 @@
       el("#fixtureCalendarMonth").textContent = title;
       const resultsCount = monthFixtures.filter(fixture => fixture.completed).length;
       const fixturesCount = monthFixtures.length - resultsCount;
-      el("#fixtureCalendarCount").textContent = [
+      el("#fixtureCalendarCount").textContent = loading ? "Loading fixtures…" : [
         resultsCount ? `${resultsCount} ${resultsCount === 1 ? "result" : "results"}` : "",
         fixturesCount ? `${fixturesCount} ${fixturesCount === 1 ? "fixture" : "fixtures"}` : ""
       ].filter(Boolean).join(" · ") || "No matches";
       previous.disabled = month <= firstMonth();
       next.disabled = month >= lastMonth();
+      el("#fixtureNextMatch").disabled = loading || !fixtures.length;
+      el("#fixtureCalendar").setAttribute("aria-busy", String(loading));
       const offset = (date.getDay() + 6) % 7;
       const days = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
       const cellCount = Math.ceil((offset + days) / 7) * 7;
@@ -961,7 +964,7 @@
         if (i % 7 === 6) cells += "</tr>";
       }
       grid.innerHTML = cells;
-      el("#fixtureCalendarEmpty").hidden = monthFixtures.length > 0;
+      el("#fixtureCalendarEmpty").hidden = loading || monthFixtures.length > 0;
     }
 
     previous.addEventListener("click", () => { if (month > firstMonth()) { month--; render(); } });
@@ -1008,7 +1011,15 @@
       if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
     });
     render();
-    return { refresh: render, setFixtures(updated) { fixtures = updated; render(); } };
+    return { refresh: render, setFixtures(updated) {
+      fixtures = updated;
+      loading = false;
+      if (!initialMonthChosen && fixtures.length) {
+        month = nextMonth();
+        initialMonthChosen = true;
+      }
+      render();
+    } };
   }
 
   function setupFixtureViews() {
@@ -1029,6 +1040,8 @@
   async function init() {
     setupFixtureViews();
     renderLoadingSkeleton(3);
+    // Paint the dated grid before awaiting any live data.
+    const calendar = mountCalendar([], true);
 
     // 1) Load the live fixture sheet, with the packaged JSON as a fallback.
     const fixturesRaw = window.ONMSeasonData?.fetchFixtures
@@ -1045,7 +1058,7 @@
 
     // Mount carousel immediately with JSON-only data
     const carousel = mountCarousel(fixturesOnly);
-    const calendar = mountCalendar(fixturesOnly);
+    calendar.setFixtures(fixturesOnly);
     refreshPersonalViews = () => {
       carousel.refresh();
       calendar.refresh();
@@ -1103,7 +1116,13 @@
     init().catch(err => {
       console.error("Fixtures banner failed:", err);
       const calendar = el("#fixtureCalendar");
-      if (calendar) calendar.innerHTML = '<p class="fixtureCalendarEmpty" role="alert">Could not load fixtures. Please try refreshing the page.</p>';
+      if (calendar) {
+        calendar.setAttribute("aria-busy", "false");
+        el("#fixtureCalendarCount").textContent = "Fixtures unavailable";
+        const message = el("#fixtureCalendarEmpty");
+        message.textContent = "Could not load fixtures. Please try refreshing the page.";
+        message.hidden = false;
+      }
       const stage = el("#fixturesStage");
       if (stage) stage.innerHTML = `<div class="fixturesCard competition"><div class="leagueLine">Fixtures</div><div class="metaLine"><span>Could not load fixtures/results.</span></div></div>`;
     });

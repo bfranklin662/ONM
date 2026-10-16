@@ -1,11 +1,12 @@
 # Availability sheet connection
 
 The home-page fixture cards and calendar also show the signed-in linked
-player's response: green for Available, red for Unavailable, amber for Not sure,
-and greyscale for unanswered fixtures. Clicking a fixture opens its details
+player's response using status pills: green for Available, red for Unavailable,
+amber for Not sure, and grey for availability not recorded. Fixture cards keep
+their normal competition colours. Clicking a fixture opens its details
 and lets the player save a response to the same sheet. Completed matches show
-"You played" based on their result's player slots; matches the player did not
-play are greyscale. Visitors keep the regular club fixture colours. Missing
+"You played" in a green pill based on their result's player slots; matches the
+player did not play have a grey pill. Visitors keep the regular club fixture colours. Missing
 or failed sheet matches are shown as unavailable to load, never as unanswered.
 This uses the existing deployed availability functions; no new function
 deployment is required for the personalised cards.

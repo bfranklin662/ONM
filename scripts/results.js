@@ -510,25 +510,22 @@ async function fetchDriveImages(folderId) {
 }
 
 async function fetchMatchImages(match) {
-  let memberPhotos = [];
-  try { memberPhotos = await window.ONMResultPhotos?.list(match._resultId) || []; }
-  catch (error) { console.warn("Shared match photos unavailable", error.message); }
-  const sharedUrls = memberPhotos.map(photo => photo.url);
+  const membersRequest = Promise.resolve().then(() => window.ONMResultPhotos?.list(match._resultId) || []).catch(error => {
+    console.warn("Shared match photos unavailable", error.message);
+    return [];
+  });
   const value = String(match?.IMGFOLDER || "").trim();
-  if (!value) return sharedUrls;
-
   const directUrls = value
     .split(/\r?\n/)
     .map(item => item.trim())
     .filter(item => /^https?:\/\//i.test(item));
 
-  if (directUrls.length && directUrls.every(item => !/drive\.google\.com\/drive\/folders/i.test(item))) {
-    return [...new Set([...directUrls, ...sharedUrls])];
-  }
-
   const folderMatch = value.match(/(?:[?&]id=|\/folders\/)([a-zA-Z0-9_-]+)/);
-  const existing = folderMatch ? await fetchDriveImages(folderMatch[1]) : directUrls;
-  return [...new Set([...existing, ...sharedUrls])];
+  const isFolder = /drive\.google\.com\/drive\/folders/i.test(value);
+  const existing = isFolder && folderMatch ? await fetchDriveImages(folderMatch[1]) : directUrls;
+  window.ONMResultPhotos?.setExisting?.(match._resultId, existing);
+  const memberPhotos = await membersRequest;
+  return [...new Set([...existing, ...memberPhotos.map(photo => photo.url)])];
 }
 // 🔹 Restore saved preferences before DOM ready
 let currentSeason = localStorage.getItem("resultsSeason") || "26-27";

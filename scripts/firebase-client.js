@@ -433,7 +433,7 @@
     return photos.filter(Boolean).sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
   }
 
-  async function uploadSharedResultPhoto(resultId, image, thumbnail) {
+  async function uploadSharedResultPhoto(resultId, image, thumbnail, onProgress = () => {}) {
     const user = await loadOwnUser();
     if (!user || user.status !== "Active") throw new Error("Sign in with an active account to add photos.");
     if (!resultId || resultId.includes("/")) throw new Error("Choose a saved result.");
@@ -443,13 +443,21 @@
     const ref = firestoreSdk.doc(firestoreSdk.collection(db, "results", resultId, "photos"));
     const path = `result-photos/${resultId}/${user.uid}/${ref.id}`;
     const uploaded = [];
+    let completedBytes = 0;
+    const totalBytes = image.size + thumbnail.size;
     try {
       for (const [name, blob] of [["image.jpg", image], ["thumbnail.jpg", thumbnail]]) {
         const target = storageSdk.ref(storage, `${path}/${name}`);
-        await storageSdk.uploadBytes(target, blob, { contentType: "image/jpeg", cacheControl: "public,max-age=31536000,immutable" });
+        const task = storageSdk.uploadBytesResumable(target, blob, { contentType: "image/jpeg", cacheControl: "public,max-age=31536000,immutable" });
+        await new Promise((resolve, reject) => task.on("state_changed", snapshot => {
+          onProgress({ bytesTransferred: completedBytes + snapshot.bytesTransferred, totalBytes, phase: "uploading" });
+        }, reject, resolve));
         uploaded.push(target);
+        completedBytes += blob.size;
       }
+      onProgress({ bytesTransferred: totalBytes, totalBytes, phase: "saving" });
       await firestoreSdk.setDoc(ref, { storagePath: path, uploaderUid: user.uid, createdAt: firestoreSdk.serverTimestamp() });
+      onProgress({ bytesTransferred: totalBytes, totalBytes, phase: "complete" });
       return ref.id;
     } catch (error) {
       // A timed-out metadata save may have succeeded. Never remove its photos.
