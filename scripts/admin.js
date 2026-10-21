@@ -246,6 +246,39 @@
     return { issued, paid, owed: Math.max(0, issued - paid) };
   }
 
+  function hasPlayedMatch(player, results = state.results) {
+    const normal = value => clean(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+    const names = new Set([player.publicName, player.fullName].filter(Boolean).map(normal));
+    return results.some(item => Array.from({ length: 12 }, (_, index) => playerValue(rowFor(item), index + 1)).some(name => names.has(normal(name))));
+  }
+
+  async function togglePlayerArchive(button) {
+    const player = state.players.find(item => item.playerKey === button.dataset.archivePlayer);
+    if (!player) return;
+    const archive = button.dataset.archive === "true";
+    button.disabled = true;
+    try {
+      const results = await loadCollection("results");
+      state.results = results;
+      if (archive && hasPlayedMatch(player, results)) {
+        renderPlayers();
+        showToast("Players with a recorded appearance cannot be archived.", true);
+        return;
+      }
+      const { db, firestoreSdk } = await window.ONMFirebase.ready;
+      await firestoreSdk.setDoc(firestoreSdk.doc(db, "players", player.playerKey), {
+        adminArchived: archive, archivedUpdatedAt: firestoreSdk.serverTimestamp(),
+        archivedUpdatedBy: state.user.uid
+      }, { merge: true });
+      player.adminArchived = archive;
+      renderPlayers();
+      showToast(archive ? "Player moved to the archived list." : "Player restored to the active list.");
+    } catch (error) {
+      showToast(error.message || "Could not update the archive.", true);
+      button.disabled = false;
+    }
+  }
+
   function renderPlayers() {
     const accounts = state.players.map(player => playerFineAccount(player));
     document.getElementById("totalFinesCollected").textContent = currencyForToast(
@@ -267,6 +300,10 @@
     const account = document.getElementById("playerAccountFilter").value;
     const fines = document.getElementById("playerFinesFilter").value;
     const players = state.players
+      .filter(player => {
+        const archived = player.adminArchived === true && !hasPlayedMatch(player);
+        return document.getElementById("playerListView").value === "archived" ? archived : !archived;
+      })
       .filter(player => {
         const paid = player.registrationPaidSeasons?.includes("26-27");
         const linked = state.linkedPlayerKeys.has(player.playerKey);
@@ -298,7 +335,7 @@
         <td><span class="adminLinkStatus ${linked ? "isLinked" : "isUnlinked"}">${linked ? "Linked" : "Not linked"}</span></td>
         <td class="adminFineOwed">${currencyForToast(balance.owed)}</td>
         <td>${currencyForToast(balance.paid)}</td>
-        <td class="adminPlayerEdit"><button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit</button></td>
+        <td class="adminPlayerEdit"><button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit</button>${!hasPlayedMatch(player) ? `<button class="adminSmallBtn" type="button" data-archive-player="${escapeHtml(player.playerKey)}" data-archive="${player.adminArchived ? "false" : "true"}">${player.adminArchived ? "Restore" : "Archive"}</button>` : ""}</td>
       </tr>`;
     }).join("")}</tbody></table></div>`;
   }
@@ -865,6 +902,7 @@
     document.getElementById("resultSeasonFilter").addEventListener("change", renderResults);
     document.getElementById("resultSearch").addEventListener("input", renderResults);
     document.getElementById("playerSearch").addEventListener("input", renderPlayers);
+    document.getElementById("playerListView").addEventListener("change", renderPlayers);
     ["playerRegistrationFilter", "playerAccountFilter", "playerFinesFilter"].forEach(id => document.getElementById(id).addEventListener("change", renderPlayers));
     document.getElementById("quickFinePayment").addEventListener("submit", saveQuickFinePayment);
     attachPaymentSearch();
@@ -884,6 +922,7 @@
       if (button.dataset.editFixture) openFixtureEditor(state.fixtures.find(item => item.id === button.dataset.editFixture));
       if (button.dataset.editResult) openResultEditor(state.results.find(item => item.id === button.dataset.editResult));
       if (button.dataset.editPlayer) openPlayerEditor(state.players.find(item => item.playerKey === button.dataset.editPlayer));
+      if (button.dataset.archivePlayer) togglePlayerArchive(button);
       if (button.dataset.togglePlayerRegistration) togglePlayerRegistration(button);
       if (button.dataset.recordFinePayment) recordFinePayment(button);
       if (button.dataset.deleteFixture) deleteItem("fixture", button.dataset.deleteFixture);
