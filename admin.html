@@ -38,7 +38,7 @@
         <button class="adminTab active" type="button" data-admin-tab="fixtures">Fixtures</button>
         <button class="adminTab" type="button" data-admin-tab="results">Results</button>
         <button class="adminTab" type="button" data-admin-tab="players">Players</button>
-        <button id="adminRequestsTab" class="adminTab hidden" type="button" data-admin-tab="requests">Admin requests</button>
+        <button id="adminRequestsTab" class="adminTab hidden" type="button" data-admin-tab="requests">Accounts</button>
       </div>
 
       <section id="fixturesPanel" class="adminPanel">
@@ -105,8 +105,9 @@
 
       <section id="requestsPanel" class="adminPanel hidden">
         <div class="adminToolbar">
-          <div><span class="adminEyebrow">Owner approval</span><h2>Administration requests</h2></div>
-          <button id="refreshAdminRequests" class="btn btnGhost" type="button">Refresh requests</button>
+          <div><span class="adminEyebrow">Owner controls</span><h2>Site accounts</h2></div>
+          <div class="adminFilters"><label>Search accounts<input id="accountSearch" type="search" placeholder="Name or email"></label></div>
+          <button id="refreshAdminRequests" class="btn btnGhost" type="button">Refresh accounts</button>
         </div>
         <div id="adminRequestsList" class="adminList"></div>
       </section>
@@ -160,8 +161,8 @@
 
   <div id="adminToast" class="adminToast hidden" role="status"></div>
 
-  <script src="scripts/firebase-client.js?v=20261021-edit-name"></script>
+  <script src="scripts/firebase-client.js?v=20261021-owner-accounts"></script>
   <script src="scripts/player-data.js?v=20261016-registration"></script>
-  <script src="scripts/admin.js?v=20261021-no-overview"></script>
+  <script src="scripts/admin.js?v=20261021-owner-accounts"></script>
 </body>
 </html>

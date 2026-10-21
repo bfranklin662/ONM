@@ -120,7 +120,7 @@
   async function register(payload) {
     const { auth, db, authSdk, firestoreSdk } = await ready;
     const email = clean(payload.email).toLowerCase();
-    const accountRole = ["player", "player-admin", "supporter"].includes(payload.accountRole) ? payload.accountRole : "player";
+    const accountRole = ["player", "supporter"].includes(payload.accountRole) ? payload.accountRole : "player";
     const credential = await authSdk.createUserWithEmailAndPassword(auth, email, String(payload.password || ""));
     const data = {
       firstName: clean(payload.firstName),
@@ -131,7 +131,7 @@
       status: "Active",
       role: "member",
       accountType: accountRole === "supporter" ? "supporter" : "player",
-      adminRequestStatus: accountRole === "player-admin" ? "pending" : "none",
+      adminRequestStatus: "none",
       linkedPlayerName: "",
       linkedPlayerKey: "",
       nickname: "",

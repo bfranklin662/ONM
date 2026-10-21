@@ -337,29 +337,31 @@
   async function loadAdminRequests() {
     if (state.user.role !== "owner") return;
     const list = document.getElementById("adminRequestsList");
-    list.innerHTML = '<div class="adminEmpty">Loading administration requests…</div>';
+    list.innerHTML = '<div class="adminEmpty">Loading site accounts…</div>';
     try {
       const { db, firestoreSdk } = await window.ONMFirebase.ready;
-      const snapshot = await firestoreSdk.getDocs(firestoreSdk.query(
-        firestoreSdk.collection(db, "users"), firestoreSdk.where("adminRequestStatus", "==", "pending")
-      ));
+      const snapshot = await firestoreSdk.getDocs(firestoreSdk.collection(db, "users"));
       state.adminRequests = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       renderAdminRequests();
     } catch (error) {
-      list.innerHTML = '<div class="adminEmpty">Could not load requests. Try Refresh requests.</div>';
-      showToast(error.message || "Could not load administration requests.", true);
+      list.innerHTML = '<div class="adminEmpty">Could not load accounts. Try Refresh accounts.</div>';
+      showToast(error.message || "Could not load accounts.", true);
     }
   }
 
   function renderAdminRequests() {
-    document.getElementById("adminRequestsTab").textContent = `Admin requests${state.adminRequests.length ? ` (${state.adminRequests.length})` : ""}`;
-    document.getElementById("adminRequestsList").innerHTML = state.adminRequests.length
-      ? `<div class="adminManagedCards">${state.adminRequests.map(user => `<article class="adminMatchCard">
-        <div><div class="adminMatchCardTitle">${escapeHtml(`${user.firstName || ""} ${user.surname || ""}`.trim() || user.email)}</div>
-        <div class="adminMatchCardMeta">${escapeHtml(user.email)} · Player + admin requested</div></div>
-        <div class="adminRowActions"><button class="adminSmallBtn" type="button" data-review-admin="${escapeHtml(user.id)}" data-decision="approved">Approve</button><button class="adminSmallBtn danger" type="button" data-review-admin="${escapeHtml(user.id)}" data-decision="rejected">Decline</button></div>
-      </article>`).join("")}</div>`
-      : '<div class="adminEmpty">No administration requests awaiting approval.</div>';
+    const query = clean(document.getElementById("accountSearch").value).toLowerCase();
+    const accounts = state.adminRequests.filter(user => `${user.firstName || ""} ${user.surname || ""} ${user.email || ""}`.toLowerCase().includes(query))
+      .sort((a, b) => clean(a.firstName || a.email).localeCompare(clean(b.firstName || b.email)));
+    document.getElementById("adminRequestsTab").textContent = `Accounts (${state.adminRequests.length})`;
+    document.getElementById("adminRequestsList").innerHTML = accounts.length
+      ? `<div class="adminTableScroll"><table class="adminMatchTable"><thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Player</th><th>Status</th><th>Access</th><th>Action</th></tr></thead><tbody>${accounts.map(user => `<tr>
+        <td>${escapeHtml(`${user.firstName || ""} ${user.surname || ""}`.trim() || "Unnamed")}</td>
+        <td>${escapeHtml(user.email)}</td><td>${escapeHtml(user.accountType || "player")}</td>
+        <td>${escapeHtml(user.linkedPlayerName || "Not linked")}</td><td>${escapeHtml(user.status)}</td><td>${escapeHtml(user.role || "member")}</td>
+        <td><div class="adminRowActions">${user.role === "owner" ? "Site owner" : user.role === "admin" ? `<button class="adminSmallBtn" type="button" data-review-admin="${escapeHtml(user.id)}" data-decision="rejected">Remove admin</button>` : user.role === "member" && user.status === "Active" ? `<button class="adminSmallBtn" type="button" data-review-admin="${escapeHtml(user.id)}" data-decision="approved">Assign as admin</button>` : "—"}</div></td>
+      </tr>`).join("")}</tbody></table></div>`
+      : '<div class="adminEmpty">No accounts match this search.</div>';
   }
 
   async function reviewAdminRequest(button) {
@@ -367,6 +369,8 @@
     const uid = button.dataset.reviewAdmin;
     const decision = button.dataset.decision;
     if (!["approved", "rejected"].includes(decision)) return;
+    const account = state.adminRequests.find(user => user.id === uid);
+    if (!account || !window.confirm(`${decision === "approved" ? "Grant admin access to" : "Remove admin access from"} ${account.email || account.firstName}?`)) return;
     const buttons = button.closest(".adminRowActions").querySelectorAll("button");
     buttons.forEach(item => { item.disabled = true; });
     try {
@@ -376,8 +380,8 @@
         const snapshot = await transaction.get(ref);
         if (!snapshot.exists()) throw new Error("That account no longer exists.");
         const user = snapshot.data();
-        if (user.adminRequestStatus !== "pending" || user.role !== "member" || user.status !== "Active") {
-          throw new Error("That request is no longer awaiting approval. Refresh requests.");
+        if (user.role !== (decision === "approved" ? "member" : "admin") || user.status !== "Active") {
+          throw new Error("That account has changed. Refresh accounts and try again.");
         }
         transaction.update(ref, {
           role: decision === "approved" ? "admin" : "member",
@@ -386,11 +390,11 @@
           adminReviewedAt: firestoreSdk.serverTimestamp()
         });
       });
-      state.adminRequests = state.adminRequests.filter(user => user.id !== uid);
+      state.adminRequests = state.adminRequests.map(user => user.id === uid ? { ...user, role: decision === "approved" ? "admin" : "member" } : user);
       renderAdminRequests();
-      showToast(decision === "approved" ? "Administration access approved." : "Administration request declined.");
+      showToast(decision === "approved" ? "Admin access assigned." : "Admin access removed.");
     } catch (error) {
-      showToast(error.message || "Could not review that request.", true);
+      showToast(error.message || "Could not update account access.", true);
       buttons.forEach(item => { item.disabled = false; });
     }
   }
@@ -862,6 +866,7 @@
     document.getElementById("finesSeasonFilter").addEventListener("change", renderFines);
     document.getElementById("finesSearch").addEventListener("input", renderFines);
     document.getElementById("refreshAdminRequests").addEventListener("click", loadAdminRequests);
+    document.getElementById("accountSearch").addEventListener("input", renderAdminRequests);
     document.getElementById("addFixtureBtn").addEventListener("click", () => openFixtureEditor());
     document.getElementById("addResultBtn").addEventListener("click", () => openResultEditor());
     document.getElementById("closeAdminEditor").addEventListener("click", closeEditor);
