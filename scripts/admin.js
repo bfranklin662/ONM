@@ -485,7 +485,8 @@
       <label>Replace photo<input name="photoFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="adminFieldHelp">The original Drive photo remains the default until you upload a replacement.</span></label>
     </div>
     <div class="adminGrid">
-      <label>Public name<input value="${escapeHtml(player.publicName)}" disabled></label>
+      <label>Full name<input name="fullName" maxlength="120" value="${escapeHtml(player.fullName || player.publicName)}" required></label>
+      <label>Shortened name<input value="${escapeHtml(player.publicName)}" disabled><span class="adminFieldHelp">Used in historical match results.</span></label>
       <label>Nickname<input name="nickname" maxlength="80" value="${escapeHtml(player.nickname)}"></label>
       <label>Club role<input name="role" maxlength="50" value="${escapeHtml(player.role)}"></label>
       <label>Highest checkout<input name="highestCheckout" type="number" min="0" max="170" value="${escapeHtml(player.highestCheckout)}"></label>
@@ -626,6 +627,7 @@
       photoUrl = uploaded.photoUrl;
     }
     const profile = {
+      fullName: clean(data.get("fullName")),
       nickname: clean(data.get("nickname")),
       photoUrl,
       bio: clean(data.get("bio")),

@@ -370,6 +370,12 @@
     const key = clean(payload.playerKey);
     const profile = payload.profile || {};
     const changesRegistration = Object.prototype.hasOwnProperty.call(profile, "registrationPaid");
+    const changesName = Object.prototype.hasOwnProperty.call(profile, "fullName");
+    if (changesName) {
+      const account = await loadOwnUser();
+      if (!["admin", "owner"].includes(account?.role) || account.status !== "Active") throw new Error("Only administrators can edit player names.");
+      if (!clean(profile.fullName) || clean(profile.fullName).length > 120) throw new Error("Enter a full name of up to 120 characters.");
+    }
     if (changesRegistration) {
       const account = await loadOwnUser();
       if (!["admin", "owner"].includes(account?.role) || account.status !== "Active") throw new Error("Only administrators can confirm registration payments.");
@@ -394,7 +400,10 @@
     }
     const batch = firestoreSdk.writeBatch(db);
     batch.set(firestoreSdk.doc(db, "publicPlayers", key), publicData, { merge: true });
-    batch.set(firestoreSdk.doc(db, "players", key), publicData, { merge: true });
+    batch.set(firestoreSdk.doc(db, "players", key), {
+      ...publicData,
+      ...(changesName ? { fullName: clean(profile.fullName) } : {})
+    }, { merge: true });
     await batch.commit();
     return { success: true, profile: publicData };
   }
