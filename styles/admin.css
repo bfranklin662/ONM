@@ -173,7 +173,7 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
   .adminPlayerName { max-width:95px; overflow-wrap:anywhere; }
   .adminPlayerName small { font-size:9px; }
   .adminPlayerAppearances strong { font-size:11px; }
-  .adminPlayersTable .adminRegistrationButton,.adminPlayersTable .adminLinkStatus { min-width:0; padding:4px; font-size:9px; }
+  .adminPlayersTable .adminRegistrationButton,.adminPlayersTable .adminLinkStatus { min-width:28px; min-height:28px; padding:4px; font-size:16px; line-height:1; }
   .adminPlayerEdit { width:auto; }
   .adminPlayersTable .adminSmallBtn { padding:5px 3px; font-size:9px; }
   .adminQuickPayment { display:grid; grid-template-columns:minmax(0,1fr) 85px auto; gap:8px; }

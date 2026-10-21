@@ -304,8 +304,8 @@
         <td class="adminPlayerThumb"><img src="${escapeHtml(playerPhoto(player))}" alt=""></td>
         <td class="adminPlayerName${played(player) === 0 ? " hasNoAppearances" : ""}"><strong>${escapeHtml(fullName)}</strong>${shortenedName ? `<small>(${escapeHtml(shortenedName)})</small>` : ""}</td>
         <td class="adminPlayerAppearances"><strong>${played(player)}</strong></td>
-        <td><button class="adminRegistrationButton ${paid ? "isPaid" : "isOutstanding"}" type="button" data-toggle-player-registration="${escapeHtml(player.playerKey)}" data-registration-paid="${paid ? "false" : "true"}" title="${paid ? "Mark registration unpaid" : "Mark £15 registration paid"}">${paid ? "Paid" : "Outstanding"}</button></td>
-        <td><span class="adminLinkStatus ${linked ? "isLinked" : "isUnlinked"}">${linked ? "Linked" : "Not linked"}</span></td>
+        <td><button class="adminRegistrationButton ${paid ? "isPaid" : "isOutstanding"}" type="button" data-toggle-player-registration="${escapeHtml(player.playerKey)}" data-registration-paid="${paid ? "false" : "true"}" aria-label="${paid ? "Registration paid. Mark unpaid" : "Registration outstanding. Mark £15 registration paid"}" title="${paid ? "Mark registration unpaid" : "Mark £15 registration paid"}"><span class="desktopLabel" aria-hidden="true">${paid ? "Paid" : "Outstanding"}</span><span class="mobileLabel" aria-hidden="true">${paid ? "✓" : "✕"}</span></button></td>
+        <td><span class="adminLinkStatus ${linked ? "isLinked" : "isUnlinked"}"><span class="desktopLabel">${linked ? "Linked" : "Not linked"}</span><span class="mobileLabel" aria-hidden="true">${linked ? "✓" : "✕"}</span><span class="adminVisuallyHidden mobileLabel">${linked ? "Account linked" : "Account not linked"}</span></span></td>
         <td class="adminFineOwed">${currencyForToast(balance.owed)}</td>
         <td>${currencyForToast(balance.paid)}</td>
         <td class="adminPlayerEdit"><button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit</button></td>
