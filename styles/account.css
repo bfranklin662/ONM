@@ -4,7 +4,7 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .hidden { display:none !important; }
 .accountHeader { min-height:72px; padding:12px clamp(16px,4vw,48px); display:flex; align-items:center; justify-content:space-between; gap:16px; border-bottom:1px solid #273443; background:rgba(10,19,32,.94); }
 .accountBrand { display:flex; align-items:center; gap:12px; color:#fff; text-decoration:none; font-size:20px; font-weight:900; }
-.accountBrand img { width:44px; height:44px; border-radius:10px; object-fit:cover; }
+.accountBrand img { display:block; width:auto; height:64px; max-width:120px; border-radius:0; object-fit:contain; }
 .accountShell { width:min(1120px,calc(100% - 28px)); margin:34px auto 70px; }
 .accountLoading { min-height:300px; display:grid; place-content:center; justify-items:center; color:#aebdca; }
 .accountSpinner { width:34px; height:34px; border:3px solid #304153; border-top-color:#14b89c; border-radius:50%; animation:accountSpin .8s linear infinite; }
