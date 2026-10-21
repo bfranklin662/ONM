@@ -256,6 +256,7 @@
     const player = state.players.find(item => item.playerKey === button.dataset.archivePlayer);
     if (!player) return;
     const archive = button.dataset.archive === "true";
+    if (archive && !window.confirm(`Are you sure you want to archive ${player.fullName || player.publicName}? Their payment records will be kept, and you can unarchive them later.`)) return;
     button.disabled = true;
     try {
       const results = await loadCollection("results");
@@ -335,7 +336,7 @@
         <td><span class="adminLinkStatus ${linked ? "isLinked" : "isUnlinked"}">${linked ? "Linked" : "Not linked"}</span></td>
         <td class="adminFineOwed">${currencyForToast(balance.owed)}</td>
         <td>${currencyForToast(balance.paid)}</td>
-        <td class="adminPlayerEdit"><button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit</button>${!hasPlayedMatch(player) ? `<button class="adminSmallBtn" type="button" data-archive-player="${escapeHtml(player.playerKey)}" data-archive="${player.adminArchived ? "false" : "true"}">${player.adminArchived ? "Restore" : "Archive"}</button>` : ""}</td>
+        <td class="adminPlayerEdit"><div class="adminPlayerRowActions"><button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit</button>${player.adminArchived && !hasPlayedMatch(player) ? `<button class="adminSmallBtn" type="button" data-archive-player="${escapeHtml(player.playerKey)}" data-archive="false">Unarchive</button>` : `<button class="adminSmallBtn adminArchiveIcon" type="button" data-archive-player="${escapeHtml(player.playerKey)}" data-archive="true" aria-label="Archive ${escapeHtml(fullName)}" title="${hasPlayedMatch(player) ? "Cannot archive: player has a recorded appearance in a season" : "Archive player"}"${hasPlayedMatch(player) ? " disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v12H4zM3 4h18v4H3zM9 12h6"/></svg></button>`}</div></td>
       </tr>`;
     }).join("")}</tbody></table></div>`;
   }
@@ -527,7 +528,7 @@
       <label>Nickname<input name="nickname" maxlength="80" value="${escapeHtml(player.nickname)}"></label>
       <label>Club role<input name="role" maxlength="50" value="${escapeHtml(player.role)}"></label>
       <label>Highest checkout<input name="highestCheckout" type="number" min="0" max="170" value="${escapeHtml(player.highestCheckout)}"></label>
-      <label class="wide">Walkout song link<input name="song" type="url" maxlength="500" value="${escapeHtml(player.song)}"></label>
+      <label>Walkout song link<input name="song" type="url" maxlength="500" value="${escapeHtml(player.song)}"></label>
       <label class="wide">Accolades<input name="accolades" value="${escapeHtml((player.accolades || []).join(", "))}" placeholder="Comma-separated accolade keys"></label>
       <label class="wide">Bio<textarea name="bio" rows="5" maxlength="1000">${escapeHtml(player.bio)}</textarea></label>
       <label class="adminCheckbox">Gooch<input name="gooch" type="checkbox"${[true, "yes", "true"].includes(player.gooch) ? " checked" : ""}></label>
@@ -546,6 +547,7 @@
   }
 
   function showEditor() {
+    form.dataset.editorType = state.editor.type;
     overlay.classList.remove("hidden");
     overlay.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
