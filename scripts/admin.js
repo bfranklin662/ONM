@@ -176,24 +176,6 @@
     return `<div class="adminTableScroll"><table class="adminMatchTable"><caption class="adminVisuallyHidden">${isResult ? "Results" : "Fixtures"}</caption><thead><tr><th scope="col">League</th><th scope="col">Opponent</th><th scope="col">Date</th><th scope="col">Result</th>${actions ? '<th scope="col">Actions</th>' : ""}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
-  function renderOverview() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const upcoming = state.fixtures
-      .filter(item => !fixtureHasResult(item) && dateValue(rowFor(item).Date) >= today.getTime())
-      .sort((a, b) => dateValue(rowFor(a).Date) - dateValue(rowFor(b).Date))
-      .slice(0, 4);
-    const recent = [...state.results]
-      .sort((a, b) => dateValue(rowFor(b).Date) - dateValue(rowFor(a).Date))
-      .slice(0, 4);
-    document.getElementById("upcomingFixtures").innerHTML = upcoming.length
-      ? matchTable(upcoming, "fixture", "edit")
-      : '<div class="adminCompactEmpty">No upcoming fixtures.</div>';
-    document.getElementById("recentResults").innerHTML = recent.length
-      ? matchTable(recent, "result", "edit")
-      : '<div class="adminCompactEmpty">No results have been submitted.</div>';
-  }
-
   function filtered(items, seasonId, searchId, haystack) {
     const season = document.getElementById(seasonId).value;
     const query = clean(document.getElementById(searchId).value).toLowerCase();
@@ -559,7 +541,6 @@
     const local = { ...(existing || {}), id, ...saved, sheetRow };
     state.fixtures = existing ? state.fixtures.map(item => item.id === id ? local : item) : [...state.fixtures, local];
     renderFixtures();
-    renderOverview();
     renderPlayers();
   }
 
@@ -606,7 +587,6 @@
     renderResults();
     renderFines();
     renderFixtures();
-    renderOverview();
     renderPlayers();
   }
 
@@ -847,7 +827,6 @@
         renderFixtures();
         renderPlayers();
       }
-      renderOverview();
       showToast(`${type === "fixture" ? "Fixture" : "Result"} deleted.`);
     } catch (error) {
       console.error(error);
@@ -955,7 +934,6 @@
       gate.classList.add("hidden");
       app.classList.remove("hidden");
       attachListeners();
-      renderOverview();
       renderFixtures();
       renderResults();
       renderPlayers();
