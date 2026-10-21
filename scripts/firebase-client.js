@@ -121,12 +121,17 @@
     const { auth, db, authSdk, firestoreSdk } = await ready;
     const email = clean(payload.email).toLowerCase();
     const accountRole = ["player", "supporter"].includes(payload.accountRole) ? payload.accountRole : "player";
+    const selection = clean(payload.team) || "Oche Ness Monsters";
+    if (!["Oche Ness Monsters", "other", "No affiliated team"].includes(selection)) throw new Error("Choose a valid team option.");
+    const team = selection === "other" ? clean(payload.otherTeam) : selection;
+    if (!team || team.length > 100) throw new Error("Enter a team name of up to 100 characters.");
+    if (selection === "other" && team.toLowerCase() === "oche ness monsters") throw new Error("Choose Oche Ness Monsters from the Team list.");
     const credential = await authSdk.createUserWithEmailAndPassword(auth, email, String(payload.password || ""));
     const data = {
       firstName: clean(payload.firstName),
       surname: clean(payload.surname),
       email,
-      team: "Oche Ness Monsters",
+      team,
       nationality: clean(payload.nationality),
       status: "Active",
       role: "member",

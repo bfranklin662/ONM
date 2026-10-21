@@ -54,6 +54,15 @@
         </label>
 
         <label>
+          <span>Team</span>
+          <div class="selectWrap"><select id="registerTeam" name="team"><option value="Oche Ness Monsters" selected>Oche Ness Monsters</option><option value="other">Other team</option><option value="No affiliated team">No affiliated team</option></select><span class="selectArrow">▾</span></div>
+          <small id="registerTeamHelp">After registering, choose an existing Monsters player to link to your account.</small>
+        </label>
+        <label id="registerOtherTeamWrap" hidden>
+          <span>Team name</span>
+          <input id="registerOtherTeam" name="otherTeam" maxlength="100" placeholder="Enter your team name" disabled>
+        </label>
+        <label>
           <span>Nationality</span>
           <input id="registerNationality" name="nationality" type="text" list="nationalitySuggestions" placeholder="Start typing your nationality…" autocomplete="off">
             <datalist id="nationalitySuggestions">
@@ -315,9 +324,9 @@
       </div>
     </div>
   </div>
-  <script src="scripts/firebase-client.js?v=20261021-owner-accounts"></script>
+  <script src="scripts/firebase-client.js?v=20261021-team-choice"></script>
   <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
-  <script src="scripts/auth.js?v=20261016-default-club"></script>
+  <script src="scripts/auth.js?v=20261021-team-choice"></script>
   <script>
     document.querySelectorAll(".authBrand img").forEach(img => {
       img.style.cursor = "pointer";

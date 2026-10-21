@@ -225,8 +225,31 @@ function continueAfterAuth() {
   window.location.href = redirect;
 }
 
+const registrationTeam = document.getElementById("registerTeam");
+const registrationOtherTeam = document.getElementById("registerOtherTeam");
+function updateRegistrationTeam() {
+  const other = registrationTeam.value === "other";
+  const wrap = document.getElementById("registerOtherTeamWrap");
+  wrap.hidden = !other;
+  wrap.style.display = other ? "" : "none";
+  registrationOtherTeam.disabled = !other;
+  registrationOtherTeam.required = other;
+  document.getElementById("registerTeamHelp").textContent = registrationTeam.value === "Oche Ness Monsters"
+    ? "After registering, choose an existing Monsters player to link to your account."
+    : "You can register without linking a Monsters player.";
+}
+registrationTeam.addEventListener("change", updateRegistrationTeam);
+updateRegistrationTeam();
+
 els.registerForm.addEventListener("submit", async event => {
   event.preventDefault();
+  if (!els.registerForm.reportValidity()) return;
+  if (registrationTeam.value === "other" && !registrationOtherTeam.value.trim()) {
+    registrationOtherTeam.setCustomValidity("Enter your team name.");
+    registrationOtherTeam.reportValidity();
+    registrationOtherTeam.setCustomValidity("");
+    return;
+  }
 
   const formData = new FormData(els.registerForm);
 
@@ -243,7 +266,8 @@ els.registerForm.addEventListener("submit", async event => {
       email: formData.get("email"),
       nationality: formData.get("nationality"),
       accountRole: formData.get("accountRole"),
-      team: "Oche Ness Monsters",
+      team: formData.get("team"),
+      otherTeam: formData.get("otherTeam"),
       password: formData.get("password")
     });
 
