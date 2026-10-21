@@ -113,6 +113,11 @@ service cloud.firestore {
       allow write: if admin();
     }
 
+    // Fine payment records are financial administration data.
+    match /finePayments/{paymentId} {
+      allow read, write: if admin();
+    }
+
     match /dartMatches/{matchId} {
       allow read: if activeMember();
       allow create: if activeMember() &&

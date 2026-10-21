@@ -65,6 +65,12 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminPlayerCard img { width:64px; height:64px; border:2px solid #168f79; border-radius:12px; background:#07101b; object-fit:cover; }
 .adminPlayerCard h3 { margin:0; font-size:17px; }
 .adminPlayerCard p { min-height:16px; margin:4px 0 9px; color:#9fb0bf; font-size:12px; }
+.adminRegistrationStatus.isPaid { color:#50d9aa; }
+.adminRegistrationStatus.isOutstanding { color:#ff9e9e; }
+.adminPlayerActions { display:flex; flex-wrap:wrap; gap:7px; }
+.adminPlayerActions .registrationConfirm { border-color:#168f79; background:#124d45; }
+.adminPlayerActions .registrationUndo { color:#b7c5d0; }
+.adminPlayerActions button:disabled,.adminFinePayment button:disabled { opacity:.6; cursor:wait; }
 .adminPlayerPhotoPreview { width:110px; height:110px; border:2px solid #168f79; border-radius:15px; background:#07101b; object-fit:cover; }
 .adminPhotoEditRow { display:flex; gap:14px; align-items:end; }
 .adminPhotoEditRow label { flex:1; }
@@ -78,6 +84,12 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminRowActions .adminSmallBtn { white-space:nowrap; }
 .adminSmallBtn { padding:8px 11px; border:1px solid #3a4b5e; border-radius:7px; background:#132131; color:#fff; font-weight:800; cursor:pointer; }
 .adminSmallBtn.danger { color:#ff9e9e; border-color:#6c3438; }
+.adminFinesTable td.fineOutstanding { color:#ffd740; font-weight:900; }
+.adminFinesTable .fineClear { color:#50d9aa; font-weight:900; }
+.adminFinePayment { display:flex; align-items:center; justify-content:center; gap:6px; min-width:220px; }
+.adminFinePayment>span { color:#aebdca; font-weight:900; }
+.adminFinePayment input { width:82px; min-height:36px; padding:7px 8px; border:1px solid #3a4b5e; border-radius:7px; background:#08111c; color:#fff; font:inherit; }
+.adminFinePayment .adminSmallBtn { white-space:nowrap; }
 .adminEmpty { padding:45px 20px; text-align:center; color:#91a3b2; }
 .adminOverlay { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:14px; background:rgba(2,7,13,.86); }
 .adminEditor { width:min(900px,100%); max-height:calc(100vh - 28px); overflow:auto; border:1px solid #3a4b5e; border-radius:16px; background:#0c1622; box-shadow:0 24px 80px rgba(0,0,0,.5); }

@@ -7,6 +7,7 @@
     fixtures: [],
     results: [],
     players: [],
+    finePayments: [],
     playerPhotos: {},
     adminRequests: [],
     activeTab: "fixtures",
@@ -247,13 +248,20 @@
       list.innerHTML = '<div class="adminEmpty">No players match this search.</div>';
       return;
     }
-    list.innerHTML = players.map(player => `<article class="adminPlayerCard">
-      <img src="${escapeHtml(playerPhoto(player))}" alt="${escapeHtml(player.publicName)}">
-      <div><h3>${escapeHtml(player.publicName || "Unnamed player")} ${window.PlayerData?.registrationBadge(player) || ""}</h3><p>${escapeHtml(player.nickname || player.role || "Player profile")}</p>
-        <p class="adminRegistrationStatus">${player.registrationPaidSeasons?.includes("26-27") ? "Registered · 2026/27 paid" : "2026/27 registration payment not confirmed"}</p>
-        <p class="adminAppearances">${played(player)} ${played(player) === 1 ? "appearance" : "appearances"} · 2026/27</p>
-        <button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit player</button></div>
-    </article>`).join("");
+    list.innerHTML = players.map(player => {
+      const paid = player.registrationPaidSeasons?.includes("26-27");
+      return `<article class="adminPlayerCard">
+        <img src="${escapeHtml(playerPhoto(player))}" alt="${escapeHtml(player.publicName)}">
+        <div><h3>${escapeHtml(player.publicName || "Unnamed player")} ${window.PlayerData?.registrationBadge(player) || ""}</h3><p>${escapeHtml(player.nickname || player.role || "Player profile")}</p>
+          <p class="adminRegistrationStatus ${paid ? "isPaid" : "isOutstanding"}">${paid ? "2026/27 registration · £15 paid" : "2026/27 registration · £15 outstanding"}</p>
+          <p class="adminAppearances">${played(player)} ${played(player) === 1 ? "appearance" : "appearances"} · 2026/27</p>
+          <div class="adminPlayerActions"><button class="adminSmallBtn ${paid ? "registrationUndo" : "registrationConfirm"}" type="button" data-toggle-player-registration="${escapeHtml(player.playerKey)}" data-registration-paid="${paid ? "false" : "true"}">${paid ? "Mark registration unpaid" : "Mark £15 registration paid"}</button><button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit player</button></div></div>
+      </article>`;
+    }).join("");
+  }
+
+  function finePaymentFor(playerKey, season) {
+    return state.finePayments.find(item => item.playerKey === playerKey && item.season === season)?.amountPaidPence || 0;
   }
 
   function renderFines() {
@@ -268,19 +276,26 @@
         const key = name.toLowerCase().replace(/\s+/g, " ");
         const amount = Number(clean(row[`F${index}`] ?? row[`F ${index}`]).replace(/[£,\s]/g, ""));
         const pence = Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0;
-        if (!totals.has(key)) totals.set(key, { name, pence: 0, matches: new Set() });
+        const profile = state.players.find(player => clean(player.publicName).toLowerCase().replace(/\s+/g, " ") === key);
+        if (!totals.has(key)) totals.set(key, { name, playerKey: profile?.playerKey || key.replace(/[^a-z0-9]+/g, "-"), pence: 0, matches: new Set() });
         const total = totals.get(key);
         total.pence += pence;
         total.matches.add(item.id);
       }
     });
     const players = [...totals.values()]
+      .map(player => {
+        const paidPence = season === "all"
+          ? state.finePayments.filter(item => item.playerKey === player.playerKey).reduce((sum, item) => sum + Number(item.amountPaidPence || 0), 0)
+          : Number(finePaymentFor(player.playerKey, season));
+        return { ...player, paidPence, outstandingPence: Math.max(0, player.pence - paidPence) };
+      })
       .filter(player => player.name.toLowerCase().includes(query))
-      .sort((a, b) => b.pence - a.pence || a.name.localeCompare(b.name));
+      .sort((a, b) => b.outstandingPence - a.outstandingPence || a.name.localeCompare(b.name));
     const currency = pence => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
-    document.getElementById("finesTotal").textContent = currency(players.reduce((sum, player) => sum + player.pence, 0));
+    document.getElementById("finesTotal").textContent = currency(players.reduce((sum, player) => sum + player.outstandingPence, 0));
     document.getElementById("finesList").innerHTML = players.length
-      ? `<div class="adminTableScroll"><table class="adminMatchTable adminFinesTable"><caption class="adminVisuallyHidden">Player fines from submitted results</caption><thead><tr><th scope="col">Player</th><th scope="col">Matches</th><th scope="col">Fines owed</th></tr></thead><tbody>${players.map(player => `<tr><td>${escapeHtml(player.name)}</td><td>${player.matches.size}</td><td>${currency(player.pence)}</td></tr>`).join("")}</tbody></table></div>`
+      ? `<div class="adminTableScroll"><table class="adminMatchTable adminFinesTable"><caption class="adminVisuallyHidden">Player fines and payments</caption><thead><tr><th scope="col">Player</th><th scope="col">Matches</th><th scope="col">Fines</th><th scope="col">Paid</th><th scope="col">Outstanding</th><th scope="col">Record payment</th></tr></thead><tbody>${players.map(player => `<tr><td>${escapeHtml(player.name)}</td><td>${player.matches.size}</td><td>${currency(player.pence)}</td><td>${currency(player.paidPence)}</td><td class="${player.outstandingPence ? "fineOutstanding" : "fineClear"}">${currency(player.outstandingPence)}</td><td>${season === "all" ? '<span class="adminPending">Choose a season</span>' : player.outstandingPence ? `<div class="adminFinePayment"><label class="adminVisuallyHidden" for="fine-payment-${escapeHtml(player.playerKey)}">Payment from ${escapeHtml(player.name)}</label><span>£</span><input id="fine-payment-${escapeHtml(player.playerKey)}" type="number" min="0.01" max="${(player.outstandingPence / 100).toFixed(2)}" step="0.01" placeholder="0.00" data-fine-payment-input="${escapeHtml(player.playerKey)}"><button class="adminSmallBtn" type="button" data-record-fine-payment="${escapeHtml(player.playerKey)}" data-player-name="${escapeHtml(player.name)}" data-outstanding-pence="${player.outstandingPence}">Add payment</button></div>` : '<span class="fineClear">Paid in full</span>'}</td></tr>`).join("")}</tbody></table></div>`
       : '<div class="adminEmpty">No player fines match these filters.</div>';
   }
 
@@ -589,6 +604,84 @@
     renderPlayers();
   }
 
+  function registrationProfile(player, registrationPaid) {
+    return {
+      nickname: player.nickname || "",
+      photoUrl: player.photoUrl || player.photo || "",
+      bio: player.bio || "",
+      accolades: player.accolades || [],
+      role: player.role || "",
+      song: player.song || "",
+      highestCheckout: player.highestCheckout || player["highest-checkout"] || "",
+      gooch: [true, "yes", "true"].includes(player.gooch),
+      profileVisible: player.profileVisible !== false,
+      registrationPaid
+    };
+  }
+
+  async function togglePlayerRegistration(button) {
+    const player = state.players.find(item => item.playerKey === button.dataset.togglePlayerRegistration);
+    if (!player) return;
+    const paid = button.dataset.registrationPaid === "true";
+    button.disabled = true;
+    button.textContent = "Saving…";
+    try {
+      const result = await window.ONMFirebase.post({ action: "updatePlayerProfile", playerKey: player.playerKey, profile: registrationProfile(player, paid) });
+      if (!result.success) throw new Error(result.error || "Could not update the registration payment.");
+      player.registrationPaidSeasons = paid
+        ? [...new Set([...(player.registrationPaidSeasons || []), "26-27"])]
+        : (player.registrationPaidSeasons || []).filter(season => season !== "26-27");
+      renderPlayers();
+      showToast(`${player.publicName}'s registration is now marked ${paid ? "paid" : "unpaid"}.`);
+    } catch (error) {
+      showToast(error.message || "Could not update the registration payment.", true);
+      button.disabled = false;
+      button.textContent = paid ? "Mark £15 registration paid" : "Mark registration unpaid";
+    }
+  }
+
+  function currencyForToast(pence) {
+    return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
+  }
+
+  async function recordFinePayment(button) {
+    const season = document.getElementById("finesSeasonFilter").value;
+    const playerKey = button.dataset.recordFinePayment;
+    const input = document.querySelector(`[data-fine-payment-input="${CSS.escape(playerKey)}"]`);
+    const amount = Number(input?.value || 0);
+    if (season === "all" || !Number.isFinite(amount) || amount <= 0) {
+      showToast("Enter a payment amount greater than £0.", true);
+      return;
+    }
+    const pence = Math.round(amount * 100), id = `${season}__${playerKey}`;
+    if (pence > Number(button.dataset.outstandingPence || 0)) {
+      showToast("The payment cannot be more than the outstanding fine balance.", true);
+      return;
+    }
+    button.disabled = true;
+    button.textContent = "Saving…";
+    try {
+      const { db, firestoreSdk } = await window.ONMFirebase.ready;
+      await firestoreSdk.setDoc(firestoreSdk.doc(db, "finePayments", id), {
+        season,
+        playerKey,
+        playerName: button.dataset.playerName,
+        amountPaidPence: firestoreSdk.increment(pence),
+        updatedAt: firestoreSdk.serverTimestamp(),
+        updatedBy: state.user.userId || state.user.id || ""
+      }, { merge: true });
+      const existing = state.finePayments.find(item => item.id === id);
+      if (existing) existing.amountPaidPence = Number(existing.amountPaidPence || 0) + pence;
+      else state.finePayments.push({ id, season, playerKey, playerName: button.dataset.playerName, amountPaidPence: pence });
+      renderFines();
+      showToast(`${currencyForToast(pence)} payment recorded for ${button.dataset.playerName}.`);
+    } catch (error) {
+      showToast(error.message || "Could not record that fine payment.", true);
+      button.disabled = false;
+      button.textContent = "Add payment";
+    }
+  }
+
   async function deleteItem(type, id) {
     const items = type === "fixture" ? state.fixtures : state.results;
     const item = items.find(entry => entry.id === id);
@@ -656,6 +749,8 @@
       if (button.dataset.editFixture) openFixtureEditor(state.fixtures.find(item => item.id === button.dataset.editFixture));
       if (button.dataset.editResult) openResultEditor(state.results.find(item => item.id === button.dataset.editResult));
       if (button.dataset.editPlayer) openPlayerEditor(state.players.find(item => item.playerKey === button.dataset.editPlayer));
+      if (button.dataset.togglePlayerRegistration) togglePlayerRegistration(button);
+      if (button.dataset.recordFinePayment) recordFinePayment(button);
       if (button.dataset.deleteFixture) deleteItem("fixture", button.dataset.deleteFixture);
       if (button.dataset.deleteResult) deleteItem("result", button.dataset.deleteResult);
     });
@@ -696,11 +791,12 @@
       document.getElementById("adminIdentity").textContent = `Signed in as ${state.user.firstName || state.user.email}`;
       const profilesRequest = window.ONMFirebase.post({ action: "getPublicPlayerProfiles" });
       const photosRequest = window.PlayerData?.fetchPlayerPhotosFromDrive?.().catch(() => ({})) || Promise.resolve({});
-      const [fixtures, results, profileResult, photos] = await Promise.all([
-        loadCollection("fixtures"), loadCollection("results"), profilesRequest, photosRequest
+      const [fixtures, results, finePayments, profileResult, photos] = await Promise.all([
+        loadCollection("fixtures"), loadCollection("results"), loadCollection("finePayments"), profilesRequest, photosRequest
       ]);
       state.fixtures = fixtures;
       state.results = results;
+      state.finePayments = finePayments;
       state.players = profileResult.success ? profileResult.profiles : [];
       state.playerPhotos = photos || {};
       gate.classList.add("hidden");
