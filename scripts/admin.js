@@ -288,6 +288,7 @@
     const registered = state.players.filter(player => player.registrationPaidSeasons?.includes("26-27")).length;
     document.getElementById("totalRegistrationsCollected").textContent = currencyForToast(registered * 1500);
     document.getElementById("totalRegistrationsCount").textContent = `${registered} players × £15 · 2026/27`;
+    document.getElementById("totalActivePlayers").textContent = state.players.filter(player => player.adminArchived !== true || hasPlayedMatch(player)).length;
     const list = document.getElementById("playersList");
     const query = clean(document.getElementById("playerSearch").value).toLowerCase();
     const appearances = new Map();
