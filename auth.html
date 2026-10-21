@@ -55,9 +55,8 @@
 
         <label>
           <span>Nationality</span>
-          <div class="selectWrap">
-            <select id="registerNationality" name="nationality">
-              <option value="">Select nationality</option>
+          <input id="registerNationality" name="nationality" type="text" list="nationalitySuggestions" placeholder="Start typing your nationality…" autocomplete="off">
+            <datalist id="nationalitySuggestions">
               <option value="Afghanistan">Afghanistan</option>
               <option value="Albania">Albania</option>
               <option value="Algeria">Algeria</option>
@@ -258,9 +257,7 @@
               <option value="Yemen">Yemen</option>
               <option value="Zambia">Zambia</option>
               <option value="Zimbabwe">Zimbabwe</option>
-            </select>
-            <span class="selectArrow">▾</span>
-          </div>
+            </datalist>
         </label>
 
         <label>
