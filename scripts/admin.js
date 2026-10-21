@@ -292,7 +292,7 @@
       const shortenedName = clean(player.publicName) && clean(player.publicName) !== fullName ? player.publicName : "";
       return `<tr>
         <td class="adminPlayerThumb"><img src="${escapeHtml(playerPhoto(player))}" alt=""></td>
-        <td class="adminPlayerName"><strong>${escapeHtml(fullName)}</strong>${shortenedName ? `<small>(${escapeHtml(shortenedName)})</small>` : ""}</td>
+        <td class="adminPlayerName${played(player) === 0 ? " hasNoAppearances" : ""}"><strong>${escapeHtml(fullName)}</strong>${shortenedName ? `<small>(${escapeHtml(shortenedName)})</small>` : ""}</td>
         <td class="adminPlayerAppearances"><strong>${played(player)}</strong></td>
         <td><button class="adminRegistrationButton ${paid ? "isPaid" : "isOutstanding"}" type="button" data-toggle-player-registration="${escapeHtml(player.playerKey)}" data-registration-paid="${paid ? "false" : "true"}" title="${paid ? "Mark registration unpaid" : "Mark £15 registration paid"}">${paid ? "Paid" : "Outstanding"}</button></td>
         <td><span class="adminLinkStatus ${linked ? "isLinked" : "isUnlinked"}">${linked ? "Linked" : "Not linked"}</span></td>
