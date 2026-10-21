@@ -39,7 +39,6 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminPending { color:#9ba1aa; }
 .adminVisuallyHidden { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 .adminOverviewColumn { min-width:0; }
-.adminPlayerCard p.adminAppearances { color:#ffd740; font-weight:800; }
 .adminFixtureSide { display:inline-grid; place-items:center; min-width:34px; height:29px; margin-left:7px; padding:0 7px; border-radius:7px; background:#174e46; color:#fff; font-size:12px; }
 .adminCompactEmpty { padding:18px 8px; color:#91a3b2; text-align:center; }
 .adminTabs { display:flex; gap:8px; padding:7px; background:#0d1825; border:1px solid #283747; border-radius:12px; margin-bottom:16px; }
@@ -60,17 +59,21 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminFilters input { width:min(320px,65vw); }
 .adminList { display:grid; }
 .adminManagedCards { display:grid; gap:10px; padding:14px; }
-.adminPlayerList { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:14px; }
-.adminPlayerCard { display:grid; grid-template-columns:64px minmax(0,1fr); gap:12px; align-items:center; padding:13px; border:1px solid #2c3c4d; border-radius:12px; background:linear-gradient(135deg,#111e2c,#09131e); }
-.adminPlayerCard img { width:64px; height:64px; border:2px solid #168f79; border-radius:12px; background:#07101b; object-fit:cover; }
-.adminPlayerCard h3 { margin:0; font-size:17px; }
-.adminPlayerCard p { min-height:16px; margin:4px 0 9px; color:#9fb0bf; font-size:12px; }
-.adminRegistrationStatus.isPaid { color:#50d9aa; }
-.adminRegistrationStatus.isOutstanding { color:#ff9e9e; }
-.adminPlayerActions { display:flex; flex-wrap:wrap; gap:7px; }
-.adminPlayerActions .registrationConfirm { border-color:#168f79; background:#124d45; }
-.adminPlayerActions .registrationUndo { color:#b7c5d0; }
-.adminPlayerActions button:disabled,.adminFinePayment button:disabled { opacity:.6; cursor:wait; }
+.adminPlayerList { padding:0; }
+.adminPlayersTable { min-width:780px; }
+.adminPlayersTable th:first-child,.adminPlayersTable td:first-child { width:58px; padding-right:4px; }
+.adminPlayersTable th:nth-child(2),.adminPlayersTable td:nth-child(2) { text-align:left; }
+.adminPlayersTable td { padding-top:9px; padding-bottom:9px; }
+.adminPlayerThumb img { display:block; width:38px; height:38px; border:1px solid #168f79; border-radius:7px; background:#07101b; object-fit:cover; }
+.adminPlayerName strong,.adminPlayerName small { display:block; }
+.adminPlayerName small { margin-top:2px; color:#9fb0bf; font-size:11px; }
+.adminPlayerAppearances strong { color:#ffd740; font-size:16px; }
+.adminRegistrationButton,.adminLinkStatus { display:inline-flex; align-items:center; justify-content:center; min-width:86px; padding:6px 8px; border-radius:999px; font-size:11px; font-weight:900; white-space:nowrap; }
+.adminRegistrationButton { border:1px solid; cursor:pointer; }
+.adminRegistrationButton.isPaid,.adminLinkStatus.isLinked { border-color:#168f79; background:#124d45; color:#73edc8; }
+.adminRegistrationButton.isOutstanding,.adminLinkStatus.isUnlinked { border-color:#6c3438; background:#2a171d; color:#ff9e9e; }
+.adminRegistrationButton:disabled,.adminFinePayment button:disabled { opacity:.6; cursor:wait; }
+.adminPlayerEdit { width:68px; }
 .adminPlayerPhotoPreview { width:110px; height:110px; border:2px solid #168f79; border-radius:15px; background:#07101b; object-fit:cover; }
 .adminPhotoEditRow { display:flex; gap:14px; align-items:end; }
 .adminPhotoEditRow label { flex:1; }
@@ -125,6 +128,5 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
   .adminGrid { grid-template-columns:1fr; }
   .adminPlayerRow { grid-template-columns:repeat(3,1fr); }
   .adminPlayerRow label:first-child { grid-column:1/-1; }
-  .adminPlayerList { grid-template-columns:1fr; }
   .adminPhotoEditRow { align-items:stretch; flex-direction:column; }
 }

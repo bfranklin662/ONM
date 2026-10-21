@@ -7,6 +7,7 @@
     fixtures: [],
     results: [],
     players: [],
+    linkedPlayerKeys: new Set(),
     finePayments: [],
     playerPhotos: {},
     adminRequests: [],
@@ -242,22 +243,26 @@
     });
     const played = player => appearances.get(nameKey(player.publicName)) || 0;
     const players = state.players
-      .filter(player => !query || `${player.publicName || ""} ${player.nickname || ""} ${player.role || ""}`.toLowerCase().includes(query))
+      .filter(player => !query || `${player.fullName || ""} ${player.publicName || ""} ${player.nickname || ""} ${player.role || ""}`.toLowerCase().includes(query))
       .sort((a, b) => played(b) - played(a) || clean(a.publicName).localeCompare(clean(b.publicName)));
     if (!players.length) {
       list.innerHTML = '<div class="adminEmpty">No players match this search.</div>';
       return;
     }
-    list.innerHTML = players.map(player => {
+    list.innerHTML = `<div class="adminTableScroll"><table class="adminMatchTable adminPlayersTable"><caption class="adminVisuallyHidden">Players ordered by most appearances in 2026/27</caption><thead><tr><th scope="col"><span class="adminVisuallyHidden">Photo</span></th><th scope="col">Full name (shortened name)</th><th scope="col">Appearances</th><th scope="col">Registration paid</th><th scope="col">Account linked</th><th scope="col"><span class="adminVisuallyHidden">Actions</span></th></tr></thead><tbody>${players.map(player => {
       const paid = player.registrationPaidSeasons?.includes("26-27");
-      return `<article class="adminPlayerCard">
-        <img src="${escapeHtml(playerPhoto(player))}" alt="${escapeHtml(player.publicName)}">
-        <div><h3>${escapeHtml(player.publicName || "Unnamed player")} ${window.PlayerData?.registrationBadge(player) || ""}</h3><p>${escapeHtml(player.nickname || player.role || "Player profile")}</p>
-          <p class="adminRegistrationStatus ${paid ? "isPaid" : "isOutstanding"}">${paid ? "2026/27 registration · £15 paid" : "2026/27 registration · £15 outstanding"}</p>
-          <p class="adminAppearances">${played(player)} ${played(player) === 1 ? "appearance" : "appearances"} · 2026/27</p>
-          <div class="adminPlayerActions"><button class="adminSmallBtn ${paid ? "registrationUndo" : "registrationConfirm"}" type="button" data-toggle-player-registration="${escapeHtml(player.playerKey)}" data-registration-paid="${paid ? "false" : "true"}">${paid ? "Mark registration unpaid" : "Mark £15 registration paid"}</button><button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit player</button></div></div>
-      </article>`;
-    }).join("");
+      const linked = state.linkedPlayerKeys.has(player.playerKey);
+      const fullName = clean(player.fullName || player.publicName) || "Unnamed player";
+      const shortenedName = clean(player.publicName) && clean(player.publicName) !== fullName ? player.publicName : "";
+      return `<tr>
+        <td class="adminPlayerThumb"><img src="${escapeHtml(playerPhoto(player))}" alt=""></td>
+        <td class="adminPlayerName"><strong>${escapeHtml(fullName)}</strong>${shortenedName ? `<small>(${escapeHtml(shortenedName)})</small>` : ""}</td>
+        <td class="adminPlayerAppearances"><strong>${played(player)}</strong></td>
+        <td><button class="adminRegistrationButton ${paid ? "isPaid" : "isOutstanding"}" type="button" data-toggle-player-registration="${escapeHtml(player.playerKey)}" data-registration-paid="${paid ? "false" : "true"}" title="${paid ? "Mark registration unpaid" : "Mark £15 registration paid"}">${paid ? "Paid" : "Outstanding"}</button></td>
+        <td><span class="adminLinkStatus ${linked ? "isLinked" : "isUnlinked"}">${linked ? "Linked" : "Not linked"}</span></td>
+        <td class="adminPlayerEdit"><button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit</button></td>
+      </tr>`;
+    }).join("")}</tbody></table></div>`;
   }
 
   function finePaymentFor(playerKey, season) {
@@ -791,13 +796,19 @@
       document.getElementById("adminIdentity").textContent = `Signed in as ${state.user.firstName || state.user.email}`;
       const profilesRequest = window.ONMFirebase.post({ action: "getPublicPlayerProfiles" });
       const photosRequest = window.PlayerData?.fetchPlayerPhotosFromDrive?.().catch(() => ({})) || Promise.resolve({});
-      const [fixtures, results, finePayments, profileResult, photos] = await Promise.all([
-        loadCollection("fixtures"), loadCollection("results"), loadCollection("finePayments"), profilesRequest, photosRequest
+      const [fixtures, results, finePayments, privatePlayers, users, profileResult, photos] = await Promise.all([
+        loadCollection("fixtures"), loadCollection("results"), loadCollection("finePayments"), loadCollection("players"), loadCollection("users"), profilesRequest, photosRequest
       ]);
       state.fixtures = fixtures;
       state.results = results;
       state.finePayments = finePayments;
-      state.players = profileResult.success ? profileResult.profiles : [];
+      const playerMap = new Map(privatePlayers.map(player => [player.playerKey || player.id, { ...player, playerKey: player.playerKey || player.id }]));
+      (profileResult.success ? profileResult.profiles : []).forEach(profile => {
+        const key = profile.playerKey;
+        playerMap.set(key, { ...(playerMap.get(key) || {}), ...profile, playerKey: key });
+      });
+      state.players = [...playerMap.values()].filter(player => player.publicName);
+      state.linkedPlayerKeys = new Set(users.map(account => account.linkedPlayerKey).filter(Boolean));
       state.playerPhotos = photos || {};
       gate.classList.add("hidden");
       app.classList.remove("hidden");
