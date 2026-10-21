@@ -247,6 +247,13 @@
   }
 
   function renderPlayers() {
+    const accounts = state.players.map(player => playerFineAccount(player));
+    document.getElementById("totalFinesCollected").textContent = currencyForToast(
+      state.finePayments.filter(item => item.season === "26-27").reduce((sum, item) => sum + Number(item.amountPaidPence || 0), 0));
+    document.getElementById("totalFinesOwed").textContent = currencyForToast(accounts.reduce((sum, item) => sum + item.owed, 0));
+    const registered = state.players.filter(player => player.registrationPaidSeasons?.includes("26-27")).length;
+    document.getElementById("totalRegistrationsCollected").textContent = currencyForToast(registered * 1500);
+    document.getElementById("totalRegistrationsCount").textContent = `${registered} players × £15 · 2026/27`;
     const list = document.getElementById("playersList");
     const query = clean(document.getElementById("playerSearch").value).toLowerCase();
     const appearances = new Map();
@@ -680,6 +687,50 @@
     return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
   }
 
+  function attachPaymentSearch() {
+    const input = document.getElementById("quickFinePlayer");
+    const list = document.getElementById("quickFineSuggestions");
+    let matches = [], active = -1;
+    const close = () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); input.removeAttribute("aria-activedescendant"); active = -1; };
+    const choose = player => {
+      input.value = `${player.fullName || player.publicName}${player.fullName && player.fullName !== player.publicName ? " (" + player.publicName + ")" : ""}`;
+      input.dataset.playerKey = player.playerKey;
+      close();
+      document.getElementById("quickFineAmount").focus();
+    };
+    input.addEventListener("input", () => {
+      delete input.dataset.playerKey;
+      const query = clean(input.value).toLowerCase();
+      matches = query ? state.players.filter(player => `${player.fullName || ""} ${player.publicName || ""}`.toLowerCase().includes(query))
+        .sort((a, b) => clean(a.fullName || a.publicName).localeCompare(clean(b.fullName || b.publicName))) : [];
+      active = -1;
+      list.innerHTML = matches.map((player, index) => `<li role="option" id="payment-option-${index}" aria-selected="false" data-player-index="${index}"><strong>${escapeHtml(player.fullName || player.publicName)}</strong><small>${escapeHtml(player.publicName)} · ${currencyForToast(playerFineAccount(player).owed)} owed</small></li>`).join("");
+      list.hidden = !matches.length;
+      input.setAttribute("aria-expanded", String(matches.length > 0));
+      input.removeAttribute("aria-activedescendant");
+    });
+    list.addEventListener("mousedown", event => event.preventDefault());
+    list.addEventListener("click", event => {
+      const option = event.target.closest("[data-player-index]");
+      if (option) choose(matches[Number(option.dataset.playerIndex)]);
+    });
+    input.addEventListener("keydown", event => {
+      if (event.key === "Escape") { close(); return; }
+      if (list.hidden) return;
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        active = (active + (event.key === "ArrowDown" ? 1 : matches.length - 1)) % matches.length;
+        [...list.children].forEach((option, index) => option.setAttribute("aria-selected", String(index === active)));
+        input.setAttribute("aria-activedescendant", `payment-option-${active}`);
+        list.children[active]?.scrollIntoView({ block: "nearest" });
+      } else if (event.key === "Enter" && matches.length) {
+        event.preventDefault();
+        choose(matches[Math.max(0, active)]);
+      }
+    });
+    input.addEventListener("blur", close);
+  }
+
   async function saveQuickFinePayment(event) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -687,14 +738,15 @@
     const select = document.getElementById("quickFinePlayer");
     const input = document.getElementById("quickFineAmount");
     const status = document.getElementById("quickFineStatus");
-    const player = state.players.find(item => item.playerKey === select.value);
+    const player = state.players.find(item => item.playerKey === select.dataset.playerKey);
     const pence = Math.round(Number(input.value) * 100);
-    if (!player || !Number.isSafeInteger(pence) || pence <= 0) return;
+    if (!player) { status.textContent = "Choose a player from the name suggestions."; select.focus(); return; }
+    if (!Number.isSafeInteger(pence) || pence <= 0) return;
     if (pence > playerFineAccount(player).owed) {
       status.textContent = "Payment exceeds the outstanding balance.";
       return;
     }
-    const button = form.querySelector("button");
+    const button = form.querySelector('button[type="submit"]');
     form.dataset.saving = "true";
     button.disabled = true;
     status.textContent = "Saving…";
@@ -813,9 +865,7 @@
     document.getElementById("playerSearch").addEventListener("input", renderPlayers);
     ["playerRegistrationFilter", "playerAccountFilter", "playerFinesFilter"].forEach(id => document.getElementById(id).addEventListener("change", renderPlayers));
     document.getElementById("quickFinePayment").addEventListener("submit", saveQuickFinePayment);
-    document.getElementById("quickFinePlayer").innerHTML += [...state.players]
-      .sort((a, b) => clean(a.fullName || a.publicName).localeCompare(clean(b.fullName || b.publicName)))
-      .map(player => `<option value="${escapeHtml(player.playerKey)}">${escapeHtml(player.fullName || player.publicName)} (${escapeHtml(player.publicName)})</option>`).join("");
+    attachPaymentSearch();
     document.getElementById("finesSeasonFilter").addEventListener("change", renderFines);
     document.getElementById("finesSearch").addEventListener("input", renderFines);
     document.getElementById("refreshAdminRequests").addEventListener("click", loadAdminRequests);
