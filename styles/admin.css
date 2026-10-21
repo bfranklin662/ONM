@@ -60,7 +60,13 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminList { display:grid; }
 .adminManagedCards { display:grid; gap:10px; padding:14px; }
 .adminPlayerList { padding:0; }
-.adminPlayersTable { min-width:780px; }
+.adminPlayersTable { min-width:850px; }
+.mobileLabel { display:none; }
+.adminQuickPayment { padding:14px 16px; align-items:end; border-bottom:1px solid #283747; }
+.adminQuickPayment input { width:110px; }
+.adminQuickPayment button { min-height:42px; }
+.adminQuickPayment #quickFineStatus { color:#aebdca; font-size:12px; align-self:center; }
+.adminFineOwed { color:#ffd740; font-weight:800; }
 .adminPlayersTable th:first-child,.adminPlayersTable td:first-child { width:58px; padding-right:4px; }
 .adminPlayersTable th:nth-child(2),.adminPlayersTable td:nth-child(2) { text-align:left; }
 .adminPlayersTable td { padding-top:9px; padding-bottom:9px; }
@@ -117,6 +123,24 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminFormActions .btn { flex:1; }
 .adminHeader .backWebsiteButton { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; min-height:48px; padding:12px 18px; line-height:1.3; text-align:center; text-decoration:none; white-space:nowrap; }
 @media (max-width:760px) {
+  .desktopLabel { display:none; }
+  .mobileLabel { display:inline; }
+  .adminPlayersTable { min-width:0; font-size:10px; }
+  .adminPlayersTable th { font-size:9px; padding:8px 3px; }
+  .adminPlayersTable td { padding:7px 3px; }
+  .adminPlayersTable th:first-child,.adminPlayersTable td:first-child { width:26px; padding-left:4px; padding-right:2px; }
+  .adminPlayerThumb img { width:24px; height:24px; border-radius:4px; }
+  .adminPlayerName { max-width:95px; overflow-wrap:anywhere; }
+  .adminPlayerName small { font-size:9px; }
+  .adminPlayerAppearances strong { font-size:11px; }
+  .adminPlayersTable .adminRegistrationButton,.adminPlayersTable .adminLinkStatus { min-width:0; padding:4px; font-size:9px; }
+  .adminPlayerEdit { width:auto; }
+  .adminPlayersTable .adminSmallBtn { padding:5px 3px; font-size:9px; }
+  .adminQuickPayment { display:grid; grid-template-columns:minmax(0,1fr) 85px auto; gap:8px; }
+  .adminQuickPayment label,.adminQuickPayment input { width:100%; }
+  .adminQuickPayment select { min-width:0; max-width:100%; }
+  .adminQuickPayment button { font-size:10px; padding:7px; }
+  .adminQuickPayment #quickFineStatus { grid-column:1/-1; }
   .adminFinesSummary { align-items:flex-start; flex-direction:column; gap:12px; }
   .adminOverview { grid-template-columns:1fr; }
   .adminIntro,.adminToolbar { align-items:stretch; flex-direction:column; }

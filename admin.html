@@ -7,7 +7,7 @@
   <title>Club admin | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
-  <link rel="stylesheet" href="styles/admin.css?v=20261021-player-list">
+  <link rel="stylesheet" href="styles/admin.css?v=20261021-combined-list">
   <link rel="icon" type="image/png" href="graphics/favicon1.png">
 </head>
 <body>
@@ -50,7 +50,6 @@
         <button class="adminTab active" type="button" data-admin-tab="fixtures">Fixtures</button>
         <button class="adminTab" type="button" data-admin-tab="results">Results</button>
         <button class="adminTab" type="button" data-admin-tab="players">Players</button>
-        <button class="adminTab" type="button" data-admin-tab="fines">Fines owed</button>
         <button id="adminRequestsTab" class="adminTab hidden" type="button" data-admin-tab="requests">Admin requests</button>
       </div>
 
@@ -126,13 +125,22 @@
 
       <section id="playersPanel" class="adminPanel hidden">
         <div class="adminToolbar">
-          <span class="adminIdentity">Most appearances · 2026/27</span>
+          <span class="adminIdentity">Players &amp; fines · 2026/27 · Most played first</span>
           <div class="adminFilters">
             <label>Search
-              <input id="playerSearch" type="search" placeholder="Player name or nickname">
+              <input id="playerSearch" type="search" placeholder="Player name">
             </label>
+            <label>Registration<select id="playerRegistrationFilter"><option value="all">All</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select></label>
+            <label>Account<select id="playerAccountFilter"><option value="all">All</option><option value="linked">Linked</option><option value="unlinked">Not linked</option></select></label>
+            <label>Fines<select id="playerFinesFilter"><option value="all">All</option><option value="owed">Owed</option><option value="paid">Paid in full</option><option value="part">Part paid</option><option value="none">No fines</option></select></label>
           </div>
         </div>
+        <form id="quickFinePayment" class="adminQuickPayment adminFilters">
+          <label>Fine payment from<select id="quickFinePlayer" required><option value="">Choose player</option></select></label>
+          <label>Amount (£)<input id="quickFineAmount" type="number" min="0.01" step="0.01" placeholder="0.00" required></label>
+          <button class="adminSmallBtn" type="submit">Record payment</button>
+          <span id="quickFineStatus" role="status" aria-live="polite"></span>
+        </form>
         <div id="playersList" class="adminPlayerList"></div>
       </section>
     </section>
@@ -155,6 +163,6 @@
 
   <script src="scripts/firebase-client.js?v=20261016-registration"></script>
   <script src="scripts/player-data.js?v=20261016-registration"></script>
-  <script src="scripts/admin.js?v=20261021-player-list"></script>
+  <script src="scripts/admin.js?v=20261021-combined-list"></script>
 </body>
 </html>

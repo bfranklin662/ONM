@@ -232,6 +232,20 @@
     list.innerHTML = matchTable(results, "result");
   }
 
+  function playerFineAccount(player, season = "26-27") {
+    let issued = 0;
+    state.results.filter(item => item.season === season).forEach(item => {
+      const row = rowFor(item);
+      for (let index = 1; index <= 12; index++) {
+        if (clean(playerValue(row, index)).toLowerCase() !== clean(player.publicName).toLowerCase()) continue;
+        const amount = Number(clean(row[`F${index}`] ?? row[`F ${index}`]).replace(/[£,\s]/g, ""));
+        if (Number.isFinite(amount) && amount > 0) issued += Math.round(amount * 100);
+      }
+    });
+    const paid = Number(finePaymentFor(player.playerKey, season));
+    return { issued, paid, owed: Math.max(0, issued - paid) };
+  }
+
   function renderPlayers() {
     const list = document.getElementById("playersList");
     const query = clean(document.getElementById("playerSearch").value).toLowerCase();
@@ -242,15 +256,30 @@
       names.forEach(name => appearances.set(name, (appearances.get(name) || 0) + 1));
     });
     const played = player => appearances.get(nameKey(player.publicName)) || 0;
+    const registration = document.getElementById("playerRegistrationFilter").value;
+    const account = document.getElementById("playerAccountFilter").value;
+    const fines = document.getElementById("playerFinesFilter").value;
     const players = state.players
+      .filter(player => {
+        const paid = player.registrationPaidSeasons?.includes("26-27");
+        const linked = state.linkedPlayerKeys.has(player.playerKey);
+        const balance = playerFineAccount(player);
+        return (registration === "all" || (registration === "paid") === Boolean(paid))
+          && (account === "all" || (account === "linked") === linked)
+          && (fines === "all" || fines === "owed" && balance.owed > 0
+            || fines === "paid" && balance.issued > 0 && balance.owed === 0
+            || fines === "part" && balance.paid > 0 && balance.owed > 0
+            || fines === "none" && balance.issued === 0);
+      })
       .filter(player => !query || `${player.fullName || ""} ${player.publicName || ""} ${player.nickname || ""} ${player.role || ""}`.toLowerCase().includes(query))
       .sort((a, b) => played(b) - played(a) || clean(a.publicName).localeCompare(clean(b.publicName)));
     if (!players.length) {
       list.innerHTML = '<div class="adminEmpty">No players match this search.</div>';
       return;
     }
-    list.innerHTML = `<div class="adminTableScroll"><table class="adminMatchTable adminPlayersTable"><caption class="adminVisuallyHidden">Players ordered by most appearances in 2026/27</caption><thead><tr><th scope="col"><span class="adminVisuallyHidden">Photo</span></th><th scope="col">Full name (shortened name)</th><th scope="col">Appearances</th><th scope="col">Registration paid</th><th scope="col">Account linked</th><th scope="col"><span class="adminVisuallyHidden">Actions</span></th></tr></thead><tbody>${players.map(player => {
+    list.innerHTML = `<div class="adminTableScroll"><table class="adminMatchTable adminPlayersTable"><caption class="adminVisuallyHidden">Players and fines, most appearances first, 2026/27</caption><thead><tr><th scope="col"><span class="adminVisuallyHidden">Photo</span></th><th scope="col">Name</th><th scope="col"><span class="desktopLabel">Appearances</span><span class="mobileLabel">Apps</span></th><th scope="col"><span class="desktopLabel">Registration</span><span class="mobileLabel">Reg</span></th><th scope="col"><span class="desktopLabel">Account linked</span><span class="mobileLabel">Link</span></th><th scope="col">Owed</th><th scope="col">Paid</th><th scope="col"><span class="adminVisuallyHidden">Actions</span></th></tr></thead><tbody>${players.map(player => {
       const paid = player.registrationPaidSeasons?.includes("26-27");
+      const balance = playerFineAccount(player);
       const linked = state.linkedPlayerKeys.has(player.playerKey);
       const fullName = clean(player.fullName || player.publicName) || "Unnamed player";
       const shortenedName = clean(player.publicName) && clean(player.publicName) !== fullName ? player.publicName : "";
@@ -260,6 +289,8 @@
         <td class="adminPlayerAppearances"><strong>${played(player)}</strong></td>
         <td><button class="adminRegistrationButton ${paid ? "isPaid" : "isOutstanding"}" type="button" data-toggle-player-registration="${escapeHtml(player.playerKey)}" data-registration-paid="${paid ? "false" : "true"}" title="${paid ? "Mark registration unpaid" : "Mark £15 registration paid"}">${paid ? "Paid" : "Outstanding"}</button></td>
         <td><span class="adminLinkStatus ${linked ? "isLinked" : "isUnlinked"}">${linked ? "Linked" : "Not linked"}</span></td>
+        <td class="adminFineOwed">${currencyForToast(balance.owed)}</td>
+        <td>${currencyForToast(balance.paid)}</td>
         <td class="adminPlayerEdit"><button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit</button></td>
       </tr>`;
     }).join("")}</tbody></table></div>`;
@@ -649,6 +680,48 @@
     return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
   }
 
+  async function saveQuickFinePayment(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (form.dataset.saving || !form.reportValidity()) return;
+    const select = document.getElementById("quickFinePlayer");
+    const input = document.getElementById("quickFineAmount");
+    const status = document.getElementById("quickFineStatus");
+    const player = state.players.find(item => item.playerKey === select.value);
+    const pence = Math.round(Number(input.value) * 100);
+    if (!player || !Number.isSafeInteger(pence) || pence <= 0) return;
+    if (pence > playerFineAccount(player).owed) {
+      status.textContent = "Payment exceeds the outstanding balance.";
+      return;
+    }
+    const button = form.querySelector("button");
+    form.dataset.saving = "true";
+    button.disabled = true;
+    status.textContent = "Saving…";
+    try {
+      const { db, firestoreSdk } = await window.ONMFirebase.ready;
+      const id = `26-27__${player.playerKey}`;
+      await firestoreSdk.setDoc(firestoreSdk.doc(db, "finePayments", id), {
+        season: "26-27", playerKey: player.playerKey, playerName: player.publicName,
+        amountPaidPence: firestoreSdk.increment(pence),
+        updatedAt: firestoreSdk.serverTimestamp(), updatedBy: state.user.uid
+      }, { merge: true });
+      const existing = state.finePayments.find(item => item.id === id);
+      if (existing) existing.amountPaidPence = Number(existing.amountPaidPence || 0) + pence;
+      else state.finePayments.push({ id, season: "26-27", playerKey: player.playerKey, amountPaidPence: pence });
+      renderPlayers();
+      renderFines();
+      input.value = "";
+      status.textContent = `${currencyForToast(pence)} recorded for ${player.publicName}.`;
+      input.focus();
+    } catch (error) {
+      status.textContent = error.message || "Payment could not be saved.";
+    } finally {
+      delete form.dataset.saving;
+      button.disabled = false;
+    }
+  }
+
   async function recordFinePayment(button) {
     const season = document.getElementById("finesSeasonFilter").value;
     const playerKey = button.dataset.recordFinePayment;
@@ -738,6 +811,11 @@
     document.getElementById("resultSeasonFilter").addEventListener("change", renderResults);
     document.getElementById("resultSearch").addEventListener("input", renderResults);
     document.getElementById("playerSearch").addEventListener("input", renderPlayers);
+    ["playerRegistrationFilter", "playerAccountFilter", "playerFinesFilter"].forEach(id => document.getElementById(id).addEventListener("change", renderPlayers));
+    document.getElementById("quickFinePayment").addEventListener("submit", saveQuickFinePayment);
+    document.getElementById("quickFinePlayer").innerHTML += [...state.players]
+      .sort((a, b) => clean(a.fullName || a.publicName).localeCompare(clean(b.fullName || b.publicName)))
+      .map(player => `<option value="${escapeHtml(player.playerKey)}">${escapeHtml(player.fullName || player.publicName)} (${escapeHtml(player.publicName)})</option>`).join("");
     document.getElementById("finesSeasonFilter").addEventListener("change", renderFines);
     document.getElementById("finesSearch").addEventListener("input", renderFines);
     document.getElementById("refreshAdminRequests").addEventListener("click", loadAdminRequests);
