@@ -67,6 +67,15 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminAccountTotals>div { padding:12px; background:#101e2b; border-radius:8px; }
 .adminAccountTotals span,.adminAccountTotals small { display:block; color:#aebdca; font-size:11px; }
 .adminAccountTotals strong { display:block; margin:5px 0; color:#ffd740; font-size:25px; }
+.adminAccountTotals #totalFinesCollected,.adminAccountTotals #totalRegistrationsCollected { color:#50d9aa; }
+.adminAccountTotals #totalFinesOwed { color:#ff8585; }
+.adminSeasonHeading { padding:20px 16px 4px; }
+.adminSeasonHeading h2 { margin:6px 0; font-size:clamp(23px,4vw,32px); }
+.adminSeasonHeading p { margin:0; color:#aebdca; font-size:13px; }
+.adminPaymentSection { margin:16px; border:1px solid #3a4b5e; border-radius:10px; background:#101e2b; }
+.adminPaymentSection h3 { margin:14px 16px 0; font-size:16px; }
+.adminPaymentSection .adminQuickPayment { border-bottom:0; }
+.adminPlayerListHeading h3 { margin:0 0 5px; font-size:19px; }
 .adminPlayerSearch { position:relative; flex:1; min-width:0; }
 .adminPlayerSearch>label { margin-bottom:6px; }
 .adminQuickPayment .adminPlayerSearch>input { width:100%; }
@@ -79,7 +88,8 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminQuickPayment input { width:110px; }
 .adminQuickPayment button { min-height:42px; }
 .adminQuickPayment #quickFineStatus { color:#aebdca; font-size:12px; align-self:center; }
-.adminFineOwed { color:#ffd740; font-weight:800; }
+.adminFineOwed { color:#ff8585; font-weight:800; }
+.adminPlayersTable td:nth-child(7) { color:#50d9aa; }
 .adminPlayersTable th:first-child,.adminPlayersTable td:first-child { width:58px; padding-right:4px; }
 .adminPlayersTable th:nth-child(2),.adminPlayersTable td:nth-child(2) { text-align:left; }
 .adminPlayersTable td { padding-top:9px; padding-bottom:9px; }

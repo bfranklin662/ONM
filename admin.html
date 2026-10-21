@@ -7,7 +7,7 @@
   <title>Club admin | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
-  <link rel="stylesheet" href="styles/admin.css?v=20261021-unplayed-names">
+  <link rel="stylesheet" href="styles/admin.css?v=20261021-season-payments">
   <link rel="icon" type="image/png" href="graphics/favicon1.png">
 </head>
 <body>
@@ -123,14 +123,24 @@
         <div id="adminRequestsList" class="adminList"></div>
       </section>
 
-      <section id="playersPanel" class="adminPanel hidden">
+      <section id="playersPanel" class="adminPanel hidden" aria-labelledby="seasonPlayersHeading">
+        <div class="adminSeasonHeading"><span class="adminEyebrow">2026/27 season</span><h2 id="seasonPlayersHeading">2026/27 players &amp; payments</h2><p>Season appearances, registration fees and fine balances.</p></div>
         <div class="adminAccountTotals" aria-label="2026/27 season totals" aria-live="polite">
           <div><span>Fines collected</span><strong id="totalFinesCollected">£0.00</strong></div>
           <div><span>Fines owed</span><strong id="totalFinesOwed">£0.00</strong></div>
           <div><span>Registrations collected</span><strong id="totalRegistrationsCollected">£0.00</strong><small id="totalRegistrationsCount"></small></div>
         </div>
+        <section class="adminPaymentSection" aria-labelledby="finePaymentHeading">
+        <h3 id="finePaymentHeading">Record a fine payment</h3>
+        <form id="quickFinePayment" class="adminQuickPayment adminFilters">
+          <div class="adminPlayerSearch"><label for="quickFinePlayer">Fine payment from</label><input id="quickFinePlayer" type="search" placeholder="Type a player name…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quickFineSuggestions" required><ul id="quickFineSuggestions" role="listbox" hidden></ul></div>
+          <label>Amount (£)<input id="quickFineAmount" type="number" min="0.01" step="0.01" placeholder="0.00" required></label>
+          <button class="adminSmallBtn" type="submit">Record payment</button>
+          <span id="quickFineStatus" role="status" aria-live="polite"></span>
+        </form>
+        </section>
         <div class="adminToolbar">
-          <span class="adminIdentity">Players &amp; fines · 2026/27 · Most played first</span>
+          <div class="adminPlayerListHeading"><h3>2026/27 player list</h3><span class="adminIdentity">Most appearances first</span></div>
           <div class="adminFilters">
             <label>Search
               <input id="playerSearch" type="search" placeholder="Player name">
@@ -140,12 +150,6 @@
             <label>Fines<select id="playerFinesFilter"><option value="all">All</option><option value="owed">Owed</option><option value="paid">Paid in full</option><option value="part">Part paid</option><option value="none">No fines</option></select></label>
           </div>
         </div>
-        <form id="quickFinePayment" class="adminQuickPayment adminFilters">
-          <div class="adminPlayerSearch"><label for="quickFinePlayer">Fine payment from</label><input id="quickFinePlayer" type="search" placeholder="Type a player name…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quickFineSuggestions" required><ul id="quickFineSuggestions" role="listbox" hidden></ul></div>
-          <label>Amount (£)<input id="quickFineAmount" type="number" min="0.01" step="0.01" placeholder="0.00" required></label>
-          <button class="adminSmallBtn" type="submit">Record payment</button>
-          <span id="quickFineStatus" role="status" aria-live="polite"></span>
-        </form>
         <div id="playersList" class="adminPlayerList"></div>
       </section>
     </section>
