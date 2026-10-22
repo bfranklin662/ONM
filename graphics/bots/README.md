@@ -1,5 +1,11 @@
 # Monster Bot avatars
 
+## Nick prompt
+
+Output: graphics/bots/nick-bot.png. Built-in image generation, transparent background.
+
+Use case: stylized-concept. Create Nick Bot, a single funny darts-game avatar. Image 1 SUBJECT reference: only the smiling man in the center, short neatly side-swept light brown hair with faded sides, clean-shaven face, broad friendly toothy grin, cream T-shirt with exact black text MONSTERS. Ignore everyone else and pub scenery. Image 2 EXACT STYLE reference Billy Bot: match polished hand-painted cheeky cartoon caricature, oversized expressive head, bold outlines and dimensional warm shading, small metallic robot shoulder pieces and one cute glowing antenna. Preserve recognizable facial proportions and haircut. Chest-up centered single character holding a dart, confident friendly cheeky smile. Same framing and scale as Billy. Transparent square background, safe margins, readable at 80px. No extra text beyond MONSTERS on shirt, no watermark, no scenery, no other people.
+
 ## Istan prompt
 
 Output: graphics/bots/istan-bot.png. Built-in image generation, transparent background.

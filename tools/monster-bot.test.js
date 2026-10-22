@@ -55,15 +55,16 @@ async function gameHarness(stored = new Map(), account = null) {
 
 test("available avatars appear in the ladder and scorer without leaking into other levels", async () => {
   const wins = E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`));
-  const g = await gameHarness(new Map([["onm-monster-bot-guest", JSON.stringify(wins)]]));
+  const scores = Object.fromEntries(E.LEVELS.flatMap(p => E.MODES.map(mode => [`${p.level}-${mode}`, {won:E.legsNeeded(mode),lost:0}])));
+  const g = await gameHarness(new Map([["onm-monster-bot-guest", JSON.stringify(wins)], ["onm-monster-bot-guest-scores", JSON.stringify(scores)]]));
   assert.match(g.element("botLevels").innerHTML, /venton-bot.png/);
-  for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"],[4,"istan"]]) {
+  for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"],[4,"istan"],[5,"nick"]]) {
     g.start(level);
     assert.equal(g.element("scorerBotAvatar").src, `graphics/bots/${name}-bot.png`);
     assert.equal(g.element("scorerBotAvatar").hidden, false);
     g.click("leaveMatch");
   }
-  g.start(5);
+  g.start(6);
   assert.equal(g.element("scorerBotAvatar").hidden, true);
 });
 
@@ -140,9 +141,40 @@ test("ladder requires previous BO1/BO3 and all four formats two levels below", a
       assert.equal(E.isUnlocked(level,wins), false);
       wins.add(`${level-3}-${E.BULL_MODE}`);
     }
-    assert.equal(E.isUnlocked(level,wins), true);
-    wins.delete(`${level-1}-3`); assert.equal(E.isUnlocked(level,wins), false);
+    const scores = {};
+    if (level >= 5) {
+      for (const mode of E.MODES) {
+        const key = `${level-4}-${mode}`;
+        wins.add(key); scores[key] = {won:E.legsNeeded(mode),lost:0};
+      }
+      assert.equal(E.isUnlocked(level,wins), false);
+    }
+    assert.equal(E.isUnlocked(level,wins,scores), true);
+    wins.delete(`${level-1}-3`); assert.equal(E.isUnlocked(level,wins,scores), false);
   }
+});
+test("levels 5–10 require valid flawless scores in all five formats four levels below", async () => {
+  const wins = new Set(E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)));
+  for (let level=5;level<=10;level++) {
+    const scores = Object.fromEntries(E.MODES.map(mode => [`${level-4}-${mode}`,{won:E.legsNeeded(mode),lost:0}]));
+    assert.equal(E.isUnlocked(level,wins,scores),true);
+    for (const mode of E.MODES) {
+      const key = `${level-4}-${mode}`, saved = scores[key];
+      delete scores[key]; assert.equal(E.isUnlocked(level,wins,scores),false);
+      scores[key] = {won:99,lost:0}; assert.equal(E.isUnlocked(level,wins,scores),false);
+      scores[key] = {...saved,lost:1}; assert.equal(E.isUnlocked(level,wins,scores),false);
+      scores[key] = saved;
+      wins.delete(key); assert.equal(E.isUnlocked(level,wins,scores),false); wins.add(key);
+    }
+  }
+  const stored = new Map([["onm-monster-bot-guest",JSON.stringify([...wins])]]);
+  const g = await gameHarness(stored); g.start(5);
+  assert.equal(g.element("matchTitle").textContent,"");
+  assert.match(g.element("botLevels").innerHTML,/flawless wins in all five Billy Bot formats/);
+  const scores = Object.fromEntries(E.MODES.map(mode => [`1-${mode}`,{won:E.legsNeeded(mode),lost:0}]));
+  stored.set("onm-monster-bot-guest-scores",JSON.stringify(scores));
+  const reloaded = await gameHarness(stored); reloaded.start(5);
+  assert.equal(reloaded.element("matchTitle").textContent,"You vs Nick Bot");
 });
 test("Bull or Bust requires a possible Bull finish and explicit confirmation", async () => {
   const g = await gameHarness(); g.start(1, E.BULL_MODE);

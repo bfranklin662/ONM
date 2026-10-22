@@ -6,10 +6,10 @@
   const modes = new Map();
   let bestScores = {};
   const botName = level => E.LEVELS[level - 1].name;
-  const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan" };
+  const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick" };
   const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png` : "";
   function lockMessage(level) {
-    return `Beat ${botName(level - 1)} in BO1 and BO3${level > 2 ? `, ${botName(level - 2)} in BO1/BO3/BO5/BO7` : ""}${level >= 4 ? `, and ${botName(level - 3)} in all five formats (including Bull or Bust)` : ""} to unlock.`;
+    return `Beat ${botName(level - 1)} in BO1 and BO3${level > 2 ? `, ${botName(level - 2)} in BO1/BO3/BO5/BO7` : ""}${level >= 4 ? `, and ${botName(level - 3)} in all five formats (including Bull or Bust)` : ""}${level >= 5 ? `, plus flawless wins in all five ${botName(level - 4)} formats (gold ticks)` : ""} to unlock.`;
   }
   function modeChip(level, mode) {
     const key = `${level}-${mode}`, won = progress.has(key), score = bestScores[key];
@@ -68,7 +68,7 @@
     $("botLevels").innerHTML = [...E.LEVELS].reverse().map(p => {
       const wins = E.MODES.filter(mode => progress.has(`${p.level}-${mode}`));
       const gold = wins.length === E.MODES.length;
-      const unlocked = E.isUnlocked(p.level, progress);
+      const unlocked = E.isUnlocked(p.level, progress, bestScores);
       if (gold) complete++;
       const avatar = botAvatar(p.level) ? `<img class="botAvatar" src="${botAvatar(p.level)}" alt="${p.name} cartoon avatar">` : "";
       return `<article class="botLevel ${gold ? "complete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}">
@@ -120,7 +120,7 @@
   }
   function newPlayer() { return { remaining: 501, legs: 0, points: 0, darts: 0, legDarts: 0 }; }
   function begin(level, bestOf) {
-    if (!ready || !E.LEVELS.some(p => p.level === level) || !E.MODES.includes(bestOf) || !E.isUnlocked(level, progress)) return;
+    if (!ready || !E.LEVELS.some(p => p.level === level) || !E.MODES.includes(bestOf) || !E.isUnlocked(level, progress, bestScores)) return;
     clearTimeout(timer);
     const starter = $("firstThrow").value;
     match = { level, bestOf, leg: 1, starter: starter === "random" ? (Math.random() < 0.5 ? "player" : "bot") : starter, player: newPlayer(), bot: newPlayer(), history: [], ended: false, legEnded: false };
@@ -150,7 +150,7 @@
     $("undoVisit").disabled = !undo || busy || match.ended;
     $("nextLeg").hidden = !match.legEnded || match.ended;
     $("backToLevels").hidden = !match.ended;
-    if (match.ended) $("turnStatus").textContent = match.player.legs > match.bot.legs ? `You win ${match.player.legs}–${match.bot.legs}! ${match.bot.legs === 0 ? "★ Flawless victory · Gold tick!" : "✓ Format beaten."}${E.MODES.every(mode => progress.has(`${match.level}-${mode}`)) ? " ☑ Level complete!" : ""}${match.level < 10 && E.isUnlocked(match.level + 1, progress) ? ` ${botName(match.level + 1)} unlocked!` : ""}` : `${botName(match.level)} wins ${match.bot.legs}–${match.player.legs}. Try again!`;
+    if (match.ended) $("turnStatus").textContent = match.player.legs > match.bot.legs ? `You win ${match.player.legs}–${match.bot.legs}! ${match.bot.legs === 0 ? "★ Flawless victory · Gold tick!" : "✓ Format beaten."}${E.MODES.every(mode => progress.has(`${match.level}-${mode}`)) ? " ☑ Level complete!" : ""}${match.level < 10 && E.isUnlocked(match.level + 1, progress, bestScores) ? ` ${botName(match.level + 1)} unlocked!` : ""}` : `${botName(match.level)} wins ${match.bot.legs}–${match.player.legs}. Try again!`;
     else if (match.legEnded) $("turnStatus").textContent = `${match.player.remaining === 0 ? "You win" : botName(match.level) + " wins"} leg ${match.leg}.`;
     else $("turnStatus").textContent = `Leg ${match.leg} · ${match.turn === "player" ? "Your throw" : "Monster is throwing…"}`;
     $("visitHistory").innerHTML = [...match.history].reverse().map(v => `<li><span>${v.side === "player" ? "You" : botName(match.level)} · ${v.bust ? "Bust" : v.score}${v.remaining === 0 ? " · Checkout!" : ""}</span><small>${v.remaining} left · ${v.darts} darts${v.hits ? " · " + escape(v.hits.join(" / ")) : ""}</small></li>`).join("");

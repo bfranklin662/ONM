@@ -73,7 +73,15 @@
     }
     return { average: legs * 501 * 3 / darts, firstNine: firstNine / legs / 3, checkout: legs / attempts * 100 };
   }
-  const isUnlocked = (level, wins) => level === 1 || wins.has(`${level - 1}-1`) && wins.has(`${level - 1}-3`) && (level === 2 || STANDARD_MODES.every(mode => wins.has(`${level - 2}-${mode}`))) && (level < 4 || MODES.every(mode => wins.has(`${level - 3}-${mode}`)));
+  function isUnlocked(level, wins, bestScores = {}) {
+    return level === 1 || wins.has(`${level - 1}-1`) && wins.has(`${level - 1}-3`)
+      && (level === 2 || STANDARD_MODES.every(mode => wins.has(`${level - 2}-${mode}`)))
+      && (level < 4 || MODES.every(mode => wins.has(`${level - 3}-${mode}`)))
+      && (level < 5 || MODES.every(mode => {
+        const key = `${level - 4}-${mode}`, score = bestScores[key];
+        return wins.has(key) && validWinningScore(key, score) && score.lost === 0;
+      }));
+  }
   function validWinningScore(key, score) {
     const [level, mode] = key.split("-").map(Number), needed = legsNeeded(mode);
     return level >= 1 && level <= 10 && MODES.includes(mode) && score && score.won === needed && Number.isInteger(score.lost) && score.lost >= 0 && score.lost < needed;
