@@ -6,6 +6,8 @@
   const modes = new Map();
   let bestScores = {};
   const botName = level => E.LEVELS[level - 1].name;
+  const avatarNames = { 1: "billy", 2: "croft", 3: "venton" };
+  const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png` : "";
   function lockMessage(level) {
     return `Beat ${botName(level - 1)} in BO1 and BO3${level > 2 ? `, and ${botName(level - 2)} in all four formats` : ""} to unlock.`;
   }
@@ -68,7 +70,7 @@
       const gold = wins.length === 4;
       const unlocked = E.isUnlocked(p.level, progress);
       if (gold) complete++;
-      const avatar = p.level <= 2 ? `<img class="botAvatar" src="graphics/bots/${p.level === 1 ? "billy" : "croft"}-bot.png" alt="${p.name} cartoon avatar">` : "";
+      const avatar = botAvatar(p.level) ? `<img class="botAvatar" src="${botAvatar(p.level)}" alt="${p.name} cartoon avatar">` : "";
       return `<article class="botLevel ${gold ? "complete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}">
         <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><span class="${gold ? "gold" : ""}">${gold ? "☑ Complete" : wins.length ? "✓ Beaten" : unlocked ? "" : "🔒 Locked"}</span></div><span class="levelStats">${p.average} average</span></div></div>
         <div class="modeMarks">${E.MODES.map(mode => modeChip(p.level, mode)).join("")}</div>
@@ -128,6 +130,10 @@
     $("matchFormat").textContent = `501 · Best of ${match.bestOf} · First to ${(match.bestOf + 1) / 2} ${match.bestOf === 1 ? "leg" : "legs"}`;
     $("matchTitle").textContent = `You vs ${botName(match.level)}`;
     $("botName").textContent = botName(match.level);
+    const avatar = $("scorerBotAvatar"), avatarPath = botAvatar(match.level);
+    avatar.hidden = !avatarPath;
+    avatar.src = avatarPath;
+    avatar.alt = `${botName(match.level)} cartoon avatar`;
     renderMatch(); scheduleBot();
   }
   function renderMatch() {

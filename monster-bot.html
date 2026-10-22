@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Play vs Monster Bot | Oche Ness Monsters</title><link rel="icon" href="graphics/favicon1.png"><link rel="stylesheet" href="styles/monster-bot.css?v=20261022-flawless"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Play vs Monster Bot | Oche Ness Monsters</title><link rel="icon" href="graphics/favicon1.png"><link rel="stylesheet" href="styles/monster-bot.css?v=20261022-venton"></head>
 <body>
 <header class="botHeader"><a href="index.html"><img src="graphics/logoWText.png" alt="Oche Ness Monsters"></a><a href="games.html">← Play Darts</a></header>
 <main>
@@ -13,7 +13,7 @@
   </section>
   <section id="matchPanel" hidden aria-labelledby="matchTitle">
     <div class="matchHeading"><div><span id="matchFormat" class="eyebrow"></span><h2 id="matchTitle"></h2></div><button id="leaveMatch" class="secondary">Leave match</button></div>
-    <div class="scoreboards"><article id="playerBoard"><span>You</span><strong id="playerRemaining">501</strong><b id="playerLegs">0 legs</b><small id="playerAverage">Average —</small></article><article id="botBoard"><span id="botName">Monster Bot</span><strong id="botRemaining">501</strong><b id="botLegs">0 legs</b><small id="botAverage">Average —</small></article></div>
+    <div class="scoreboards"><article id="playerBoard"><div class="scorerIdentity"><span>You</span></div><strong id="playerRemaining">501</strong><b id="playerLegs">0 legs</b><small id="playerAverage">Average —</small></article><article id="botBoard"><div class="scorerIdentity"><img id="scorerBotAvatar" hidden alt=""><span id="botName">Monster Bot</span></div><strong id="botRemaining">501</strong><b id="botLegs">0 legs</b><small id="botAverage">Average —</small></article></div>
     <p id="turnStatus" class="turnStatus" role="status" aria-live="polite"></p>
     <form id="scoreForm"><label>Three-dart score<input id="visitScore" type="number" min="0" max="180" step="1" inputmode="numeric" placeholder="0–180" required autocomplete="off"></label><label>Darts used if checking out<select id="checkoutDarts"><option value="3">3 darts</option><option value="2">2 darts</option><option value="1">1 dart</option></select></label><button type="submit" class="primary">Enter score</button><button id="bustVisit" type="button" class="secondary">Bust</button></form>
     <p id="scoreError" class="error" role="alert"></p><div class="matchActions"><button id="undoVisit" class="secondary" disabled>Undo last turn</button><button id="nextLeg" class="primary" hidden>Next leg</button><button id="backToLevels" class="primary" hidden>Back to levels</button></div>
@@ -21,5 +21,5 @@
   </section>
 </main>
 <dialog id="completionDialog" class="completionDialog" aria-labelledby="completionTitle"><div class="completionHeading"><h2 id="completionTitle">Players who have won</h2><button id="closeCompletions" type="button" class="secondary" aria-label="Close completion list">✕</button></div><p id="completionStatus" role="status"></p><ul id="completionNames"></ul><button id="retryCompletions" type="button" class="secondary" hidden>Retry</button></dialog>
-<script src="scripts/firebase-client.js?v=20261022-bot"></script><script src="scripts/monster-bot-engine.js?v=20261022-flawless"></script><script src="scripts/monster-bot.js?v=20261022-flawless"></script>
+<script src="scripts/firebase-client.js?v=20261022-bot"></script><script src="scripts/monster-bot-engine.js?v=20261022-flawless"></script><script src="scripts/monster-bot.js?v=20261022-venton"></script>
 </body></html>

@@ -53,6 +53,20 @@ async function gameHarness(stored = new Map(), account = null) {
   return { element, click, bot, score, stored, writes, start };
 }
 
+test("available avatars appear in the ladder and scorer without leaking into other levels", async () => {
+  const wins = E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`));
+  const g = await gameHarness(new Map([["onm-monster-bot-guest", JSON.stringify(wins)]]));
+  assert.match(g.element("botLevels").innerHTML, /venton-bot.png/);
+  for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"]]) {
+    g.start(level);
+    assert.equal(g.element("scorerBotAvatar").src, `graphics/bots/${name}-bot.png`);
+    assert.equal(g.element("scorerBotAvatar").hidden, false);
+    g.click("leaveMatch");
+  }
+  g.start(4);
+  assert.equal(g.element("scorerBotAvatar").hidden, true);
+});
+
 test("match lengths, alternating starts, wins and gold progress survive reload", async () => {
   const g = await gameHarness();
   for (const mode of E.MODES) {
