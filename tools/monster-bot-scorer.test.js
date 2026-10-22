@@ -77,6 +77,25 @@ test("human checkout uses the existing prompt, saves a gold win and never schedu
   assert.ok(g.writes.some(w=>w.data.monsterBotBestScores?.["1-1"]?.lost===0));
   assert.equal([...g.timers.values()].filter(t=>t.delay===1000).length,0);
   assert.ok(g.writes.every(w=>w.path==="users/member"));
+  const saved=g.writes.find(w=>w.data.monsterBotBestScores)?.data;
+  assert.deepEqual(Object.keys(saved).sort(),["monsterBotBestScores","monsterBotStarted","monsterBotWins"]);
+  assert.deepEqual(Object.keys(saved.monsterBotBestScores["1-1"]).sort(),["lost","won"]);
+  const localScores=JSON.parse(g.stored.get("onm-monster-bot-member-scores"));
+  assert.deepEqual(localScores,{"1-1":{won:1,lost:0}});
+});
+test("bot matches cannot upload detailed statistics through the league save route",async()=>{
+  const source=fs.readFileSync(require.resolve("../scripts/dart-scorer.js"),"utf8");
+  let uploads=0;
+  const ctx={BOT_MODE:true,MATCH_MODE:"online",window:{ONMFirebase:{post:async()=>{uploads++;return{success:true};}}}};
+  vm.createContext(ctx);
+  vm.runInContext(source.slice(source.indexOf("async function postDartMatch(payload)"),source.indexOf("function cleanStatNumber")),ctx);
+  vm.runInContext(source.slice(source.indexOf("async function saveFinishedDartMatch()"),source.indexOf('els.checkoutOverlay.addEventListener("click"')),ctx);
+  assert.equal((await ctx.postDartMatch({action:"saveDartMatch",match:{average:55}})).success,false);
+  assert.equal(await ctx.saveFinishedDartMatch(),true);
+  assert.equal(uploads,0);
+  ctx.BOT_MODE=false;
+  assert.equal((await ctx.postDartMatch({action:"saveDartMatch",match:{average:55}})).success,true);
+  assert.equal(uploads,1);
 });
 test("every new leg starts with the player and a bot checkout ends the match",async()=>{
   const g=await harness({format:3});g.score(180);g.bot();g.score(180);g.bot();g.score(141);g.confirm();

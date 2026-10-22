@@ -5059,6 +5059,10 @@ function newGame() {
 let matchSaved = false;
 
 async function postDartMatch(payload) {
+  // Bot results belong to ladder progress only, never the league's detailed match history.
+  if (BOT_MODE && payload?.action === "saveDartMatch") {
+    return { success: false, error: "Bot games save only their ladder result." };
+  }
   if (!window.ONMFirebase?.post) {
     return { success: false, error: "Firebase is not ready." };
   }
@@ -5129,6 +5133,7 @@ function buildDartMatchPayload() {
 }
 
 async function saveFinishedDartMatch() {
+  if (BOT_MODE) return true;
   if (MATCH_MODE !== "online") return true;
   if (matchSaved) return true;
   if (state.winnerIndex === null) return false;
