@@ -1,5 +1,11 @@
 # Monster Bot avatars
 
+## Bailey prompt
+
+Output: graphics/bots/bailey-bot.png. Built-in image generation, transparent background.
+
+undefined
+
 ## Andre prompt
 
 Output: graphics/bots/andre-bot.png. Built-in image generation, transparent background.

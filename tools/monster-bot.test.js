@@ -107,13 +107,13 @@ test("available avatars appear in the ladder and scorer without leaking into oth
   const scores = Object.fromEntries(E.LEVELS.flatMap(p => E.MODES.map(mode => [`${p.level}-${mode}`, {won:E.legsNeeded(mode),lost:0}])));
   const g = await gameHarness(new Map([["onm-monster-bot-test-member", JSON.stringify(wins)], ["onm-monster-bot-test-member-scores", JSON.stringify(scores)]]));
   assert.match(g.element("botLevels").innerHTML, /venton-bot.png/);
-  for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"],[4,"istan"],[5,"nick"],[6,"ricky"],[7,"aussie"],[8,"andre"]]) {
+  for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"],[4,"istan"],[5,"nick"],[6,"ricky"],[7,"aussie"],[8,"andre"],[9,"bailey"]]) {
     g.start(level);
     assert.equal(g.element("scorerBotAvatar").src, `graphics/bots/${name}-bot.png`);
     assert.equal(g.element("scorerBotAvatar").hidden, false);
     g.click("leaveMatch");
   }
-  g.start(9);
+  g.start(10);
   assert.equal(g.element("scorerBotAvatar").hidden, true);
 });
 
