@@ -6,10 +6,19 @@
   const modes = new Map();
   let bestScores = {};
   const botName = level => E.LEVELS[level - 1].name;
-  const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick" };
+  const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick-friendly", 6: "ricky" };
   const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png` : "";
-  function lockMessage(level) {
-    return `Beat ${botName(level - 1)} in BO1 and BO3${level > 2 ? `, ${botName(level - 2)} in BO1/BO3/BO5/BO7` : ""}${level >= 4 ? `, and ${botName(level - 3)} in all five formats (including Bull or Bust)` : ""}${level >= 5 ? `, plus flawless wins in all five ${botName(level - 4)} formats (gold ticks)` : ""} to unlock.`;
+  function requirements(level) {
+    const rows = [{ label: "Sign in with a registered account", met: Boolean(user) }];
+    const won = (bot, modes) => modes.every(mode => progress.has(`${bot}-${mode}`));
+    if (level >= 2) rows.push({ label: `Beat ${botName(level - 1)} in BO1 and BO3`, met: won(level - 1, [1,3]) });
+    if (level >= 3) rows.push({ label: `Beat ${botName(level - 2)} in BO1, BO3, BO5 and BO7`, met: won(level - 2, E.STANDARD_MODES) });
+    if (level >= 4) rows.push({ label: `Beat ${botName(level - 3)} in all five formats, including Bull or Bust`, met: won(level - 3, E.MODES) });
+    if (level >= 5) rows.push({ label: `Earn flawless wins in all five ${botName(level - 4)} formats (gold ticks)`, met: E.MODES.every(mode => {
+      const key = `${level - 4}-${mode}`;
+      return progress.has(key) && E.validWinningScore(key, bestScores[key]) && bestScores[key].lost === 0;
+    }) });
+    return `<div class="unlockRequirements"><h4>Requirements to play</h4><ul>${rows.map(row => `<li class="${row.met ? "met" : ""}"><span aria-label="${row.met ? "Met" : "Not met"}">${row.met ? "✓" : "○"}</span> ${row.label}</li>`).join("")}</ul></div>`;
   }
   function modeChip(level, mode) {
     const key = `${level}-${mode}`, won = progress.has(key), score = bestScores[key];
@@ -75,8 +84,8 @@
         <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><span class="${gold ? "gold" : ""}">${gold ? "☑ Complete" : wins.length ? "✓ Beaten" : unlocked ? "" : "🔒 Locked"}</span></div><span class="levelStats">${p.average} average</span></div></div>
         <div class="modeMarks">${E.MODES.map(mode => modeChip(p.level, mode)).join("")}</div>
         <div class="botCompletionTotal">${communityButton(`level-${p.level}`, "Players who beat this bot")}</div>
-        <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" ${unlocked ? "" : "disabled"}>${E.MODES.map(mode => `<option value="${mode}" ${(modes.get(p.level) || 1) === mode ? "selected" : ""}>${E.modeLabel(mode)}</option>`).join("")}</select><button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked && ready ? "" : "disabled"}>Play ${p.name}</button></div>
-        ${unlocked ? "" : `<p class="lockedHint">${lockMessage(p.level)}</p>`}</article>`;
+        <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" >${E.MODES.map(mode => `<option value="${mode}" ${(modes.get(p.level) || 1) === mode ? "selected" : ""}>${E.modeLabel(mode)}</option>`).join("")}</select>${!ready ? '<button type="button" class="primary" disabled>Loading account…</button>' : !user ? '<a class="primary signupToPlay" href="auth.html?mode=register">Sign up to play</a>' : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked ? "" : "disabled"}>Play ${p.name}</button>`}</div>
+        ${requirements(p.level)}</article>`;
     }).join("");
     $("progressSummary").textContent = `${progress.size} / 50 formats won · ${complete} / 10 levels complete`;
     $("botLevels").scrollTop = scrollTop;
@@ -85,8 +94,8 @@
     renderLevels();
     try { user = await window.ONMFirebase.loadOwnUser(); } catch { user = null; }
     storageKey = user ? `onm-monster-bot-${user.uid}` : "onm-monster-bot-guest";
-    progress = new Set(safeLoad(storageKey));
-    bestScores = readScores(storageKey + "-scores");
+    progress = new Set(user ? safeLoad(storageKey) : []);
+    bestScores = user ? readScores(storageKey + "-scores") : {};
     if (user) {
       try {
         const { db, firestoreSdk: sdk } = await window.ONMFirebase.ready;
@@ -97,13 +106,14 @@
         if (progress.size) await syncAccount();
         $("saveStatus").textContent = "Progress synced to your account.";
       } catch { $("saveStatus").textContent = "Account sync unavailable. Progress is saved on this device until you reconnect."; }
-    } else $("saveStatus").textContent = "Guest progress saves on this browser. Sign in before playing to save to your account.";
+    } else $("saveStatus").innerHTML = 'Browse every bot and format. <a href="auth.html?mode=register">Sign up to play</a> or <a href="auth.html">sign in</a> if you already have an account.';
     ready = true;
     renderLevels();
     $("botLevels").scrollTop = $("botLevels").scrollHeight;
     loadCommunity(Boolean(user));
   }
   async function saveWin(game) {
+    if (!user) return;
     const key = `${game.level}-${game.bestOf}`;
     progress.add(key);
     bestScores[key] = E.bestScore(bestScores[key], { won: game.player.legs, lost: game.bot.legs });
@@ -120,7 +130,7 @@
   }
   function newPlayer() { return { remaining: 501, legs: 0, points: 0, darts: 0, legDarts: 0 }; }
   function begin(level, bestOf) {
-    if (!ready || !E.LEVELS.some(p => p.level === level) || !E.MODES.includes(bestOf) || !E.isUnlocked(level, progress, bestScores)) return;
+    if (!ready || !user || !E.LEVELS.some(p => p.level === level) || !E.MODES.includes(bestOf) || !E.isUnlocked(level, progress, bestScores)) return;
     clearTimeout(timer);
     const starter = $("firstThrow").value;
     match = { level, bestOf, leg: 1, starter: starter === "random" ? (Math.random() < 0.5 ? "player" : "bot") : starter, player: newPlayer(), bot: newPlayer(), history: [], ended: false, legEnded: false };
@@ -248,5 +258,17 @@
   });
   $("leaveMatch").addEventListener("click", levels); $("backToLevels").addEventListener("click", levels);
   window.addEventListener("beforeunload", event => { if (match && !match.ended) { event.preventDefault(); event.returnValue = ""; } });
-  loadProgress();
+  loadProgress().then(async () => {
+    try {
+      const {auth, authSdk} = await window.ONMFirebase.ready;
+      if (!authSdk?.onAuthStateChanged) return;
+      authSdk.onAuthStateChanged(auth, current => {
+        if ((current?.uid || null) === (user?.uid || null)) return;
+        clearTimeout(timer); match = null; undo = null; busy = false; pendingCheckout = null;
+        $("bullCheckoutDialog").close(); $("matchPanel").hidden = true; $("challengeSetup").hidden = false;
+        user = null; progress = new Set(); bestScores = {}; ready = false;
+        loadProgress();
+      });
+    } catch { /* A failed auth connection never enables guest play. */ }
+  });
 })();

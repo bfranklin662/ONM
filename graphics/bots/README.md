@@ -1,5 +1,17 @@
 # Monster Bot avatars
 
+## Ricky prompt
+
+Output: graphics/bots/ricky-bot.png. Built-in image generation, transparent background.
+
+Use case: stylized-concept. Create Ricky Bot, one friendly funny darts-game avatar. Image 1 SUBJECT reference is the man with tall swept-up brown hair and short sides, clear round glasses, moustache and small goatee, broad smiling mouth, black T-shirt with small green MONSTER lettering on chest, black watch and tattoo on upper arm. Ignore other people and scenery. Image 2 STYLE reference Billy Bot: match the polished hand-painted cartoon caricature, oversized head, bold outlines, dimensional warm shading, metallic robot shoulder details and one cute glowing antenna. Preserve recognizable face, glasses and hairstyle. Chest-up single centered character, relaxed crossed-arm pose with darts tucked in one hand, cheerful friendly eyes. Transparent square background, safe margins, readable at 80px. No extra text, no watermark, no pub scene, no extra people.
+
+## Nick friendly-eye edit
+
+Output: graphics/bots/nick-friendly-bot.png. Built-in image editing, preserving transparency. Original nick-bot.png retained.
+
+Use case: identity-preserve. Edit the supplied Nick Bot avatar. Change ONLY his eyes, eyebrows and nearby expression to feel genuinely friendly, relaxed and kind rather than intense or sinister. Softer relaxed brows, natural light blue-grey irises, normal-sized pupils and gentle smiling eyes with soft highlights. Keep his recognizable likeness, haircut, broad smile, pose, dart, cream shirt with exact MONSTERS lettering, robot shoulders, antenna, composition, cartoon rendering and transparent background unchanged. Do not add any background or new elements. Keep square framing and transparency.
+
 ## Nick prompt
 
 Output: graphics/bots/nick-bot.png. Built-in image generation, transparent background.

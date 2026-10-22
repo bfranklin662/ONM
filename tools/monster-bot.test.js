@@ -15,8 +15,8 @@ test("only possible scores and double-out finishes are accepted", () => {
   assert.notEqual(E.validateVisit(60, 60, 1), "");
 });
 
-async function gameHarness(stored = new Map(), account = null) {
-  const elements = new Map(), writes = []; let callback;
+async function gameHarness(stored = new Map(), account = { uid: "test-member" }) {
+  const elements = new Map(), writes = []; let callback, authCallback;
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
       value: "", hidden: false, disabled: false, textContent: "", innerHTML: "", listeners: {},
@@ -29,9 +29,9 @@ async function gameHarness(stored = new Map(), account = null) {
   const context = {
     window: { MonsterBotEngine: { ...E, botVisit: (remaining) => ({ remaining, score: 0, darts: 3, attempts: 0, hits: [0, 0, 0] }) }, ONMFirebase: {
       loadOwnUser: async () => account,
-      ready: Promise.resolve({ db: {}, firestoreSdk: {
+      ready: Promise.resolve({ auth: {}, authSdk: { onAuthStateChanged: (_auth, fn) => { authCallback = fn; } }, db: {}, firestoreSdk: {
         doc: (_db, collection, uid) => `${collection}/${uid}`,
-        getDoc: async () => ({ data: () => ({ monsterBotWins: ["2-3"] }) }),
+        getDoc: async () => ({ data: () => ({ monsterBotWins: account?.seedWins || [] }) }),
         arrayUnion: (...values) => values,
         runTransaction: async (_db, fn) => fn({ get: async () => ({ data: () => ({ monsterBotBestScores: {} }) }), update: (path, data) => writes.push({ path, data }) }),
         updateDoc: async (path, data) => writes.push({ path, data })
@@ -50,21 +50,48 @@ async function gameHarness(stored = new Map(), account = null) {
   };
   const bot = () => { const fn = callback; callback = null; if (fn) fn(); };
   const score = n => { element("visitScore").value = String(n); element("scoreForm").listeners.submit({ preventDefault() {} }); };
-  return { element, click, bot, score, stored, writes, start };
+  const signOut = async () => { account = null; authCallback(null); await new Promise(resolve => setImmediate(resolve)); };
+  return { element, click, bot, score, stored, writes, start, signOut };
 }
+
+test("visitors can browse every level and mode but cannot start or save a match", async () => {
+  const stored = new Map([["onm-monster-bot-guest",JSON.stringify(["1-1","1-3"])]]);
+  const g = await gameHarness(stored,null);
+  const html = g.element("botLevels").innerHTML;
+  assert.equal((html.match(/Sign up to play/g)||[]).length,10);
+  assert.equal((html.match(/Requirements to play/g)||[]).length,10);
+  assert.match(html,/Filip Bot/); assert.match(html,/Bull or Bust/);
+  assert.match(html,/auth.html\?mode=register/);
+  assert.match(g.element("progressSummary").textContent,/0 \/ 50/);
+  g.start(); g.score(180); g.bot();
+  assert.equal(g.element("matchTitle").textContent,"");
+  assert.equal(g.writes.length,0);
+});
+
+test("requirements remain visible after unlocking and signing out stops play", async () => {
+  const g = await gameHarness();
+  assert.equal((g.element("botLevels").innerHTML.match(/Requirements to play/g)||[]).length,10);
+  assert.match(g.element("botLevels").innerHTML,/Sign in with a registered account/);
+  g.start(); g.score(180);
+  await g.signOut(); g.bot(); g.score(180); g.start();
+  assert.equal(g.element("matchPanel").hidden,true);
+  assert.equal(g.element("challengeSetup").hidden,false);
+  assert.equal((g.element("botLevels").innerHTML.match(/Sign up to play/g)||[]).length,10);
+  assert.equal(g.writes.length,0);
+});
 
 test("available avatars appear in the ladder and scorer without leaking into other levels", async () => {
   const wins = E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`));
   const scores = Object.fromEntries(E.LEVELS.flatMap(p => E.MODES.map(mode => [`${p.level}-${mode}`, {won:E.legsNeeded(mode),lost:0}])));
-  const g = await gameHarness(new Map([["onm-monster-bot-guest", JSON.stringify(wins)], ["onm-monster-bot-guest-scores", JSON.stringify(scores)]]));
+  const g = await gameHarness(new Map([["onm-monster-bot-test-member", JSON.stringify(wins)], ["onm-monster-bot-test-member-scores", JSON.stringify(scores)]]));
   assert.match(g.element("botLevels").innerHTML, /venton-bot.png/);
-  for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"],[4,"istan"],[5,"nick"]]) {
+  for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"],[4,"istan"],[5,"nick-friendly"],[6,"ricky"]]) {
     g.start(level);
     assert.equal(g.element("scorerBotAvatar").src, `graphics/bots/${name}-bot.png`);
     assert.equal(g.element("scorerBotAvatar").hidden, false);
     g.click("leaveMatch");
   }
-  g.start(6);
+  g.start(7);
   assert.equal(g.element("scorerBotAvatar").hidden, true);
 });
 
@@ -80,7 +107,7 @@ test("match lengths, alternating starts, wins and gold progress survive reload",
     assert.match(g.element("turnStatus").textContent, /You win/);
     g.click("backToLevels");
   }
-  assert.deepEqual(JSON.parse(g.stored.get("onm-monster-bot-guest")).sort(), ["1-1", "1-3", "1-5", "1-7"]);
+  assert.deepEqual(JSON.parse(g.stored.get("onm-monster-bot-test-member")).sort(), ["1-1", "1-3", "1-5", "1-7"]);
   assert.doesNotMatch(g.element("botLevels").innerHTML, /☑ Complete/);
   assert.match(g.element("progressSummary").textContent, /4 \/ 50 formats won · 0 \/ 10 levels complete/);
   const reloaded = await gameHarness(g.stored);
@@ -88,7 +115,7 @@ test("match lengths, alternating starts, wins and gold progress survive reload",
 });
 
 test("signed-in progress loads and saves only on that user's account", async () => {
-  const g = await gameHarness(new Map(), { uid: "test-member" });
+  const g = await gameHarness(new Map(), { uid: "test-member", seedWins: ["2-3"] });
   assert.match(g.element("progressSummary").textContent, /1 \/ 50/);
   g.start(); g.score(180); g.bot(); g.score(180); g.bot(); g.score(141);
   await new Promise(resolve => setImmediate(resolve));
@@ -167,12 +194,12 @@ test("levels 5–10 require valid flawless scores in all five formats four level
       wins.delete(key); assert.equal(E.isUnlocked(level,wins,scores),false); wins.add(key);
     }
   }
-  const stored = new Map([["onm-monster-bot-guest",JSON.stringify([...wins])]]);
+  const stored = new Map([["onm-monster-bot-test-member",JSON.stringify([...wins])]]);
   const g = await gameHarness(stored); g.start(5);
   assert.equal(g.element("matchTitle").textContent,"");
   assert.match(g.element("botLevels").innerHTML,/flawless wins in all five Billy Bot formats/);
   const scores = Object.fromEntries(E.MODES.map(mode => [`1-${mode}`,{won:E.legsNeeded(mode),lost:0}]));
-  stored.set("onm-monster-bot-guest-scores",JSON.stringify(scores));
+  stored.set("onm-monster-bot-test-member-scores",JSON.stringify(scores));
   const reloaded = await gameHarness(stored); reloaded.start(5);
   assert.equal(reloaded.element("matchTitle").textContent,"You vs Nick Bot");
 });
@@ -188,7 +215,7 @@ test("Bull or Bust requires a possible Bull finish and explicit confirmation", a
   g.click("confirmBullCheckout");
   await new Promise(resolve => setImmediate(resolve));
   assert.match(g.element("turnStatus").textContent, /You win 1–0/);
-  assert.deepEqual(JSON.parse(g.stored.get("onm-monster-bot-guest")), ["1-9"]);
+  assert.deepEqual(JSON.parse(g.stored.get("onm-monster-bot-test-member")), ["1-9"]);
   assert.equal(E.validWinningScore("1-9", {won:1,lost:0}), true);
   assert.equal(E.bullCheckoutPossible(100,1), false);
   assert.equal(E.bullCheckoutPossible(170,3), true);
