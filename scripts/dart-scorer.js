@@ -922,13 +922,14 @@ function fullyStopDartAudio() {
   dartAudioUnlocked = false;
 }
 
-function playDartCallout(fileName, fallbackFileName = null) {
+function playDartCallout(fileName, fallbackFileName = null, onAutoplayBlocked = null) {
   const credit = DART_VOICE_CREDITS[fileName];
   if (credit) showDartVoiceToast(credit);
 
   dartAudioQueue.push({
     src: `audio/darts/${fileName}`,
-    fallbackSrc: fallbackFileName ? `audio/darts/${fallbackFileName}` : null
+    fallbackSrc: fallbackFileName ? `audio/darts/${fallbackFileName}` : null,
+    onAutoplayBlocked
   });
 
   playNextDartCallout();
@@ -1230,6 +1231,7 @@ function playNextDartCallout() {
     dartAudioPlayer.onended = null;
     dartAudioPlayer.onerror = null;
     console.warn("Could not play dart callout:", src, err);
+    if (err?.name === "NotAllowedError") item.onAutoplayBlocked?.();
     playFallbackOrNext();
   });
 }

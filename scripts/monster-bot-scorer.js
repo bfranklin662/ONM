@@ -159,6 +159,17 @@
       enterScorerFullscreen();
       $("monsterBotSplash").hidden = true;
       document.body.classList.remove("monsterBotLoading");
+      playDartCallout("game-on.mp3", null, () => {
+        // Some mobile browsers require the first tap before allowing sound.
+        let retried = false;
+        const retry = () => {
+          if (retried) return;
+          retried = true;
+          if (active && state.winnerIndex === null) playDartCallout("game-on.mp3");
+        };
+        window.addEventListener("pointerdown", retry, {once:true});
+        window.addEventListener("keydown", retry, {once:true});
+      });
       window.addEventListener("pointerdown", () => {
         if (!active || document.fullscreenElement) return;
         document.documentElement?.requestFullscreen?.()?.catch?.(() => {});
