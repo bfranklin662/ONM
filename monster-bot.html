@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Play vs Monster Bot | Oche Ness Monsters</title><link rel="icon" href="graphics/favicon1.png"><link rel="stylesheet" href="styles/monster-bot.css?v=20261022-ladder"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Play vs Monster Bot | Oche Ness Monsters</title><link rel="icon" href="graphics/favicon1.png"><link rel="stylesheet" href="styles/monster-bot.css?v=20261022-completions"></head>
 <body>
 <header class="botHeader"><a href="index.html"><img src="graphics/logoWText.png" alt="Oche Ness Monsters"></a><a href="games.html">← Play Darts</a></header>
 <main>
   <div class="botIntro"><span class="eyebrow">THE MONSTER CHALLENGE</span><h1>Play vs Monster Bot</h1><p>10 monsters. 4 match formats. Beat them all.</p></div>
   <section id="challengeSetup" aria-labelledby="challengeHeading">
     <div class="challengeBar"><div><h2 id="challengeHeading">Choose your Monster</h2><p id="progressSummary" aria-live="polite"></p></div><p id="saveStatus" role="status">Loading progress…</p></div>
-    <p class="legend">✓ A match won &nbsp; <span class="gold">☑ Gold = all four formats beaten</span></p>
+    <p class="legend">✓ Your wins &nbsp; <span class="gold">☑ Gold = all four formats beaten</span><br>BO = best of. Tap a count to see who has won. Counts include account-saved wins, not guest games.</p>
     <div class="ladderOptions"><p>Start with Billy Bot below. Win any match format to unlock the next level. Scroll up to climb the ladder.</p><label>First throw<select id="firstThrow"><option value="player">You</option><option value="bot">Bot</option><option value="random">Random</option></select></label></div>
     <div id="botLevels" class="botLevels" role="region" aria-label="Monster ladder, level 10 at the top, level 1 at the bottom" tabindex="0"></div>
     <p class="muted">501 • Straight in • Double out • Alternate first throw each leg. Averages are long-run targets; every match varies. Checkout % means doubles hit per dart at a double.</p>
@@ -20,5 +20,6 @@
     <h3>Visit history</h3><ol id="visitHistory" class="visitHistory"></ol>
   </section>
 </main>
-<script src="scripts/firebase-client.js?v=20261022-bot"></script><script src="scripts/monster-bot-engine.js?v=20261022-ladder"></script><script src="scripts/monster-bot.js?v=20261022-ladder"></script>
+<dialog id="completionDialog" class="completionDialog" aria-labelledby="completionTitle"><div class="completionHeading"><h2 id="completionTitle">Players who have won</h2><button id="closeCompletions" type="button" class="secondary" aria-label="Close completion list">✕</button></div><p id="completionStatus" role="status"></p><ul id="completionNames"></ul><button id="retryCompletions" type="button" class="secondary" hidden>Retry</button></dialog>
+<script src="scripts/firebase-client.js?v=20261022-bot"></script><script src="scripts/monster-bot-engine.js?v=20261022-ladder"></script><script src="scripts/monster-bot.js?v=20261022-completions"></script>
 </body></html>

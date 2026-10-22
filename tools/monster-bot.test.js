@@ -45,7 +45,7 @@ async function gameHarness(stored = new Map(), account = null) {
   const click = id => element(id).listeners.click();
   const start = (level = 1, mode = 1) => {
     element(`bot-mode-${level}`).value = String(mode);
-    element("botLevels").listeners.click({ target: { closest: () => ({ dataset: { playLevel: String(level) } }) } });
+    element("botLevels").listeners.click({ target: { closest: selector => selector === "[data-play-level]" ? ({ dataset: { playLevel: String(level) } }) : null } });
   };
   const bot = () => { const fn = callback; callback = null; if (fn) fn(); };
   const score = n => { element("visitScore").value = String(n); element("scoreForm").listeners.submit({ preventDefault() {} }); };

@@ -5,6 +5,35 @@
   const validKeys = new Set(E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)));
   const modes = new Map();
   const botName = level => E.LEVELS[level - 1].name;
+  let community = null, communityError = false, completionKey = null, communityLoading = null;
+  function communityButton(key, label, classes = "") {
+    const count = community ? (community[key] || []).length : communityError ? "—" : "…";
+    return `<button type="button" class="completionCount ${classes}" data-community-key="${key}" aria-label="${label}, ${count} players completed. View players.">${label} <b>${count}</b></button>`;
+  }
+  function showCompletionList() {
+    if (!completionKey) return;
+    const parts = completionKey.split("-");
+    const level = parts[0] === "level" ? Number(parts[1]) : Number(parts[0]);
+    $("completionTitle").textContent = `${botName(level)} · ${parts[0] === "level" ? "All formats" : "BO" + parts[1]}`;
+    const names = community?.[completionKey] || [];
+    $("completionStatus").textContent = community ? `${names.length} ${names.length === 1 ? "player has" : "players have"} won${names.length ? ":" : " this challenge yet."}` : communityError ? "Completion counts could not be loaded. Please retry." : "Loading completions…";
+    $("completionNames").innerHTML = names.map(name => `<li>${escape(name)}</li>`).join("");
+    $("retryCompletions").hidden = !communityError;
+  }
+  async function loadCommunity(refresh = false) {
+    if (communityLoading) return communityLoading;
+    communityError = false;
+    communityLoading = (async () => {
+      try {
+        const { app } = await window.ONMFirebase.ready;
+        const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-functions.js");
+        const response = await httpsCallable(getFunctions(app, "europe-west2"), "getMonsterBotCompletions")({ refresh });
+        community = response.data.completions;
+      } catch { communityError = true; }
+      finally { communityLoading = null; renderLevels(); showCompletionList(); }
+    })();
+    return communityLoading;
+  }
   const safeLoad = key => { try { return JSON.parse(localStorage.getItem(key) || "[]").filter(value => validKeys.has(value)); } catch { return []; } };
   const escape = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   function renderLevels() {
@@ -15,7 +44,7 @@
       const gold = wins.length === 4;
       const unlocked = E.isUnlocked(p.level, progress);
       if (gold) complete++;
-      return `<article class="botLevel ${gold ? "complete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}"><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><span class="${gold ? "gold" : ""}">${gold ? "☑ Complete" : wins.length ? "✓ Beaten" : unlocked ? "" : "🔒 Locked"}</span></div><span class="levelStats">${p.average} average</span><div class="modeMarks">${E.MODES.map(mode => `<span class="${gold ? "gold" : progress.has(`${p.level}-${mode}`) ? "won" : ""}">${progress.has(`${p.level}-${mode}`) ? "✓" : "○"} Best of ${mode}</span>`).join("")}</div><div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" ${unlocked ? "" : "disabled"}>${E.MODES.map(mode => `<option value="${mode}" ${(modes.get(p.level) || 1) === mode ? "selected" : ""}>Best of ${mode} ${mode === 1 ? "leg" : "legs"}</option>`).join("")}</select><button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked && ready ? "" : "disabled"}>Play ${p.name}</button></div>${unlocked ? "" : `<p class="lockedHint">Beat ${botName(p.level - 1)} in any format to unlock.</p>`}</article>`;
+      return `<article class="botLevel ${gold ? "complete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}"><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><span class="${gold ? "gold" : ""}">${gold ? "☑ Complete" : wins.length ? "✓ Beaten" : unlocked ? "" : "🔒 Locked"}</span></div><span class="levelStats">${p.average} average</span><div class="modeMarks">${E.MODES.map(mode => communityButton(`${p.level}-${mode}`, `${progress.has(`${p.level}-${mode}`) ? "✓" : "○"} BO${mode}`, gold ? "gold" : progress.has(`${p.level}-${mode}`) ? "won" : "")).join("")}</div><div class="botCompletionTotal">${communityButton(`level-${p.level}`, "Players beaten this bot")}</div><div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" ${unlocked ? "" : "disabled"}>${E.MODES.map(mode => `<option value="${mode}" ${(modes.get(p.level) || 1) === mode ? "selected" : ""}>BO${mode}</option>`).join("")}</select><button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked && ready ? "" : "disabled"}>Play ${p.name}</button></div>${unlocked ? "" : `<p class="lockedHint">Beat ${botName(p.level - 1)} in any format to unlock.</p>`}</article>`;
     }).join("");
     $("progressSummary").textContent = `${progress.size} / 40 formats won · ${complete} / 10 levels complete`;
     $("botLevels").scrollTop = scrollTop;
@@ -38,6 +67,7 @@
     ready = true;
     renderLevels();
     $("botLevels").scrollTop = $("botLevels").scrollHeight;
+    loadCommunity(Boolean(user));
   }
   async function saveWin(game) {
     const key = `${game.level}-${game.bestOf}`;
@@ -49,6 +79,7 @@
         const { db, firestoreSdk: sdk } = await window.ONMFirebase.ready;
         await sdk.updateDoc(sdk.doc(db, "users", user.uid), { monsterBotWins: sdk.arrayUnion(key) });
         $("saveStatus").textContent = "Victory saved to your account.";
+        loadCommunity(true);
       } catch { $("saveStatus").textContent = "Victory saved on this device; account sync will retry next time you open this game."; }
     }
     renderLevels();
@@ -125,7 +156,15 @@
     $("challengeSetup").hidden = false; $("matchPanel").hidden = true; renderLevels();
   }
   $("botLevels").addEventListener("change", event => { const select = event.target.closest("[data-mode-level]"); if (select) modes.set(Number(select.dataset.modeLevel), Number(select.value)); });
-  $("botLevels").addEventListener("click", event => { const button = event.target.closest("[data-play-level]"); if (button) { const level = Number(button.dataset.playLevel); begin(level, Number($("bot-mode-" + level).value)); } });
+  $("botLevels").addEventListener("click", event => {
+    const completion = event.target.closest("[data-community-key]");
+    if (completion) { completionKey = completion.dataset.communityKey; showCompletionList(); $("completionDialog").showModal(); return; }
+    const button = event.target.closest("[data-play-level]");
+    if (button) { const level = Number(button.dataset.playLevel); begin(level, Number($("bot-mode-" + level).value)); }
+  });
+  $("closeCompletions").addEventListener("click", () => $("completionDialog").close());
+  $("completionDialog").addEventListener("click", event => { if (event.target === $("completionDialog")) $("completionDialog").close(); });
+  $("retryCompletions").addEventListener("click", () => { $("completionStatus").textContent = "Loading completions…"; loadCommunity(Boolean(user)); });
   $("scoreForm").addEventListener("submit", event => { event.preventDefault(); humanVisit(); });
   $("bustVisit").addEventListener("click", () => humanVisit(true));
   $("undoVisit").addEventListener("click", () => { if (!undo || busy || match.ended) return; match = undo; undo = null; $("scoreError").textContent = ""; renderMatch(); $("visitScore").focus(); });
