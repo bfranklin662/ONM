@@ -15,7 +15,7 @@ test("only possible scores and double-out finishes are accepted", () => {
   assert.notEqual(E.validateVisit(60, 60, 1), "");
 });
 
-async function gameHarness(stored = new Map(), account = { uid: "test-member" }) {
+async function gameHarness(stored = new Map(), account = { uid: "test-member" }, communityFetch = async()=>{throw new Error("Offline test");}) {
   const elements = new Map(), writes = []; let callback, authCallback;
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
@@ -27,8 +27,9 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" })
   }
   element("bestOf").value = "1"; element("firstThrow").value = "player"; element("checkoutDarts").value = "3";
   const context = {
-    window: { MonsterBotEngine: { ...E, botVisit: (remaining) => ({ remaining, score: 0, darts: 3, attempts: 0, hits: [0, 0, 0] }) }, ONMFirebase: {
-      currentFirebaseUser: async () => { if (account?.authError) throw new Error("Auth unavailable"); return account; },
+    window: { ONMBotData:{withTimeout:(promise,ms)=>require("../scripts/monster-bot-data").withTimeout(promise,account?.authPending?5:ms),fetchCommunity:communityFetch},MonsterBotEngine: { ...E, botVisit: (remaining) => ({ remaining, score: 0, darts: 3, attempts: 0, hits: [0, 0, 0] }) }, ONMFirebase: {
+      config:{projectId:"oche-ness-monsters"},
+      currentFirebaseUser: async () => { if (account?.authError) throw new Error("Auth unavailable"); if(account?.authPending)return new Promise(()=>{});return account; },
       loadOwnUser: async () => { throw new Error("Profile could not be loaded"); },
       ready: Promise.resolve({ auth: {}, authSdk: { onAuthStateChanged: (_auth, fn) => { authCallback = fn; } }, db: {}, firestoreSdk: {
         doc: (_db, collection, uid) => `${collection}/${uid}`,
@@ -61,6 +62,23 @@ test("real play buttons open the league scorer in bot mode and respect locks",as
   const g=await gameHarness();assert.equal(g.playButton(2),"");
   assert.equal(g.playButton(1,7),"dart-scorer.html?mode=bot&level=1&format=7");
   const visitor=await gameHarness(new Map(),null);assert.equal(visitor.playButton(),"");
+});
+test("leaderboard loads while account verification is pending and account timeout offers Retry",async()=>{
+  const g=await gameHarness(new Map(),{authPending:true},async()=>({completions:{},leaderboard:[{name:"Public player",level:2,completed:2,flawless:1}]}));
+  g.click("leaderboardTab");
+  assert.match(g.element("leaderboardRows").innerHTML,/Public player/);
+  assert.equal(g.playButton(),"");
+  await new Promise(resolve=>setTimeout(resolve,10));
+  assert.equal(g.element("retryAccount").hidden,false);
+  assert.match(g.element("leaderboardRows").innerHTML,/Public player/);
+});
+test("a failed leaderboard request can be retried successfully",async()=>{
+  let calls=0;
+  const g=await gameHarness(new Map(),{authPending:true},async()=>{calls++;if(calls===1)throw Error("Service unavailable");return{completions:{},leaderboard:[{name:"Recovered player",level:1,completed:1,flawless:1}]};});
+  assert.equal(g.element("retryLeaderboard").hidden,false);
+  g.click("retryLeaderboard");await new Promise(resolve=>setImmediate(resolve));
+  assert.match(g.element("leaderboardRows").innerHTML,/Recovered player/);
+  assert.equal(g.element("retryLeaderboard").hidden,true);
 });
 test("completion modal Play respects bot and format locks",async()=>{
   const g=await gameHarness();

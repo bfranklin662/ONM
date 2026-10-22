@@ -64,7 +64,7 @@
     } catch { /* Account save below still runs when browser storage is blocked. */ }
     resultMessage = "Victory saved on this device. Syncing to your account…";
     try {
-      const {db,firestoreSdk:sdk} = await window.ONMFirebase.ready;
+      const {db,firestoreSdk:sdk} = await window.ONMBotData.withTimeout(window.ONMFirebase.ready);
       await sdk.runTransaction(db,async tx => {
         const ref = sdk.doc(db,"users",user.uid), snap = await tx.get(ref), scores = snap.data()?.monsterBotBestScores || {};
         tx.update(ref,{monsterBotStarted:true,monsterBotWins:sdk.arrayUnion(key),monsterBotBestScores:{...scores,[key]:E.bestScore(E.validWinningScore(key,scores[key]) ? scores[key] : null,score)}});
@@ -156,17 +156,17 @@
     $("screenTitleText").textContent = "Loading Monster Bot…";
     if (!profile || !E.MODES.includes(format)) { exit(); return; }
     try {
-      user = await window.ONMFirebase.currentFirebaseUser();
+      user = await window.ONMBotData.withTimeout(window.ONMFirebase.currentFirebaseUser());
       if (!user) {
         window.location.href = `auth.html?mode=login&redirect=${encodeURIComponent(`dart-scorer.html?mode=bot&level=${level}&format=${format}`)}`; return;
       }
-      const {db,firestoreSdk:sdk} = await window.ONMFirebase.ready;
+      const {db,firestoreSdk:sdk} = await window.ONMBotData.withTimeout(window.ONMFirebase.ready);
       const local = localProgress(user.uid), scores = {...local.scores}, wins = new Set(local.wins);
       let firstName = "";
       let accountProfile = {uid:user.uid,userId:user.uid};
       try { const cached = JSON.parse(localStorage.getItem("onmUser") || "null"); if (cached?.uid === user.uid) accountProfile = {...accountProfile,...cached}; } catch {}
       try {
-        const snap = await sdk.getDoc(sdk.doc(db,"users",user.uid)), data = snap.data() || {};
+        const snap = await window.ONMBotData.withTimeout(sdk.getDoc(sdk.doc(db,"users",user.uid))), data = snap.data() || {};
         accountProfile = {...accountProfile,...data,uid:user.uid,userId:user.uid};
         firstName = typeof data.firstName === "string" ? data.firstName.trim() : "";
         (data.monsterBotWins || []).forEach(win => wins.add(win));

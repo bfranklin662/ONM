@@ -22,6 +22,7 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
     buildLocalMatchStatsData:()=>({}),openMolVictoryScreen:()=>{ctx.resultOpened=true;ctx.window.ONMMonsterScorer.showResult();ctx.window.ONMMonsterScorer.showUnlock();}
   };
   vm.createContext(ctx);
+  ctx.window.ONMBotData=require("../scripts/monster-bot-data");
   if(profilePhoto) ctx.window.ONMSession={resolveProfileImage:async()=>profilePhoto};
   const source=fs.readFileSync(require.resolve("../scripts/dart-scorer.js"),"utf8");
   vm.runInContext(source.slice(source.indexOf("function applyVisit({"),source.indexOf("function resetLeg()")),ctx);

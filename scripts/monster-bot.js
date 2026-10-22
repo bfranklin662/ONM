@@ -105,16 +105,15 @@
   async function loadCommunity(refresh = false) {
     if (communityLoading) return communityLoading;
     communityError = false;
-    communityLoading = (async () => {
+    renderLeaderboard(); showCompletionList();
+    communityLoading = Promise.resolve().then(async () => {
       try {
-        const { app } = await window.ONMFirebase.ready;
-        const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-functions.js");
-        const response = await httpsCallable(getFunctions(app, "europe-west2"), "getMonsterBotCompletions")({ refresh, version: 3 });
-        community = response.data.completions;
-        leaderboard = response.data.leaderboard || [];
+        const response = await window.ONMBotData.fetchCommunity({projectId:window.ONMFirebase.config.projectId,refresh,getToken:user?.getIdToken ? ()=>user.getIdToken() : null});
+        community = response.completions;
+        leaderboard = response.leaderboard;
       } catch { communityError = true; }
       finally { communityLoading = null; renderLevels(); showCompletionList(); renderLeaderboard(); }
-    })();
+    });
     return communityLoading;
   }
   const safeLoad = key => { try { return JSON.parse(localStorage.getItem(key) || "[]").filter(value => validKeys.has(value)); } catch { return []; } };
@@ -151,7 +150,7 @@
     $("saveStatus").hidden = true;
     $("retryAccount").hidden = true;
     renderLevels();
-    try { user = await window.ONMFirebase.currentFirebaseUser(); }
+    try { user = await window.ONMBotData.withTimeout(window.ONMFirebase.currentFirebaseUser()); }
     catch {
       user = null;
       $("saveStatus").textContent = "Your sign-in could not be checked. Please retry; you do not need to create another account.";
@@ -164,12 +163,15 @@
     bestScores = user ? readScores(storageKey + "-scores") : {};
     if (user) {
       try {
-        const { db, firestoreSdk: sdk } = await window.ONMFirebase.ready;
-        const snap = await sdk.getDoc(sdk.doc(db, "users", user.uid));
+        const { db, firestoreSdk: sdk } = await window.ONMBotData.withTimeout(window.ONMFirebase.ready);
+        const snap = await window.ONMBotData.withTimeout(sdk.getDoc(sdk.doc(db, "users", user.uid)));
         (snap.data()?.monsterBotWins || []).filter(k => validKeys.has(k)).forEach(k => progress.add(k));
         for (const [key, score] of Object.entries(snap.data()?.monsterBotBestScores || {})) if (E.validWinningScore(key, score)) bestScores[key] = E.bestScore(bestScores[key], score);
         // Retry wins that were saved on this device while offline.
-        if (progress.size) await syncAccount();
+        if (progress.size) window.ONMBotData.withTimeout(syncAccount(),5000).catch(()=>{
+          $("saveStatus").textContent = "Your saved progress is loaded. Account sync is unavailable; retry when connected.";
+          $("saveStatus").hidden = false;
+        });
         $("saveStatus").textContent = "Signed in. Progress synced to your account.";
       } catch { $("saveStatus").textContent = "Signed in. Account sync is unavailable; progress saves on this device until you reconnect."; $("saveStatus").hidden = false; }
     } else $("saveStatus").innerHTML = `No active sign-in was found in this browser. <a href="${authUrl("login")}">Sign in and return to the game</a> or <a href="${authUrl("register")}">sign up</a>.`;
@@ -352,6 +354,7 @@
   $("retryLeaderboard").addEventListener("click", () => loadCommunity(Boolean(user)));
   $("retryAccount").addEventListener("click", () => loadProgress());
   window.addEventListener("beforeunload", event => { if (match && !match.ended) { event.preventDefault(); event.returnValue = ""; } });
+  loadCommunity();
   if (window.location.hash === "#leaderboard") showTab(true);
   loadProgress().then(async () => {
     try {
