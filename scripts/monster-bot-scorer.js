@@ -72,9 +72,9 @@
     const error = E.validateVisit(previousScore,score,3);
     if (error) { showImpossibleMessage(error); return; }
     if (remaining === 0) {
-      const options = [1,2,3].filter(darts => E.checkoutPossible(score,darts));
-      const bull = bullMode ? {bullOutOptions:["No","Yes"],bullOutDefault:"No",forcedBullOut:false} : getBullOutPromptConfig(previousScore);
-      openCheckoutPrompt({monsterBot:true,playerIndex:0,visitScore:score,previousScore,legWon:true,bust:false,doubleOptions:null,checkoutOptions:options,...bull});
+      const visit = {playerIndex:0,visitScore:score,previousScore,legWon:true,bust:false,dartsUsed:3,doublesAttempted:0};
+      if (!bullMode) { applyVisit(visit); return; }
+      openCheckoutPrompt({...visit,monsterBot:true,doubleOptions:null,checkoutOptions:null,bullOutOptions:["No","Yes"],bullOutDefault:"No",forcedBullOut:false});
       return;
     }
     applyVisit({playerIndex:0,visitScore:score,previousScore,legWon:false,bust:false,dartsUsed:3,doublesAttempted:0});
@@ -82,13 +82,13 @@
   function confirmCheckout() {
     if (!active || !pendingCheckoutPrompt?.monsterBot || state.currentPlayer !== 0) return;
     const visit = pendingCheckoutPrompt;
-    const dartsUsed = getSelectedPromptValue(els.checkoutPromptOptions);
+    const dartsUsed = 3;
     const selected = document.querySelector("#bullOutPromptOptions button.selected");
     const bullOut = selected ? selected.dataset.value === "Yes" : Boolean(visit.forcedBullOut);
     closeCheckoutPrompt();
     if (bullMode && (!bullOut || !E.bullCheckoutPossible(visit.visitScore,dartsUsed))) { lose("Bull or Bust needs a valid, confirmed Bullseye finish."); return; }
     if (!E.checkoutPossible(visit.visitScore,dartsUsed)) { showImpossibleMessage("That checkout is not possible with those darts"); return; }
-    applyVisit({...visit,dartsUsed,doublesAttempted:1,bullOut});
+    applyVisit({...visit,dartsUsed,doublesAttempted:0,bullOut});
   }
   function afterVisit() {
     if (state.winnerIndex !== null) {
@@ -110,7 +110,7 @@
         const player = state.players[1], previousScore = player.score;
         const visit = E.botVisit(previousScore,player.currentLegDarts,profile);
         els.submit.disabled = false;
-        applyVisit({playerIndex:1,visitScore:visit.score,previousScore,legWon:visit.remaining === 0,bust:Boolean(visit.bust),dartsUsed:visit.darts,doublesAttempted:visit.attempts || 0,bullOut:visit.remaining === 0 && visit.hits?.at(-1) === 50});
+        applyVisit({playerIndex:1,visitScore:visit.score,previousScore,legWon:visit.remaining === 0,bust:Boolean(visit.bust),dartsUsed:visit.darts,doublesAttempted:0,bullOut:visit.remaining === 0 && visit.hits?.at(-1) === 50});
       },1000);
     }
     waitForAnnouncement();

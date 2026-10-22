@@ -89,11 +89,12 @@ test("required-score announcements are for the human only, not the bot",async()=
   assert.equal(g.ctx.requiredCalls.length,0);
   g.bot();assert.deepEqual(g.ctx.requiredCalls,[441]);
 });
-test("human checkout uses the existing prompt, saves a gold win and never schedules a bot after victory",async()=>{
+test("a standard checkout ends the leg immediately without a prompt or checkout tracking",async()=>{
   const g=await harness();g.score(180);g.bot();g.score(180);g.bot();g.score(141);
-  assert.equal(g.ctx.pendingCheckoutPrompt.monsterBot,true);assert.equal(g.state.winnerIndex,null);
-  g.confirm();await new Promise(r=>setImmediate(r));
+  assert.equal(g.ctx.pendingCheckoutPrompt,null);
+  await new Promise(r=>setImmediate(r));
   assert.equal(g.state.winnerIndex,0);assert.equal(g.state.players[0].legs,1);
+  assert.equal(g.state.players[0].checkoutHits,0);assert.equal(g.state.players[0].checkoutAttempts,0);
   assert.ok(g.writes.some(w=>w.data.monsterBotBestScores?.["1-1"]?.lost===0));
   assert.equal([...g.timers.values()].filter(t=>t.delay===1000).length,0);
   assert.ok(g.writes.every(w=>w.path==="users/member"));
@@ -116,6 +117,16 @@ test("bot matches cannot upload detailed statistics through the league save rout
   ctx.BOT_MODE=false;
   assert.equal((await ctx.postDartMatch({action:"saveDartMatch",match:{average:55}})).success,true);
   assert.equal(uploads,1);
+});
+test("bot result pages omit checkout totals and rate without changing league results",()=>{
+  const source=fs.readFileSync(require.resolve("../scripts/dart-scorer.js"),"utf8");
+  const ctx={BOT_MODE:true,els:{molStatsPageOne:{},molStatsPageTwo:{}},buildStatsRowsHtml:rows=>rows.map(row=>row[0]).join("|"),setMolStatsPage(){}};
+  vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf("function populateMolVictoryStats("),source.indexOf("function getOnlineMatchId()")),ctx);
+  const result={players:[{stats:{}},{stats:{}}]};ctx.populateMolVictoryStats(result);
+  const botRows=ctx.els.molStatsPageOne.innerHTML+ctx.els.molStatsPageTwo.innerHTML;
+  assert.doesNotMatch(botRows,/Checkouts|Checkout rate/);assert.match(botRows,/3-dart avg./);
+  ctx.BOT_MODE=false;ctx.populateMolVictoryStats(result);
+  assert.match(ctx.els.molStatsPageOne.innerHTML+ctx.els.molStatsPageTwo.innerHTML,/Checkouts.*Checkout rate/);
 });
 test("the bot starts leg two automatically and a bot checkout can end the match",async()=>{
   const g=await harness({format:3});g.score(180);g.bot();g.score(180);g.bot();g.score(141);g.confirm();

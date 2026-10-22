@@ -1461,8 +1461,7 @@ function populateMolVictoryStats(matchData) {
   const rows = [
     ["3-dart avg.", p1.average, p2.average],
     ["First 9 avg.", p1.firstNineAvg, p2.firstNineAvg],
-    ["Checkouts", p1.checkouts, p2.checkouts],
-    ["Checkout rate", p1.checkoutRate, p2.checkoutRate],
+    ...(!BOT_MODE ? [["Checkouts", p1.checkouts, p2.checkouts], ["Checkout rate", p1.checkoutRate, p2.checkoutRate]] : []),
     ["Highest out", p1.highestOut, p2.highestOut],
     ["High score", p1.highScore, p2.highScore],
     ["Best leg", p1.bestLeg, p2.bestLeg],
@@ -1471,8 +1470,9 @@ function populateMolVictoryStats(matchData) {
     ["Bull-outs", p1.bullOuts, p2.bullOuts]
   ];
 
-  els.molStatsPageOne.innerHTML = buildStatsRowsHtml(rows.slice(0, 5));
-  els.molStatsPageTwo.innerHTML = buildStatsRowsHtml(rows.slice(5));
+  const pageSize = BOT_MODE ? 4 : 5;
+  els.molStatsPageOne.innerHTML = buildStatsRowsHtml(rows.slice(0, pageSize));
+  els.molStatsPageTwo.innerHTML = buildStatsRowsHtml(rows.slice(pageSize));
   setMolStatsPage(0);
 }
 
@@ -4584,8 +4584,10 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
       player.bullOuts += 1;
     }
     player.legs += 1;
-    player.checkoutHits += 1;
-    player.checkoutAttempts += Math.max(1, doublesAttempted);
+    if (!BOT_MODE) {
+      player.checkoutHits += 1;
+      player.checkoutAttempts += Math.max(1, doublesAttempted);
+    }
     player.highestOut = Math.max(player.highestOut, previousScore);
     player.legDarts.push(player.currentLegDarts);
     state.visitHistory = [];
@@ -4611,7 +4613,7 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
       announceLegWon(false, bullOut);
       resetLeg();
     }
-  } else if (!bust && doublesAttempted) {
+  } else if (!BOT_MODE && !bust && doublesAttempted) {
     if (doublesAttempted) {
       player.checkoutAttempts += doublesAttempted;
     }
