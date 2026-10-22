@@ -90,6 +90,15 @@ test("any two distinct formats unlock Croft and cards show completed counts",asy
     assert.match(g.element("botLevels").innerHTML,new RegExp(`✓ Beaten ${count}/5`));
   }
 });
+test("cards show flawless format counts beside wins, excluding missing and invalid scores",async()=>{
+  const wins=["1-1","1-3","1-5","1-7"];
+  const scores={"1-1":{won:1,lost:0},"1-3":{won:2,lost:0},"1-5":{won:3,lost:1},"1-7":{won:99,lost:0},"1-9":{won:1,lost:0}};
+  const stored=new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(scores)]]);
+  const g=await gameHarness(stored);
+  assert.match(g.element("botLevels").innerHTML,/✓ Beaten 4\/5<\/span><span class="gold flawlessCount">★ Flawless 2\/5/);
+  const noScores=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(["1-3"])]]));
+  assert.match(noScores.element("botLevels").innerHTML,/✓ Beaten 1\/5<\/span><span class="gold flawlessCount">★ Flawless 0\/5/);
+});
 test("dropdown selects the next unbeaten format and ticks completed formats",async()=>{
   for (let count=0;count<=E.MODES.length;count++) {
     const wins=E.MODES.slice(0,count).map(mode=>`1-${mode}`);
