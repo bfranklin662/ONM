@@ -119,6 +119,7 @@
 
   async function register(payload) {
     const { auth, db, authSdk, firestoreSdk } = await ready;
+    await authSdk.setPersistence(auth, authSdk.browserLocalPersistence);
     const email = clean(payload.email).toLowerCase();
     const accountRole = ["player", "supporter"].includes(payload.accountRole) ? payload.accountRole : "player";
     const selection = clean(payload.team) || "Oche Ness Monsters";
@@ -152,6 +153,8 @@
 
   async function login(payload) {
     const { auth, db, authSdk, firestoreSdk } = await ready;
+    // Persist the verified session across page navigation and browser restarts.
+    await authSdk.setPersistence(auth, authSdk.browserLocalPersistence);
     const credential = await authSdk.signInWithEmailAndPassword(
       auth,
       clean(payload.email).toLowerCase(),

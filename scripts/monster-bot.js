@@ -4,6 +4,15 @@
   let match = null, undo = null, timer = null, user = null, progress = new Set(), storageKey = "", busy = false, ready = false;
   const validKeys = new Set(E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)));
   const modes = new Map();
+  const authUrl = mode => `auth.html?mode=${mode}&redirect=monster-bot.html`;
+  function focusBilly() {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const billy = $("bot-level-1");
+      if (!billy || $("challengeSetup").hidden || $("ladderPanel").hidden) return;
+      $("botLevels").scrollTop = $("botLevels").scrollHeight;
+      billy.scrollIntoView({block:"start",inline:"nearest",behavior:"instant"});
+    }));
+  }
   let bestScores = {};
   const botName = level => E.LEVELS[level - 1].name;
   const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick", 6: "ricky", 7: "aussie", 8: "andre", 9: "bailey", 10: "filip" };
@@ -97,7 +106,7 @@
         <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><span class="${gold ? "gold" : ""}">${gold ? "☑ Complete" : wins.length ? "✓ Beaten" : unlocked ? "" : "🔒 Locked"}</span></div><span class="levelStats">${p.average} average</span></div></div>
         <div class="modeMarks">${E.MODES.map(mode => modeChip(p.level, mode)).join("")}</div>
         <div class="botCompletionTotal">${communityButton(`level-${p.level}`, "Players who beat this bot")}</div>
-        <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" >${E.MODES.map(mode => `<option value="${mode}" ${(modes.get(p.level) || 1) === mode ? "selected" : ""}>${E.modeLabel(mode)}</option>`).join("")}</select>${!ready ? '<button type="button" class="primary" disabled>Loading account…</button>' : !user ? '<a class="primary signupToPlay" href="auth.html?mode=register">Sign up to play</a>' : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked ? "" : "disabled"}>Play ${p.name}</button>`}</div>
+        <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" >${E.MODES.map(mode => `<option value="${mode}" ${(modes.get(p.level) || 1) === mode ? "selected" : ""}>${E.modeLabel(mode)}</option>`).join("")}</select>${!ready ? '<button type="button" class="primary" disabled>Loading account…</button>' : !user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked ? "" : "disabled"}>Play ${p.name}</button>`}</div>
         ${requirements(p.level)}</article>`;
     }).join("");
     complete = E.LEVELS.filter(p => E.MODES.every(mode => progress.has(`${p.level}-${mode}`))).length;
@@ -128,10 +137,11 @@
         if (progress.size) await syncAccount();
         $("saveStatus").textContent = "Signed in. Progress synced to your account.";
       } catch { $("saveStatus").textContent = "Signed in. Account sync is unavailable; progress saves on this device until you reconnect."; }
-    } else $("saveStatus").innerHTML = 'Browse every bot and format. <a href="auth.html?mode=register">Sign up to play</a> or <a href="auth.html">sign in</a> if you already have an account.';
+    } else $("saveStatus").innerHTML = `No active sign-in was found in this browser. <a href="${authUrl("login")}">Sign in and return to the game</a> or <a href="${authUrl("register")}">sign up</a>.`;
     ready = true;
     renderLevels();
     $("botLevels").scrollTop = $("botLevels").scrollHeight;
+    focusBilly();
     loadCommunity(Boolean(user));
   }
   async function saveWin(game) {

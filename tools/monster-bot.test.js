@@ -20,7 +20,7 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" })
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
       value: "", hidden: false, disabled: false, textContent: "", innerHTML: "", listeners: {},
-      setAttribute(name,value) { this[name] = value; }, showModal() { this.open = true; }, close() { this.open = false; }, classList: { toggle() {} }, focus() {}, querySelectorAll() { return []; },
+      scrollIntoView(options) { this.scrolledIntoView = options; }, setAttribute(name,value) { this[name] = value; }, showModal() { this.open = true; }, close() { this.open = false; }, classList: { toggle() {} }, focus() {}, querySelectorAll() { return []; },
       addEventListener(event, fn) { this.listeners[event] = fn; }
     });
     return elements.get(id);
@@ -40,7 +40,7 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" })
     }, addEventListener() {} },
     document: { getElementById: element },
     localStorage: { getItem: k => stored.get(k) || null, setItem: (k, v) => stored.set(k, v) },
-    setTimeout: fn => { callback = fn; return 1; }, clearTimeout: () => { callback = null; }, confirm: () => true, Math
+    requestAnimationFrame: fn => fn(), setTimeout: fn => { callback = fn; return 1; }, clearTimeout: () => { callback = null; }, confirm: () => true, Math
   };
   vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/monster-bot.js"), "utf8"), context);
   await new Promise(resolve => setImmediate(resolve));
@@ -63,6 +63,9 @@ test("visitors see only the first two levels and all modes but cannot play", asy
   assert.equal((html.match(/Requirements to play/g)||[]).length,2);
   assert.doesNotMatch(html,/Filip Bot/); assert.match(html,/Bull or Bust/);
   assert.match(html,/auth.html\?mode=register/);
+  assert.match(html,/redirect=monster-bot.html/);
+  assert.match(g.element("saveStatus").innerHTML,/mode=login&redirect=monster-bot.html/);
+  assert.equal(g.element("bot-level-1").scrolledIntoView.block,"start");
   assert.match(g.element("progressSummary").textContent,/0 \/ 50/);
   g.start(); g.score(180); g.bot();
   assert.equal(g.element("matchTitle").textContent,"");

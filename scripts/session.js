@@ -20,8 +20,16 @@ async function checkOnmSession() {
   const user = getOnmUser();
 
   if (!user) return null;
-
+  let verified = false;
   try {
+    if (window.ONMFirebase?.firebasePrimary) {
+      const current = await window.ONMFirebase.currentFirebaseUser();
+      if (!current || current.uid !== user.uid) {
+        localStorage.removeItem("onmUser");
+        return null;
+      }
+      verified = true;
+    }
     const result = await postToOnmAppScript({
       action: "checkUser",
       userId: user.userId,
@@ -37,7 +45,7 @@ async function checkOnmSession() {
     return result.user;
 
   } catch {
-    return user;
+    return !window.ONMFirebase?.firebasePrimary || verified ? user : null;
   }
 }
 
@@ -171,12 +179,20 @@ async function loadHeaderProfileImage(authBtn, user, profileName) {
 async function initOnmSession() {
   const cachedUser = getOnmUser();
 
-  // instant UI
-  updateAuthHeader(cachedUser);
-  if (cachedUser) {
+  // A cached profile is not proof of an active Firebase session.
+  let verifiedUser = cachedUser;
+  if (window.ONMFirebase?.firebasePrimary) {
+    try {
+      const current = await window.ONMFirebase.currentFirebaseUser();
+      verifiedUser = current && current.uid === cachedUser?.uid ? cachedUser : null;
+      if (!current) localStorage.removeItem("onmUser");
+    } catch { verifiedUser = null; }
+  }
+  updateAuthHeader(verifiedUser);
+  if (verifiedUser) {
     const authBtn = document.getElementById("authNavBtn");
-    const profileName = cachedUser.linkedPlayerName || cachedUser.firstName || "Profile";
-    loadHeaderProfileImage(authBtn, cachedUser, profileName);
+    const profileName = verifiedUser.linkedPlayerName || verifiedUser.firstName || "Profile";
+    loadHeaderProfileImage(authBtn, verifiedUser, profileName);
   }
 
   // background refresh, don't block page
@@ -193,7 +209,7 @@ async function initOnmSession() {
     loadHeaderProfileImage(authBtn, freshUser, profileName);
   });
 
-  return cachedUser;
+  return verifiedUser;
 }
 
 window.ONMSession = {
