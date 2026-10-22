@@ -1,11 +1,15 @@
 "use strict";
 const validWins = new Set(Array.from({ length: 10 }, (_, i) => [1, 3, 5, 7, 9].map(mode => `${i + 1}-${mode}`)).flat());
+function displayName(user,profile) {
+  if (typeof profile?.publicName === "string" && profile.publicName.trim()) return profile.publicName.trim().slice(0,80);
+  return typeof user.firstName === "string" && user.firstName.trim() ? user.firstName.trim().slice(0,80) : "Player";
+}
 function buildCompletions(users, profiles) {
   const groups = new Map([...validWins].map(key => [key, new Map()]));
   for (let level = 1; level <= 10; level++) groups.set(`level-${level}`, new Map());
   for (const user of users) {
     const profile = profiles.get(user.linkedPlayerKey);
-    const name = typeof profile?.publicName === "string" && profile.publicName.trim() ? profile.publicName.trim().slice(0, 80) : "Player without a linked profile";
+    const name = displayName(user,profile);
     const identity = profile ? `player:${user.linkedPlayerKey}` : `account:${user.id}`;
     for (const win of new Set(Array.isArray(user.monsterBotWins) ? user.monsterBotWins : [])) {
       if (validWins.has(win)) {
@@ -33,7 +37,7 @@ function buildLeaderboard(users, profiles) {
     if (!user.monsterBotStarted && !wins.length) continue;
     const profile = profiles.get(user.linkedPlayerKey);
     const identity = profile ? `player:${user.linkedPlayerKey}` : `account:${user.id}`;
-    const name = typeof profile?.publicName === "string" && profile.publicName.trim() ? profile.publicName.trim().slice(0,80) : "Player without a linked profile";
+    const name = displayName(user,profile);
     const row = players.get(identity) || { name, wins:new Set(), scores:{} };
     for (const key of wins) {
       row.wins.add(key);

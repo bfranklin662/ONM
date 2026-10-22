@@ -44,7 +44,7 @@ function callable(handler) {
 exports.getPlayerAvailability = callable(uid => service.get(uid));
 exports.setPlayerAvailability = callable((uid, data) => service.set(uid, data));
 
-// Publish only shortened player names, never account emails or private full names.
+// Publish linked players' public names or unlinked accounts' first names, never emails or surnames.
 const { buildCompletions, buildLeaderboard } = require("./bot-completions");
 let botCompletionCache = null;
 let botCompletionCacheAt = 0;
@@ -53,7 +53,7 @@ exports.getMonsterBotCompletions = onCall(options, async request => {
   if (botCompletionCache && Date.now() - botCompletionCacheAt < 30000 && !(request.auth && request.data?.refresh === true)) return response();
   const db = getFirestore();
   const [accounts, profiles] = await Promise.all([
-    db.collection("users").select("monsterBotWins", "monsterBotBestScores", "monsterBotStarted", "linkedPlayerKey").get(),
+    db.collection("users").select("monsterBotWins", "monsterBotBestScores", "monsterBotStarted", "linkedPlayerKey", "firstName").get(),
     db.collection("publicPlayers").select("publicName").get()
   ]);
   const users = accounts.docs.map(doc => ({id:doc.id,...doc.data()})), publicProfiles = new Map(profiles.docs.map(doc => [doc.id,doc.data()]));

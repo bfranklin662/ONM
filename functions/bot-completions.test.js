@@ -1,6 +1,19 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { buildCompletions, buildLeaderboard } = require("./bot-completions");
+test("unlinked players use first names in the leaderboard and completion lists, not private details",()=>{
+  const users=[
+    {id:"private-id-a",firstName:"  Alex  ",surname:"PrivateSurname",email:"hidden@example.test",monsterBotWins:["1-1"]},
+    {id:"private-id-b",firstName:"Alex",linkedPlayerKey:"missing-profile",monsterBotWins:["1-1"]},
+    {id:"private-id-c",firstName:"AccountFirst",linkedPlayerKey:"linked",monsterBotWins:["1-1"]}
+  ];
+  const profiles=new Map([["linked",{publicName:"Public player name"}]]);
+  const completions=buildCompletions(users,profiles),leaderboard=buildLeaderboard(users,profiles);
+  assert.deepEqual(completions["1-1"].map(r=>r.name),["Alex","Alex","Public player name"]);
+  assert.deepEqual(leaderboard.map(r=>r.name),["Alex","Alex","Public player name"]);
+  const output=JSON.stringify({completions,leaderboard});
+  for(const privateValue of ["PrivateSurname","hidden@example.test","private-id-a","Player without a linked profile"]) assert.equal(output.includes(privateValue),false);
+});
 test("leaderboard unlocks level two for any two different modes", () => {
   const rows=buildLeaderboard([{id:"a",monsterBotWins:["1-5","1-9"]}],new Map());
   assert.equal(rows[0].level,2);
@@ -14,11 +27,11 @@ test("counts one completion per player and format without exposing private accou
     { id: "c", monsterBotWins: ["1-1"] },
     { id: "d", linkedPlayerKey: "rob", monsterBotWins: ["1-1", "10-7"] }
   ], new Map([["nick", { publicName: "Nick" }], ["rob", { publicName: "Rob" }]]));
-  assert.deepEqual(result["1-1"].map(r => r.name), ["Nick", "Player without a linked profile", "Rob"]);
+  assert.deepEqual(result["1-1"].map(r => r.name), ["Nick", "Player", "Rob"]);
   assert.deepEqual(result["1-3"].map(r => r.name), ["Nick"]);
   assert.deepEqual(result["10-7"].map(r => r.name), ["Rob"]);
   assert.equal(Object.keys(result).length, 60);
-  assert.deepEqual(result["level-1"].map(r => r.name), ["Nick", "Player without a linked profile", "Rob"]);
+  assert.deepEqual(result["level-1"].map(r => r.name), ["Nick", "Player", "Rob"]);
   assert.equal(result["10-7"][0].results[0].won, null);
   assert.equal(JSON.stringify(result).includes("private@example.test"), false);
   assert.equal(JSON.stringify(result).includes("Private Name"), false);
