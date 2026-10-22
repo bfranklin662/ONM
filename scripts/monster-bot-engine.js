@@ -1,8 +1,9 @@
 (function (root) {
   "use strict";
   const MODES = [1, 3, 5, 7];
+  const NAMES = ["Billy Bot", "Croft Bot", "Venton Bot", "Istan Bot", "Nick Bot", "Ricky Bot", "Aussie Bot", "Andre Bot", "Bailey Bot", "Filip Bot"];
   const LEVELS = Array.from({ length: 10 }, (_, i) => ({
-    level: i + 1, average: 35 + i * 5, firstNine: [40 + i * 5, 45 + i * 5],
+    level: i + 1, name: NAMES[i], average: 35 + i * 5, firstNine: [40 + i * 5, 45 + i * 5],
     checkout: [7 + i, 15 + i], middle: [37.3, 46.7, 57.4, 68.7, 81.6, 95.2, 114.4, 139, 191, 165][i]
   }));
   const singles = Array.from({ length: 20 }, (_, i) => i + 1);
@@ -66,7 +67,8 @@
     }
     return { average: legs * 501 * 3 / darts, firstNine: firstNine / legs / 3, checkout: legs / attempts * 100 };
   }
-  const api = { MODES, LEVELS, checkoutPossible, validateVisit, botVisit, simulate };
+  const isUnlocked = (level, wins) => level === 1 || MODES.some(mode => wins.has(`${level - 1}-${mode}`));
+  const api = { MODES, LEVELS, isUnlocked, checkoutPossible, validateVisit, botVisit, simulate };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.MonsterBotEngine = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

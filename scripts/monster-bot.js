@@ -1,21 +1,24 @@
 (function () {
   "use strict";
   const E = window.MonsterBotEngine, $ = id => document.getElementById(id);
-  let selected = 1, match = null, undo = null, timer = null, user = null, progress = new Set(), storageKey = "", busy = false, ready = false;
+  let match = null, undo = null, timer = null, user = null, progress = new Set(), storageKey = "", busy = false, ready = false;
   const validKeys = new Set(E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)));
+  const modes = new Map();
+  const botName = level => E.LEVELS[level - 1].name;
   const safeLoad = key => { try { return JSON.parse(localStorage.getItem(key) || "[]").filter(value => validKeys.has(value)); } catch { return []; } };
   const escape = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   function renderLevels() {
     let complete = 0;
-    $("botLevels").innerHTML = E.LEVELS.map(p => {
+    const scrollTop = $("botLevels").scrollTop;
+    $("botLevels").innerHTML = [...E.LEVELS].reverse().map(p => {
       const wins = E.MODES.filter(mode => progress.has(`${p.level}-${mode}`));
       const gold = wins.length === 4;
+      const unlocked = E.isUnlocked(p.level, progress);
       if (gold) complete++;
-      return `<button type="button" class="botLevel ${gold ? "complete" : ""}" data-level="${p.level}" aria-pressed="${selected === p.level}"><span class="levelTitle"><span>Monster ${p.level}</span><span class="${gold ? "gold" : ""}">${gold ? "☑ Complete" : wins.length ? "✓ Beaten" : ""}</span></span><span class="levelStats">${p.average} avg · First 9: ${p.firstNine.join("–")} · Checkout: ${p.checkout.join("–")}%</span><span class="modeMarks">${E.MODES.map(mode => `<span class="${gold ? "gold" : progress.has(`${p.level}-${mode}`) ? "won" : ""}">${progress.has(`${p.level}-${mode}`) ? "✓" : "○"} Best of ${mode}</span>`).join("")}</span></button>`;
+      return `<article class="botLevel ${gold ? "complete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}"><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><span class="${gold ? "gold" : ""}">${gold ? "☑ Complete" : wins.length ? "✓ Beaten" : unlocked ? "" : "🔒 Locked"}</span></div><span class="levelStats">${p.average} average</span><div class="modeMarks">${E.MODES.map(mode => `<span class="${gold ? "gold" : progress.has(`${p.level}-${mode}`) ? "won" : ""}">${progress.has(`${p.level}-${mode}`) ? "✓" : "○"} Best of ${mode}</span>`).join("")}</div><div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" ${unlocked ? "" : "disabled"}>${E.MODES.map(mode => `<option value="${mode}" ${(modes.get(p.level) || 1) === mode ? "selected" : ""}>Best of ${mode} ${mode === 1 ? "leg" : "legs"}</option>`).join("")}</select><button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked && ready ? "" : "disabled"}>Play ${p.name}</button></div>${unlocked ? "" : `<p class="lockedHint">Beat ${botName(p.level - 1)} in any format to unlock.</p>`}</article>`;
     }).join("");
     $("progressSummary").textContent = `${progress.size} / 40 formats won · ${complete} / 10 levels complete`;
-    $("startMatch").textContent = `Play Level ${selected}`;
-    $("startMatch").disabled = !ready;
+    $("botLevels").scrollTop = scrollTop;
   }
   async function loadProgress() {
     renderLevels();
@@ -34,6 +37,7 @@
     } else $("saveStatus").textContent = "Guest progress saves on this browser. Sign in before playing to save to your account.";
     ready = true;
     renderLevels();
+    $("botLevels").scrollTop = $("botLevels").scrollHeight;
   }
   async function saveWin(game) {
     const key = `${game.level}-${game.bestOf}`;
@@ -50,17 +54,17 @@
     renderLevels();
   }
   function newPlayer() { return { remaining: 501, legs: 0, points: 0, darts: 0, legDarts: 0 }; }
-  function begin() {
-    if (!ready) return;
+  function begin(level, bestOf) {
+    if (!ready || !E.LEVELS.some(p => p.level === level) || !E.MODES.includes(bestOf) || !E.isUnlocked(level, progress)) return;
     clearTimeout(timer);
     const starter = $("firstThrow").value;
-    match = { level: selected, bestOf: Number($("bestOf").value), leg: 1, starter: starter === "random" ? (Math.random() < 0.5 ? "player" : "bot") : starter, player: newPlayer(), bot: newPlayer(), history: [], ended: false, legEnded: false };
+    match = { level, bestOf, leg: 1, starter: starter === "random" ? (Math.random() < 0.5 ? "player" : "bot") : starter, player: newPlayer(), bot: newPlayer(), history: [], ended: false, legEnded: false };
     match.turn = match.starter;
     undo = null; busy = false;
     $("challengeSetup").hidden = true; $("matchPanel").hidden = false;
     $("matchFormat").textContent = `501 · Best of ${match.bestOf} · First to ${(match.bestOf + 1) / 2} ${match.bestOf === 1 ? "leg" : "legs"}`;
-    $("matchTitle").textContent = `You vs Monster ${match.level}`;
-    $("botName").textContent = `Monster ${match.level}`;
+    $("matchTitle").textContent = `You vs ${botName(match.level)}`;
+    $("botName").textContent = botName(match.level);
     renderMatch(); scheduleBot();
   }
   function renderMatch() {
@@ -76,10 +80,10 @@
     $("undoVisit").disabled = !undo || busy || match.ended;
     $("nextLeg").hidden = !match.legEnded || match.ended;
     $("backToLevels").hidden = !match.ended;
-    if (match.ended) $("turnStatus").textContent = match.player.legs > match.bot.legs ? `You win ${match.player.legs}–${match.bot.legs}! ${E.MODES.every(mode => progress.has(`${match.level}-${mode}`)) ? "☑ Gold level complete!" : "✓ Format beaten."}` : `Monster ${match.level} wins ${match.bot.legs}–${match.player.legs}. Try again!`;
-    else if (match.legEnded) $("turnStatus").textContent = `${match.player.remaining === 0 ? "You win" : "Monster wins"} leg ${match.leg}.`;
+    if (match.ended) $("turnStatus").textContent = match.player.legs > match.bot.legs ? `You win ${match.player.legs}–${match.bot.legs}! ${E.MODES.every(mode => progress.has(`${match.level}-${mode}`)) ? "☑ Gold level complete!" : "✓ Format beaten."}${match.level < 10 ? ` ${botName(match.level + 1)} unlocked!` : ""}` : `${botName(match.level)} wins ${match.bot.legs}–${match.player.legs}. Try again!`;
+    else if (match.legEnded) $("turnStatus").textContent = `${match.player.remaining === 0 ? "You win" : botName(match.level) + " wins"} leg ${match.leg}.`;
     else $("turnStatus").textContent = `Leg ${match.leg} · ${match.turn === "player" ? "Your throw" : "Monster is throwing…"}`;
-    $("visitHistory").innerHTML = [...match.history].reverse().map(v => `<li><span>${v.side === "player" ? "You" : `Monster ${match.level}`} · ${v.bust ? "Bust" : v.score}${v.remaining === 0 ? " · Checkout!" : ""}</span><small>${v.remaining} left · ${v.darts} darts${v.hits ? " · " + escape(v.hits.join(" / ")) : ""}</small></li>`).join("");
+    $("visitHistory").innerHTML = [...match.history].reverse().map(v => `<li><span>${v.side === "player" ? "You" : botName(match.level)} · ${v.bust ? "Bust" : v.score}${v.remaining === 0 ? " · Checkout!" : ""}</span><small>${v.remaining} left · ${v.darts} darts${v.hits ? " · " + escape(v.hits.join(" / ")) : ""}</small></li>`).join("");
   }
   function apply(side, visit) {
     const p = match[side];
@@ -120,8 +124,8 @@
     clearTimeout(timer); match = null; undo = null; busy = false;
     $("challengeSetup").hidden = false; $("matchPanel").hidden = true; renderLevels();
   }
-  $("botLevels").addEventListener("click", event => { const button = event.target.closest("[data-level]"); if (button) { selected = Number(button.dataset.level); renderLevels(); } });
-  $("startMatch").addEventListener("click", begin);
+  $("botLevels").addEventListener("change", event => { const select = event.target.closest("[data-mode-level]"); if (select) modes.set(Number(select.dataset.modeLevel), Number(select.value)); });
+  $("botLevels").addEventListener("click", event => { const button = event.target.closest("[data-play-level]"); if (button) { const level = Number(button.dataset.playLevel); begin(level, Number($("bot-mode-" + level).value)); } });
   $("scoreForm").addEventListener("submit", event => { event.preventDefault(); humanVisit(); });
   $("bustVisit").addEventListener("click", () => humanVisit(true));
   $("undoVisit").addEventListener("click", () => { if (!undo || busy || match.ended) return; match = undo; undo = null; $("scoreError").textContent = ""; renderMatch(); $("visitScore").focus(); });
