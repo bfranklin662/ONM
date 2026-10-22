@@ -67,8 +67,13 @@
     }
     return { average: legs * 501 * 3 / darts, firstNine: firstNine / legs / 3, checkout: legs / attempts * 100 };
   }
-  const isUnlocked = (level, wins) => level === 1 || MODES.some(mode => wins.has(`${level - 1}-${mode}`));
-  const api = { MODES, LEVELS, isUnlocked, checkoutPossible, validateVisit, botVisit, simulate };
+  const isUnlocked = (level, wins) => level === 1 || wins.has(`${level - 1}-1`) && wins.has(`${level - 1}-3`) && (level === 2 || MODES.every(mode => wins.has(`${level - 2}-${mode}`)));
+  function validWinningScore(key, score) {
+    const [level, mode] = key.split("-").map(Number), needed = (mode + 1) / 2;
+    return level >= 1 && level <= 10 && MODES.includes(mode) && score && score.won === needed && Number.isInteger(score.lost) && score.lost >= 0 && score.lost < needed;
+  }
+  const bestScore = (current, next) => !current || next.lost < current.lost ? next : current;
+  const api = { MODES, LEVELS, isUnlocked, validWinningScore, bestScore, checkoutPossible, validateVisit, botVisit, simulate };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.MonsterBotEngine = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

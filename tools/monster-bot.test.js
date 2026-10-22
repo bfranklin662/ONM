@@ -33,6 +33,7 @@ async function gameHarness(stored = new Map(), account = null) {
         doc: (_db, collection, uid) => `${collection}/${uid}`,
         getDoc: async () => ({ data: () => ({ monsterBotWins: ["2-3"] }) }),
         arrayUnion: (...values) => values,
+        runTransaction: async (_db, fn) => fn({ get: async () => ({ data: () => ({ monsterBotBestScores: {} }) }), update: (path, data) => writes.push({ path, data }) }),
         updateDoc: async (path, data) => writes.push({ path, data })
       } })
     }, addEventListener() {} },
@@ -77,7 +78,8 @@ test("signed-in progress loads and saves only on that user's account", async () 
   g.start(); g.score(180); g.bot(); g.score(180); g.bot(); g.score(141);
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(g.writes.at(-1).path, "users/test-member");
-  assert.deepEqual(Array.from(g.writes.at(-1).data.monsterBotWins), ["1-1"]);
+  assert.ok(Array.from(g.writes.at(-1).data.monsterBotWins).includes("1-1"));
+  assert.equal(g.writes.at(-1).data.monsterBotBestScores["1-1"].lost, 0);
   assert.ok(g.stored.has("onm-monster-bot-test-member"));
   assert.equal(g.stored.has("onm-monster-bot-guest"), false);
 });
@@ -91,11 +93,11 @@ test("invalid scores, busts, undo and abandoned matches never grant victories", 
   g.click("leaveMatch"); assert.equal(g.stored.size, 0);
 });
 
-test("ladder is descending and a single format victory unlocks only the next bot", async () => {
+test("ladder requires previous BO1/BO3 and all four formats two levels below", async () => {
   assert.equal(E.LEVELS[0].name, "Billy Bot"); assert.equal(E.LEVELS[9].name, "Filip Bot");
   for (const mode of E.MODES) {
     const wins = new Set([`1-${mode}`]);
-    assert.equal(E.isUnlocked(2, wins), true);
+    assert.equal(E.isUnlocked(2, wins), false);
     assert.equal(E.isUnlocked(3, wins), false);
   }
   const g = await gameHarness();
@@ -106,9 +108,30 @@ test("ladder is descending and a single format victory unlocks only the next bot
   assert.equal(g.element("matchTitle").textContent, "");
   g.start(); g.score(180); g.bot(); g.score(180); g.bot(); g.score(141);
   await new Promise(resolve => setImmediate(resolve));
+  g.click("backToLevels"); g.start(1, 3);
+  for (let leg = 0; leg < 2; leg++) {
+    if (leg) { g.click("nextLeg"); g.bot(); }
+    g.score(180); g.bot(); g.score(180); g.bot(); g.score(141);
+  }
+  await new Promise(resolve => setImmediate(resolve));
   g.click("backToLevels"); g.start(2, 3);
   assert.equal(g.element("matchTitle").textContent, "You vs Croft Bot");
   assert.match(g.element("matchFormat").textContent, /Best of 3/);
+  for (let level = 3; level <= 10; level++) {
+    const wins = new Set([`${level-1}-1`, `${level-1}-3`]);
+    assert.equal(E.isUnlocked(level,wins), false);
+    for (const mode of E.MODES) wins.add(`${level-2}-${mode}`);
+    assert.equal(E.isUnlocked(level,wins), true);
+    wins.delete(`${level-1}-3`); assert.equal(E.isUnlocked(level,wins), false);
+  }
+});
+test("best scores retain flawless gold and reject impossible results", () => {
+  assert.equal(E.validWinningScore("1-7", {won:4,lost:0}), true);
+  assert.equal(E.validWinningScore("1-7", {won:4,lost:1}), true);
+  assert.equal(E.validWinningScore("1-7", {won:4,lost:4}), false);
+  assert.equal(E.validWinningScore("1-3", {won:4,lost:0}), false);
+  assert.deepEqual(E.bestScore({won:4,lost:0},{won:4,lost:1}), {won:4,lost:0});
+  assert.deepEqual(E.bestScore({won:4,lost:1},{won:4,lost:0}), {won:4,lost:0});
 });
 test("each bot finishes legal legs with the requested long-run profile", () => {
   for (const profile of E.LEVELS) {

@@ -9,11 +9,21 @@ function buildCompletions(users, profiles) {
     const identity = profile ? `player:${user.linkedPlayerKey}` : `account:${user.id}`;
     for (const win of new Set(Array.isArray(user.monsterBotWins) ? user.monsterBotWins : [])) {
       if (validWins.has(win)) {
-        groups.get(win).set(identity, name);
-        groups.get(`level-${win.split("-")[0]}`).set(identity, name);
+        const mode = Number(win.split("-")[1]), needed = (mode + 1) / 2;
+        const score = user.monsterBotBestScores?.[win];
+        const valid = score?.won === needed && Number.isInteger(score.lost) && score.lost >= 0 && score.lost < needed;
+        for (const groupKey of [win, `level-${win.split("-")[0]}`]) {
+          const row = groups.get(groupKey).get(identity) || { name, results: [] };
+          const previous = row.results.find(r => r.mode === mode);
+          const result = { mode, won: valid ? score.won : null, lost: valid ? score.lost : null, flawless: valid && score.lost === 0 };
+          if (!previous) row.results.push(result);
+          else if (valid && (previous.lost === null || result.lost < previous.lost)) Object.assign(previous, result);
+          row.results.sort((a,b) => a.mode - b.mode);
+          groups.get(groupKey).set(identity, row);
+        }
       }
     }
   }
-  return Object.fromEntries([...groups].map(([key, names]) => [key, [...names.values()].sort((a, b) => a.localeCompare(b))]));
+  return Object.fromEntries([...groups].map(([key, names]) => [key, [...names.values()].sort((a, b) => a.name.localeCompare(b.name))]));
 }
 module.exports = { buildCompletions };
