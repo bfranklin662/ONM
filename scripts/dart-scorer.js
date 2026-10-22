@@ -4625,7 +4625,7 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
       const nextPlayer = state.players[state.currentPlayer];
 
       announceDartVisit(visitScore);
-      announceRequiredScore(nextPlayer.score);
+      if (!BOT_MODE || state.currentPlayer === 0) announceRequiredScore(nextPlayer.score);
 
       if (shouldPlayFinishHim(nextPlayer)) {
         nextPlayer.finishHimPlayed = true;

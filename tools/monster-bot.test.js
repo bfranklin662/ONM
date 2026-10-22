@@ -62,6 +62,16 @@ test("real play buttons open the league scorer in bot mode and respect locks",as
   assert.equal(g.playButton(1,7),"dart-scorer.html?mode=bot&level=1&format=7");
   const visitor=await gameHarness(new Map(),null);assert.equal(visitor.playButton(),"");
 });
+test("dropdown selects the next unbeaten format and ticks completed formats",async()=>{
+  for (let count=0;count<=E.MODES.length;count++) {
+    const wins=E.MODES.slice(0,count).map(mode=>`1-${mode}`);
+    const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)]]));
+    const select=g.element("botLevels").innerHTML.match(/<select id="bot-mode-1"[^>]*>(.*?)<\/select>/)[1];
+    const next=E.MODES[count]||E.MODES[0];
+    assert.match(select,new RegExp(`<option value="${next}" selected>`));
+    for (const mode of E.MODES.slice(0,count)) assert.match(select,new RegExp(`>✓ ${E.modeLabel(mode)}</option>`));
+  }
+});
 
 test("visitors see only the first two levels and all modes but cannot play", async () => {
   const stored = new Map([["onm-monster-bot-guest",JSON.stringify(["1-1","1-3"])]]);
