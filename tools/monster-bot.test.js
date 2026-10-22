@@ -96,8 +96,22 @@ test("cards show flawless format counts beside wins, excluding missing and inval
   const stored=new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(scores)]]);
   const g=await gameHarness(stored);
   assert.match(g.element("botLevels").innerHTML,/✓ Beaten 4\/5<\/span><span class="gold flawlessCount">★ Flawless 2\/5/);
+  assert.match(g.element("botLevels").innerHTML,/<div class="completionMedals">/);
+  assert.doesNotMatch(g.element("botLevels").innerHTML,/Players who beat this bot|botCompletionTotal/);
   const noScores=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(["1-3"])]]));
   assert.match(noScores.element("botLevels").innerHTML,/✓ Beaten 1\/5<\/span><span class="gold flawlessCount">★ Flawless 0\/5/);
+});
+test("completion modal highlights the player's own result independently of community loading",async()=>{
+  for(const lost of [0,1]){
+    const stored=new Map([["onm-monster-bot-test-member",JSON.stringify(["1-3"])],["onm-monster-bot-test-member-scores",JSON.stringify({"1-3":{won:2,lost}})]]);
+    const g=await gameHarness(stored);
+    const open=key=>g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-community-key]"?{dataset:{communityKey:key}}:null}});
+    open("1-3");assert.equal(g.element("completionYourResult").hidden,false);
+    assert.match(g.element("completionYourResult").textContent,lost===0 ? /Flawless win · 2–0/ : /You've beaten this challenge · 2–1/);
+    assert.match(g.element("completionYourResult").className,lost===0 ? /gold/ : /won/);
+    open("1-5");assert.equal(g.element("completionYourResult").hidden,true);
+    assert.equal(g.element("saveStatus").hidden,true);
+  }
 });
 test("dropdown selects the next unbeaten format and ticks completed formats",async()=>{
   for (let count=0;count<=E.MODES.length;count++) {

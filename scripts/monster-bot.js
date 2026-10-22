@@ -77,6 +77,11 @@
     $("completionTitle").textContent = `${botName(level)} · ${parts[0] === "level" ? "All formats" : E.modeLabel(Number(parts[1]))}`;
     $("completionModeRules").hidden = parts[0] === "level" || Number(parts[1]) !== E.BULL_MODE;
     $("completionModeRules").textContent = BULL_RULES;
+    const ownScore = bestScores[completionKey], beaten = Boolean(user && progress.has(completionKey));
+    const flawless = beaten && E.validWinningScore(completionKey,ownScore) && ownScore.lost === 0;
+    $("completionYourResult").hidden = !beaten;
+    $("completionYourResult").className = `completionYourResult ${flawless ? "gold" : "won"}`;
+    $("completionYourResult").textContent = beaten ? `${flawless ? "★ Flawless win" : "✓ You've beaten this challenge"}${E.validWinningScore(completionKey,ownScore) ? ` · ${ownScore.won}–${ownScore.lost}` : ""}` : "";
     const names = community?.[completionKey] || [];
     $("completionStatus").textContent = community ? `${names.length} ${names.length === 1 ? "player has" : "players have"} won${names.length ? ":" : " this challenge yet."}` : communityError ? "Completion counts could not be loaded. Please retry." : "Loading completions…";
     $("completionNames").innerHTML = names.map(row => typeof row === "string" ? `<li>${escape(row)}<small>Score not recorded</small></li>` : `<li><strong>${escape(row.name)}</strong><div class="completionScores">${row.results.map(result => `<span class="${result.flawless ? "gold" : "won"}">${E.modeLabel(result.mode)}: ${result.won === null ? "Score not recorded" : `${result.won}–${result.lost}${result.flawless ? " · Flawless ✓" : " ✓"}`}</span>`).join("")}</div></li>`).join("");
@@ -118,9 +123,8 @@
       if (gold) complete++;
       const avatar = botAvatar(p.level) ? `<img class="botAvatar" src="${botAvatar(p.level)}" alt="${p.name} cartoon avatar">` : "";
       return `<article class="botLevel ${gold ? "complete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}">
-        <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><span class="${gold ? "gold" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span>${wins.length ? `<span class="gold flawlessCount">★ Flawless ${flawless}/${E.MODES.length}</span>` : ""}</div><span class="levelStats">${p.average} average</span></div></div>
+        <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><div class="completionMedals"><span class="${gold ? "gold" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span>${wins.length ? `<span class="gold flawlessCount">★ Flawless ${flawless}/${E.MODES.length}</span>` : ""}</div></div><span class="levelStats">${p.average} average</span></div></div>
         <div class="modeMarks">${E.MODES.map(mode => modeChip(p.level, mode)).join("")}</div>
-        <div class="botCompletionTotal">${communityButton(`level-${p.level}`, "Players who beat this bot")}</div>
         <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" >${E.MODES.map(mode => `<option value="${mode}" ${selectedMode === mode ? "selected" : ""} ${E.isFormatUnlocked(p.level,mode,progress) ? "" : "disabled"}>${progress.has(`${p.level}-${mode}`) ? "✓ " : ""}${E.modeLabel(mode)}${E.isFormatUnlocked(p.level,mode,progress) ? "" : " 🔒"}</option>`).join("")}</select>${!ready ? '<button type="button" class="primary" disabled>Loading account…</button>' : !user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked ? "" : "disabled"}>Play ${p.name}</button>`}</div>
         ${E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? "" : '<p class="lockedHint">🔒 Bull or Bust: beat BO1, BO3, BO5 and BO7 on this bot first.</p>'}
         <p id="bot-mode-rules-${p.level}" class="bullModeRules" ${selectedMode === E.BULL_MODE ? "" : "hidden"}>${BULL_RULES}</p>
@@ -132,12 +136,14 @@
   }
   async function loadProgress() {
     ready = false;
+    $("saveStatus").hidden = true;
     $("retryAccount").hidden = true;
     renderLevels();
     try { user = await window.ONMFirebase.currentFirebaseUser(); }
     catch {
       user = null;
       $("saveStatus").textContent = "Your sign-in could not be checked. Please retry; you do not need to create another account.";
+      $("saveStatus").hidden = false;
       $("retryAccount").hidden = false;
       renderLevels(); loadCommunity(); return;
     }
@@ -153,7 +159,7 @@
         // Retry wins that were saved on this device while offline.
         if (progress.size) await syncAccount();
         $("saveStatus").textContent = "Signed in. Progress synced to your account.";
-      } catch { $("saveStatus").textContent = "Signed in. Account sync is unavailable; progress saves on this device until you reconnect."; }
+      } catch { $("saveStatus").textContent = "Signed in. Account sync is unavailable; progress saves on this device until you reconnect."; $("saveStatus").hidden = false; }
     } else $("saveStatus").innerHTML = `No active sign-in was found in this browser. <a href="${authUrl("login")}">Sign in and return to the game</a> or <a href="${authUrl("register")}">sign up</a>.`;
     ready = true;
     renderLevels();
