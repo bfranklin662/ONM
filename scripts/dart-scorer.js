@@ -4636,7 +4636,9 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
     }
   }
 
-  if (BOT_MODE && legWon && state.winnerIndex === null) state.currentPlayer = 0;
+  if (BOT_MODE && legWon && state.winnerIndex === null) {
+    state.currentPlayer = (state.players[0].legs + state.players[1].legs) % 2;
+  }
   render();
   if (BOT_MODE) window.ONMMonsterScorer?.afterVisit({playerIndex, legWon});
 }

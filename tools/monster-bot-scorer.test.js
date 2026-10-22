@@ -117,12 +117,26 @@ test("bot matches cannot upload detailed statistics through the league save rout
   assert.equal((await ctx.postDartMatch({action:"saveDartMatch",match:{average:55}})).success,true);
   assert.equal(uploads,1);
 });
-test("every new leg starts with the player and a bot checkout ends the match",async()=>{
+test("the bot starts leg two automatically and a bot checkout can end the match",async()=>{
   const g=await harness({format:3});g.score(180);g.bot();g.score(180);g.bot();g.score(141);g.confirm();
-  assert.equal(g.state.players[0].legs,1);assert.equal(g.state.players[0].score,501);assert.equal(g.state.currentPlayer,0);
-  assert.equal([...g.timers.values()].filter(t=>t.delay===1000).length,0);
+  assert.equal(g.state.players[0].legs,1);assert.equal(g.state.players[0].score,501);assert.equal(g.state.currentPlayer,1);
+  assert.equal([...g.timers.values()].filter(t=>t.delay===1000).length,1);
+  assert.equal(g.els.submit.disabled,true);g.score(60);assert.equal(g.state.players[0].score,501);
+  g.bot();assert.equal(g.state.currentPlayer,0);assert.equal(g.state.players[1].score,471);
   const losing=await harness({botFinish:true});losing.score(60);losing.bot();assert.equal(losing.state.winnerIndex,1);
   assert.equal(losing.writes.some(w=>w.data.monsterBotWins),false);
+});
+test("leg starters alternate regardless of who won the previous leg",async()=>{
+  const g=await harness({format:7});
+  for(let leg=1;leg<=3;leg++){
+    if(leg===2) g.bot();
+    g.score(180);g.bot();g.score(180);g.bot();g.score(141);g.confirm();
+    assert.equal(g.state.currentPlayer,leg%2);
+    assert.equal([...g.timers.values()].filter(t=>t.delay===1000).length,leg%2);
+  }
+  const botWins=await harness({format:7,botFinish:true});
+  botWins.score(60);botWins.bot();assert.equal(botWins.state.players[1].legs,1);assert.equal(botWins.state.currentPlayer,1);
+  botWins.bot();assert.equal(botWins.state.players[1].legs,2);assert.equal(botWins.state.currentPlayer,0);
 });
 test("Bull or Bust enforces below-50 losses and an explicitly confirmed Bull finish",async()=>{
   const below=await harness({format:9});below.score(180);below.bot();below.score(180);below.bot();below.score(100);

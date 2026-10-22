@@ -300,7 +300,7 @@
   $("undoVisit").addEventListener("click", () => { if (!undo || busy || match.ended) return; match = undo; undo = null; $("scoreError").textContent = ""; renderMatch(); $("visitScore").focus(); });
   $("nextLeg").addEventListener("click", () => {
     if (!match?.legEnded || match.ended) return;
-    match.leg++; match.starter = "player";
+    match.leg++; match.starter = match.leg % 2 === 1 ? "player" : "bot";
     match.turn = match.starter; match.legEnded = false; undo = null;
     for (const side of ["player", "bot"]) { match[side].remaining = 501; match[side].legDarts = 0; }
     renderMatch(); scheduleBot();

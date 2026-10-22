@@ -153,7 +153,7 @@
       els.names[1].before(avatar);
       $("screenTitleText").textContent = "Monster Bot Ladder";
       els.gameTitleText.textContent = `501 · ${E.modeLabel(format)} · ${profile.name}`;
-      $("monsterBotNotice").textContent = bullMode ? "Bull or Bust: finish on Bull and confirm it at checkout. Below 50 loses. You throw first." : "You throw first every leg. The bot throws one second after your score announcement finishes.";
+      $("monsterBotNotice").textContent = bullMode ? "Bull or Bust: finish on Bull and confirm it at checkout. Below 50 loses. You throw first." : "You throw first in leg one; the starting player alternates each leg. The bot throws one second after the announcement finishes.";
       $("monsterBotNotice").classList.remove("hidden");
       active = true; state.currentPlayer = 0; syncMainViews("game"); render();
       enterScorerFullscreen();

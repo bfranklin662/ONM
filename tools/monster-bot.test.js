@@ -166,12 +166,16 @@ test("available avatars appear in the ladder and scorer without leaking into oth
   assert.equal(g.element("scorerBotAvatar").src, "graphics/bots/filip-bot.png?v=20261022-avatar");
 });
 
-test("match lengths, player-first legs, wins and gold progress survive reload", async () => {
+test("match lengths, alternating starters, wins and gold progress survive reload", async () => {
   const g = await gameHarness();
   for (const mode of E.STANDARD_MODES) {
     g.start(1, mode);
     for (let leg = 0; leg < (mode + 1) / 2; leg++) {
-      if (leg) { g.click("nextLeg"); assert.match(g.element("turnStatus").textContent,/Your throw/); }
+      if (leg) {
+        g.click("nextLeg");
+        assert.match(g.element("turnStatus").textContent,leg%2 ? /Monster is throwing/ : /Your throw/);
+        if(leg%2) g.bot();
+      }
       g.score(180); g.bot(); g.score(180); g.bot(); g.score(141);
     }
     await new Promise(resolve => setImmediate(resolve));
