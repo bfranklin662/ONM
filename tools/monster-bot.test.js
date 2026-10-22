@@ -228,12 +228,16 @@ test("auth failures offer retry, never an incorrect sign-up prompt", async () =>
   assert.match(g.element("saveStatus").textContent,/could not be checked/);
   g.start(); assert.equal(g.element("matchTitle").textContent,"");
 });
-test("rules popup opens and closes, and obsolete introductory controls are removed", async () => {
-  const g=await gameHarness();g.click("openRules");
-  assert.equal(g.element("rulesDialog").open,true);g.click("closeRules");
-  assert.equal(g.element("rulesDialog").open,false);
+test("help links to a separate rules page and obsolete introductory controls are removed", async () => {
   const html=fs.readFileSync(require.resolve("../monster-bot.html"),"utf8");
   assert.match(html,/Monster Bot Ladder/);assert.match(html,/Bull or Bust/);
+  assert.match(html,/<a id="openRules" href="monster-bot-help.html"/);
+  assert.match(html,/<h2>Leaderboard<\/h2>/);
+  assert.doesNotMatch(html,/id="rulesDialog"|Monster leaderboard/);
+  const help=fs.readFileSync(require.resolve("../monster-bot-help.html"),"utf8");
+  assert.match(help,/Help &amp; rules/);assert.match(help,/must finish on the Bullseye/);
+  assert.match(help,/From Level 2: beat the previous bot in any two modes/);
+  assert.match(help,/href="monster-bot.html"/);
   assert.doesNotMatch(html,/id="firstThrow"|10 monsters\. 5 match formats|Alternate first throw/);
 });
 

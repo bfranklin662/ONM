@@ -68,7 +68,8 @@
   }
   function communityButton(key, label, classes = "") {
     const count = community ? (community[key] || []).length : communityError ? "—" : "…";
-    return `<button type="button" class="completionCount ${classes}" data-community-key="${key}" aria-label="${label}, ${count} players completed. View players.">${label} <b>${count}</b></button>`;
+    const visibleLabel = label.replace(/^([✓○]) /, '<span class="completionMark" aria-hidden="true">$1</span> ');
+    return `<button type="button" class="completionCount ${classes}" data-community-key="${key}" aria-label="${label}, ${count} players completed. View players."><span class="completionLabel">${visibleLabel}</span><b>${count}</b></button>`;
   }
   function showCompletionList() {
     if (!completionKey) return;
@@ -330,9 +331,6 @@
   $("leaderboardTab").addEventListener("click", () => showTab(true));
   $("retryLeaderboard").addEventListener("click", () => loadCommunity(Boolean(user)));
   $("retryAccount").addEventListener("click", () => loadProgress());
-  $("openRules").addEventListener("click", () => $("rulesDialog").showModal());
-  $("closeRules").addEventListener("click", () => $("rulesDialog").close());
-  $("rulesDialog").addEventListener("click", event => { if (event.target === $("rulesDialog")) $("rulesDialog").close(); });
   window.addEventListener("beforeunload", event => { if (match && !match.ended) { event.preventDefault(); event.returnValue = ""; } });
   loadProgress().then(async () => {
     try {
