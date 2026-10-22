@@ -62,6 +62,20 @@ test("real play buttons open the league scorer in bot mode and respect locks",as
   assert.equal(g.playButton(1,7),"dart-scorer.html?mode=bot&level=1&format=7");
   const visitor=await gameHarness(new Map(),null);assert.equal(visitor.playButton(),"");
 });
+test("completion modal Play respects bot and format locks",async()=>{
+  const g=await gameHarness();
+  const open=key=>g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-community-key]"?{dataset:{communityKey:key}}:null}});
+  const play=(level,format)=>g.element("completionDialog").listeners.click({target:{closest:()=>({dataset:{completionLevel:String(level),completionFormat:String(format)}})}});
+  open("1-9");assert.match(g.element("completionActions").innerHTML,/disabled>Play Bull or Bust/);
+  assert.match(g.element("completionPlayHint").textContent,/Beat BO1, BO3, BO5 and BO7/);
+  play(1,9);assert.equal(g.playButton(1,9),"");
+  open("2-1");assert.match(g.element("completionActions").innerHTML,/disabled>Play BO1/);
+  play(2,1);assert.equal(g.playButton(2,1),"");
+  open("1-3");assert.doesNotMatch(g.element("completionActions").innerHTML,/disabled/);
+  play(1,3);assert.equal(g.playButton(1,3),"dart-scorer.html?mode=bot&level=1&format=3");
+  const unlocked=await gameHarness(new Map(),{uid:"test-member",seedWins:E.STANDARD_MODES.map(m=>`1-${m}`)});
+  assert.equal(unlocked.playButton(1,9),"dart-scorer.html?mode=bot&level=1&format=9");
+});
 test("any two distinct formats unlock Croft and cards show completed counts",async()=>{
   for(const first of E.MODES) for(const second of E.MODES) {
     assert.equal(E.isUnlocked(2,new Set([`1-${first}`,`1-${second}`])),first!==second);
@@ -78,7 +92,8 @@ test("dropdown selects the next unbeaten format and ticks completed formats",asy
     const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)]]));
     const select=g.element("botLevels").innerHTML.match(/<select id="bot-mode-1"[^>]*>(.*?)<\/select>/)[1];
     const next=E.MODES[count]||E.MODES[0];
-    assert.match(select,new RegExp(`<option value="${next}" selected>`));
+    assert.match(select,new RegExp(`<option value="${next}" selected[^>]*>`));
+    if(count<4) assert.match(select,/<option value="9"[^>]*disabled>Bull or Bust 🔒/);
     for (const mode of E.MODES.slice(0,count)) assert.match(select,new RegExp(`>✓ ${E.modeLabel(mode)}</option>`));
   }
 });
@@ -280,7 +295,7 @@ test("levels 5–10 require valid flawless scores in all five formats four level
   assert.equal(reloaded.element("matchTitle").textContent,"You vs Nick Bot");
 });
 test("Bull or Bust requires a possible Bull finish and explicit confirmation", async () => {
-  const g = await gameHarness(); g.start(1, E.BULL_MODE);
+  const g = await gameHarness(new Map(),{uid:"test-member",seedWins:E.STANDARD_MODES.map(m=>`1-${m}`)}); g.start(1, E.BULL_MODE);
   assert.match(g.element("matchFormat").textContent, /Bull or Bust/);
   g.score(180); g.bot(); g.score(180); g.bot(); g.score(91); g.bot();
   assert.equal(g.element("playerRemaining").textContent, 50);
@@ -291,7 +306,7 @@ test("Bull or Bust requires a possible Bull finish and explicit confirmation", a
   g.click("confirmBullCheckout");
   await new Promise(resolve => setImmediate(resolve));
   assert.match(g.element("turnStatus").textContent, /You win 1–0/);
-  assert.deepEqual(JSON.parse(g.stored.get("onm-monster-bot-test-member")), ["1-9"]);
+  assert.ok(JSON.parse(g.stored.get("onm-monster-bot-test-member")).includes("1-9"));
   assert.equal(E.validWinningScore("1-9", {won:1,lost:0}), true);
   assert.equal(E.bullCheckoutPossible(100,1), false);
   assert.equal(E.bullCheckoutPossible(170,3), true);
@@ -300,7 +315,7 @@ test("Bull or Bust requires a possible Bull finish and explicit confirmation", a
 
 test("Bull or Bust below 50, bust and non-Bull checkouts lose without saving", async () => {
   for (const action of ["below", "other", "bust", "impossible", "cancel"]) {
-    const g = await gameHarness(); g.start(1, E.BULL_MODE);
+    const g = await gameHarness(new Map(),{uid:"test-member",seedWins:E.STANDARD_MODES.map(m=>`1-${m}`)}); g.start(1, E.BULL_MODE);
     g.score(180); g.bot(); g.score(180); g.bot();
     if (action === "below") g.score(100);
     else if (action === "bust") g.click("bustVisit");

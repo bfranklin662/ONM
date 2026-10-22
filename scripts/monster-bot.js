@@ -5,6 +5,10 @@
   const validKeys = new Set(E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)));
   const modes = new Map();
   const authUrl = mode => `auth.html?mode=${mode}&redirect=monster-bot.html`;
+  const canPlay = (level,format) => ready && user && E.LEVELS.some(p=>p.level===level) && level <= E.highestUnlocked(progress,bestScores) && E.isFormatUnlocked(level,format,progress);
+  function playGame(level,format) {
+    if (canPlay(level,format)) window.location.href = `dart-scorer.html?mode=bot&level=${level}&format=${format}`;
+  }
   function focusBilly() {
     requestAnimationFrame(() => requestAnimationFrame(() => {
       const billy = $("bot-level-1");
@@ -74,6 +78,9 @@
     $("completionStatus").textContent = community ? `${names.length} ${names.length === 1 ? "player has" : "players have"} won${names.length ? ":" : " this challenge yet."}` : communityError ? "Completion counts could not be loaded. Please retry." : "Loading completions…";
     $("completionNames").innerHTML = names.map(row => typeof row === "string" ? `<li>${escape(row)}<small>Score not recorded</small></li>` : `<li><strong>${escape(row.name)}</strong><div class="completionScores">${row.results.map(result => `<span class="${result.flawless ? "gold" : "won"}">${E.modeLabel(result.mode)}: ${result.won === null ? "Score not recorded" : `${result.won}–${result.lost}${result.flawless ? " · Flawless ✓" : " ✓"}`}</span>`).join("")}</div></li>`).join("");
     $("retryCompletions").hidden = !communityError;
+    const formats = parts[0] === "level" ? E.MODES : [Number(parts[1])];
+    $("completionActions").innerHTML = formats.map(format => `<button type="button" class="primary" data-completion-level="${level}" data-completion-format="${format}" ${canPlay(level,format) ? "" : "disabled"}>Play ${E.modeLabel(format)}${E.isFormatUnlocked(level,format,progress) ? "" : " 🔒"}</button>`).join("");
+    $("completionPlayHint").textContent = !user ? "Sign in with a registered account to play." : level > E.highestUnlocked(progress,bestScores) ? "This bot is locked. Meet its ladder requirements first." : formats.includes(E.BULL_MODE) && !E.isFormatUnlocked(level,E.BULL_MODE,progress) ? "Beat BO1, BO3, BO5 and BO7 on this bot to unlock Bull or Bust." : "";
   }
   async function loadCommunity(refresh = false) {
     if (communityLoading) return communityLoading;
@@ -107,7 +114,8 @@
         <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><span class="${gold ? "gold" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span></div><span class="levelStats">${p.average} average</span></div></div>
         <div class="modeMarks">${E.MODES.map(mode => modeChip(p.level, mode)).join("")}</div>
         <div class="botCompletionTotal">${communityButton(`level-${p.level}`, "Players who beat this bot")}</div>
-        <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" >${E.MODES.map(mode => `<option value="${mode}" ${selectedMode === mode ? "selected" : ""}>${progress.has(`${p.level}-${mode}`) ? "✓ " : ""}${E.modeLabel(mode)}</option>`).join("")}</select>${!ready ? '<button type="button" class="primary" disabled>Loading account…</button>' : !user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked ? "" : "disabled"}>Play ${p.name}</button>`}</div>
+        <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" >${E.MODES.map(mode => `<option value="${mode}" ${selectedMode === mode ? "selected" : ""} ${E.isFormatUnlocked(p.level,mode,progress) ? "" : "disabled"}>${progress.has(`${p.level}-${mode}`) ? "✓ " : ""}${E.modeLabel(mode)}${E.isFormatUnlocked(p.level,mode,progress) ? "" : " 🔒"}</option>`).join("")}</select>${!ready ? '<button type="button" class="primary" disabled>Loading account…</button>' : !user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked ? "" : "disabled"}>Play ${p.name}</button>`}</div>
+        ${E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? "" : '<p class="lockedHint">🔒 Bull or Bust: beat BO1, BO3, BO5 and BO7 on this bot first.</p>'}
         ${requirements(p.level)}</article>`;
     }).join("");
     complete = E.LEVELS.filter(p => E.MODES.every(mode => progress.has(`${p.level}-${mode}`))).length;
@@ -163,7 +171,7 @@
   }
   function newPlayer() { return { remaining: 501, legs: 0, points: 0, darts: 0, legDarts: 0 }; }
   function begin(level, bestOf) {
-    if (!ready || !user || !E.LEVELS.some(p => p.level === level) || !E.MODES.includes(bestOf) || !E.isUnlocked(level, progress, bestScores)) return;
+    if (!canPlay(level,bestOf)) return;
     clearTimeout(timer);
     match = { level, bestOf, leg: 1, starter: "player", player: newPlayer(), bot: newPlayer(), history: [], ended: false, legEnded: false };
     match.turn = match.starter;
@@ -277,13 +285,15 @@
     const button = event.target.closest("[data-play-level]");
     if (button) {
       const level = Number(button.dataset.playLevel), format = Number($("bot-mode-" + level).value);
-      if (ready && user && E.LEVELS.some(p=>p.level===level) && E.MODES.includes(format) && level <= E.highestUnlocked(progress,bestScores)) {
-        window.location.href = `dart-scorer.html?mode=bot&level=${level}&format=${format}`;
-      }
+      playGame(level,format);
     }
   });
   $("closeCompletions").addEventListener("click", () => $("completionDialog").close());
-  $("completionDialog").addEventListener("click", event => { if (event.target === $("completionDialog")) $("completionDialog").close(); });
+  $("completionDialog").addEventListener("click", event => {
+    if (event.target === $("completionDialog")) { $("completionDialog").close(); return; }
+    const button = event.target.closest("[data-completion-format]");
+    if (button) playGame(Number(button.dataset.completionLevel),Number(button.dataset.completionFormat));
+  });
   $("retryCompletions").addEventListener("click", () => { $("completionStatus").textContent = "Loading completions…"; loadCommunity(Boolean(user)); });
   $("scoreForm").addEventListener("submit", event => { event.preventDefault(); humanVisit(); });
   $("bustVisit").addEventListener("click", () => humanVisit(true));

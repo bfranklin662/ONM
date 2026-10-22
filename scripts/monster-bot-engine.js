@@ -125,6 +125,9 @@
         return wins.has(key) && validWinningScore(key, score) && score.lost === 0;
       }));
   }
+  function isFormatUnlocked(level, mode, wins) {
+    return MODES.includes(mode) && (mode !== BULL_MODE || STANDARD_MODES.every(format => wins.has(`${level}-${format}`)));
+  }
   function validWinningScore(key, score) {
     const [level, mode] = key.split("-").map(Number), needed = legsNeeded(mode);
     return level >= 1 && level <= 10 && MODES.includes(mode) && score && score.won === needed && Number.isInteger(score.lost) && score.lost >= 0 && score.lost < needed;
@@ -135,7 +138,7 @@
     return level;
   }
   const bestScore = (current, next) => !current || next.lost < current.lost ? next : current;
-  const api = { MODES, STANDARD_MODES, BULL_MODE, modeLabel, legsNeeded, bullCheckoutPossible, possibleScore, COMMON_SCORES, BOT_EXCLUDED_SCORES, scoringDistribution, LEVELS, isUnlocked, highestUnlocked, validWinningScore, bestScore, checkoutPossible, validateVisit, botVisit, simulate };
+  const api = { MODES, STANDARD_MODES, BULL_MODE, modeLabel, legsNeeded, bullCheckoutPossible, possibleScore, COMMON_SCORES, BOT_EXCLUDED_SCORES, scoringDistribution, LEVELS, isUnlocked, isFormatUnlocked, highestUnlocked, validWinningScore, bestScore, checkoutPossible, validateVisit, botVisit, simulate };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.MonsterBotEngine = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

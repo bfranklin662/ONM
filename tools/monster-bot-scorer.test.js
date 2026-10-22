@@ -1,12 +1,12 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const E=require("../scripts/monster-bot-engine");
-async function harness({format=1,level=1,account={uid:"member"},botFinish=false}={}){
+async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null}={}){
   const nodes=new Map(),timers=new Map(),writes=[],stored=new Map();let nextTimer=0,bullSelected=false,authChanged;
   const element=id=>{if(!nodes.has(id))nodes.set(id,{id,value:"",textContent:"",hidden:false,disabled:false,dataset:{},classList:{add(){},remove(){},toggle(){}},querySelector(){return element("kicker");},querySelectorAll(){return [];},before(){},after(){},blur(){}});return nodes.get(id);};
   const player=()=>({score:501,legs:0,totalScored:0,dartsThrown:0,currentLegDarts:0,firstNineScored:0,firstNineDarts:0,currentLegFirstNineScored:0,currentLegFirstNineDarts:0,highScore:0,checkoutHits:0,checkoutAttempts:0,highestOut:0,oneEightys:0,bullOuts:0,legDarts:[],lastScore:null});
   const state={players:[player(),player()],currentPlayer:0,winnerIndex:null,visitHistory:[],legJustWon:false};
   const els=new Proxy({names:[element("name0"),element("name1")]},{get:(o,k)=>o[k]||element(k)});
-  const wins=E.LEVELS.flatMap(p=>E.MODES.map(m=>`${p.level}-${m}`));
+  const wins=seedWins || E.LEVELS.flatMap(p=>E.MODES.map(m=>`${p.level}-${m}`));
   const scores=Object.fromEntries(E.LEVELS.flatMap(p=>E.MODES.map(m=>[`${p.level}-${m}`,{won:E.legsNeeded(m),lost:0}])));
   const sdk={doc:(_db,c,id)=>`${c}/${id}`,getDoc:async()=>({data:()=>({firstName:"Nick",nickname:"Nickname",monsterBotWins:wins,monsterBotBestScores:scores})}),updateDoc:async(path,data)=>writes.push({path,data}),arrayUnion:(...a)=>a,runTransaction:async(_db,fn)=>fn({get:async()=>({data:()=>({})}),update:(path,data)=>writes.push({path,data})})};
   const ctx={BOT_MODE:true,params:new URLSearchParams(`level=${level}&format=${format}`),state,els,STARTING_SCORE:501,LEGS_TO_WIN:E.legsNeeded(format),MATCH_MODE:"local",STATS_MODE:"casual",pendingCheckoutPrompt:null,
@@ -115,4 +115,11 @@ test("Bull or Bust enforces below-50 losses and an explicitly confirmed Bull fin
 test("sign-out and quitting cancel a pending bot throw; guests must log in with a return URL",async()=>{
   const g=await harness();g.score(60);g.signOut();g.bot();assert.equal(g.state.players[1].score,501);assert.equal(g.ctx.window.location.href,"monster-bot.html");
   const guest=await harness({account:null});assert.match(guest.ctx.window.location.href,/auth.html\?mode=login&redirect=dart-scorer.html%3Fmode%3Dbot/);
+});
+test("a direct Bull or Bust scorer URL requires all four standard wins",async()=>{
+  const locked=await harness({format:9,seedWins:["1-1","1-3","1-5"]});
+  assert.equal(locked.ctx.window.location.href,"monster-bot.html");
+  assert.equal(locked.api.canPlay(),false);
+  const unlocked=await harness({format:9,seedWins:["1-1","1-3","1-5","1-7"]});
+  assert.equal(unlocked.api.canPlay(),true);
 });

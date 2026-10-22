@@ -141,7 +141,7 @@
         (data.monsterBotWins || []).forEach(win => wins.add(win));
         for (const [key,score] of Object.entries(data.monsterBotBestScores || {})) if (E.validWinningScore(key,score)) scores[key] = E.bestScore(E.validWinningScore(key,scores[key]) ? scores[key] : null,score);
       } catch { /* Retain this account's locally saved progress while offline. */ }
-      if (level > E.highestUnlocked(wins,scores)) { exit(); return; }
+      if (level > E.highestUnlocked(wins,scores) || !E.isFormatUnlocked(level,format,wins)) { exit(); return; }
       MATCH_MODE = "local"; STATS_MODE = "casual"; window.STATS_MODE = STATS_MODE;
       applyMatchSettings({startScore:501,gameType:"bestOf",legsCount:bullMode ? 1 : format,inMode:"straight"});
       newGame(); state.winnerIndex = null; state.matchStartedAt = new Date();
