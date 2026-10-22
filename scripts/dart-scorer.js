@@ -9,6 +9,7 @@ let STATS_MODE = "casual";
 window.STATS_MODE = STATS_MODE;
 
 const params = new URLSearchParams(window.location.search);
+const BOT_MODE = params.get("mode") === "bot";
 const PAGE_MODE = params.get("mode") === "league" ? "league" : "casual";
 
 function lockScorerZoom() {
@@ -1413,7 +1414,7 @@ function buildLocalMatchStatsData() {
       key: `local-${index}`,
       name: playerName(index),
       nationality: "",
-      photo: "graphics/logoWoText.png",
+      photo: BOT_MODE ? window.ONMMonsterScorer?.photo(index) || "graphics/logoWoText.png" : "graphics/logoWoText.png",
       legs: Number(player.legs || 0),
       stats: getPlayerStats(player),
       isWinner: state.winnerIndex === index,
@@ -1566,6 +1567,7 @@ function openMolVictoryScreen(matchData) {
   els.scorerCard?.classList.add("hidden");
 
   els.molVictoryOverlay?.classList.remove("hidden");
+  els.molVictoryOverlay?.setAttribute("aria-hidden", "false");
   els.molVictoryOverlay?.classList.toggle("casualVictory", isCasualResult);
   if (els.molVictoryOverlay) {
     els.molVictoryOverlay.dataset.resultMode = isCasualResult ? "casual" : "online";
@@ -1651,6 +1653,7 @@ function openMolVictoryScreen(matchData) {
   if (!isCasualResult) {
     updateMolResultPresence("viewing");
   }
+  if (BOT_MODE) window.ONMMonsterScorer?.showResult();
 }
 
 function buildTestMolVictoryData() {
@@ -2601,6 +2604,7 @@ function leaveMolVictoryScreenLocally() {
 }
 
 els.molVictoryCloseBtn?.addEventListener("click", async () => {
+  if (BOT_MODE) { window.ONMMonsterScorer?.exit(); return; }
   fullyStopDartAudio();
 
   if (els.molVictoryOverlay?.dataset.resultMode === "casual") {
@@ -2632,6 +2636,7 @@ els.molVictoryCloseBtn?.addEventListener("click", async () => {
 });
 
 els.molVictoryRematchBtn?.addEventListener("click", async () => {
+  if (BOT_MODE) { window.ONMMonsterScorer?.rematch(); return; }
   if (els.molVictoryOverlay?.dataset.resultMode === "casual") {
     fullyStopDartAudio();
     els.molVictoryOverlay?.classList.add("hidden");
@@ -2752,6 +2757,7 @@ els.quitConfirmOverlay.addEventListener("click", event => {
 });
 
 els.confirmQuitBtn.addEventListener("click", async () => {
+  if (BOT_MODE) { window.ONMMonsterScorer?.exit(); return; }
   fullyStopDartAudio();
   const wasMOLGame =
     MATCH_MODE === "online" ||
@@ -3459,6 +3465,7 @@ function render() {
   }
 
   syncCheckoutPhotoButton();
+  if (BOT_MODE) window.ONMMonsterScorer?.onRender();
 }
 
 function switchPlayer() {
@@ -3636,6 +3643,7 @@ function closeCheckoutPrompt() {
 }
 
 function submitScore() {
+  if (BOT_MODE) { window.ONMMonsterScorer?.submit(); return; }
   if (onlineMatchId && MATCH_MODE === "online") {
     submitOnlineScore();
     return;
@@ -4622,7 +4630,9 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
     }
   }
 
+  if (BOT_MODE && legWon && state.winnerIndex === null) state.currentPlayer = 0;
   render();
+  if (BOT_MODE) window.ONMMonsterScorer?.afterVisit({playerIndex, legWon});
 }
 
 function resetLeg() {
@@ -4637,6 +4647,7 @@ function resetLeg() {
 }
 
 function undoLastVisit() {
+  if (BOT_MODE) return;
   if (state.legJustWon) {
     els.input.blur();
     return;
@@ -5139,6 +5150,7 @@ async function saveFinishedDartMatch() {
 
 els.checkoutOverlay.addEventListener("click", event => {
   if (event.target !== els.checkoutOverlay) return;
+  if (BOT_MODE && window.ONMMonsterScorer?.cancelCheckout()) return;
 
   closeCheckoutPrompt();
   resetCheckoutPhotoDraft();
@@ -5149,6 +5161,7 @@ els.checkoutOverlay.addEventListener("click", event => {
 
 els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
   if (!pendingCheckoutPrompt) return;
+  if (BOT_MODE) { window.ONMMonsterScorer?.confirmCheckout(); return; }
 
   const doublesAttempted = pendingCheckoutPrompt.doubleOptions
     ? getSelectedPromptValue(els.doublePromptOptions)
@@ -5363,6 +5376,7 @@ document.querySelectorAll("#matchModeSwitch .toggleBtn").forEach(button => {
 });
 
 els.keypad.addEventListener("click", event => {
+  if (BOT_MODE && (state.currentPlayer !== 0 || state.winnerIndex !== null || !window.ONMMonsterScorer?.canPlay())) return;
   const button = event.target.closest("button");
   if (!button) return;
 
@@ -5931,6 +5945,7 @@ function toggleScorerFullscreen() {
 els.fullscreenBtn?.addEventListener("click", toggleScorerFullscreen);
 
 async function initDartScorerAuth() {
+  if (BOT_MODE) return;
   console.log("[DART DEBUG] initDartScorerAuth started");
   console.log("[DART DEBUG] PAGE_MODE:", PAGE_MODE);
   console.log("[DART DEBUG] ONMLiveDarts available:", !!window.ONMLiveDarts);
@@ -7792,6 +7807,7 @@ if (params.get("testCasualVictory") === "1") {
 }
 
 function initialisePageModeView() {
+  if (BOT_MODE) return;
   const title = document.getElementById("screenTitleText");
 
   if (PAGE_MODE === "casual") {

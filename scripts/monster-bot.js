@@ -274,7 +274,12 @@
     const completion = event.target.closest("[data-community-key]");
     if (completion) { completionKey = completion.dataset.communityKey; showCompletionList(); $("completionDialog").showModal(); return; }
     const button = event.target.closest("[data-play-level]");
-    if (button) { const level = Number(button.dataset.playLevel); begin(level, Number($("bot-mode-" + level).value)); }
+    if (button) {
+      const level = Number(button.dataset.playLevel), format = Number($("bot-mode-" + level).value);
+      if (ready && user && E.LEVELS.some(p=>p.level===level) && E.MODES.includes(format) && level <= E.highestUnlocked(progress,bestScores)) {
+        window.location.href = `dart-scorer.html?mode=bot&level=${level}&format=${format}`;
+      }
+    }
   });
   $("closeCompletions").addEventListener("click", () => $("completionDialog").close());
   $("completionDialog").addEventListener("click", event => { if (event.target === $("completionDialog")) $("completionDialog").close(); });

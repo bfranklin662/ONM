@@ -37,23 +37,31 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" })
         runTransaction: async (_db, fn) => fn({ get: async () => ({ data: () => ({ monsterBotBestScores: {} }) }), update: (path, data) => writes.push({ path, data }) }),
         updateDoc: async (path, data) => writes.push({ path, data })
       } })
-    }, addEventListener() {} },
+    }, location: {href:""}, addEventListener() {} },
     document: { getElementById: element },
     localStorage: { getItem: k => stored.get(k) || null, setItem: (k, v) => stored.set(k, v) },
     requestAnimationFrame: fn => fn(), setTimeout: fn => { callback = fn; return 1; }, clearTimeout: () => { callback = null; }, confirm: () => true, Math
   };
-  vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/monster-bot.js"), "utf8"), context);
+  // Retain coverage of the original scoring/progress implementation while
+  // separately checking that real ladder clicks route to the shared scorer.
+  vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/monster-bot.js"), "utf8").replace("  loadProgress().then", "  window.testBegin = begin;\n  loadProgress().then"), context);
   await new Promise(resolve => setImmediate(resolve));
   const click = id => element(id).listeners.click();
   const start = (level = 1, mode = 1) => {
     element(`bot-mode-${level}`).value = String(mode);
-    element("botLevels").listeners.click({ target: { closest: selector => selector === "[data-play-level]" ? ({ dataset: { playLevel: String(level) } }) : null } });
+    context.window.testBegin(level,mode);
   };
   const bot = () => { const fn = callback; callback = null; if (fn) fn(); };
   const score = n => { element("visitScore").value = String(n); element("scoreForm").listeners.submit({ preventDefault() {} }); };
   const signOut = async () => { account = null; authCallback(null); await new Promise(resolve => setImmediate(resolve)); };
-  return { element, click, bot, score, stored, writes, start, signOut };
+  const playButton = (level=1,mode=1) => {element(`bot-mode-${level}`).value=String(mode);element("botLevels").listeners.click({target:{closest:selector=>selector==="[data-play-level]"?{dataset:{playLevel:String(level)}}:null}});return context.window.location.href;};
+  return { element, click, bot, score, stored, writes, start, signOut, playButton };
 }
+test("real play buttons open the league scorer in bot mode and respect locks",async()=>{
+  const g=await gameHarness();assert.equal(g.playButton(2),"");
+  assert.equal(g.playButton(1,7),"dart-scorer.html?mode=bot&level=1&format=7");
+  const visitor=await gameHarness(new Map(),null);assert.equal(visitor.playButton(),"");
+});
 
 test("visitors see only the first two levels and all modes but cannot play", async () => {
   const stored = new Map([["onm-monster-bot-guest",JSON.stringify(["1-1","1-3"])]]);
