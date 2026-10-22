@@ -1659,7 +1659,10 @@ function openMolVictoryScreen(matchData) {
   if (!isCasualResult) {
     updateMolResultPresence("viewing");
   }
-  if (BOT_MODE) window.ONMMonsterScorer?.showResult();
+  if (BOT_MODE) {
+    window.ONMMonsterScorer?.showResult();
+    window.ONMMonsterScorer?.showUnlock();
+  }
 }
 
 function buildTestMolVictoryData() {

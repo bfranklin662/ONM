@@ -7,6 +7,17 @@
   const avatars = ["billy","croft","venton","istan","nick","ricky","aussie","andre","bailey","filip"];
   let user = null, active = false, timer = null, recorded = false, resultMessage = "", saving = null;
   let playerPhoto = "graphics/logoWoText.png";
+  let knownWins = new Set(), knownScores = {}, pendingUnlock = null, resultVisible = false;
+  function showUnlock() {
+    resultVisible = true;
+    if (!pendingUnlock) return;
+    const unlocked = pendingUnlock; pendingUnlock = null;
+    $("botUnlockedTitle").textContent = `You've unlocked ${unlocked.name}!`;
+    $("botUnlockedAvatar").src = `graphics/bots/${avatars[unlocked.level-1]}-bot.png`;
+    $("botUnlockedAvatar").alt = `${unlocked.name} avatar`;
+    $("botUnlockedDetail").textContent = `Level ${unlocked.level} · ${unlocked.average} average. Your next Monster is ready.`;
+    $("botUnlockedDialog").showModal();
+  }
   async function loadPlayerPhoto(account) {
     try {
       const resolved = await window.ONMSession?.resolveProfileImage?.(account);
@@ -38,6 +49,12 @@
     if (recorded || !user || state.winnerIndex !== 0) return;
     recorded = true;
     const score = {won:state.players[0].legs,lost:state.players[1].legs};
+    const previouslyUnlocked = E.highestUnlocked(knownWins,knownScores);
+    knownWins.add(key);
+    knownScores[key] = E.bestScore(E.validWinningScore(key,knownScores[key]) ? knownScores[key] : null,score);
+    const nowUnlocked = E.highestUnlocked(knownWins,knownScores);
+    if (nowUnlocked > previouslyUnlocked) pendingUnlock = E.LEVELS[nowUnlocked-1];
+    if (resultVisible) showUnlock();
     const local = localProgress(user.uid);
     local.wins = [...new Set([...local.wins,key])];
     local.scores[key] = E.bestScore(E.validWinningScore(key,local.scores[key]) ? local.scores[key] : null,score);
@@ -156,6 +173,7 @@
         for (const [key,score] of Object.entries(data.monsterBotBestScores || {})) if (E.validWinningScore(key,score)) scores[key] = E.bestScore(E.validWinningScore(key,scores[key]) ? scores[key] : null,score);
       } catch { /* Retain this account's locally saved progress while offline. */ }
       if (level > E.highestUnlocked(wins,scores) || !E.isFormatUnlocked(level,format,wins)) { exit(); return; }
+      knownWins = wins; knownScores = scores;
       loadPlayerPhoto(accountProfile);
       MATCH_MODE = "local"; STATS_MODE = "casual"; window.STATS_MODE = STATS_MODE;
       applyMatchSettings({startScore:501,gameType:"bestOf",legsCount:bullMode ? 1 : format,inMode:"straight"});
@@ -201,7 +219,8 @@
     }
   }
   function photo(index) { return index === 1 ? `graphics/bots/${avatars[level-1]}-bot.png` : playerPhoto; }
-  window.ONMMonsterScorer = {init,submit,confirmCheckout,afterVisit,onRender,showResult,exit,rematch,photo,cancelCheckout:()=>{if(bullMode && pendingCheckoutPrompt?.legWon){lose("Bull checkout was not confirmed.");return true;}return false;},canPlay:()=>active && state.currentPlayer === 0 && state.winnerIndex === null};
+  $("closeBotUnlocked").addEventListener("click",()=>$("botUnlockedDialog").close());
+  window.ONMMonsterScorer = {init,submit,confirmCheckout,afterVisit,onRender,showResult,showUnlock,exit,rematch,photo,cancelCheckout:()=>{if(bullMode && pendingCheckoutPrompt?.legWon){lose("Bull checkout was not confirmed.");return true;}return false;},canPlay:()=>active && state.currentPlayer === 0 && state.winnerIndex === null};
   window.addEventListener("pagehide",()=>{active=false;clearTimeout(timer);});
   init();
 })();

@@ -2,7 +2,7 @@ const test=require("node:test"),assert=require("node:assert/strict"),fs=require(
 const E=require("../scripts/monster-bot-engine");
 async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,profilePhoto=null}={}){
   const nodes=new Map(),timers=new Map(),writes=[],stored=new Map();let nextTimer=0,bullSelected=false,authChanged;
-  const element=id=>{if(!nodes.has(id))nodes.set(id,{id,value:"",textContent:"",hidden:false,disabled:false,dataset:{},classList:{add(){},remove(){},toggle(){}},querySelector(){return element("kicker");},querySelectorAll(){return [];},before(){},after(){},blur(){}});return nodes.get(id);};
+  const element=id=>{if(!nodes.has(id))nodes.set(id,{id,value:"",textContent:"",hidden:false,disabled:false,dataset:{},classList:{add(){},remove(){},toggle(){}},querySelector(){return element("kicker");},querySelectorAll(){return [];},before(){},after(){},blur(){},showModal(){this.open=true;},close(){this.open=false;},addEventListener(event,fn){(this.listeners ||= {})[event]=fn;}});return nodes.get(id);};
   const player=()=>({score:501,legs:0,totalScored:0,dartsThrown:0,currentLegDarts:0,firstNineScored:0,firstNineDarts:0,currentLegFirstNineScored:0,currentLegFirstNineDarts:0,highScore:0,checkoutHits:0,checkoutAttempts:0,highestOut:0,oneEightys:0,bullOuts:0,legDarts:[],lastScore:null});
   const state={players:[player(),player()],currentPlayer:0,winnerIndex:null,visitHistory:[],legJustWon:false};
   const els=new Proxy({names:[element("name0"),element("name1")]},{get:(o,k)=>o[k]||element(k)});
@@ -19,7 +19,7 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
     isDartCalloutBusy:()=>Boolean(ctx.audioBusy),launchFireworks(){},announceLegWon(){},announceDartVisit(){},announceRequiredScore:score=>{ctx.requiredCalls.push(score);},requiredCalls:[],shouldPlayFinishHim:()=>false,playDartCallout:(file,fallback,onBlocked)=>{ctx.callouts.push({file,onBlocked});},callouts:[],
     showImpossibleMessage:message=>{ctx.error=message;},getBullOutPromptConfig:()=>({bullOutOptions:["No","Yes"],bullOutDefault:"No"}),
     openCheckoutPrompt:config=>{ctx.pendingCheckoutPrompt=config;},closeCheckoutPrompt:()=>{ctx.pendingCheckoutPrompt=null;},getSelectedPromptValue:()=>3,
-    buildLocalMatchStatsData:()=>({}),openMolVictoryScreen:()=>{ctx.resultOpened=true;ctx.window.ONMMonsterScorer.showResult();}
+    buildLocalMatchStatsData:()=>({}),openMolVictoryScreen:()=>{ctx.resultOpened=true;ctx.window.ONMMonsterScorer.showResult();ctx.window.ONMMonsterScorer.showUnlock();}
   };
   vm.createContext(ctx);
   if(profilePhoto) ctx.window.ONMSession={resolveProfileImage:async()=>profilePhoto};
@@ -110,6 +110,22 @@ test("bot result identity uses the linked account photo and leaves the bot avata
   assert.equal(g.api.photo(0),"https://example.test/linked-player.jpg");
   assert.equal(g.api.photo(1),"graphics/bots/billy-bot.png");
   const fallback=await harness();assert.equal(fallback.api.photo(0),"graphics/logoWoText.png");
+});
+test("winning a new unlock celebrates the right bot once, without celebrating replays",async()=>{
+  const g=await harness({format:3,seedWins:["1-1"]});
+  for(let leg=0;leg<2;leg++){
+    if(leg) g.bot();
+    g.score(180);g.bot();g.score(180);g.bot();g.score(141);
+  }
+  g.ctx.openMolVictoryScreen();
+  const dialog=g.ctx.document.getElementById("botUnlockedDialog");
+  assert.equal(dialog.open,true);
+  assert.equal(g.ctx.document.getElementById("botUnlockedTitle").textContent,"You've unlocked Croft Bot!");
+  assert.equal(g.ctx.document.getElementById("botUnlockedAvatar").src,"graphics/bots/croft-bot.png");
+  g.ctx.document.getElementById("closeBotUnlocked").listeners.click();g.api.showUnlock();assert.equal(dialog.open,false);
+  const replay=await harness({seedWins:["1-1","1-3"]});
+  replay.score(180);replay.bot();replay.score(180);replay.bot();replay.score(141);replay.ctx.openMolVictoryScreen();
+  assert.notEqual(replay.ctx.document.getElementById("botUnlockedDialog").open,true);
 });
 test("highest visit is retained across legs and reported in final stats",async()=>{
   const g=await harness({format:3});

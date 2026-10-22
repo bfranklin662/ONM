@@ -6,6 +6,8 @@ body {
   background-attachment: fixed;
   min-height: 100vh;
 }
+.gameTileMonster{background:linear-gradient(115deg,#102e28,#111e2a);border-color:#477763;box-shadow:0 12px 35px #0003;transition:transform .2s,border-color .2s}.gameTileMonster:hover{transform:translateY(-3px);border-color:#a1e2b5}.gameTileMonster .monsterTileArt{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:20px 14px 14px;background:radial-gradient(ellipse at 50% 70%,#4b8053,#193b32 55%,#102820);min-height:280px}.monsterTileArt::before{content:"";position:absolute;width:230px;height:230px;border:1px solid #ffdd6440;border-radius:50%;top:35px;left:calc(50% - 115px);box-shadow:0 0 0 25px #9cdb9d09,0 0 0 50px #9cdb9d06}.monsterArtCast{display:flex;justify-content:center;align-items:end;isolation:isolate;margin:0 -15px}.monsterArtCast img{width:150px;height:190px;object-fit:contain;filter:drop-shadow(0 10px 12px #0008)}.monsterArtCast img+img{margin-left:-28px;transform:rotate(5deg)}.monsterArtCast img:first-child{transform:rotate(-5deg)}.gameTileMonster .monsterArtLabel{font-size:10px;letter-spacing:.18em;z-index:1;color:#ffe294}.gameTileMonster .monsterArtCaption{font-size:11px;color:#c1ddce;z-index:1}.gameTileMonster h2{font-size:clamp(24px,3vw,34px);line-height:1.1}.gameTileMonster .gameTileBody>p:not(.gameTileKicker){font-weight:500;font-size:15px;line-height:1.6;color:#bed1c7}.gameTileMonster .gameTileStats{flex-wrap:wrap}.gameTileMonster .gameTileStats span{font-size:11px}
+@media(prefers-reduced-motion:reduce){.gameTileMonster{transition:none}.gameTileMonster:hover{transform:none}}
 
 body::before {
   content: "";
