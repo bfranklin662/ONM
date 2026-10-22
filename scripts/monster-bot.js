@@ -4,6 +4,7 @@
   let match = null, undo = null, timer = null, user = null, progress = new Set(), storageKey = "", busy = false, ready = false;
   const validKeys = new Set(E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)));
   const modes = new Map();
+  const BULL_RULES = "Bull or Bust · BO1: you must win with a Bullseye (50) checkout and confirm Bull on the checkout prompt. Going below 50 without a Bull finish loses immediately. The bot plays normal double-out.";
   const authUrl = mode => `auth.html?mode=${mode}&redirect=monster-bot.html`;
   const canPlay = (level,format) => ready && user && E.LEVELS.some(p=>p.level===level) && level <= E.highestUnlocked(progress,bestScores) && E.isFormatUnlocked(level,format,progress);
   function playGame(level,format) {
@@ -74,6 +75,8 @@
     const parts = completionKey.split("-");
     const level = parts[0] === "level" ? Number(parts[1]) : Number(parts[0]);
     $("completionTitle").textContent = `${botName(level)} · ${parts[0] === "level" ? "All formats" : E.modeLabel(Number(parts[1]))}`;
+    $("completionModeRules").hidden = parts[0] === "level" || Number(parts[1]) !== E.BULL_MODE;
+    $("completionModeRules").textContent = BULL_RULES;
     const names = community?.[completionKey] || [];
     $("completionStatus").textContent = community ? `${names.length} ${names.length === 1 ? "player has" : "players have"} won${names.length ? ":" : " this challenge yet."}` : communityError ? "Completion counts could not be loaded. Please retry." : "Loading completions…";
     $("completionNames").innerHTML = names.map(row => typeof row === "string" ? `<li>${escape(row)}<small>Score not recorded</small></li>` : `<li><strong>${escape(row.name)}</strong><div class="completionScores">${row.results.map(result => `<span class="${result.flawless ? "gold" : "won"}">${E.modeLabel(result.mode)}: ${result.won === null ? "Score not recorded" : `${result.won}–${result.lost}${result.flawless ? " · Flawless ✓" : " ✓"}`}</span>`).join("")}</div></li>`).join("");
@@ -116,6 +119,7 @@
         <div class="botCompletionTotal">${communityButton(`level-${p.level}`, "Players who beat this bot")}</div>
         <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" >${E.MODES.map(mode => `<option value="${mode}" ${selectedMode === mode ? "selected" : ""} ${E.isFormatUnlocked(p.level,mode,progress) ? "" : "disabled"}>${progress.has(`${p.level}-${mode}`) ? "✓ " : ""}${E.modeLabel(mode)}${E.isFormatUnlocked(p.level,mode,progress) ? "" : " 🔒"}</option>`).join("")}</select>${!ready ? '<button type="button" class="primary" disabled>Loading account…</button>' : !user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked ? "" : "disabled"}>Play ${p.name}</button>`}</div>
         ${E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? "" : '<p class="lockedHint">🔒 Bull or Bust: beat BO1, BO3, BO5 and BO7 on this bot first.</p>'}
+        <p id="bot-mode-rules-${p.level}" class="bullModeRules" ${selectedMode === E.BULL_MODE ? "" : "hidden"}>${BULL_RULES}</p>
         ${requirements(p.level)}</article>`;
     }).join("");
     complete = E.LEVELS.filter(p => E.MODES.every(mode => progress.has(`${p.level}-${mode}`))).length;
@@ -278,7 +282,13 @@
     clearTimeout(timer); pendingCheckout = null; $("bullCheckoutDialog").close(); match = null; undo = null; busy = false;
     $("challengeSetup").hidden = false; $("matchPanel").hidden = true; renderLevels();
   }
-  $("botLevels").addEventListener("change", event => { const select = event.target.closest("[data-mode-level]"); if (select) modes.set(Number(select.dataset.modeLevel), Number(select.value)); });
+  $("botLevels").addEventListener("change", event => {
+    const select = event.target.closest("[data-mode-level]");
+    if (select) {
+      modes.set(Number(select.dataset.modeLevel), Number(select.value));
+      $("bot-mode-rules-" + select.dataset.modeLevel).hidden = Number(select.value) !== E.BULL_MODE;
+    }
+  });
   $("botLevels").addEventListener("click", event => {
     const completion = event.target.closest("[data-community-key]");
     if (completion) { completionKey = completion.dataset.communityKey; showCompletionList(); $("completionDialog").showModal(); return; }

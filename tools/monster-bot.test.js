@@ -67,11 +67,15 @@ test("completion modal Play respects bot and format locks",async()=>{
   const open=key=>g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-community-key]"?{dataset:{communityKey:key}}:null}});
   const play=(level,format)=>g.element("completionDialog").listeners.click({target:{closest:()=>({dataset:{completionLevel:String(level),completionFormat:String(format)}})}});
   open("1-9");assert.match(g.element("completionActions").innerHTML,/disabled>Play Bull or Bust/);
+  assert.equal(g.element("completionModeRules").hidden,false);
+  assert.match(g.element("completionModeRules").textContent,/must win with a Bullseye \(50\) checkout/);
+  assert.match(g.element("completionModeRules").textContent,/Going below 50/);
   assert.match(g.element("completionPlayHint").textContent,/Beat BO1, BO3, BO5 and BO7/);
   play(1,9);assert.equal(g.playButton(1,9),"");
   open("2-1");assert.match(g.element("completionActions").innerHTML,/disabled>Play BO1/);
   play(2,1);assert.equal(g.playButton(2,1),"");
   open("1-3");assert.doesNotMatch(g.element("completionActions").innerHTML,/disabled/);
+  assert.equal(g.element("completionModeRules").hidden,true);
   play(1,3);assert.equal(g.playButton(1,3),"dart-scorer.html?mode=bot&level=1&format=3");
   const unlocked=await gameHarness(new Map(),{uid:"test-member",seedWins:E.STANDARD_MODES.map(m=>`1-${m}`)});
   assert.equal(unlocked.playButton(1,9),"dart-scorer.html?mode=bot&level=1&format=9");
@@ -94,6 +98,7 @@ test("dropdown selects the next unbeaten format and ticks completed formats",asy
     const next=E.MODES[count]||E.MODES[0];
     assert.match(select,new RegExp(`<option value="${next}" selected[^>]*>`));
     if(count<4) assert.match(select,/<option value="9"[^>]*disabled>Bull or Bust 🔒/);
+    if(count===4) assert.match(g.element("botLevels").innerHTML,/<p id="bot-mode-rules-1" class="bullModeRules" >Bull or Bust/);
     for (const mode of E.MODES.slice(0,count)) assert.match(select,new RegExp(`>✓ ${E.modeLabel(mode)}</option>`));
   }
 });
