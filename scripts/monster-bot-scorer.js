@@ -126,8 +126,10 @@
       }
       const {db,firestoreSdk:sdk} = await window.ONMFirebase.ready;
       const local = localProgress(user.uid), scores = {...local.scores}, wins = new Set(local.wins);
+      let firstName = "";
       try {
         const snap = await sdk.getDoc(sdk.doc(db,"users",user.uid)), data = snap.data() || {};
+        firstName = typeof data.firstName === "string" ? data.firstName.trim() : "";
         (data.monsterBotWins || []).forEach(win => wins.add(win));
         for (const [key,score] of Object.entries(data.monsterBotBestScores || {})) if (E.validWinningScore(key,score)) scores[key] = E.bestScore(E.validWinningScore(key,scores[key]) ? scores[key] : null,score);
       } catch { /* Retain this account's locally saved progress while offline. */ }
@@ -135,8 +137,8 @@
       MATCH_MODE = "local"; STATS_MODE = "casual"; window.STATS_MODE = STATS_MODE;
       applyMatchSettings({startScore:501,gameType:"bestOf",legsCount:bullMode ? 1 : format,inMode:"straight"});
       newGame(); state.winnerIndex = null; state.matchStartedAt = new Date();
-      let name = "You";
-      try { const account = JSON.parse(localStorage.getItem("onmUser") || "null"); if (account?.uid === user.uid) name = account.nickname || account.firstName || "You"; } catch {}
+      let name = firstName || "You";
+      try { const account = JSON.parse(localStorage.getItem("onmUser") || "null"); if (!firstName && account?.uid === user.uid) name = account.firstName?.trim() || "You"; } catch {}
       setVisiblePlayerNames(name,profile.name);
       els.names.forEach(input => { input.readOnly = true; });
       const avatar = document.createElement("img"); avatar.className = "monsterScorerAvatar"; avatar.src = photo(1); avatar.alt = `${profile.name} avatar`;
@@ -146,6 +148,11 @@
       $("monsterBotNotice").textContent = bullMode ? "Bull or Bust: finish on Bull and confirm it at checkout. Below 50 loses. You throw first." : "You throw first every leg. Submit your score; the bot throws one second later.";
       $("monsterBotNotice").classList.remove("hidden");
       active = true; state.currentPlayer = 0; syncMainViews("game"); render();
+      enterScorerFullscreen();
+      window.addEventListener("pointerdown", () => {
+        if (!active || document.fullscreenElement) return;
+        document.documentElement?.requestFullscreen?.()?.catch?.(() => {});
+      }, {once:true});
       sdk.updateDoc(sdk.doc(db,"users",user.uid),{monsterBotStarted:true}).catch(()=>{});
       if (sdk && (await window.ONMFirebase.ready).authSdk?.onAuthStateChanged) {
         const {auth,authSdk} = await window.ONMFirebase.ready;

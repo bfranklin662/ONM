@@ -121,13 +121,13 @@ test("available avatars appear in the ladder and scorer without leaking into oth
   assert.match(g.element("botLevels").innerHTML, /venton-bot.png/);
   for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"],[4,"istan"],[5,"nick"],[6,"ricky"],[7,"aussie"],[8,"andre"],[9,"bailey"]]) {
     g.start(level);
-    assert.equal(g.element("scorerBotAvatar").src, `graphics/bots/${name}-bot.png`);
+    assert.equal(g.element("scorerBotAvatar").src, `graphics/bots/${name}-bot.png?v=20261022-avatar`);
     assert.equal(g.element("scorerBotAvatar").hidden, false);
     g.click("leaveMatch");
   }
   g.start(10);
   assert.equal(g.element("scorerBotAvatar").hidden, false);
-  assert.equal(g.element("scorerBotAvatar").src, "graphics/bots/filip-bot.png");
+  assert.equal(g.element("scorerBotAvatar").src, "graphics/bots/filip-bot.png?v=20261022-avatar");
 });
 
 test("match lengths, player-first legs, wins and gold progress survive reload", async () => {

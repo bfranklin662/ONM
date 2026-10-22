@@ -8,13 +8,13 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false}
   const els=new Proxy({names:[element("name0"),element("name1")]},{get:(o,k)=>o[k]||element(k)});
   const wins=E.LEVELS.flatMap(p=>E.MODES.map(m=>`${p.level}-${m}`));
   const scores=Object.fromEntries(E.LEVELS.flatMap(p=>E.MODES.map(m=>[`${p.level}-${m}`,{won:E.legsNeeded(m),lost:0}])));
-  const sdk={doc:(_db,c,id)=>`${c}/${id}`,getDoc:async()=>({data:()=>({monsterBotWins:wins,monsterBotBestScores:scores})}),updateDoc:async(path,data)=>writes.push({path,data}),arrayUnion:(...a)=>a,runTransaction:async(_db,fn)=>fn({get:async()=>({data:()=>({})}),update:(path,data)=>writes.push({path,data})})};
+  const sdk={doc:(_db,c,id)=>`${c}/${id}`,getDoc:async()=>({data:()=>({firstName:"Nick",nickname:"Nickname",monsterBotWins:wins,monsterBotBestScores:scores})}),updateDoc:async(path,data)=>writes.push({path,data}),arrayUnion:(...a)=>a,runTransaction:async(_db,fn)=>fn({get:async()=>({data:()=>({})}),update:(path,data)=>writes.push({path,data})})};
   const ctx={BOT_MODE:true,params:new URLSearchParams(`level=${level}&format=${format}`),state,els,STARTING_SCORE:501,LEGS_TO_WIN:E.legsNeeded(format),MATCH_MODE:"local",STATS_MODE:"casual",pendingCheckoutPrompt:null,
     window:{MonsterBotEngine:{...E,botVisit:(remaining,darts,profile)=>{ctx.lastBotProfile=profile.level;return botFinish?{score:remaining,remaining:0,darts:3,attempts:1,hits:[remaining]}:{score:30,remaining:remaining-30,darts:3,attempts:0,hits:[10,10,10]};}},ONMFirebase:{currentFirebaseUser:async()=>account,ready:Promise.resolve({db:{},firestoreSdk:sdk,auth:{},authSdk:{onAuthStateChanged:(_auth,fn)=>{authChanged=fn;}}})},location:{href:"",reload(){ctx.reloaded=true;}},addEventListener(){}},
     document:{body:{classList:{add(){},remove(){}}},getElementById:element,createElement:()=>element(`created${nodes.size}`),querySelector:()=>bullSelected?{dataset:{value:"Yes"}}:null},
     localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},
     setTimeout:(fn,delay)=>{const id=++nextTimer;timers.set(id,{fn,delay});return id;},clearTimeout:id=>timers.delete(id),Date,
-    syncMainViews(){},applyMatchSettings(){},newGame(){},setVisiblePlayerNames:(a,b)=>{els.names[0].value=a;els.names[1].value=b;},
+    enterScorerFullscreen(){ctx.fullscreen=true;},syncMainViews(){},applyMatchSettings(){},newGame(){},setVisiblePlayerNames:(a,b)=>{els.names[0].value=a;els.names[1].value=b;},
     render:()=>ctx.window.ONMMonsterScorer?.onRender(),switchPlayer(){state.currentPlayer=state.currentPlayer===0?1:0;},updateLegTarget(){ctx.LEGS_TO_WIN=E.legsNeeded(format);},resetLeg(){for(const p of state.players){p.score=501;p.currentLegDarts=0;}},
     launchFireworks(){},announceLegWon(){},announceDartVisit(){},announceRequiredScore(){},shouldPlayFinishHim:()=>false,playDartCallout(){},
     showImpossibleMessage:message=>{ctx.error=message;},getBullOutPromptConfig:()=>({bullOutOptions:["No","Yes"],bullOutDefault:"No"}),
@@ -39,6 +39,12 @@ test("shared scorer applies the human score, waits exactly one second, then retu
   g.score(60);assert.equal(g.state.players[0].score,441);
   g.bot();assert.equal(g.state.players[1].score,471);assert.equal(g.ctx.lastBotProfile,6);
   assert.equal(g.state.currentPlayer,0);assert.equal(g.els.submit.disabled,false);
+});
+test("bot games open fullscreen with the player's first name and the bot's name",async()=>{
+  const g=await harness();
+  assert.equal(g.els.names[0].value,"Nick");
+  assert.equal(g.els.names[1].value,"Billy Bot");
+  assert.equal(g.ctx.fullscreen,true);
 });
 test("human checkout uses the existing prompt, saves a gold win and never schedules a bot after victory",async()=>{
   const g=await harness();g.score(180);g.bot();g.score(180);g.bot();g.score(141);

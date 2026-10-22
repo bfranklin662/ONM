@@ -16,7 +16,7 @@
   let bestScores = {};
   const botName = level => E.LEVELS[level - 1].name;
   const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick", 6: "ricky", 7: "aussie", 8: "andre", 9: "bailey", 10: "filip" };
-  const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png` : "";
+  const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png?v=20261022-avatar` : "";
   function requirements(level) {
     const rows = [{ label: "Sign in with a registered account", met: Boolean(user) }];
     const won = (bot, modes) => modes.every(mode => progress.has(`${bot}-${mode}`));

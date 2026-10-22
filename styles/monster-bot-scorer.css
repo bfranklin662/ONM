@@ -3,4 +3,13 @@
 .monsterBotScorer .playerTop{height:46px;grid-template-columns:10px minmax(0,1fr) 32px;position:relative}.monsterBotScorer #playerTwoCard .playerTop{grid-template-columns:10px 42px minmax(0,1fr) 32px}.monsterBotScorer .playerTop>*{min-width:0}.monsterBotScorer .score{font-variant-numeric:tabular-nums}
 .monsterBotScorer #gameSettingsBtn,.monsterBotScorer #playTabBtn,.monsterBotScorer #leaderboardTabBtn{display:none!important}
 .monsterBotScorer #monsterBotResultStatus{font-size:13px;color:#8fdec2;text-align:center;line-height:1.5}
+.monsterBotScorer.scorer-fullscreen #screenTitleText,.monsterBotScorer.scorer-fullscreen #monsterBotNotice{display:none!important}
+.monsterBotScorer.scorer-fullscreen .scorerCard{grid-template-rows:42px 300px 32px minmax(0,1fr)!important}
+.monsterBotScorer.scorer-fullscreen .scoreboard{margin-bottom:0;min-height:0}
+.monsterBotScorer.scorer-fullscreen .playerScoreCard{min-height:0}
+.monsterBotScorer.scorer-fullscreen .scoreControlsWrap{display:grid;grid-template-rows:52px minmax(0,1fr);gap:8px;min-height:0}
+.monsterBotScorer.scorer-fullscreen .keypad{min-height:0;height:100%}
+.monsterBotScorer.scorer-fullscreen .keypad button{min-height:0}
+@media(max-width:600px){.monsterBotScorer.scorer-fullscreen .scorerCard{grid-template-rows:42px 255px 32px minmax(0,1fr)!important}}
+@media(max-height:650px){.monsterBotScorer.scorer-fullscreen .scorerCard{grid-template-rows:36px 190px 24px minmax(0,1fr)!important;gap:4px}}
 @media(max-width:600px){.monsterScorerAvatar{width:30px;height:36px}.monsterBotScorer .playerTop{height:36px;gap:5px}.monsterBotScorer #playerTwoCard .playerTop{grid-template-columns:9px 30px minmax(0,1fr) 28px}.monsterBotScorer .monsterBotNotice{font-size:11px}}
