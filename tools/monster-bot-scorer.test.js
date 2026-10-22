@@ -121,6 +121,7 @@ test("winning a new unlock celebrates the right bot once, without celebrating re
   const dialog=g.ctx.document.getElementById("botUnlockedDialog");
   assert.equal(dialog.open,true);
   assert.equal(g.ctx.document.getElementById("botUnlockedTitle").textContent,"You've unlocked Croft Bot!");
+  assert.match(g.ctx.document.getElementById("botUnlockedDetail").textContent,/40–45 average/);
   assert.equal(g.ctx.document.getElementById("botUnlockedAvatar").src,"graphics/bots/croft-bot.png");
   g.ctx.document.getElementById("closeBotUnlocked").listeners.click();g.api.showUnlock();assert.equal(dialog.open,false);
   const replay=await harness({seedWins:["1-1","1-3"]});

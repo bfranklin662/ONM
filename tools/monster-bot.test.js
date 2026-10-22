@@ -91,6 +91,12 @@ test("any two distinct formats unlock Croft and cards show completed counts",asy
     assert.match(g.element("botLevels").innerHTML,new RegExp(`class="won beatenCount">✓ Beaten ${count}/5`));
   }
 });
+test("bot cards display five-point average ranges for all ten levels",async()=>{
+  const wins=E.LEVELS.flatMap(p=>E.MODES.map(mode=>`${p.level}-${mode}`));
+  const scores=Object.fromEntries(E.LEVELS.flatMap(p=>E.MODES.map(mode=>[`${p.level}-${mode}`,{won:E.legsNeeded(mode),lost:0}])));
+  const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(scores)]]));
+  for(const p of E.LEVELS) assert.match(g.element("botLevels").innerHTML,new RegExp(`${p.average}–${p.average+5} average`));
+});
 test("cards show flawless format counts beside wins, excluding missing and invalid scores",async()=>{
   const wins=["1-1","1-3","1-5","1-7"];
   const scores={"1-1":{won:1,lost:0},"1-3":{won:2,lost:0},"1-5":{won:3,lost:1},"1-7":{won:99,lost:0},"1-9":{won:1,lost:0}};

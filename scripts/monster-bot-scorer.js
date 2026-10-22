@@ -15,7 +15,7 @@
     $("botUnlockedTitle").textContent = `You've unlocked ${unlocked.name}!`;
     $("botUnlockedAvatar").src = `graphics/bots/${avatars[unlocked.level-1]}-bot.png`;
     $("botUnlockedAvatar").alt = `${unlocked.name} avatar`;
-    $("botUnlockedDetail").textContent = `Level ${unlocked.level} · ${unlocked.average} average. Your next Monster is ready.`;
+    $("botUnlockedDetail").textContent = `Level ${unlocked.level} · ${unlocked.average}–${unlocked.average + 5} average. Your next Monster is ready.`;
     $("botUnlockedDialog").showModal();
   }
   async function loadPlayerPhoto(account) {
