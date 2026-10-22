@@ -63,7 +63,6 @@
   }
   function submit() {
     if (!active || state.currentPlayer !== 0 || state.winnerIndex !== null || pendingCheckoutPrompt) return;
-    if (!els.input.value.trim()) return;
     const score = Number(els.input.value), previousScore = state.players[0].score, remaining = previousScore - score;
     if (!E.possibleScore(score)) { showImpossibleMessage("Enter a possible score from 0 to 180"); return; }
     if (bullMode && remaining !== 0 && remaining < 50) { state.players[0].score = remaining; lose("Below 50 — Bull or Bust lost."); return; }
@@ -98,14 +97,23 @@
       return;
     }
     if (!active || state.currentPlayer !== 1 || timer !== null) return;
-    timer = setTimeout(() => {
-      timer = null;
-      if (!active || state.winnerIndex !== null || state.currentPlayer !== 1) return;
-      const player = state.players[1], previousScore = player.score;
-      const visit = E.botVisit(previousScore,player.currentLegDarts,profile);
-      els.submit.disabled = false;
-      applyVisit({playerIndex:1,visitScore:visit.score,previousScore,legWon:visit.remaining === 0,bust:Boolean(visit.bust),dartsUsed:visit.darts,doublesAttempted:visit.attempts || 0,bullOut:visit.remaining === 0 && visit.hits?.at(-1) === 50});
-    },1000);
+    function waitForAnnouncement() {
+      if (!active || state.winnerIndex !== null || state.currentPlayer !== 1) { timer = null; return; }
+      if (isDartCalloutBusy()) {
+        timer = setTimeout(waitForAnnouncement,100);
+        return;
+      }
+      timer = setTimeout(() => {
+        timer = null;
+        if (!active || state.winnerIndex !== null || state.currentPlayer !== 1) return;
+        if (isDartCalloutBusy()) { waitForAnnouncement(); return; }
+        const player = state.players[1], previousScore = player.score;
+        const visit = E.botVisit(previousScore,player.currentLegDarts,profile);
+        els.submit.disabled = false;
+        applyVisit({playerIndex:1,visitScore:visit.score,previousScore,legWon:visit.remaining === 0,bust:Boolean(visit.bust),dartsUsed:visit.darts,doublesAttempted:visit.attempts || 0,bullOut:visit.remaining === 0 && visit.hits?.at(-1) === 50});
+      },1000);
+    }
+    waitForAnnouncement();
   }
   function exit() {
     active = false; clearTimeout(timer); timer = null;
@@ -145,7 +153,7 @@
       els.names[1].before(avatar);
       $("screenTitleText").textContent = "Monster Bot Ladder";
       els.gameTitleText.textContent = `501 · ${E.modeLabel(format)} · ${profile.name}`;
-      $("monsterBotNotice").textContent = bullMode ? "Bull or Bust: finish on Bull and confirm it at checkout. Below 50 loses. You throw first." : "You throw first every leg. Submit your score; the bot throws one second later.";
+      $("monsterBotNotice").textContent = bullMode ? "Bull or Bust: finish on Bull and confirm it at checkout. Below 50 loses. You throw first." : "You throw first every leg. The bot throws one second after your score announcement finishes.";
       $("monsterBotNotice").classList.remove("hidden");
       active = true; state.currentPlayer = 0; syncMainViews("game"); render();
       enterScorerFullscreen();

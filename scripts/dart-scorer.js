@@ -1177,6 +1177,10 @@ function showDartVoiceToast(label) {
 
 
 
+function isDartCalloutBusy() {
+  return !isDartAudioSuppressed() && (dartAudioPlaying || dartAudioQueue.length > 0);
+}
+
 function playNextDartCallout() {
   if (dartAudioPlaying || !dartAudioQueue.length) return;
   if (isDartAudioSuppressed()) return;
@@ -5434,15 +5438,30 @@ if (els.newGame) {
 }
 
 let wakeLock = null;
+let wakeLockRequest = null;
 
 async function requestWakeLock() {
-  try {
-    if ("wakeLock" in navigator) {
-      wakeLock = await navigator.wakeLock.request("screen");
+  if (wakeLock && !wakeLock.released) return;
+  if (wakeLockRequest) return wakeLockRequest;
+  if (document.visibilityState !== "visible" || !document.body.classList.contains("scorer-fullscreen")) return;
+  wakeLockRequest = (async () => {
+    try {
+      if ("wakeLock" in navigator) {
+        const lock = await navigator.wakeLock.request("screen");
+        if (!document.body.classList.contains("scorer-fullscreen")) { await lock.release(); return; }
+        wakeLock = lock;
+        lock.addEventListener("release", () => {
+          if (wakeLock === lock) wakeLock = null;
+          if (document.visibilityState === "visible" && document.body.classList.contains("scorer-fullscreen")) {
+            setTimeout(requestWakeLock,1000);
+          }
+        });
+      }
+    } catch (err) {
+      console.warn("Wake lock failed:", err);
     }
-  } catch (err) {
-    console.warn("Wake lock failed:", err);
-  }
+  })();
+  try { await wakeLockRequest; } finally { wakeLockRequest = null; }
 }
 
 async function releaseWakeLock() {
@@ -5464,6 +5483,10 @@ document.addEventListener("visibilitychange", () => {
     requestWakeLock();
   }
 });
+
+// Retry after a user gesture if the browser declined the initial automatic request.
+document.addEventListener("pointerdown", () => { requestWakeLock(); }, {passive:true});
+window.addEventListener("pageshow", () => { requestWakeLock(); });
 
 function enterScorerFullscreen() {
   document.body.classList.add("scorer-fullscreen");

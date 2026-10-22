@@ -16,7 +16,7 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false}
     setTimeout:(fn,delay)=>{const id=++nextTimer;timers.set(id,{fn,delay});return id;},clearTimeout:id=>timers.delete(id),Date,
     enterScorerFullscreen(){ctx.fullscreen=true;},syncMainViews(){},applyMatchSettings(){},newGame(){},setVisiblePlayerNames:(a,b)=>{els.names[0].value=a;els.names[1].value=b;},
     render:()=>ctx.window.ONMMonsterScorer?.onRender(),switchPlayer(){state.currentPlayer=state.currentPlayer===0?1:0;},updateLegTarget(){ctx.LEGS_TO_WIN=E.legsNeeded(format);},resetLeg(){for(const p of state.players){p.score=501;p.currentLegDarts=0;}},
-    launchFireworks(){},announceLegWon(){},announceDartVisit(){},announceRequiredScore(){},shouldPlayFinishHim:()=>false,playDartCallout(){},
+    isDartCalloutBusy:()=>Boolean(ctx.audioBusy),launchFireworks(){},announceLegWon(){},announceDartVisit(){},announceRequiredScore(){},shouldPlayFinishHim:()=>false,playDartCallout(){},
     showImpossibleMessage:message=>{ctx.error=message;},getBullOutPromptConfig:()=>({bullOutOptions:["No","Yes"],bullOutDefault:"No"}),
     openCheckoutPrompt:config=>{ctx.pendingCheckoutPrompt=config;},closeCheckoutPrompt:()=>{ctx.pendingCheckoutPrompt=null;},getSelectedPromptValue:()=>3,
     buildLocalMatchStatsData:()=>({}),openMolVictoryScreen:()=>{ctx.resultOpened=true;ctx.window.ONMMonsterScorer.showResult();}
@@ -45,6 +45,24 @@ test("bot games open fullscreen with the player's first name and the bot's name"
   assert.equal(g.els.names[0].value,"Nick");
   assert.equal(g.els.names[1].value,"Billy Bot");
   assert.equal(g.ctx.fullscreen,true);
+});
+test("bot waits for the announcement to finish, then pauses another second",async()=>{
+  const g=await harness();g.ctx.audioBusy=true;g.score(60);
+  assert.equal([...g.timers.values()].filter(t=>t.delay===1000).length,0);
+  assert.equal(g.state.players[1].score,501);
+  const poll=()=>{const [id,t]=[...g.timers].find(([,t])=>t.delay===100);g.timers.delete(id);t.fn();};
+  poll();assert.equal(g.state.players[1].score,501);
+  g.ctx.audioBusy=false;poll();
+  assert.equal([...g.timers.values()].filter(t=>t.delay===1000).length,1);
+  g.bot();assert.equal(g.state.players[1].score,471);
+});
+test("empty Submit records a zero-score visit and hands the turn to the bot",async()=>{
+  const g=await harness();g.score("");
+  assert.equal(g.state.players[0].score,501);
+  assert.equal(g.state.players[0].dartsThrown,3);
+  assert.equal(g.state.players[0].lastScore,0);
+  assert.equal(g.state.currentPlayer,1);
+  g.bot();assert.equal(g.state.currentPlayer,0);
 });
 test("human checkout uses the existing prompt, saves a gold win and never schedules a bot after victory",async()=>{
   const g=await harness();g.score(180);g.bot();g.score(180);g.bot();g.score(141);
