@@ -88,6 +88,7 @@ test("any two distinct formats unlock Croft and cards show completed counts",asy
     const wins=E.MODES.slice(0,count).map(mode=>`1-${mode}`);
     const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)]]));
     assert.match(g.element("botLevels").innerHTML,new RegExp(`✓ Beaten ${count}/5`));
+    assert.match(g.element("botLevels").innerHTML,new RegExp(`class="won beatenCount">✓ Beaten ${count}/5`));
   }
 });
 test("cards show flawless format counts beside wins, excluding missing and invalid scores",async()=>{
@@ -244,7 +245,10 @@ test("auth failures offer retry, never an incorrect sign-up prompt", async () =>
 });
 test("help links to a separate rules page and obsolete introductory controls are removed", async () => {
   const html=fs.readFileSync(require.resolve("../monster-bot.html"),"utf8");
-  assert.match(html,/Monster Bot Ladder/);assert.match(html,/Bull or Bust/);
+  assert.match(html,/Monster Bot Game/);assert.match(html,/Bull or Bust/);
+  const card=fs.readFileSync(require.resolve("../games.html"),"utf8");
+  assert.match(card,/<h2>Monster Bot Game<\/h2>/);
+  assert.doesNotMatch(card,/Monster Bot Ladder/);
   assert.match(html,/<a id="openRules" href="monster-bot-help.html"/);
   assert.match(html,/<h2>Leaderboard<\/h2>/);
   assert.doesNotMatch(html,/id="rulesDialog"|Monster leaderboard/);

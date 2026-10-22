@@ -75,7 +75,7 @@
   }
   function showResult() {
     const kicker = els.molVictoryOverlay?.querySelector(".readyLeagueKicker");
-    if (kicker) kicker.textContent = "Monster Bot Ladder";
+    if (kicker) kicker.textContent = "Monster Bot Game";
     els.molVictoryTitle.textContent = `501 · ${E.modeLabel(format)}`;
     els.molVictoryCloseBtn.textContent = "Back to ladder";
     let status = $("monsterBotResultStatus");
@@ -184,7 +184,7 @@
       els.names.forEach(input => { input.readOnly = true; });
       const avatar = document.createElement("img"); avatar.className = "monsterScorerAvatar"; avatar.src = photo(1); avatar.alt = `${profile.name} avatar`;
       els.names[1].before(avatar);
-      $("screenTitleText").textContent = "Monster Bot Ladder";
+      $("screenTitleText").textContent = "Monster Bot Game";
       els.gameTitleText.textContent = `501 · ${E.modeLabel(format)} · ${profile.name}`;
       $("monsterBotNotice").textContent = bullMode ? "Bull or Bust: finish on Bull and confirm it at checkout. Below 50 loses. You throw first." : "You throw first in leg one; the starting player alternates each leg. The bot throws one second after the announcement finishes.";
       $("monsterBotNotice").classList.remove("hidden");
