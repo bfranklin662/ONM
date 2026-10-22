@@ -11,7 +11,7 @@
       const controller=new AbortController();
       try{
         return await withTimeout((async()=>{
-          const response=await fetchImpl(`https://europe-west2-${projectId}.cloudfunctions.net/getMonsterBotCompletions`,{method:"POST",headers:{"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({data:{refresh,version:3}}),signal:controller.signal});
+          const response=await fetchImpl(`https://europe-west1-${projectId}.cloudfunctions.net/getMonsterBotCommunityEurope`,{method:"POST",headers:{"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({data:{refresh,version:3}}),signal:controller.signal});
           if(!response.ok)throw new Error("Leaderboard service is temporarily unavailable.");
           const payload=await response.json(),data=payload.result||payload.data;
           if(payload.error||!data||!Array.isArray(data.leaderboard)||!data.completions||typeof data.completions!=="object"||Array.isArray(data.completions))throw new Error("Leaderboard response is unavailable.");

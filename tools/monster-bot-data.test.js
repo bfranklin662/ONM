@@ -6,7 +6,7 @@ test("public leaderboard loads without waiting for account or Firebase SDK readi
   let request;
   const data=await fetchCommunity({projectId:"oche-ness-monsters",fetchImpl:async(url,options)=>{request={url,options};return ok();}});
   assert.deepEqual(data,result);assert.equal(request.options.headers.Authorization,undefined);
-  assert.match(request.url,/\/getMonsterBotCompletions$/);
+  assert.equal(request.url,"https://europe-west1-oche-ness-monsters.cloudfunctions.net/getMonsterBotCommunityEurope");
   assert.equal(JSON.parse(request.options.body).data.version,3);
 });
 test("temporary server failures retry once and then recover",async()=>{

@@ -48,7 +48,7 @@ exports.setPlayerAvailability = callable((uid, data) => service.set(uid, data));
 const { buildCompletions, buildLeaderboard } = require("./bot-completions");
 let botCompletionCache = null;
 let botCompletionCacheAt = 0;
-exports.getMonsterBotCompletions = onCall(options, async request => {
+const getMonsterBotCompletions = async request => {
   const response = () => [2,3].includes(request.data?.version) ? botCompletionCache : { ...botCompletionCache, completions: Object.fromEntries(Object.entries(botCompletionCache.completions).map(([key,rows]) => [key, rows.map(row => row.name)])) };
   if (botCompletionCache && Date.now() - botCompletionCacheAt < 30000 && !(request.auth && request.data?.refresh === true)) return response();
   const db = getFirestore();
@@ -60,4 +60,6 @@ exports.getMonsterBotCompletions = onCall(options, async request => {
   botCompletionCache = { completions: buildCompletions(users,publicProfiles), leaderboard: buildLeaderboard(users,publicProfiles), updatedAt: new Date().toISOString() };
   botCompletionCacheAt = Date.now();
   return response();
-});
+};
+exports.getMonsterBotCompletions = onCall(options, getMonsterBotCompletions);
+exports.getMonsterBotCommunityEurope = onCall({ ...options, region: "europe-west1" }, getMonsterBotCompletions);
