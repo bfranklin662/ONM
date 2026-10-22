@@ -1,5 +1,5 @@
 "use strict";
-const validWins = new Set(Array.from({ length: 10 }, (_, i) => [1, 3, 5, 7].map(mode => `${i + 1}-${mode}`)).flat());
+const validWins = new Set(Array.from({ length: 10 }, (_, i) => [1, 3, 5, 7, 9].map(mode => `${i + 1}-${mode}`)).flat());
 function buildCompletions(users, profiles) {
   const groups = new Map([...validWins].map(key => [key, new Map()]));
   for (let level = 1; level <= 10; level++) groups.set(`level-${level}`, new Map());
@@ -9,7 +9,7 @@ function buildCompletions(users, profiles) {
     const identity = profile ? `player:${user.linkedPlayerKey}` : `account:${user.id}`;
     for (const win of new Set(Array.isArray(user.monsterBotWins) ? user.monsterBotWins : [])) {
       if (validWins.has(win)) {
-        const mode = Number(win.split("-")[1]), needed = (mode + 1) / 2;
+        const mode = Number(win.split("-")[1]), needed = mode === 9 ? 1 : (mode + 1) / 2;
         const score = user.monsterBotBestScores?.[win];
         const valid = score?.won === needed && Number.isInteger(score.lost) && score.lost >= 0 && score.lost < needed;
         for (const groupKey of [win, `level-${win.split("-")[0]}`]) {

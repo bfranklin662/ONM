@@ -6,15 +6,15 @@
   const modes = new Map();
   let bestScores = {};
   const botName = level => E.LEVELS[level - 1].name;
-  const avatarNames = { 1: "billy", 2: "croft", 3: "venton" };
+  const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan" };
   const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png` : "";
   function lockMessage(level) {
-    return `Beat ${botName(level - 1)} in BO1 and BO3${level > 2 ? `, and ${botName(level - 2)} in all four formats` : ""} to unlock.`;
+    return `Beat ${botName(level - 1)} in BO1 and BO3${level > 2 ? `, ${botName(level - 2)} in BO1/BO3/BO5/BO7` : ""}${level >= 4 ? `, and ${botName(level - 3)} in all five formats (including Bull or Bust)` : ""} to unlock.`;
   }
   function modeChip(level, mode) {
     const key = `${level}-${mode}`, won = progress.has(key), score = bestScores[key];
     const flawless = won && score?.lost === 0;
-    return communityButton(key, `${won ? "✓" : "○"} BO${mode}`, flawless ? "gold" : won ? "won" : "");
+    return communityButton(key, `${won ? "✓" : "○"} ${E.modeLabel(mode)}`, flawless ? "gold" : won ? "won" : "");
   }
   function readScores(key) {
     try { return Object.fromEntries(Object.entries(JSON.parse(localStorage.getItem(key) || "{}")).filter(([k,v]) => E.validWinningScore(k,v))); } catch { return {}; }
@@ -40,10 +40,10 @@
     if (!completionKey) return;
     const parts = completionKey.split("-");
     const level = parts[0] === "level" ? Number(parts[1]) : Number(parts[0]);
-    $("completionTitle").textContent = `${botName(level)} · ${parts[0] === "level" ? "All formats" : "BO" + parts[1]}`;
+    $("completionTitle").textContent = `${botName(level)} · ${parts[0] === "level" ? "All formats" : E.modeLabel(Number(parts[1]))}`;
     const names = community?.[completionKey] || [];
     $("completionStatus").textContent = community ? `${names.length} ${names.length === 1 ? "player has" : "players have"} won${names.length ? ":" : " this challenge yet."}` : communityError ? "Completion counts could not be loaded. Please retry." : "Loading completions…";
-    $("completionNames").innerHTML = names.map(row => typeof row === "string" ? `<li>${escape(row)}<small>Score not recorded</small></li>` : `<li><strong>${escape(row.name)}</strong><div class="completionScores">${row.results.map(result => `<span class="${result.flawless ? "gold" : "won"}">BO${result.mode}: ${result.won === null ? "Score not recorded" : `${result.won}–${result.lost}${result.flawless ? " · Flawless ✓" : " ✓"}`}</span>`).join("")}</div></li>`).join("");
+    $("completionNames").innerHTML = names.map(row => typeof row === "string" ? `<li>${escape(row)}<small>Score not recorded</small></li>` : `<li><strong>${escape(row.name)}</strong><div class="completionScores">${row.results.map(result => `<span class="${result.flawless ? "gold" : "won"}">${E.modeLabel(result.mode)}: ${result.won === null ? "Score not recorded" : `${result.won}–${result.lost}${result.flawless ? " · Flawless ✓" : " ✓"}`}</span>`).join("")}</div></li>`).join("");
     $("retryCompletions").hidden = !communityError;
   }
   async function loadCommunity(refresh = false) {
@@ -67,7 +67,7 @@
     const scrollTop = $("botLevels").scrollTop;
     $("botLevels").innerHTML = [...E.LEVELS].reverse().map(p => {
       const wins = E.MODES.filter(mode => progress.has(`${p.level}-${mode}`));
-      const gold = wins.length === 4;
+      const gold = wins.length === E.MODES.length;
       const unlocked = E.isUnlocked(p.level, progress);
       if (gold) complete++;
       const avatar = botAvatar(p.level) ? `<img class="botAvatar" src="${botAvatar(p.level)}" alt="${p.name} cartoon avatar">` : "";
@@ -75,10 +75,10 @@
         <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><span class="${gold ? "gold" : ""}">${gold ? "☑ Complete" : wins.length ? "✓ Beaten" : unlocked ? "" : "🔒 Locked"}</span></div><span class="levelStats">${p.average} average</span></div></div>
         <div class="modeMarks">${E.MODES.map(mode => modeChip(p.level, mode)).join("")}</div>
         <div class="botCompletionTotal">${communityButton(`level-${p.level}`, "Players who beat this bot")}</div>
-        <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" ${unlocked ? "" : "disabled"}>${E.MODES.map(mode => `<option value="${mode}" ${(modes.get(p.level) || 1) === mode ? "selected" : ""}>BO${mode}</option>`).join("")}</select><button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked && ready ? "" : "disabled"}>Play ${p.name}</button></div>
+        <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" ${unlocked ? "" : "disabled"}>${E.MODES.map(mode => `<option value="${mode}" ${(modes.get(p.level) || 1) === mode ? "selected" : ""}>${E.modeLabel(mode)}</option>`).join("")}</select><button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked && ready ? "" : "disabled"}>Play ${p.name}</button></div>
         ${unlocked ? "" : `<p class="lockedHint">${lockMessage(p.level)}</p>`}</article>`;
     }).join("");
-    $("progressSummary").textContent = `${progress.size} / 40 formats won · ${complete} / 10 levels complete`;
+    $("progressSummary").textContent = `${progress.size} / 50 formats won · ${complete} / 10 levels complete`;
     $("botLevels").scrollTop = scrollTop;
   }
   async function loadProgress() {
@@ -127,7 +127,8 @@
     match.turn = match.starter;
     undo = null; busy = false;
     $("challengeSetup").hidden = true; $("matchPanel").hidden = false;
-    $("matchFormat").textContent = `501 · Best of ${match.bestOf} · First to ${(match.bestOf + 1) / 2} ${match.bestOf === 1 ? "leg" : "legs"}`;
+    $("matchFormat").textContent = match.bestOf === E.BULL_MODE ? "501 · Bull or Bust · BO1 · Bull out only" : `501 · Best of ${match.bestOf} · First to ${E.legsNeeded(match.bestOf)} ${match.bestOf === 1 ? "leg" : "legs"}`;
+    $("bullRules").hidden = match.bestOf !== E.BULL_MODE;
     $("matchTitle").textContent = `You vs ${botName(match.level)}`;
     $("botName").textContent = botName(match.level);
     const avatar = $("scorerBotAvatar"), avatarPath = botAvatar(match.level);
@@ -160,7 +161,7 @@
     match.history.push({ side, ...visit });
     if (p.remaining === 0) {
       p.legs++; match.legEnded = true;
-      if (p.legs >= (match.bestOf + 1) / 2) {
+      if (p.legs >= E.legsNeeded(match.bestOf)) {
         match.ended = true; undo = null;
         if (side === "player") { const game = match; saveWin(game).then(() => { if (match === game) renderMatch(); }); }
       }
@@ -176,10 +177,25 @@
     }, 1100);
   }
   function humanVisit(bust = false) {
-    if (!match || busy || match.turn !== "player" || match.legEnded) return;
+    if (!match || busy || pendingCheckout || match.turn !== "player" || match.legEnded) return;
     const score = bust ? 0 : Number($("visitScore").value);
     if (!bust && $("visitScore").value.trim() === "") return;
     const darts = score === match.player.remaining ? Number($("checkoutDarts").value) : 3;
+    if (match.bestOf === E.BULL_MODE) {
+      if (bust) { loseBull("Bust — Bull or Bust lost."); return; }
+      if (!E.possibleScore(score)) { $("scoreError").textContent = "Enter a possible three-dart score from 0 to 180."; return; }
+      const remaining = match.player.remaining - score;
+      if (remaining === 0) {
+        pendingCheckout = { score, remaining, darts, bust: false };
+        $("bullCheckoutDialog").showModal();
+        return;
+      }
+      if (remaining < 50) {
+        match.player.remaining = remaining; match.player.points += score; match.player.darts += darts;
+        match.history.push({ side: "player", score, remaining, darts, bust: false });
+        loseBull("Below 50 — Bull or Bust lost."); return;
+      }
+    }
     const error = bust ? "" : E.validateVisit(match.player.remaining, score, darts);
     $("scoreError").textContent = error;
     if (error) return;
@@ -188,9 +204,26 @@
     $("visitScore").value = ""; $("checkoutDarts").value = "3";
     renderMatch(); scheduleBot();
   }
+  let pendingCheckout = null;
+  function loseBull(reason) {
+    pendingCheckout = null; undo = null; clearTimeout(timer); busy = false;
+    match.bot.legs = 1; match.ended = true; match.legEnded = true;
+    renderMatch(); $("turnStatus").textContent = `${reason} ${botName(match.level)} wins 1–0.`;
+  }
+  function confirmBull(isBull) {
+    if (!pendingCheckout || !match || match.ended) return;
+    const visit = pendingCheckout; pendingCheckout = null;
+    $("bullCheckoutDialog").close();
+    if (!isBull) { loseBull("Checkout was not on Bull — challenge lost."); return; }
+    if (!E.bullCheckoutPossible(visit.score, visit.darts)) { loseBull("That Bull checkout is not possible with those darts — challenge lost."); return; }
+    apply("player", visit); renderMatch();
+  }
+  $("confirmBullCheckout").addEventListener("click", () => confirmBull(true));
+  $("otherCheckout").addEventListener("click", () => confirmBull(false));
+  $("bullCheckoutDialog").addEventListener("cancel", event => { event.preventDefault(); confirmBull(false); });
   function levels() {
     if (match && !match.ended && !confirm("Leave this match? Unfinished matches do not earn completion ticks.")) return;
-    clearTimeout(timer); match = null; undo = null; busy = false;
+    clearTimeout(timer); pendingCheckout = null; $("bullCheckoutDialog").close(); match = null; undo = null; busy = false;
     $("challengeSetup").hidden = false; $("matchPanel").hidden = true; renderLevels();
   }
   $("botLevels").addEventListener("change", event => { const select = event.target.closest("[data-mode-level]"); if (select) modes.set(Number(select.dataset.modeLevel), Number(select.value)); });

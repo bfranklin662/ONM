@@ -1,5 +1,11 @@
 # Monster Bot avatars
 
+## Istan prompt
+
+Output: graphics/bots/istan-bot.png. Built-in image generation, transparent background.
+
+Use case: stylized-concept. Create Istan Bot, one funny darts-game avatar. Image 1 SUBJECT reference: man with short upright black hair, faint moustache and small goatee, small earring, plain black T-shirt, forearm tattoo, playful raised fist and darts in other hand. Preserve recognizable face and relaxed cheeky smirk. Image 2 EXACT STYLE reference Billy Bot: match polished hand-painted cartoon caricature, oversized expressive head, bold outline and dimensional warm shading, small metallic robot shoulder pieces and one cute glowing antenna. Chest-up single centered character, same scale and finish, genuinely transparent square background and safe margins, readable at 80px. No text, watermark, scenery, board, or extra people.
+
 Generated using the built-in image-generation tool. PNGs preserve transparent backgrounds.
 
 Billy: approved cartoon reference, originally generated from IMG_3882.jpg. The smiling bearded man in the patterned fleece is the subject. Original prompt is saved in the ONM documents workspace as billy-bot-concept-prompt.md.

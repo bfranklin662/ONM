@@ -20,7 +20,7 @@ async function gameHarness(stored = new Map(), account = null) {
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
       value: "", hidden: false, disabled: false, textContent: "", innerHTML: "", listeners: {},
-      classList: { toggle() {} }, focus() {}, querySelectorAll() { return []; },
+      showModal() { this.open = true; }, close() { this.open = false; }, classList: { toggle() {} }, focus() {}, querySelectorAll() { return []; },
       addEventListener(event, fn) { this.listeners[event] = fn; }
     });
     return elements.get(id);
@@ -57,19 +57,19 @@ test("available avatars appear in the ladder and scorer without leaking into oth
   const wins = E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`));
   const g = await gameHarness(new Map([["onm-monster-bot-guest", JSON.stringify(wins)]]));
   assert.match(g.element("botLevels").innerHTML, /venton-bot.png/);
-  for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"]]) {
+  for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"],[4,"istan"]]) {
     g.start(level);
     assert.equal(g.element("scorerBotAvatar").src, `graphics/bots/${name}-bot.png`);
     assert.equal(g.element("scorerBotAvatar").hidden, false);
     g.click("leaveMatch");
   }
-  g.start(4);
+  g.start(5);
   assert.equal(g.element("scorerBotAvatar").hidden, true);
 });
 
 test("match lengths, alternating starts, wins and gold progress survive reload", async () => {
   const g = await gameHarness();
-  for (const mode of E.MODES) {
+  for (const mode of E.STANDARD_MODES) {
     g.start(1, mode);
     for (let leg = 0; leg < (mode + 1) / 2; leg++) {
       if (leg) { g.click("nextLeg"); g.bot(); }
@@ -80,15 +80,15 @@ test("match lengths, alternating starts, wins and gold progress survive reload",
     g.click("backToLevels");
   }
   assert.deepEqual(JSON.parse(g.stored.get("onm-monster-bot-guest")).sort(), ["1-1", "1-3", "1-5", "1-7"]);
-  assert.match(g.element("botLevels").innerHTML, /☑ Complete/);
-  assert.match(g.element("progressSummary").textContent, /4 \/ 40 formats won · 1 \/ 10 levels complete/);
+  assert.doesNotMatch(g.element("botLevels").innerHTML, /☑ Complete/);
+  assert.match(g.element("progressSummary").textContent, /4 \/ 50 formats won · 0 \/ 10 levels complete/);
   const reloaded = await gameHarness(g.stored);
-  assert.match(reloaded.element("progressSummary").textContent, /4 \/ 40 formats won · 1 \/ 10 levels complete/);
+  assert.match(reloaded.element("progressSummary").textContent, /4 \/ 50 formats won · 0 \/ 10 levels complete/);
 });
 
 test("signed-in progress loads and saves only on that user's account", async () => {
   const g = await gameHarness(new Map(), { uid: "test-member" });
-  assert.match(g.element("progressSummary").textContent, /1 \/ 40/);
+  assert.match(g.element("progressSummary").textContent, /1 \/ 50/);
   g.start(); g.score(180); g.bot(); g.score(180); g.bot(); g.score(141);
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(g.writes.at(-1).path, "users/test-member");
@@ -109,7 +109,7 @@ test("invalid scores, busts, undo and abandoned matches never grant victories", 
 
 test("ladder requires previous BO1/BO3 and all four formats two levels below", async () => {
   assert.equal(E.LEVELS[0].name, "Billy Bot"); assert.equal(E.LEVELS[9].name, "Filip Bot");
-  for (const mode of E.MODES) {
+  for (const mode of E.STANDARD_MODES) {
     const wins = new Set([`1-${mode}`]);
     assert.equal(E.isUnlocked(2, wins), false);
     assert.equal(E.isUnlocked(3, wins), false);
@@ -134,11 +134,53 @@ test("ladder requires previous BO1/BO3 and all four formats two levels below", a
   for (let level = 3; level <= 10; level++) {
     const wins = new Set([`${level-1}-1`, `${level-1}-3`]);
     assert.equal(E.isUnlocked(level,wins), false);
-    for (const mode of E.MODES) wins.add(`${level-2}-${mode}`);
+    for (const mode of E.STANDARD_MODES) wins.add(`${level-2}-${mode}`);
+    if (level >= 4) {
+      for (const mode of E.STANDARD_MODES) wins.add(`${level-3}-${mode}`);
+      assert.equal(E.isUnlocked(level,wins), false);
+      wins.add(`${level-3}-${E.BULL_MODE}`);
+    }
     assert.equal(E.isUnlocked(level,wins), true);
     wins.delete(`${level-1}-3`); assert.equal(E.isUnlocked(level,wins), false);
   }
 });
+test("Bull or Bust requires a possible Bull finish and explicit confirmation", async () => {
+  const g = await gameHarness(); g.start(1, E.BULL_MODE);
+  assert.match(g.element("matchFormat").textContent, /Bull or Bust/);
+  g.score(180); g.bot(); g.score(180); g.bot(); g.score(91); g.bot();
+  assert.equal(g.element("playerRemaining").textContent, 50);
+  g.element("checkoutDarts").value = "1";
+  g.score(50);
+  assert.equal(g.element("bullCheckoutDialog").open, true);
+  assert.equal(g.stored.has("onm-monster-bot-guest"), false);
+  g.click("confirmBullCheckout");
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(g.element("turnStatus").textContent, /You win 1–0/);
+  assert.deepEqual(JSON.parse(g.stored.get("onm-monster-bot-guest")), ["1-9"]);
+  assert.equal(E.validWinningScore("1-9", {won:1,lost:0}), true);
+  assert.equal(E.bullCheckoutPossible(100,1), false);
+  assert.equal(E.bullCheckoutPossible(170,3), true);
+  assert.equal(E.bullCheckoutPossible(180,3), false);
+});
+
+test("Bull or Bust below 50, bust and non-Bull checkouts lose without saving", async () => {
+  for (const action of ["below", "other", "bust", "impossible", "cancel"]) {
+    const g = await gameHarness(); g.start(1, E.BULL_MODE);
+    g.score(180); g.bot(); g.score(180); g.bot();
+    if (action === "below") g.score(100);
+    else if (action === "bust") g.click("bustVisit");
+    else {
+      g.element("checkoutDarts").value = action === "impossible" ? "1" : "3";
+      g.score(141);
+      if (action === "cancel") g.element("bullCheckoutDialog").listeners.cancel({preventDefault(){}});
+      else g.click(action === "other" ? "otherCheckout" : "confirmBullCheckout");
+    }
+    assert.match(g.element("turnStatus").textContent, /wins 1–0/);
+    assert.equal(g.stored.size, 0);
+    assert.equal(g.element("undoVisit").disabled, true);
+  }
+});
+
 test("best scores retain flawless gold and reject impossible results", () => {
   assert.equal(E.validWinningScore("1-7", {won:4,lost:0}), true);
   assert.equal(E.validWinningScore("1-7", {won:4,lost:1}), true);

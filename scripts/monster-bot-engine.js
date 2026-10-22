@@ -1,6 +1,10 @@
 (function (root) {
   "use strict";
-  const MODES = [1, 3, 5, 7];
+  // 9 is a stable progress identifier, not a best-of-nine match.
+  const STANDARD_MODES = [1, 3, 5, 7], BULL_MODE = 9;
+  const MODES = [...STANDARD_MODES, BULL_MODE];
+  const modeLabel = mode => mode === BULL_MODE ? "Bull or Bust" : `BO${mode}`;
+  const legsNeeded = mode => mode === BULL_MODE ? 1 : (mode + 1) / 2;
   const NAMES = ["Billy Bot", "Croft Bot", "Venton Bot", "Istan Bot", "Nick Bot", "Ricky Bot", "Aussie Bot", "Andre Bot", "Bailey Bot", "Filip Bot"];
   const LEVELS = Array.from({ length: 10 }, (_, i) => ({
     level: i + 1, name: NAMES[i], average: 35 + i * 5, firstNine: [40 + i * 5, 45 + i * 5],
@@ -21,6 +25,8 @@
     if (left === 0 && !checkoutPossible(score, darts)) return "That finish is not possible on a double with those darts.";
     return "";
   }
+  const bullCheckoutPossible = (total, darts) => Number.isInteger(darts) && darts >= 1 && darts <= 3 && reachable[darts - 1].has(total - 50);
+  const possibleScore = score => Number.isInteger(score) && score >= 0 && score <= 180 && reachable[3].has(score);
   function botVisit(remaining, dartsThrown, profile, random = Math.random) {
     const before = remaining, hits = [];
     let attempts = 0;
@@ -67,13 +73,13 @@
     }
     return { average: legs * 501 * 3 / darts, firstNine: firstNine / legs / 3, checkout: legs / attempts * 100 };
   }
-  const isUnlocked = (level, wins) => level === 1 || wins.has(`${level - 1}-1`) && wins.has(`${level - 1}-3`) && (level === 2 || MODES.every(mode => wins.has(`${level - 2}-${mode}`)));
+  const isUnlocked = (level, wins) => level === 1 || wins.has(`${level - 1}-1`) && wins.has(`${level - 1}-3`) && (level === 2 || STANDARD_MODES.every(mode => wins.has(`${level - 2}-${mode}`))) && (level < 4 || MODES.every(mode => wins.has(`${level - 3}-${mode}`)));
   function validWinningScore(key, score) {
-    const [level, mode] = key.split("-").map(Number), needed = (mode + 1) / 2;
+    const [level, mode] = key.split("-").map(Number), needed = legsNeeded(mode);
     return level >= 1 && level <= 10 && MODES.includes(mode) && score && score.won === needed && Number.isInteger(score.lost) && score.lost >= 0 && score.lost < needed;
   }
   const bestScore = (current, next) => !current || next.lost < current.lost ? next : current;
-  const api = { MODES, LEVELS, isUnlocked, validWinningScore, bestScore, checkoutPossible, validateVisit, botVisit, simulate };
+  const api = { MODES, STANDARD_MODES, BULL_MODE, modeLabel, legsNeeded, bullCheckoutPossible, possibleScore, LEVELS, isUnlocked, validWinningScore, bestScore, checkoutPossible, validateVisit, botVisit, simulate };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.MonsterBotEngine = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

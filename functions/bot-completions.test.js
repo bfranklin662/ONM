@@ -11,7 +11,7 @@ test("counts one completion per player and format without exposing private accou
   assert.deepEqual(result["1-1"].map(r => r.name), ["Nick", "Player without a linked profile", "Rob"]);
   assert.deepEqual(result["1-3"].map(r => r.name), ["Nick"]);
   assert.deepEqual(result["10-7"].map(r => r.name), ["Rob"]);
-  assert.equal(Object.keys(result).length, 50);
+  assert.equal(Object.keys(result).length, 60);
   assert.deepEqual(result["level-1"].map(r => r.name), ["Nick", "Player without a linked profile", "Rob"]);
   assert.equal(result["10-7"][0].results[0].won, null);
   assert.equal(JSON.stringify(result).includes("private@example.test"), false);
@@ -26,4 +26,9 @@ test("modal records the best score, flawless flag and each format without duplic
   assert.equal(result["1-7"].length,1);
   assert.deepEqual(result["1-7"][0].results,[{mode:7,won:4,lost:0,flawless:true}]);
   assert.deepEqual(result["level-1"][0].results,[{mode:3,won:2,lost:1,flawless:false},{mode:7,won:4,lost:0,flawless:true}]);
+});
+test("Bull or Bust completion has a one-leg score and its own count", () => {
+  const result = buildCompletions([{id:"a",monsterBotWins:["1-9"],monsterBotBestScores:{"1-9":{won:1,lost:0}}}],new Map());
+  assert.deepEqual(result["1-9"][0].results,[{mode:9,won:1,lost:0,flawless:true}]);
+  assert.equal(result["level-1"].length,1);
 });
