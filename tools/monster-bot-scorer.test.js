@@ -45,6 +45,17 @@ test("bot games open fullscreen with the player's first name and the bot's name"
   assert.equal(g.els.names[0].value,"Nick");
   assert.equal(g.els.names[1].value,"Billy Bot");
   assert.equal(g.ctx.fullscreen,true);
+  assert.equal(g.ctx.document.getElementById("monsterBotSplash").hidden,true);
+});
+test("Monsters splash names the selected bot and format without affecting league games",()=>{
+  const source=fs.readFileSync(require.resolve("../scripts/monster-bot-splash.js"),"utf8");
+  for(const [query,label] of [["?mode=bot&level=1&format=3","Loading Billy Bot · BO3"],["?mode=bot&level=7&format=9","Loading Aussie Bot · Bull or Bust"],["?mode=bot&level=999&format=999","Loading Monster Bot…"],["?mode=online",null]]){
+    const nodes={monsterBotSplash:{hidden:true},monsterBotLoadingText:{textContent:""}};
+    const ctx={URLSearchParams,window:{location:{search:query}},document:{body:{classList:{add(){}}},getElementById:id=>nodes[id]}};
+    vm.runInNewContext(source,ctx);
+    assert.equal(nodes.monsterBotSplash.hidden,label===null);
+    assert.equal(nodes.monsterBotLoadingText.textContent,label||"");
+  }
 });
 test("bot waits for the announcement to finish, then pauses another second",async()=>{
   const g=await harness();g.ctx.audioBusy=true;g.score(60);

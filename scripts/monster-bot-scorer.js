@@ -157,6 +157,8 @@
       $("monsterBotNotice").classList.remove("hidden");
       active = true; state.currentPlayer = 0; syncMainViews("game"); render();
       enterScorerFullscreen();
+      $("monsterBotSplash").hidden = true;
+      document.body.classList.remove("monsterBotLoading");
       window.addEventListener("pointerdown", () => {
         if (!active || document.fullscreenElement) return;
         document.documentElement?.requestFullscreen?.()?.catch?.(() => {});
@@ -168,6 +170,8 @@
       }
     } catch {
       $("screenTitleText").textContent = "Could not load your bot game. Return to the ladder and retry.";
+      $("monsterBotLoadingText").textContent = "Could not load your game. Please return to the ladder and retry.";
+      document.body.classList.add("monsterBotLoadFailed");
     }
   }
   function photo(index) { return index === 1 ? `graphics/bots/${avatars[level-1]}-bot.png` : "graphics/logoWoText.png"; }
