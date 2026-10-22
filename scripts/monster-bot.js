@@ -39,6 +39,15 @@
     const flawless = won && score?.lost === 0;
     return communityButton(key, `${won ? "✓" : "○"} ${E.modeLabel(mode)}`, flawless ? "gold" : won ? "won" : "");
   }
+  function completionTick(level,mode) {
+    const key = `${level}-${mode}`;
+    if (!progress.has(key)) return "";
+    const flawless = E.validWinningScore(key,bestScores[key]) && bestScores[key].lost === 0;
+    return `<span class="modeCompletionTick ${flawless ? "gold" : "won"}" aria-label="${flawless ? "Flawless win" : "Beaten"}">✓</span>`;
+  }
+  function modePicker(level,selectedMode) {
+    return `<div class="modePickerField"><input id="bot-mode-${level}" type="hidden" value="${selectedMode}"><details class="modePicker" name="monster-mode-picker" data-picker-level="${level}"><summary aria-label="Match length for ${botName(level)}"><span>${E.modeLabel(selectedMode)}</span><span class="modePickerEnd"><span class="modeChevron" aria-hidden="true">⌄</span>${completionTick(level,selectedMode)}</span></summary><div class="modeOptions" role="group" aria-label="Match formats for ${botName(level)}">${E.MODES.map(mode=>`<button type="button" data-choose-level="${level}" data-choose-mode="${mode}" aria-pressed="${selectedMode===mode}" ${E.isFormatUnlocked(level,mode,progress) ? "" : "disabled"}><span>${E.modeLabel(mode)}</span>${E.isFormatUnlocked(level,mode,progress) ? completionTick(level,mode) : '<span aria-label="Locked">🔒</span>'}</button>`).join("")}</div></details></div>`;
+  }
   function readScores(key) {
     try { return Object.fromEntries(Object.entries(JSON.parse(localStorage.getItem(key) || "{}")).filter(([k,v]) => E.validWinningScore(k,v))); } catch { return {}; }
   }
@@ -126,7 +135,7 @@
       return `<article class="botLevel ${gold ? "complete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}">
         <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><div class="completionMedals"><span class="${gold ? "gold" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span>${wins.length ? `<span class="gold flawlessCount">★ Flawless ${flawless}/${E.MODES.length}</span>` : ""}</div></div><span class="levelStats">${p.average} average</span></div></div>
         <div class="modeMarks">${E.MODES.map(mode => modeChip(p.level, mode)).join("")}</div>
-        <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" >${E.MODES.map(mode => `<option value="${mode}" ${selectedMode === mode ? "selected" : ""} ${E.isFormatUnlocked(p.level,mode,progress) ? "" : "disabled"}>${progress.has(`${p.level}-${mode}`) ? "✓ " : ""}${E.modeLabel(mode)}${E.isFormatUnlocked(p.level,mode,progress) ? "" : " 🔒"}</option>`).join("")}</select>${!ready ? '<button type="button" class="primary" disabled>Loading account…</button>' : !user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked ? "" : "disabled"}>Play ${p.name}</button>`}</div>
+        <div class="botCardControls"><span class="modePickerLabel">Match length</span>${modePicker(p.level,selectedMode)}${!ready ? '<button type="button" class="primary" disabled>Loading account…</button>' : !user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked ? "" : "disabled"}>Play ${p.name}</button>`}</div>
         ${E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? "" : '<p class="lockedHint">🔒 Bull or Bust: beat BO1, BO3, BO5 and BO7 on this bot first.</p>'}
         <p id="bot-mode-rules-${p.level}" class="bullModeRules" ${selectedMode === E.BULL_MODE ? "" : "hidden"}>${BULL_RULES}</p>
         ${requirements(p.level)}</article>`;
@@ -293,14 +302,15 @@
     clearTimeout(timer); pendingCheckout = null; $("bullCheckoutDialog").close(); match = null; undo = null; busy = false;
     $("challengeSetup").hidden = false; $("matchPanel").hidden = true; renderLevels();
   }
-  $("botLevels").addEventListener("change", event => {
-    const select = event.target.closest("[data-mode-level]");
-    if (select) {
-      modes.set(Number(select.dataset.modeLevel), Number(select.value));
-      $("bot-mode-rules-" + select.dataset.modeLevel).hidden = Number(select.value) !== E.BULL_MODE;
-    }
-  });
   $("botLevels").addEventListener("click", event => {
+    const choice = event.target.closest("[data-choose-mode]");
+    if (choice) {
+      const level = Number(choice.dataset.chooseLevel), mode = Number(choice.dataset.chooseMode);
+      if (!E.isFormatUnlocked(level,mode,progress)) return;
+      modes.set(level,mode); renderLevels();
+      $("bot-level-"+level)?.querySelector?.("summary")?.focus();
+      return;
+    }
     const completion = event.target.closest("[data-community-key]");
     if (completion) { completionKey = completion.dataset.communityKey; showCompletionList(); $("completionDialog").showModal(); return; }
     const button = event.target.closest("[data-play-level]");
@@ -309,6 +319,14 @@
       playGame(level,format);
     }
   });
+  $("botLevels").addEventListener("keydown",event=>{
+    if (event.key !== "Escape") return;
+    const picker = event.target.closest(".modePicker");
+    if (picker) { picker.open=false;picker.querySelector("summary").focus(); }
+  });
+  $("botLevels").addEventListener("toggle",event=>{
+    if (event.target.matches?.(".modePicker") && event.target.open) requestAnimationFrame(()=>event.target.scrollIntoView({block:"nearest",inline:"nearest"}));
+  },true);
   $("closeCompletions").addEventListener("click", () => $("completionDialog").close());
   $("completionDialog").addEventListener("click", event => {
     if (event.target === $("completionDialog")) { $("completionDialog").close(); return; }
