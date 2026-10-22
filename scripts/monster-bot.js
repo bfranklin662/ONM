@@ -105,8 +105,16 @@
     $("botLevels").scrollTop = scrollTop;
   }
   async function loadProgress() {
+    ready = false;
+    $("retryAccount").hidden = true;
     renderLevels();
-    try { user = await window.ONMFirebase.loadOwnUser(); } catch { user = null; }
+    try { user = await window.ONMFirebase.currentFirebaseUser(); }
+    catch {
+      user = null;
+      $("saveStatus").textContent = "Your sign-in could not be checked. Please retry; you do not need to create another account.";
+      $("retryAccount").hidden = false;
+      renderLevels(); loadCommunity(); return;
+    }
     storageKey = user ? `onm-monster-bot-${user.uid}` : "onm-monster-bot-guest";
     progress = new Set(user ? safeLoad(storageKey) : []);
     bestScores = user ? readScores(storageKey + "-scores") : {};
@@ -118,8 +126,8 @@
         for (const [key, score] of Object.entries(snap.data()?.monsterBotBestScores || {})) if (E.validWinningScore(key, score)) bestScores[key] = E.bestScore(bestScores[key], score);
         // Retry wins that were saved on this device while offline.
         if (progress.size) await syncAccount();
-        $("saveStatus").textContent = "Progress synced to your account.";
-      } catch { $("saveStatus").textContent = "Account sync unavailable. Progress is saved on this device until you reconnect."; }
+        $("saveStatus").textContent = "Signed in. Progress synced to your account.";
+      } catch { $("saveStatus").textContent = "Signed in. Account sync is unavailable; progress saves on this device until you reconnect."; }
     } else $("saveStatus").innerHTML = 'Browse every bot and format. <a href="auth.html?mode=register">Sign up to play</a> or <a href="auth.html">sign in</a> if you already have an account.';
     ready = true;
     renderLevels();
@@ -146,8 +154,7 @@
   function begin(level, bestOf) {
     if (!ready || !user || !E.LEVELS.some(p => p.level === level) || !E.MODES.includes(bestOf) || !E.isUnlocked(level, progress, bestScores)) return;
     clearTimeout(timer);
-    const starter = $("firstThrow").value;
-    match = { level, bestOf, leg: 1, starter: starter === "random" ? (Math.random() < 0.5 ? "player" : "bot") : starter, player: newPlayer(), bot: newPlayer(), history: [], ended: false, legEnded: false };
+    match = { level, bestOf, leg: 1, starter: "player", player: newPlayer(), bot: newPlayer(), history: [], ended: false, legEnded: false };
     match.turn = match.starter;
     const playingUid = user.uid;
     window.ONMFirebase.ready.then(({db,firestoreSdk:sdk}) => sdk.updateDoc(sdk.doc(db,"users",playingUid),{monsterBotStarted:true})).then(() => loadCommunity(true)).catch(() => {});
@@ -267,7 +274,7 @@
   $("undoVisit").addEventListener("click", () => { if (!undo || busy || match.ended) return; match = undo; undo = null; $("scoreError").textContent = ""; renderMatch(); $("visitScore").focus(); });
   $("nextLeg").addEventListener("click", () => {
     if (!match?.legEnded || match.ended) return;
-    match.leg++; match.starter = match.starter === "player" ? "bot" : "player";
+    match.leg++; match.starter = "player";
     match.turn = match.starter; match.legEnded = false; undo = null;
     for (const side of ["player", "bot"]) { match[side].remaining = 501; match[side].legDarts = 0; }
     renderMatch(); scheduleBot();
@@ -276,6 +283,10 @@
   $("ladderTab").addEventListener("click", () => showTab(false));
   $("leaderboardTab").addEventListener("click", () => showTab(true));
   $("retryLeaderboard").addEventListener("click", () => loadCommunity(Boolean(user)));
+  $("retryAccount").addEventListener("click", () => loadProgress());
+  $("openRules").addEventListener("click", () => $("rulesDialog").showModal());
+  $("closeRules").addEventListener("click", () => $("rulesDialog").close());
+  $("rulesDialog").addEventListener("click", event => { if (event.target === $("rulesDialog")) $("rulesDialog").close(); });
   window.addEventListener("beforeunload", event => { if (match && !match.ended) { event.preventDefault(); event.returnValue = ""; } });
   loadProgress().then(async () => {
     try {

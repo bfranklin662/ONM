@@ -77,11 +77,11 @@
   async function currentFirebaseUser() {
     const { auth, authSdk } = await ready;
     if (auth.currentUser) return auth.currentUser;
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       const unsubscribe = authSdk.onAuthStateChanged(auth, user => {
         unsubscribe();
         resolve(user || null);
-      });
+      }, reject);
     });
   }
 
@@ -913,6 +913,7 @@
     postFirebase,
     signOut,
     loadOwnUser,
+    currentFirebaseUser,
     availability,
     resultPhotos: { list: listResultPhotos, upload: uploadSharedResultPhoto, remove: removeSharedResultPhoto },
     importSiteData,

@@ -28,7 +28,8 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" })
   element("bestOf").value = "1"; element("firstThrow").value = "player"; element("checkoutDarts").value = "3";
   const context = {
     window: { MonsterBotEngine: { ...E, botVisit: (remaining) => ({ remaining, score: 0, darts: 3, attempts: 0, hits: [0, 0, 0] }) }, ONMFirebase: {
-      loadOwnUser: async () => account,
+      currentFirebaseUser: async () => { if (account?.authError) throw new Error("Auth unavailable"); return account; },
+      loadOwnUser: async () => { throw new Error("Profile could not be loaded"); },
       ready: Promise.resolve({ auth: {}, authSdk: { onAuthStateChanged: (_auth, fn) => { authCallback = fn; } }, db: {}, firestoreSdk: {
         doc: (_db, collection, uid) => `${collection}/${uid}`,
         getDoc: async () => ({ data: () => ({ monsterBotWins: account?.seedWins || [] }) }),
@@ -118,12 +119,12 @@ test("available avatars appear in the ladder and scorer without leaking into oth
   assert.equal(g.element("scorerBotAvatar").src, "graphics/bots/filip-bot.png");
 });
 
-test("match lengths, alternating starts, wins and gold progress survive reload", async () => {
+test("match lengths, player-first legs, wins and gold progress survive reload", async () => {
   const g = await gameHarness();
   for (const mode of E.STANDARD_MODES) {
     g.start(1, mode);
     for (let leg = 0; leg < (mode + 1) / 2; leg++) {
-      if (leg) { g.click("nextLeg"); g.bot(); }
+      if (leg) { g.click("nextLeg"); assert.match(g.element("turnStatus").textContent,/Your throw/); }
       g.score(180); g.bot(); g.score(180); g.bot(); g.score(141);
     }
     await new Promise(resolve => setImmediate(resolve));
@@ -135,6 +136,26 @@ test("match lengths, alternating starts, wins and gold progress survive reload",
   assert.match(g.element("progressSummary").textContent, /4 \/ 50 formats won · 0 \/ 10 levels complete/);
   const reloaded = await gameHarness(g.stored);
   assert.match(reloaded.element("progressSummary").textContent, /4 \/ 50 formats won · 0 \/ 10 levels complete/);
+});
+test("a profile loading failure does not hide a verified signed-in account", async () => {
+  const g=await gameHarness();
+  assert.doesNotMatch(g.element("botLevels").innerHTML,/Sign up to play/);
+  g.start(); assert.equal(g.element("matchTitle").textContent,"You vs Billy Bot");
+});
+test("auth failures offer retry, never an incorrect sign-up prompt", async () => {
+  const g=await gameHarness(new Map(),{uid:"test-member",authError:true});
+  assert.doesNotMatch(g.element("botLevels").innerHTML,/Sign up to play/);
+  assert.equal(g.element("retryAccount").hidden,false);
+  assert.match(g.element("saveStatus").textContent,/could not be checked/);
+  g.start(); assert.equal(g.element("matchTitle").textContent,"");
+});
+test("rules popup opens and closes, and obsolete introductory controls are removed", async () => {
+  const g=await gameHarness();g.click("openRules");
+  assert.equal(g.element("rulesDialog").open,true);g.click("closeRules");
+  assert.equal(g.element("rulesDialog").open,false);
+  const html=fs.readFileSync(require.resolve("../monster-bot.html"),"utf8");
+  assert.match(html,/Monster Bot Ladder/);assert.match(html,/Bull or Bust/);
+  assert.doesNotMatch(html,/id="firstThrow"|10 monsters\. 5 match formats|Alternate first throw/);
 });
 
 test("signed-in progress loads and saves only on that user's account", async () => {
