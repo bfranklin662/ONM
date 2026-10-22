@@ -6,6 +6,17 @@
   const profile = E.LEVELS.find(p => p.level === level);
   const avatars = ["billy","croft","venton","istan","nick","ricky","aussie","andre","bailey","filip"];
   let user = null, active = false, timer = null, recorded = false, resultMessage = "", saving = null;
+  let playerPhoto = "graphics/logoWoText.png";
+  async function loadPlayerPhoto(account) {
+    try {
+      const resolved = await window.ONMSession?.resolveProfileImage?.(account);
+      playerPhoto = resolved || account.photoUrl || account.photo || playerPhoto;
+      if (state.winnerIndex !== null) {
+        els.molVictoryPlayerOnePhoto.src = playerPhoto;
+        els.molVictoryPlayerOnePhoto.classList.toggle("defaultMonsterPhoto", playerPhoto.includes("logoWoText"));
+      }
+    } catch { /* Keep the existing fallback if the linked photo is unavailable. */ }
+  }
   const bullMode = format === E.BULL_MODE;
   const $ = id => document.getElementById(id);
   const key = `${level}-${format}`;
@@ -135,13 +146,17 @@
       const {db,firestoreSdk:sdk} = await window.ONMFirebase.ready;
       const local = localProgress(user.uid), scores = {...local.scores}, wins = new Set(local.wins);
       let firstName = "";
+      let accountProfile = {uid:user.uid,userId:user.uid};
+      try { const cached = JSON.parse(localStorage.getItem("onmUser") || "null"); if (cached?.uid === user.uid) accountProfile = {...accountProfile,...cached}; } catch {}
       try {
         const snap = await sdk.getDoc(sdk.doc(db,"users",user.uid)), data = snap.data() || {};
+        accountProfile = {...accountProfile,...data,uid:user.uid,userId:user.uid};
         firstName = typeof data.firstName === "string" ? data.firstName.trim() : "";
         (data.monsterBotWins || []).forEach(win => wins.add(win));
         for (const [key,score] of Object.entries(data.monsterBotBestScores || {})) if (E.validWinningScore(key,score)) scores[key] = E.bestScore(E.validWinningScore(key,scores[key]) ? scores[key] : null,score);
       } catch { /* Retain this account's locally saved progress while offline. */ }
       if (level > E.highestUnlocked(wins,scores) || !E.isFormatUnlocked(level,format,wins)) { exit(); return; }
+      loadPlayerPhoto(accountProfile);
       MATCH_MODE = "local"; STATS_MODE = "casual"; window.STATS_MODE = STATS_MODE;
       applyMatchSettings({startScore:501,gameType:"bestOf",legsCount:bullMode ? 1 : format,inMode:"straight"});
       newGame(); state.winnerIndex = null; state.matchStartedAt = new Date();
@@ -185,7 +200,7 @@
       document.body.classList.add("monsterBotLoadFailed");
     }
   }
-  function photo(index) { return index === 1 ? `graphics/bots/${avatars[level-1]}-bot.png` : "graphics/logoWoText.png"; }
+  function photo(index) { return index === 1 ? `graphics/bots/${avatars[level-1]}-bot.png` : playerPhoto; }
   window.ONMMonsterScorer = {init,submit,confirmCheckout,afterVisit,onRender,showResult,exit,rematch,photo,cancelCheckout:()=>{if(bullMode && pendingCheckoutPrompt?.legWon){lose("Bull checkout was not confirmed.");return true;}return false;},canPlay:()=>active && state.currentPlayer === 0 && state.winnerIndex === null};
   window.addEventListener("pagehide",()=>{active=false;clearTimeout(timer);});
   init();

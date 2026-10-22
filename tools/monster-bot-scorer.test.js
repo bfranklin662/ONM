@@ -1,6 +1,6 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const E=require("../scripts/monster-bot-engine");
-async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null}={}){
+async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,profilePhoto=null}={}){
   const nodes=new Map(),timers=new Map(),writes=[],stored=new Map();let nextTimer=0,bullSelected=false,authChanged;
   const element=id=>{if(!nodes.has(id))nodes.set(id,{id,value:"",textContent:"",hidden:false,disabled:false,dataset:{},classList:{add(){},remove(){},toggle(){}},querySelector(){return element("kicker");},querySelectorAll(){return [];},before(){},after(){},blur(){}});return nodes.get(id);};
   const player=()=>({score:501,legs:0,totalScored:0,dartsThrown:0,currentLegDarts:0,firstNineScored:0,firstNineDarts:0,currentLegFirstNineScored:0,currentLegFirstNineDarts:0,highScore:0,checkoutHits:0,checkoutAttempts:0,highestOut:0,oneEightys:0,bullOuts:0,legDarts:[],lastScore:null});
@@ -22,6 +22,7 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
     buildLocalMatchStatsData:()=>({}),openMolVictoryScreen:()=>{ctx.resultOpened=true;ctx.window.ONMMonsterScorer.showResult();}
   };
   vm.createContext(ctx);
+  if(profilePhoto) ctx.window.ONMSession={resolveProfileImage:async()=>profilePhoto};
   const source=fs.readFileSync(require.resolve("../scripts/dart-scorer.js"),"utf8");
   vm.runInContext(source.slice(source.indexOf("function applyVisit({"),source.indexOf("function resetLeg()")),ctx);
   vm.runInContext(fs.readFileSync(require.resolve("../scripts/monster-bot-scorer.js"),"utf8"),ctx);
@@ -103,6 +104,24 @@ test("a standard checkout ends the leg immediately without a prompt or checkout 
   assert.deepEqual(Object.keys(saved.monsterBotBestScores["1-1"]).sort(),["lost","won"]);
   const localScores=JSON.parse(g.stored.get("onm-monster-bot-member-scores"));
   assert.deepEqual(localScores,{"1-1":{won:1,lost:0}});
+});
+test("bot result identity uses the linked account photo and leaves the bot avatar unchanged",async()=>{
+  const g=await harness({profilePhoto:"https://example.test/linked-player.jpg"});
+  assert.equal(g.api.photo(0),"https://example.test/linked-player.jpg");
+  assert.equal(g.api.photo(1),"graphics/bots/billy-bot.png");
+  const fallback=await harness();assert.equal(fallback.api.photo(0),"graphics/logoWoText.png");
+});
+test("highest visit is retained across legs and reported in final stats",async()=>{
+  const g=await harness({format:3});
+  g.score(180);g.bot();g.score(180);g.bot();g.score(141);
+  g.bot();
+  for(const score of [140,140,140,81]){g.score(score);if(g.state.winnerIndex===null) g.bot();}
+  assert.equal(g.state.winnerIndex,0);
+  const source=fs.readFileSync(require.resolve("../scripts/dart-scorer.js"),"utf8");
+  vm.runInContext(source.slice(source.indexOf("function getPlayerStats(player)"),source.indexOf("async function submitCompetitiveResult()")),g.ctx);
+  const stats=g.ctx.getPlayerStats(g.state.players[0]);
+  assert.equal(stats.highScore,180);assert.equal(stats.highestOut,141);
+  assert.equal(g.ctx.getPlayerStats(g.state.players[1]).highScore,30);
 });
 test("bot matches cannot upload detailed statistics through the league save route",async()=>{
   const source=fs.readFileSync(require.resolve("../scripts/dart-scorer.js"),"utf8");
