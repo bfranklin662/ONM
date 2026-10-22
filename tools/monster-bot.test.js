@@ -62,6 +62,16 @@ test("real play buttons open the league scorer in bot mode and respect locks",as
   assert.equal(g.playButton(1,7),"dart-scorer.html?mode=bot&level=1&format=7");
   const visitor=await gameHarness(new Map(),null);assert.equal(visitor.playButton(),"");
 });
+test("any two distinct formats unlock Croft and cards show completed counts",async()=>{
+  for(const first of E.MODES) for(const second of E.MODES) {
+    assert.equal(E.isUnlocked(2,new Set([`1-${first}`,`1-${second}`])),first!==second);
+  }
+  for(const count of [1,5]) {
+    const wins=E.MODES.slice(0,count).map(mode=>`1-${mode}`);
+    const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)]]));
+    assert.match(g.element("botLevels").innerHTML,new RegExp(`✓ Beaten ${count}/5`));
+  }
+});
 test("dropdown selects the next unbeaten format and ticks completed formats",async()=>{
   for (let count=0;count<=E.MODES.length;count++) {
     const wins=E.MODES.slice(0,count).map(mode=>`1-${mode}`);
@@ -78,7 +88,7 @@ test("visitors see only the first two levels and all modes but cannot play", asy
   const g = await gameHarness(stored,null);
   const html = g.element("botLevels").innerHTML;
   assert.equal((html.match(/Sign up to play/g)||[]).length,2);
-  assert.equal((html.match(/Requirements to play/g)||[]).length,2);
+  assert.equal((html.match(/Requirements to play/g)||[]).length,1);
   assert.doesNotMatch(html,/Filip Bot/); assert.match(html,/Bull or Bust/);
   assert.match(html,/auth.html\?mode=register/);
   assert.match(html,/redirect=monster-bot.html/);
@@ -92,8 +102,9 @@ test("visitors see only the first two levels and all modes but cannot play", asy
 
 test("requirements remain visible after unlocking and signing out stops play", async () => {
   const g = await gameHarness();
-  assert.equal((g.element("botLevels").innerHTML.match(/Requirements to play/g)||[]).length,2);
-  assert.match(g.element("botLevels").innerHTML,/Sign in with a registered account/);
+  assert.equal((g.element("botLevels").innerHTML.match(/Requirements to play/g)||[]).length,1);
+  assert.doesNotMatch(g.element("botLevels").innerHTML,/Sign in with a registered account/);
+  assert.match(g.element("botLevels").innerHTML,/Beat Billy Bot in 2 modes/);
   g.start(); g.score(180);
   await g.signOut(); g.bot(); g.score(180); g.start();
   assert.equal(g.element("matchPanel").hidden,true);
@@ -116,7 +127,7 @@ test("unlocking the next bot reveals exactly one more locked preview", async () 
   g.click("backToLevels");
   const html=g.element("botLevels").innerHTML;
   assert.match(html,/Venton Bot/); assert.doesNotMatch(html,/Istan Bot/);
-  assert.equal((html.match(/Requirements to play/g)||[]).length,3);
+  assert.equal((html.match(/Requirements to play/g)||[]).length,2);
   g.click("leaderboardTab");
   assert.equal(g.element("ladderPanel").hidden,true);
   assert.equal(g.element("leaderboardPanel").hidden,false);
@@ -200,7 +211,7 @@ test("invalid scores, busts, undo and abandoned matches never grant victories", 
   g.click("leaveMatch"); assert.equal(g.stored.size, 0);
 });
 
-test("ladder requires previous BO1/BO3 and all four formats two levels below", async () => {
+test("ladder requires any two previous-bot modes and all four formats two levels below", async () => {
   assert.equal(E.LEVELS[0].name, "Billy Bot"); assert.equal(E.LEVELS[9].name, "Filip Bot");
   for (const mode of E.STANDARD_MODES) {
     const wins = new Set([`1-${mode}`]);

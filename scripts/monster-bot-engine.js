@@ -117,7 +117,7 @@
     return { average: legs * 501 * 3 / darts, firstNine: firstNine / legs / 3, checkout: legs / attempts * 100 };
   }
   function isUnlocked(level, wins, bestScores = {}) {
-    return level === 1 || wins.has(`${level - 1}-1`) && wins.has(`${level - 1}-3`)
+    return level === 1 || MODES.filter(mode => wins.has(`${level - 1}-${mode}`)).length >= 2
       && (level === 2 || STANDARD_MODES.every(mode => wins.has(`${level - 2}-${mode}`)))
       && (level < 4 || MODES.every(mode => wins.has(`${level - 3}-${mode}`)))
       && (level < 5 || MODES.every(mode => {

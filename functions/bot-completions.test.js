@@ -1,6 +1,12 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { buildCompletions, buildLeaderboard } = require("./bot-completions");
+test("leaderboard unlocks level two for any two different modes", () => {
+  const rows=buildLeaderboard([{id:"a",monsterBotWins:["1-5","1-9"]}],new Map());
+  assert.equal(rows[0].level,2);
+  const single=buildLeaderboard([{id:"a",monsterBotWins:["1-5","1-5"]}],new Map());
+  assert.equal(single[0].level,1);
+});
 test("counts one completion per player and format without exposing private account data", () => {
   const result = buildCompletions([
     { id: "a", linkedPlayerKey: "nick", email: "private@example.test", fullName: "Private Name", monsterBotWins: ["1-1", "1-1", "1-3", "invalid"] },

@@ -18,16 +18,16 @@
   const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick", 6: "ricky", 7: "aussie", 8: "andre", 9: "bailey", 10: "filip" };
   const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png?v=20261022-avatar` : "";
   function requirements(level) {
-    const rows = [{ label: "Sign in with a registered account", met: Boolean(user) }];
+    const rows = [];
     const won = (bot, modes) => modes.every(mode => progress.has(`${bot}-${mode}`));
-    if (level >= 2) rows.push({ label: `Beat ${botName(level - 1)} in BO1 and BO3`, met: won(level - 1, [1,3]) });
+    if (level >= 2) rows.push({ label: `Beat ${botName(level - 1)} in 2 modes`, met: E.MODES.filter(mode => progress.has(`${level - 1}-${mode}`)).length >= 2 });
     if (level >= 3) rows.push({ label: `Beat ${botName(level - 2)} in BO1, BO3, BO5 and BO7`, met: won(level - 2, E.STANDARD_MODES) });
     if (level >= 4) rows.push({ label: `Beat ${botName(level - 3)} in all five formats, including Bull or Bust`, met: won(level - 3, E.MODES) });
     if (level >= 5) rows.push({ label: `Earn flawless wins in all five ${botName(level - 4)} formats (gold ticks)`, met: E.MODES.every(mode => {
       const key = `${level - 4}-${mode}`;
       return progress.has(key) && E.validWinningScore(key, bestScores[key]) && bestScores[key].lost === 0;
     }) });
-    return `<div class="unlockRequirements"><h4>Requirements to play</h4><ul>${rows.map(row => `<li class="${row.met ? "met" : ""}"><span aria-label="${row.met ? "Met" : "Not met"}">${row.met ? "✓" : "○"}</span> ${row.label}</li>`).join("")}</ul></div>`;
+    return rows.length ? `<div class="unlockRequirements"><h4>Requirements to play</h4><ul>${rows.map(row => `<li class="${row.met ? "met" : ""}"><span aria-label="${row.met ? "Met" : "Not met"}">${row.met ? "✓" : "○"}</span> ${row.label}</li>`).join("")}</ul></div>` : "";
   }
   function modeChip(level, mode) {
     const key = `${level}-${mode}`, won = progress.has(key), score = bestScores[key];
@@ -104,7 +104,7 @@
       if (gold) complete++;
       const avatar = botAvatar(p.level) ? `<img class="botAvatar" src="${botAvatar(p.level)}" alt="${p.name} cartoon avatar">` : "";
       return `<article class="botLevel ${gold ? "complete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}">
-        <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><span class="${gold ? "gold" : ""}">${gold ? "☑ Complete" : wins.length ? "✓ Beaten" : unlocked ? "" : "🔒 Locked"}</span></div><span class="levelStats">${p.average} average</span></div></div>
+        <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><span class="${gold ? "gold" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span></div><span class="levelStats">${p.average} average</span></div></div>
         <div class="modeMarks">${E.MODES.map(mode => modeChip(p.level, mode)).join("")}</div>
         <div class="botCompletionTotal">${communityButton(`level-${p.level}`, "Players who beat this bot")}</div>
         <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" >${E.MODES.map(mode => `<option value="${mode}" ${selectedMode === mode ? "selected" : ""}>${progress.has(`${p.level}-${mode}`) ? "✓ " : ""}${E.modeLabel(mode)}</option>`).join("")}</select>${!ready ? '<button type="button" class="primary" disabled>Loading account…</button>' : !user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked ? "" : "disabled"}>Play ${p.name}</button>`}</div>
