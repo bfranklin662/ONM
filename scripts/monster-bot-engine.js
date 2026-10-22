@@ -86,8 +86,13 @@
     const [level, mode] = key.split("-").map(Number), needed = legsNeeded(mode);
     return level >= 1 && level <= 10 && MODES.includes(mode) && score && score.won === needed && Number.isInteger(score.lost) && score.lost >= 0 && score.lost < needed;
   }
+  function highestUnlocked(wins, scores = {}) {
+    let level = 1;
+    while (level < 10 && isUnlocked(level + 1, wins, scores)) level++;
+    return level;
+  }
   const bestScore = (current, next) => !current || next.lost < current.lost ? next : current;
-  const api = { MODES, STANDARD_MODES, BULL_MODE, modeLabel, legsNeeded, bullCheckoutPossible, possibleScore, LEVELS, isUnlocked, validWinningScore, bestScore, checkoutPossible, validateVisit, botVisit, simulate };
+  const api = { MODES, STANDARD_MODES, BULL_MODE, modeLabel, legsNeeded, bullCheckoutPossible, possibleScore, LEVELS, isUnlocked, highestUnlocked, validWinningScore, bestScore, checkoutPossible, validateVisit, botVisit, simulate };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.MonsterBotEngine = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

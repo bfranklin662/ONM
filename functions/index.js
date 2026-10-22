@@ -45,18 +45,19 @@ exports.getPlayerAvailability = callable(uid => service.get(uid));
 exports.setPlayerAvailability = callable((uid, data) => service.set(uid, data));
 
 // Publish only shortened player names, never account emails or private full names.
-const { buildCompletions } = require("./bot-completions");
+const { buildCompletions, buildLeaderboard } = require("./bot-completions");
 let botCompletionCache = null;
 let botCompletionCacheAt = 0;
 exports.getMonsterBotCompletions = onCall(options, async request => {
-  const response = () => request.data?.version === 2 ? botCompletionCache : { ...botCompletionCache, completions: Object.fromEntries(Object.entries(botCompletionCache.completions).map(([key,rows]) => [key, rows.map(row => row.name)])) };
+  const response = () => [2,3].includes(request.data?.version) ? botCompletionCache : { ...botCompletionCache, completions: Object.fromEntries(Object.entries(botCompletionCache.completions).map(([key,rows]) => [key, rows.map(row => row.name)])) };
   if (botCompletionCache && Date.now() - botCompletionCacheAt < 30000 && !(request.auth && request.data?.refresh === true)) return response();
   const db = getFirestore();
   const [accounts, profiles] = await Promise.all([
-    db.collection("users").select("monsterBotWins", "monsterBotBestScores", "linkedPlayerKey").get(),
+    db.collection("users").select("monsterBotWins", "monsterBotBestScores", "monsterBotStarted", "linkedPlayerKey").get(),
     db.collection("publicPlayers").select("publicName").get()
   ]);
-  botCompletionCache = { completions: buildCompletions(accounts.docs.map(doc => ({ id: doc.id, ...doc.data() })), new Map(profiles.docs.map(doc => [doc.id, doc.data()]))), updatedAt: new Date().toISOString() };
+  const users = accounts.docs.map(doc => ({id:doc.id,...doc.data()})), publicProfiles = new Map(profiles.docs.map(doc => [doc.id,doc.data()]));
+  botCompletionCache = { completions: buildCompletions(users,publicProfiles), leaderboard: buildLeaderboard(users,publicProfiles), updatedAt: new Date().toISOString() };
   botCompletionCacheAt = Date.now();
   return response();
 });

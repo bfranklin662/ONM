@@ -20,7 +20,7 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" })
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
       value: "", hidden: false, disabled: false, textContent: "", innerHTML: "", listeners: {},
-      showModal() { this.open = true; }, close() { this.open = false; }, classList: { toggle() {} }, focus() {}, querySelectorAll() { return []; },
+      setAttribute(name,value) { this[name] = value; }, showModal() { this.open = true; }, close() { this.open = false; }, classList: { toggle() {} }, focus() {}, querySelectorAll() { return []; },
       addEventListener(event, fn) { this.listeners[event] = fn; }
     });
     return elements.get(id);
@@ -54,13 +54,13 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" })
   return { element, click, bot, score, stored, writes, start, signOut };
 }
 
-test("visitors can browse every level and mode but cannot start or save a match", async () => {
+test("visitors see only the first two levels and all modes but cannot play", async () => {
   const stored = new Map([["onm-monster-bot-guest",JSON.stringify(["1-1","1-3"])]]);
   const g = await gameHarness(stored,null);
   const html = g.element("botLevels").innerHTML;
-  assert.equal((html.match(/Sign up to play/g)||[]).length,10);
-  assert.equal((html.match(/Requirements to play/g)||[]).length,10);
-  assert.match(html,/Filip Bot/); assert.match(html,/Bull or Bust/);
+  assert.equal((html.match(/Sign up to play/g)||[]).length,2);
+  assert.equal((html.match(/Requirements to play/g)||[]).length,2);
+  assert.doesNotMatch(html,/Filip Bot/); assert.match(html,/Bull or Bust/);
   assert.match(html,/auth.html\?mode=register/);
   assert.match(g.element("progressSummary").textContent,/0 \/ 50/);
   g.start(); g.score(180); g.bot();
@@ -70,14 +70,36 @@ test("visitors can browse every level and mode but cannot start or save a match"
 
 test("requirements remain visible after unlocking and signing out stops play", async () => {
   const g = await gameHarness();
-  assert.equal((g.element("botLevels").innerHTML.match(/Requirements to play/g)||[]).length,10);
+  assert.equal((g.element("botLevels").innerHTML.match(/Requirements to play/g)||[]).length,2);
   assert.match(g.element("botLevels").innerHTML,/Sign in with a registered account/);
   g.start(); g.score(180);
   await g.signOut(); g.bot(); g.score(180); g.start();
   assert.equal(g.element("matchPanel").hidden,true);
   assert.equal(g.element("challengeSetup").hidden,false);
-  assert.equal((g.element("botLevels").innerHTML.match(/Sign up to play/g)||[]).length,10);
-  assert.equal(g.writes.length,0);
+  assert.equal((g.element("botLevels").innerHTML.match(/Sign up to play/g)||[]).length,2);
+  assert.equal(g.writes.filter(w => w.data.monsterBotWins).length,0);
+});
+
+test("unlocking the next bot reveals exactly one more locked preview", async () => {
+  const g = await gameHarness();
+  assert.doesNotMatch(g.element("botLevels").innerHTML,/Venton Bot/);
+  g.start(1,1); g.score(180); g.bot(); g.score(180); g.bot(); g.score(141);
+  await new Promise(resolve => setImmediate(resolve));
+  g.click("backToLevels"); g.start(1,3);
+  for (let leg=0;leg<2;leg++) {
+    if (leg) {g.click("nextLeg");g.bot();}
+    g.score(180);g.bot();g.score(180);g.bot();g.score(141);
+  }
+  await new Promise(resolve => setImmediate(resolve));
+  g.click("backToLevels");
+  const html=g.element("botLevels").innerHTML;
+  assert.match(html,/Venton Bot/); assert.doesNotMatch(html,/Istan Bot/);
+  assert.equal((html.match(/Requirements to play/g)||[]).length,3);
+  g.click("leaderboardTab");
+  assert.equal(g.element("ladderPanel").hidden,true);
+  assert.equal(g.element("leaderboardPanel").hidden,false);
+  assert.equal(g.element("leaderboardTab")["aria-selected"],"true");
+  g.click("ladderTab");assert.equal(g.element("ladderPanel").hidden,false);
 });
 
 test("available avatars appear in the ladder and scorer without leaking into other levels", async () => {
@@ -85,13 +107,13 @@ test("available avatars appear in the ladder and scorer without leaking into oth
   const scores = Object.fromEntries(E.LEVELS.flatMap(p => E.MODES.map(mode => [`${p.level}-${mode}`, {won:E.legsNeeded(mode),lost:0}])));
   const g = await gameHarness(new Map([["onm-monster-bot-test-member", JSON.stringify(wins)], ["onm-monster-bot-test-member-scores", JSON.stringify(scores)]]));
   assert.match(g.element("botLevels").innerHTML, /venton-bot.png/);
-  for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"],[4,"istan"],[5,"nick-friendly"],[6,"ricky"]]) {
+  for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"],[4,"istan"],[5,"nick"],[6,"ricky"],[7,"aussie"]]) {
     g.start(level);
     assert.equal(g.element("scorerBotAvatar").src, `graphics/bots/${name}-bot.png`);
     assert.equal(g.element("scorerBotAvatar").hidden, false);
     g.click("leaveMatch");
   }
-  g.start(7);
+  g.start(8);
   assert.equal(g.element("scorerBotAvatar").hidden, true);
 });
 
@@ -144,7 +166,7 @@ test("ladder requires previous BO1/BO3 and all four formats two levels below", a
   }
   const g = await gameHarness();
   const html = g.element("botLevels").innerHTML;
-  assert.ok(html.indexOf("Filip Bot") < html.indexOf("Billy Bot"));
+  assert.ok(html.indexOf("Croft Bot") < html.indexOf("Billy Bot"));
   assert.equal(html.includes("First 9"), false); assert.equal(html.includes("Checkout:"), false);
   g.start(2);
   assert.equal(g.element("matchTitle").textContent, "");

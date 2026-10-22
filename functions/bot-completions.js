@@ -26,4 +26,30 @@ function buildCompletions(users, profiles) {
   }
   return Object.fromEntries([...groups].map(([key, names]) => [key, [...names.values()].sort((a, b) => a.name.localeCompare(b.name))]));
 }
-module.exports = { buildCompletions };
+function buildLeaderboard(users, profiles) {
+  const players = new Map(), modes = [1,3,5,7,9];
+  for (const user of users) {
+    const wins = (Array.isArray(user.monsterBotWins) ? user.monsterBotWins : []).filter(k => validWins.has(k));
+    if (!user.monsterBotStarted && !wins.length) continue;
+    const profile = profiles.get(user.linkedPlayerKey);
+    const identity = profile ? `player:${user.linkedPlayerKey}` : `account:${user.id}`;
+    const name = typeof profile?.publicName === "string" && profile.publicName.trim() ? profile.publicName.trim().slice(0,80) : "Player without a linked profile";
+    const row = players.get(identity) || { name, wins:new Set(), scores:{} };
+    for (const key of wins) {
+      row.wins.add(key);
+      const mode = Number(key.split("-")[1]), needed = mode === 9 ? 1 : (mode+1)/2, score = user.monsterBotBestScores?.[key];
+      if (score?.won === needed && Number.isInteger(score.lost) && score.lost >= 0 && score.lost < needed && (!row.scores[key] || score.lost < row.scores[key].lost)) row.scores[key] = {won:score.won,lost:score.lost};
+    }
+    players.set(identity,row);
+  }
+  return [...players.values()].map(row => {
+    const won = (level, formats) => formats.every(mode => row.wins.has(`${level}-${mode}`));
+    let level=1;
+    for (let next=2;next<=10;next++) {
+      if (!won(next-1,[1,3]) || next>=3 && !won(next-2,[1,3,5,7]) || next>=4 && !won(next-3,modes) || next>=5 && !modes.every(mode => row.wins.has(`${next-4}-${mode}`) && row.scores[`${next-4}-${mode}`]?.lost === 0)) break;
+      level=next;
+    }
+    return {name:row.name,level,completed:row.wins.size};
+  }).sort((a,b) => b.completed-a.completed || b.level-a.level || a.name.localeCompare(b.name));
+}
+module.exports = { buildCompletions, buildLeaderboard };

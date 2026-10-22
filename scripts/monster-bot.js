@@ -6,7 +6,7 @@
   const modes = new Map();
   let bestScores = {};
   const botName = level => E.LEVELS[level - 1].name;
-  const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick-friendly", 6: "ricky" };
+  const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick", 6: "ricky", 7: "aussie" };
   const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png` : "";
   function requirements(level) {
     const rows = [{ label: "Sign in with a registered account", met: Boolean(user) }];
@@ -40,7 +40,18 @@
     });
     bestScores = Object.fromEntries(Object.entries(syncedScores).filter(([key,score]) => E.validWinningScore(key,score)));
   }
-  let community = null, communityError = false, completionKey = null, communityLoading = null;
+  let community = null, leaderboard = null, communityError = false, completionKey = null, communityLoading = null;
+  function renderLeaderboard() {
+    $("leaderboardStatus").textContent = leaderboard ? (leaderboard.length ? `${leaderboard.length} players · Ranked by challenges completed, then level unlocked.` : "No players yet. Start your first match to join the leaderboard.") : communityError ? "Leaderboard could not be loaded. Please retry." : "Loading leaderboard…";
+    $("leaderboardRows").innerHTML = (leaderboard || []).map((row,i) => `<tr><td>${i+1}</td><th scope="row">${escape(row.name)}</th><td>Level ${row.level}</td><td>${row.completed} / 50</td></tr>`).join("");
+    $("retryLeaderboard").hidden = !communityError;
+  }
+  function showTab(board) {
+    $("ladderPanel").hidden = board; $("leaderboardPanel").hidden = !board;
+    $("ladderTab").setAttribute("aria-selected", String(!board));
+    $("leaderboardTab").setAttribute("aria-selected", String(board));
+    if (board) { renderLeaderboard(); loadCommunity(Boolean(user)); }
+  }
   function communityButton(key, label, classes = "") {
     const count = community ? (community[key] || []).length : communityError ? "—" : "…";
     return `<button type="button" class="completionCount ${classes}" data-community-key="${key}" aria-label="${label}, ${count} players completed. View players.">${label} <b>${count}</b></button>`;
@@ -62,10 +73,11 @@
       try {
         const { app } = await window.ONMFirebase.ready;
         const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-functions.js");
-        const response = await httpsCallable(getFunctions(app, "europe-west2"), "getMonsterBotCompletions")({ refresh, version: 2 });
+        const response = await httpsCallable(getFunctions(app, "europe-west2"), "getMonsterBotCompletions")({ refresh, version: 3 });
         community = response.data.completions;
+        leaderboard = response.data.leaderboard || [];
       } catch { communityError = true; }
-      finally { communityLoading = null; renderLevels(); showCompletionList(); }
+      finally { communityLoading = null; renderLevels(); showCompletionList(); renderLeaderboard(); }
     })();
     return communityLoading;
   }
@@ -74,7 +86,8 @@
   function renderLevels() {
     let complete = 0;
     const scrollTop = $("botLevels").scrollTop;
-    $("botLevels").innerHTML = [...E.LEVELS].reverse().map(p => {
+    const visibleThrough = Math.min(10, E.highestUnlocked(progress, bestScores) + 1);
+    $("botLevels").innerHTML = E.LEVELS.filter(p => p.level <= visibleThrough).reverse().map(p => {
       const wins = E.MODES.filter(mode => progress.has(`${p.level}-${mode}`));
       const gold = wins.length === E.MODES.length;
       const unlocked = E.isUnlocked(p.level, progress, bestScores);
@@ -87,6 +100,7 @@
         <div class="botCardControls"><label for="bot-mode-${p.level}">Match length</label><select id="bot-mode-${p.level}" data-mode-level="${p.level}" >${E.MODES.map(mode => `<option value="${mode}" ${(modes.get(p.level) || 1) === mode ? "selected" : ""}>${E.modeLabel(mode)}</option>`).join("")}</select>${!ready ? '<button type="button" class="primary" disabled>Loading account…</button>' : !user ? '<a class="primary signupToPlay" href="auth.html?mode=register">Sign up to play</a>' : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked ? "" : "disabled"}>Play ${p.name}</button>`}</div>
         ${requirements(p.level)}</article>`;
     }).join("");
+    complete = E.LEVELS.filter(p => E.MODES.every(mode => progress.has(`${p.level}-${mode}`))).length;
     $("progressSummary").textContent = `${progress.size} / 50 formats won · ${complete} / 10 levels complete`;
     $("botLevels").scrollTop = scrollTop;
   }
@@ -135,6 +149,8 @@
     const starter = $("firstThrow").value;
     match = { level, bestOf, leg: 1, starter: starter === "random" ? (Math.random() < 0.5 ? "player" : "bot") : starter, player: newPlayer(), bot: newPlayer(), history: [], ended: false, legEnded: false };
     match.turn = match.starter;
+    const playingUid = user.uid;
+    window.ONMFirebase.ready.then(({db,firestoreSdk:sdk}) => sdk.updateDoc(sdk.doc(db,"users",playingUid),{monsterBotStarted:true})).then(() => loadCommunity(true)).catch(() => {});
     undo = null; busy = false;
     $("challengeSetup").hidden = true; $("matchPanel").hidden = false;
     $("matchFormat").textContent = match.bestOf === E.BULL_MODE ? "501 · Bull or Bust · BO1 · Bull out only" : `501 · Best of ${match.bestOf} · First to ${E.legsNeeded(match.bestOf)} ${match.bestOf === 1 ? "leg" : "legs"}`;
@@ -257,6 +273,9 @@
     renderMatch(); scheduleBot();
   });
   $("leaveMatch").addEventListener("click", levels); $("backToLevels").addEventListener("click", levels);
+  $("ladderTab").addEventListener("click", () => showTab(false));
+  $("leaderboardTab").addEventListener("click", () => showTab(true));
+  $("retryLeaderboard").addEventListener("click", () => loadCommunity(Boolean(user)));
   window.addEventListener("beforeunload", event => { if (match && !match.ended) { event.preventDefault(); event.returnValue = ""; } });
   loadProgress().then(async () => {
     try {

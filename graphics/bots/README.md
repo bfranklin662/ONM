@@ -1,5 +1,11 @@
 # Monster Bot avatars
 
+## Aussie prompt
+
+Output: graphics/bots/aussie-bot.png. Built-in image generation, transparent background. Original nick-bot.png restored as the selected Nick avatar.
+
+Use case: stylized-concept. Create Aussie Bot, one funny friendly darts-game avatar. Image 1 SUBJECT likeness reference: smiling man with short side-swept brown hair, full neatly trimmed brown beard and moustache, broad toothy smile, black T-shirt with small green MONSTER chest lettering. Ignore other people and pub scenery. Image 2 EXACT STYLE reference Billy Bot: match polished hand-painted cheeky cartoon caricature, oversized expressive head, bold outlines, dimensional warm shading, metallic robot shoulder pieces and cute glowing antenna. Preserve recognizable face, haircut and beard; distinguish him clearly from Billy. Chest-up centered single character holding darts, cheerful confident expression. Same scale and framing, genuinely transparent square background, safe margins, readable at 80px. No other text, no watermark, no scenery, no extra people.
+
 ## Ricky prompt
 
 Output: graphics/bots/ricky-bot.png. Built-in image generation, transparent background.
