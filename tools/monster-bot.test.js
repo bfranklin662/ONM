@@ -187,10 +187,12 @@ test("unlocking the next bot reveals exactly one more locked preview", async () 
   assert.match(html,/Venton Bot/); assert.doesNotMatch(html,/Istan Bot/);
   assert.equal((html.match(/Requirements to play/g)||[]).length,2);
   g.click("leaderboardTab");
+  assert.equal(g.element("botPageTitle").textContent,"Leaderboard");
   assert.equal(g.element("ladderPanel").hidden,true);
   assert.equal(g.element("leaderboardPanel").hidden,false);
   assert.equal(g.element("leaderboardTab")["aria-selected"],"true");
   g.click("ladderTab");assert.equal(g.element("ladderPanel").hidden,false);
+  assert.equal(g.element("botPageTitle").textContent,"Monster Bot Game");
 });
 
 test("available avatars appear in the ladder and scorer without leaking into other levels", async () => {
@@ -250,10 +252,12 @@ test("help links to a separate rules page and obsolete introductory controls are
   assert.match(card,/<h2>Monster Bot Game<\/h2>/);
   assert.doesNotMatch(card,/Monster Bot Ladder/);
   assert.match(html,/<a id="openRules" href="monster-bot-help.html"/);
-  assert.match(html,/<h2>Leaderboard<\/h2>/);
+  assert.match(html,/<h2 class="srOnly">Leaderboard<\/h2>/);
   assert.doesNotMatch(html,/id="rulesDialog"|Monster leaderboard/);
   const help=fs.readFileSync(require.resolve("../monster-bot-help.html"),"utf8");
-  assert.match(help,/Help &amp; rules/);assert.match(help,/must finish on the Bullseye/);
+  assert.match(help,/<h1>Game Rules<\/h1>/);assert.match(help,/must finish on the Bullseye/);
+  assert.match(help,/class="challengeIconMenu"/);assert.match(help,/href="monster-bot.html#leaderboard"/);
+  assert.match(help,/aria-current="page"/);
   assert.match(help,/From Level 2: beat the previous bot in any two modes/);
   assert.match(help,/href="monster-bot.html"/);
   assert.doesNotMatch(html,/id="firstThrow"|10 monsters\. 5 match formats|Alternate first throw/);

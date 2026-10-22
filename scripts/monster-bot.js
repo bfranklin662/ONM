@@ -70,6 +70,8 @@
     $("retryLeaderboard").hidden = !communityError;
   }
   function showTab(board) {
+    $("botPageTitle").textContent = board ? "Leaderboard" : "Monster Bot Game";
+    document.title = `${board ? "Leaderboard" : "Monster Bot Game"} | Oche Ness Monsters`;
     $("ladderPanel").hidden = board; $("leaderboardPanel").hidden = !board;
     $("ladderTab").setAttribute("aria-selected", String(!board));
     $("leaderboardTab").setAttribute("aria-selected", String(board));
@@ -350,6 +352,7 @@
   $("retryLeaderboard").addEventListener("click", () => loadCommunity(Boolean(user)));
   $("retryAccount").addEventListener("click", () => loadProgress());
   window.addEventListener("beforeunload", event => { if (match && !match.ended) { event.preventDefault(); event.returnValue = ""; } });
+  if (window.location.hash === "#leaderboard") showTab(true);
   loadProgress().then(async () => {
     try {
       const {auth, authSdk} = await window.ONMFirebase.ready;
