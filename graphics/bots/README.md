@@ -1,5 +1,11 @@
 # Monster Bot avatars
 
+## Filip prompt
+
+Output: graphics/bots/filip-bot.png. Built-in image generation, transparent background.
+
+undefined
+
 ## Bailey prompt
 
 Output: graphics/bots/bailey-bot.png. Built-in image generation, transparent background.

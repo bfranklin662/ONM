@@ -114,7 +114,8 @@ test("available avatars appear in the ladder and scorer without leaking into oth
     g.click("leaveMatch");
   }
   g.start(10);
-  assert.equal(g.element("scorerBotAvatar").hidden, true);
+  assert.equal(g.element("scorerBotAvatar").hidden, false);
+  assert.equal(g.element("scorerBotAvatar").src, "graphics/bots/filip-bot.png");
 });
 
 test("match lengths, alternating starts, wins and gold progress survive reload", async () => {
