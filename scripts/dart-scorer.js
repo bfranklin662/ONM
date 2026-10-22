@@ -5446,17 +5446,36 @@ if (els.newGame) {
 
 let wakeLock = null;
 let wakeLockRequest = null;
+let wakeLockWatchdog = null;
+let wakeLockWarningShown = false;
+
+function warnScreenMaySleep(message) {
+  if (wakeLockWarningShown) return;
+  wakeLockWarningShown = true;
+  showOnlineNotice(message, "Keep screen awake");
+}
+
+function stopWakeLockWatchdog() {
+  if (wakeLockWatchdog !== null) clearInterval(wakeLockWatchdog);
+  wakeLockWatchdog = null;
+}
 
 async function requestWakeLock() {
+  if (document.visibilityState !== "visible" || !document.body.classList.contains("scorer-fullscreen")) { stopWakeLockWatchdog(); return; }
+  if (!("wakeLock" in navigator)) {
+    warnScreenMaySleep("This browser cannot keep the screen awake. Use an up-to-date browser or temporarily increase your device's auto-lock time.");
+    return;
+  }
+  if (wakeLockWatchdog === null) wakeLockWatchdog = setInterval(() => { requestWakeLock(); },10000);
   if (wakeLock && !wakeLock.released) return;
   if (wakeLockRequest) return wakeLockRequest;
-  if (document.visibilityState !== "visible" || !document.body.classList.contains("scorer-fullscreen")) return;
   wakeLockRequest = (async () => {
     try {
       if ("wakeLock" in navigator) {
         const lock = await navigator.wakeLock.request("screen");
-        if (!document.body.classList.contains("scorer-fullscreen")) { await lock.release(); return; }
+        if (document.visibilityState !== "visible" || !document.body.classList.contains("scorer-fullscreen")) { await lock.release(); return; }
         wakeLock = lock;
+        wakeLockWarningShown = false;
         lock.addEventListener("release", () => {
           if (wakeLock === lock) wakeLock = null;
           if (document.visibilityState === "visible" && document.body.classList.contains("scorer-fullscreen")) {
@@ -5466,12 +5485,14 @@ async function requestWakeLock() {
       }
     } catch (err) {
       console.warn("Wake lock failed:", err);
+      warnScreenMaySleep("Your browser has not allowed the screen to stay awake. We will retry automatically; check the device's auto-lock settings if it continues.");
     }
   })();
   try { await wakeLockRequest; } finally { wakeLockRequest = null; }
 }
 
 async function releaseWakeLock() {
+  stopWakeLockWatchdog();
   try {
     if (wakeLock) {
       await wakeLock.release();
@@ -5488,12 +5509,16 @@ document.addEventListener("visibilitychange", () => {
     document.body.classList.contains("scorer-fullscreen")
   ) {
     requestWakeLock();
-  }
+  } else stopWakeLockWatchdog();
 });
 
 // Retry after a user gesture if the browser declined the initial automatic request.
 document.addEventListener("pointerdown", () => { requestWakeLock(); }, {passive:true});
 window.addEventListener("pageshow", () => { requestWakeLock(); });
+window.addEventListener("focus", () => { requestWakeLock(); });
+document.addEventListener("fullscreenchange", () => { requestWakeLock(); });
+document.addEventListener("keydown", () => { requestWakeLock(); });
+window.addEventListener("pagehide", () => { releaseWakeLock(); });
 
 function enterScorerFullscreen() {
   document.body.classList.add("scorer-fullscreen");
@@ -7487,7 +7512,7 @@ function lockLobbySettings(locked) {
     });
 }
 
-function showOnlineNotice(message) {
+function showOnlineNotice(message, title = "Online match") {
   let overlay = document.getElementById("onlineNoticeOverlay");
 
   if (!overlay) {
@@ -7516,6 +7541,7 @@ function showOnlineNotice(message) {
   }
 
   document.getElementById("onlineNoticeText").textContent = message;
+  overlay.querySelector(".modalTitle").textContent = title;
   overlay.classList.remove("hidden");
   overlay.setAttribute("aria-hidden", "false");
 }
