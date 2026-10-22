@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Play vs Monster Bot | Oche Ness Monsters</title><link rel="icon" href="graphics/favicon1.png"><link rel="stylesheet" href="styles/monster-bot.css?v=20261022-aussie"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Play vs Monster Bot | Oche Ness Monsters</title><link rel="icon" href="graphics/favicon1.png"><link rel="stylesheet" href="styles/monster-bot.css?v=20261022-andre"></head>
 <body>
 <header class="botHeader"><a href="index.html"><img src="graphics/logoWText.png" alt="Oche Ness Monsters"></a><a href="games.html">← Play Darts</a></header>
 <main>
@@ -13,7 +13,7 @@
     <div id="botLevels" class="botLevels" role="region" aria-label="Monster ladder, next locked level at the top, Billy at the bottom" tabindex="0"></div>
     <p class="muted">501 • Straight in • Double out • Alternate first throw each leg. Averages are long-run targets; every match varies. Checkout % means doubles hit per dart at a double.</p>
     </div>
-    <div id="leaderboardPanel" role="tabpanel" aria-labelledby="leaderboardTab" hidden><h2>Monster leaderboard</h2><p id="leaderboardStatus" class="muted" role="status">Loading leaderboard…</p><div class="leaderboardScroll"><table class="leaderboardTable"><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Level unlocked</th><th scope="col">Challenges</th></tr></thead><tbody id="leaderboardRows"></tbody></table></div><button id="retryLeaderboard" type="button" class="secondary" hidden>Retry</button></div>
+    <div id="leaderboardPanel" role="tabpanel" aria-labelledby="leaderboardTab" hidden><h2>Monster leaderboard</h2><p id="leaderboardStatus" class="muted" role="status">Loading leaderboard…</p><div class="leaderboardScroll"><table class="leaderboardTable"><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Level unlocked</th><th scope="col">Challenges</th><th scope="col">Flawless</th></tr></thead><tbody id="leaderboardRows"></tbody></table></div><button id="retryLeaderboard" type="button" class="secondary" hidden>Retry</button></div>
   </section>
   <section id="matchPanel" hidden aria-labelledby="matchTitle">
     <div class="matchHeading"><div><span id="matchFormat" class="eyebrow"></span><h2 id="matchTitle"></h2></div><button id="leaveMatch" class="secondary">Leave match</button></div>
@@ -27,5 +27,5 @@
 </main>
 <dialog id="completionDialog" class="completionDialog" aria-labelledby="completionTitle"><div class="completionHeading"><h2 id="completionTitle">Players who have won</h2><button id="closeCompletions" type="button" class="secondary" aria-label="Close completion list">✕</button></div><p id="completionStatus" role="status"></p><ul id="completionNames"></ul><button id="retryCompletions" type="button" class="secondary" hidden>Retry</button></dialog>
 <dialog id="bullCheckoutDialog" class="completionDialog" aria-labelledby="bullCheckoutTitle"><h2 id="bullCheckoutTitle">How did you check out?</h2><p>Only a Bullseye (50) finish wins Bull or Bust. Any other finish loses the challenge.</p><div class="matchActions"><button id="confirmBullCheckout" type="button" class="primary">Bullseye 🎯</button><button id="otherCheckout" type="button" class="secondary">Other finish — I lose</button></div></dialog>
-<script src="scripts/firebase-client.js?v=20261022-bot"></script><script src="scripts/monster-bot-engine.js?v=20261022-aussie"></script><script src="scripts/monster-bot.js?v=20261022-aussie"></script>
+<script src="scripts/firebase-client.js?v=20261022-bot"></script><script src="scripts/monster-bot-engine.js?v=20261022-andre"></script><script src="scripts/monster-bot.js?v=20261022-andre"></script>
 </body></html>

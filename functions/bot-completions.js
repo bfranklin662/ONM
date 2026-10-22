@@ -49,7 +49,8 @@ function buildLeaderboard(users, profiles) {
       if (!won(next-1,[1,3]) || next>=3 && !won(next-2,[1,3,5,7]) || next>=4 && !won(next-3,modes) || next>=5 && !modes.every(mode => row.wins.has(`${next-4}-${mode}`) && row.scores[`${next-4}-${mode}`]?.lost === 0)) break;
       level=next;
     }
-    return {name:row.name,level,completed:row.wins.size};
+    const flawless = Object.values(row.scores).filter(score => score.lost === 0).length;
+    return {name:row.name,level,completed:row.wins.size,flawless};
   }).sort((a,b) => b.completed-a.completed || b.level-a.level || a.name.localeCompare(b.name));
 }
 module.exports = { buildCompletions, buildLeaderboard };

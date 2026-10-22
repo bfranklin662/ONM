@@ -1,5 +1,11 @@
 # Monster Bot avatars
 
+## Andre prompt
+
+Output: graphics/bots/andre-bot.png. Built-in image generation, transparent background.
+
+undefined
+
 ## Aussie prompt
 
 Output: graphics/bots/aussie-bot.png. Built-in image generation, transparent background. Original nick-bot.png restored as the selected Nick avatar.

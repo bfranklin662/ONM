@@ -6,7 +6,7 @@
   const modes = new Map();
   let bestScores = {};
   const botName = level => E.LEVELS[level - 1].name;
-  const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick", 6: "ricky", 7: "aussie" };
+  const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick", 6: "ricky", 7: "aussie", 8: "andre" };
   const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png` : "";
   function requirements(level) {
     const rows = [{ label: "Sign in with a registered account", met: Boolean(user) }];
@@ -43,7 +43,7 @@
   let community = null, leaderboard = null, communityError = false, completionKey = null, communityLoading = null;
   function renderLeaderboard() {
     $("leaderboardStatus").textContent = leaderboard ? (leaderboard.length ? `${leaderboard.length} players · Ranked by challenges completed, then level unlocked.` : "No players yet. Start your first match to join the leaderboard.") : communityError ? "Leaderboard could not be loaded. Please retry." : "Loading leaderboard…";
-    $("leaderboardRows").innerHTML = (leaderboard || []).map((row,i) => `<tr><td>${i+1}</td><th scope="row">${escape(row.name)}</th><td>Level ${row.level}</td><td>${row.completed} / 50</td></tr>`).join("");
+    $("leaderboardRows").innerHTML = (leaderboard || []).map((row,i) => `<tr><td>${i+1}</td><th scope="row">${escape(row.name)}</th><td>Level ${row.level}</td><td class="challengesTotal">${row.completed} / 50</td><td class="flawlessTotal">★ ${row.flawless ?? 0}</td></tr>`).join("");
     $("retryLeaderboard").hidden = !communityError;
   }
   function showTab(board) {
