@@ -303,6 +303,29 @@ test("best scores retain flawless gold and reject impossible results", () => {
   assert.deepEqual(E.bestScore({won:4,lost:0},{won:4,lost:1}), {won:4,lost:0});
   assert.deepEqual(E.bestScore({won:4,lost:1},{won:4,lost:0}), {won:4,lost:0});
 });
+test("common totals are favoured without making big scores common for weak bots", () => {
+  const distribution=E.scoringDistribution(42.5,1), probability=score=>distribution.find(row=>row.score===score)?.probability || 0;
+  for(const [common,uncommon] of [[60,59],[45,44],[37,36],[26,27],[15,14],[11,10],[7,8]]) assert.ok(probability(common)>probability(uncommon)*5,`${common} should be favoured over ${uncommon}`);
+  for(const score of E.BOT_EXCLUDED_SCORES) assert.equal(probability(score),0);
+  for(const row of distribution) assert.ok(row.probability>0 && E.possibleScore(row.score));
+  const random=seeded(391);let common=0,high=0;
+  for(let i=0;i<100000;i++) {
+    const visit=E.botVisit(501,0,E.LEVELS[0],random);
+    common+=E.COMMON_SCORES.includes(visit.score);high+=visit.score>=140;
+    assert.equal(visit.hits.reduce((sum,hit)=>sum+hit,0),visit.score);
+    assert.equal(E.BOT_EXCLUDED_SCORES.includes(visit.score),false);
+  }
+  assert.ok(common>50000);assert.ok(high<100,"Billy must very rarely score 140+");
+  const averages=Array.from({length:40},()=>E.simulate(E.LEVELS[0],1,random).average);
+  assert.ok(Math.max(...averages)-Math.min(...averages)>10,"individual legs must vary rather than being forced to exactly 35");
+});
+test("bogey checkouts stay valid as human scoring totals when physically possible",()=>{
+  for(const score of [159,162,165,168]) {
+    assert.equal(E.possibleScore(score),true);
+    assert.equal(E.checkoutPossible(score,3),false);
+  }
+  for(const score of [163,166,169,172,173,175,176,178,179]) assert.equal(E.possibleScore(score),false);
+});
 test("each bot finishes legal legs with the requested long-run profile", () => {
   for (const profile of E.LEVELS) {
     const stats = E.simulate(profile, 6000, seeded(200 + profile.level));
@@ -314,6 +337,7 @@ test("each bot finishes legal legs with the requested long-run profile", () => {
       let remaining = 501, thrown = 0;
       while (remaining && thrown < 600) {
         const visit = E.botVisit(remaining, thrown, profile, random);
+        assert.equal(E.BOT_EXCLUDED_SCORES.includes(visit.score),false);
         assert.ok(visit.darts >= 1 && visit.darts <= 3);
         if (visit.bust) assert.equal(visit.remaining, remaining);
         else { assert.equal(E.validateVisit(remaining, visit.score, visit.darts), ""); assert.equal(remaining - visit.score, visit.remaining); }

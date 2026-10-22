@@ -8,7 +8,7 @@
   const NAMES = ["Billy Bot", "Croft Bot", "Venton Bot", "Istan Bot", "Nick Bot", "Ricky Bot", "Aussie Bot", "Andre Bot", "Bailey Bot", "Filip Bot"];
   const LEVELS = Array.from({ length: 10 }, (_, i) => ({
     level: i + 1, name: NAMES[i], average: 35 + i * 5, firstNine: [40 + i * 5, 45 + i * 5],
-    checkout: [7 + i, 15 + i], middle: [37.3, 46.7, 57.4, 68.7, 81.6, 95.2, 114.4, 139, 191, 165][i]
+    checkout: [7 + i, 15 + i], middle: [39.8, 46.7, 57.4, 68.7, 81.6, 95.2, 114.4, 139, 175, 165][i]
   }));
   const singles = Array.from({ length: 20 }, (_, i) => i + 1);
   const scores = [...new Set([0, ...singles, ...singles.map(n => n * 2), ...singles.map(n => n * 3), 25, 50])];
@@ -27,7 +27,50 @@
   }
   const bullCheckoutPossible = (total, darts) => Number.isInteger(darts) && darts >= 1 && darts <= 3 && reachable[darts - 1].has(total - 50);
   const possibleScore = score => Number.isInteger(score) && score >= 0 && score <= 180 && reachable[3].has(score);
+  const COMMON_SCORES = [180,140,135,121,105,95,85,60,45,37,26,25,15,11,7];
+  // User-requested bot exclusions also include several legal scoring totals
+  // which are bogey checkouts. Human score validation remains board-accurate.
+  const BOT_EXCLUDED_SCORES = [159,162,163,165,166,168,169,172,173,175,176,178,179];
+  const common = new Set(COMMON_SCORES), excluded = new Set(BOT_EXCLUDED_SCORES);
+  const scoringTotals = [...reachable[3]].filter(s=>!excluded.has(s)).sort((a,b)=>a-b);
+  const scoringCache = new Map();
+  const commonHits = {180:[60,60,60],140:[60,60,20],135:[60,60,15],121:[60,60,1],105:[60,25,20],95:[60,20,15],85:[60,20,5],60:[20,20,20],45:[15,15,15],37:[20,16,1],26:[20,5,1],25:[20,5,0],15:[5,5,5],11:[5,5,1],7:[5,1,1]};
+  const visitHits = new Map(Object.entries(commonHits).map(([s,hits])=>[Number(s),hits]));
+  for (const total of scoringTotals) {
+    if (visitHits.has(total)) continue;
+    outer: for (const a of scores) for (const b of scores) {
+      const c=total-a-b;
+      if (scores.includes(c)) {visitHits.set(total,[a,b,c]);break outer;}
+    }
+  }
+  function scoringDistribution(target, level) {
+    target = Math.max(1,Math.min(175,target));
+    const key=`${target}-${level}`;
+    if (scoringCache.has(key)) return scoringCache.get(key);
+    const spread=20+level*1.6;
+    const weights = tilt => scoringTotals.map(score => Math.exp(-Math.pow((score-target)/spread,2)/2 + tilt*(score-target))*(common.has(score)?14:1));
+    let low=-1,high=1;
+    // Preserve the requested mean while favouring common totals, rather than
+    // inflating a weak bot's average with a fixed chance of hitting 180.
+    for(let i=0;i<42;i++) {
+      const tilt=(low+high)/2,w=weights(tilt),sum=w.reduce((a,b)=>a+b,0);
+      const mean=w.reduce((a,b,i)=>a+b*scoringTotals[i],0)/sum;
+      if(mean<target)low=tilt;else high=tilt;
+    }
+    const w=weights((low+high)/2),sum=w.reduce((a,b)=>a+b,0);
+    const result=scoringTotals.map((score,i)=>({score,probability:w[i]/sum}));
+    scoringCache.set(key,result);return result;
+  }
+  function scoringVisit(remaining,dartsThrown,profile,random) {
+    const target=dartsThrown<9?(profile.firstNine[0]+profile.firstNine[1])/2:profile.middle;
+    const distribution=scoringDistribution(target,profile.level);
+    const allowed=distribution.filter(row=>remaining-row.score>=2);
+    let pick=random()*allowed.reduce((sum,row)=>sum+row.probability,0),total=0;
+    for(const row of allowed) {pick-=row.probability;if(pick<=0){total=row.score;break;}}
+    return {score:total,remaining:remaining-total,darts:3,bust:false,attempts:0,hits:[...visitHits.get(total)]};
+  }
   function botVisit(remaining, dartsThrown, profile, random = Math.random) {
+    if (remaining>180) return scoringVisit(remaining,dartsThrown,profile,random);
     const before = remaining, hits = [];
     let attempts = 0;
     for (let dart = 0; dart < 3; dart++) {
@@ -92,7 +135,7 @@
     return level;
   }
   const bestScore = (current, next) => !current || next.lost < current.lost ? next : current;
-  const api = { MODES, STANDARD_MODES, BULL_MODE, modeLabel, legsNeeded, bullCheckoutPossible, possibleScore, LEVELS, isUnlocked, highestUnlocked, validWinningScore, bestScore, checkoutPossible, validateVisit, botVisit, simulate };
+  const api = { MODES, STANDARD_MODES, BULL_MODE, modeLabel, legsNeeded, bullCheckoutPossible, possibleScore, COMMON_SCORES, BOT_EXCLUDED_SCORES, scoringDistribution, LEVELS, isUnlocked, highestUnlocked, validWinningScore, bestScore, checkoutPossible, validateVisit, botVisit, simulate };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.MonsterBotEngine = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

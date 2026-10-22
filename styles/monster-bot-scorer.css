@@ -1,5 +1,6 @@
 .monsterBotScorer .monsterBotNotice{margin:0;padding:10px 14px;color:#c4dfd5;font-size:12px;line-height:1.45;background:#17382e;border-radius:10px 10px 0 0}
 .monsterScorerAvatar{width:42px;height:46px;object-fit:contain;flex:none}
+.monsterBotScorer .playerTop{height:46px;grid-template-columns:10px minmax(0,1fr) 32px;position:relative}.monsterBotScorer #playerTwoCard .playerTop{grid-template-columns:10px 42px minmax(0,1fr) 32px}.monsterBotScorer .playerTop>*{min-width:0}.monsterBotScorer .score{font-variant-numeric:tabular-nums}
 .monsterBotScorer #gameSettingsBtn,.monsterBotScorer #playTabBtn,.monsterBotScorer #leaderboardTabBtn{display:none!important}
 .monsterBotScorer #monsterBotResultStatus{font-size:13px;color:#8fdec2;text-align:center;line-height:1.5}
-@media(max-width:600px){.monsterScorerAvatar{width:30px;height:36px}.monsterBotScorer .monsterBotNotice{font-size:11px}}
+@media(max-width:600px){.monsterScorerAvatar{width:30px;height:36px}.monsterBotScorer .playerTop{height:36px;gap:5px}.monsterBotScorer #playerTwoCard .playerTop{grid-template-columns:9px 30px minmax(0,1fr) 28px}.monsterBotScorer .monsterBotNotice{font-size:11px}}
