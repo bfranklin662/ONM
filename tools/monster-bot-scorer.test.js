@@ -110,6 +110,17 @@ test("Monsters splash names the selected bot and format without affecting league
     assert.equal(nodes.monsterBotLoadingText.textContent,label||"");
   }
 });
+test("launch and scorer share branded avatars and an axial dart-roll loader",()=>{
+  for(const file of ["monster-bot.html","dart-scorer.html"]){
+    const html=fs.readFileSync(require.resolve(`../${file}`),"utf8");
+    assert.match(html,/monster-bot-splash\.css/);assert.match(html,/class="splashBotAvatar" src="graphics\/bots\/billy-bot.png"/);
+    assert.match(html,/class="splashBotAvatar" src="graphics\/bots\/croft-bot.png"/);
+    assert.match(html,/Monster Bot<span>Game<\/span>/);assert.match(html,/class="dartFlightRoll"/);
+  }
+  const css=fs.readFileSync(require.resolve("../styles/monster-bot-splash.css"),"utf8");
+  assert.match(css,/rotateX\(360deg\)/);assert.doesNotMatch(css,/rotateZ\(|rotate\(360deg\)/);
+  assert.match(css,/prefers-reduced-motion:reduce/);
+});
 test("games start automatically even when autoplay is blocked, without a late Game on retry",async()=>{
   const g=await harness({audioBlocked:true});
   assert.equal(g.api.canPlay(),true);assert.equal(g.els.submit.disabled,false);

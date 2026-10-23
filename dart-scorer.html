@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="styles/buttons.css">
   <link rel="stylesheet" href="styles/dart-scorer.css" />
   <link rel="stylesheet" href="styles/monster-bot-scorer.css?v=20261023-bull-midpoint" />
+  <link rel="stylesheet" href="styles/monster-bot-splash.css?v=20261023-branded-splash" />
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="stylesheet" href="styles/player-season-vote.css">
   <link rel="icon" type="image/png" href="/graphics/favicon1.png" sizes="32x32">
@@ -22,11 +23,11 @@
 </head>
 
 <body>
-  <section id="monsterBotSplash" class="monsterBotSplash" aria-labelledby="monsterBotLoadingText" hidden>
-    <img class="monsterSplashLogo" src="graphics/logoWText.png" alt="Oche Ness Monsters" width="280" height="180">
-    <span class="monsterSplashEyebrow">MONSTER BOT GAME</span>
-    <h1 id="monsterBotLoadingText" role="status" aria-live="polite">Loading Monster Bot…</h1>
-    <div id="monsterBotLoadingDots" class="monsterSplashDots" aria-hidden="true"><span></span><span></span><span></span></div>
+  <section id="monsterBotSplash" class="monsterBotSplash monsterGameSplash" aria-labelledby="monsterBotLoadingText" hidden>
+    <img class="splashClubLogo" src="graphics/logoWText.png" alt="Oche Ness Monsters" width="140" height="62">
+    <div class="splashBotFront"><img class="splashBotAvatar" src="graphics/bots/billy-bot.png" alt="Billy Bot" width="180" height="210"><h2 class="splashGameTitle">Monster Bot<span>Game</span></h2><img class="splashBotAvatar" src="graphics/bots/croft-bot.png" alt="Croft Bot" width="180" height="210"></div>
+    <div id="monsterBotLoadingDots" class="loadingDart" aria-hidden="true"><svg viewBox="0 0 260 76"><defs><linearGradient id="dartBarrel" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f2f6fa"/><stop offset=".45" stop-color="#849aa9"/><stop offset=".6" stop-color="#e6edf2"/><stop offset="1" stop-color="#425765"/></linearGradient></defs><path d="M3 38 65 35 65 41Z" fill="#ccd9e2"/><path d="M65 34 90 31 162 31 171 35 171 41 162 45 90 45 65 42Z" fill="url(#dartBarrel)"/><path d="M171 35H236V41H171Z" fill="#637d74"/><path d="M95 32V44M105 32V44M115 32V44M125 32V44M135 32V44M145 32V44M155 32V44" stroke="#344a55" stroke-width="2"/></svg><div class="dartFlightRoll"><span class="dartFlightPlane"></span><span class="dartFlightPlane"></span></div></div>
+    <p id="monsterBotLoadingText" role="status" aria-live="polite">Loading Monster Bot…</p>
     <a href="monster-bot.html">Back to ladder</a>
   </section>
   <script src="scripts/monster-bot-splash.js?v=20261023-bull-midpoint"></script>
