@@ -4,10 +4,14 @@
   if(audio){audio.preload="auto";audio.playsInline=true;}
   let busy=false;
   let frame=null, context=null;
+  let announcedSource=null,opening=false,generation=0;
+  // Actual silence: do not loop the announcement at volume zero to prime audio.
+  // Some media implementations don't honour per-element volume changes.
+  const SILENCE="data:audio/wav;base64,UklGRsQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
   function prime(){
     const AudioContext=root.AudioContext||root.webkitAudioContext;
     try{if(AudioContext){context ||= new AudioContext();context.resume()?.catch(()=>{});}}catch{}
-    if(audio){audio.volume=0;audio.loop=true;try{audio.play()?.catch(()=>{});}catch{}}
+    if(audio){audio.pause();audio.src=SILENCE;audio.volume=1;audio.loop=true;try{audio.play()?.catch(()=>{});}catch{}}
   }
   function tone(frequency,start,duration){
     if(!context)return;
@@ -17,23 +21,31 @@
     oscillator.connect(gain);gain.connect(context.destination);oscillator.start(start);oscillator.stop(start+duration+.02);
   }
   function open(url,wait){
-    prime();
-    if(wait){Promise.resolve(wait).then(()=>open(url));return;}
     const target=new URL(url,root.location.href);
     if(target.origin!==root.location.origin||!target.pathname.endsWith("/dart-scorer.html"))return;
+    if(opening)return;
+    opening=true;const id=++generation;prime();
+    const mount=()=>{
+    if(id!==generation)return;
     frame?.remove();
+    announcedSource=null;
     frame=document.createElement("iframe");frame.title="Monster Bot Game";
     frame.allow="autoplay; fullscreen; screen-wake-lock";frame.allowFullscreen=true;
     frame.style.cssText="position:fixed;inset:0;width:100%;height:100%;border:0;z-index:19000;background:#080f17";
     frame.onload=()=>{const splash=document.getElementById("botLaunchSplash");if(splash)splash.hidden=true;};
     frame.src=target.href;document.body.appendChild(frame);
     document.body.style.overflow="hidden";
+    };
+    if(wait)Promise.resolve(wait).then(mount,()=>{if(id===generation){opening=false;stop();}});
+    else mount();
   }
   function ready(source){
     if(!frame||frame.contentWindow!==source)return false;
+    if(announcedSource===source)return true;
+    announcedSource=source;opening=false;
     const splash=document.getElementById("botLaunchSplash");if(splash)splash.hidden=true;
     if(context)tone(880,context.currentTime,.12);
-    if(audio){audio.loop=false;audio.pause();audio.currentTime=0;audio.volume=1;
+    if(audio){audio.loop=false;audio.pause();audio.src="audio/darts/game-on.mp3";audio.currentTime=0;audio.volume=1;
       try{audio.play()?.catch(()=>{});}catch{}
     }
     return true;
@@ -49,7 +61,7 @@
       dialog.appendChild(spark);setTimeout(()=>spark.remove(),2000);
     }
   }
-  function close(){stop();frame?.remove();frame=null;document.body.style.overflow="";}
+  function close(){++generation;opening=false;announcedSource=null;stop();frame?.remove();frame=null;document.body.style.overflow="";}
   function stop(){if(audio){audio.pause();audio.loop=false;}}
   function start(done){
     if(busy)return;
@@ -64,9 +76,9 @@
     };
     const watchdog=setTimeout(()=>finish(false),6000);
     audio.onended=()=>finish(true);audio.onerror=()=>finish(false);
-    audio.currentTime=0;audio.volume=1;
+    audio.loop=false;audio.src="audio/darts/game-on.mp3";audio.currentTime=0;audio.volume=1;
     // This call must stay synchronous inside the user's Play/Restart click.
     try{audio.play()?.catch(()=>finish(false));}catch{finish(false);}
   }
-  root.ONMBotLaunch={start,open,ready,celebrate,stop,close,isPlaying:()=>Boolean(audio&&!audio.paused&&audio.volume>0)};
+  root.ONMBotLaunch={start,open,ready,celebrate,stop,close,isPlaying:()=>Boolean(audio&&!audio.paused&&audio.src.endsWith("game-on.mp3"))};
 })(typeof window!=="undefined"?window:globalThis);

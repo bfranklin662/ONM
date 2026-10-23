@@ -19,11 +19,17 @@ test("blocked or broken launch audio never traps the player on the splash",async
 });
 test("embedded scorer reveals and announces only when its own ready signal arrives",()=>{
   let audio,frame;const splash={hidden:false},calls=[];
-  const ctx={URL,window:{location:{href:"https://example.test/monster-bot.html",origin:"https://example.test"}},Audio:function(){audio=this;this.paused=true;this.pause=()=>{this.paused=true;};this.play=()=>{calls.push(this.volume);this.paused=false;return Promise.resolve();};},document:{body:{style:{},appendChild(node){frame=node;}},createElement(){return{style:{},contentWindow:{},remove(){}};},getElementById:()=>splash},setTimeout,clearTimeout};
+  const ctx={URL,window:{location:{href:"https://example.test/monster-bot.html",origin:"https://example.test"}},Audio:function(){audio=this;this.paused=true;this.pause=()=>{this.paused=true;};this.play=()=>{calls.push(this.src);this.paused=false;return Promise.resolve();};},document:{body:{style:{},appendChild(node){frame=node;}},createElement(){return{style:{},contentWindow:{},remove(){}};},getElementById:()=>splash},setTimeout,clearTimeout};
   vm.runInNewContext(source,ctx);
   ctx.window.ONMBotLaunch.open("dart-scorer.html?mode=bot&level=1&format=3");
-  assert.deepEqual(calls,[0]);assert.equal(splash.hidden,false);
-  assert.equal(ctx.window.ONMBotLaunch.ready({}),false);assert.deepEqual(calls,[0]);
+  assert.equal(calls.length,1);assert.match(calls[0],/^data:audio\/wav;base64,/);assert.equal(splash.hidden,false);
+  const silent=Buffer.from(calls[0].split(",")[1],"base64");assert.equal(silent.length,204);assert.ok(silent.subarray(44).every(byte=>byte===0));
+  ctx.window.ONMBotLaunch.open("dart-scorer.html?mode=bot&level=1&format=3");assert.equal(calls.length,1);
+  assert.equal(ctx.window.ONMBotLaunch.ready({}),false);assert.equal(calls.length,1);
   assert.equal(ctx.window.ONMBotLaunch.ready(frame.contentWindow),true);
-  assert.equal(splash.hidden,true);assert.deepEqual(calls,[0,1]);assert.equal(audio.loop,false);assert.equal(audio.currentTime,0);
+  assert.equal(splash.hidden,true);assert.equal(calls[1],"audio/darts/game-on.mp3");assert.equal(audio.loop,false);assert.equal(audio.currentTime,0);
+  ctx.window.ONMBotLaunch.ready(frame.contentWindow);ctx.window.ONMBotLaunch.ready(frame.contentWindow);
+  assert.equal(calls.filter(src=>src==="audio/darts/game-on.mp3").length,1);
+  ctx.window.ONMBotLaunch.close();ctx.window.ONMBotLaunch.open("dart-scorer.html?mode=bot&level=1&format=3");ctx.window.ONMBotLaunch.ready(frame.contentWindow);
+  assert.equal(calls.filter(src=>src==="audio/darts/game-on.mp3").length,2);
 });
