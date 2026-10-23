@@ -192,9 +192,12 @@ test("ladder waits for Firebase progress then focuses the highest unlocked bot",
   assert.equal(g.element("botLevels").hidden,true);
   assert.equal(g.element("botLevels").innerHTML,"");
   assert.equal(g.element("accountLoading").hidden,false);
+  assert.equal(g.element("botLaunchSplash").hidden,false);
+  assert.equal(g.element("botLaunchText").textContent,"Loading your Monster Bot ladder…");
   resolve({data:()=>({monsterBotWins:["1-1","1-3"]})});
   await new Promise(done=>setImmediate(done));
   assert.equal(g.element("accountLoading").hidden,true);
+  assert.equal(g.element("botLaunchSplash").hidden,true);
   assert.equal(g.element("botLevels").hidden,false);
   assert.equal(g.element("bot-level-2").scrolledIntoView.block,"start");
   assert.match(g.element("botLevels").innerHTML,/Level 3 · Mystery Bot/);
@@ -206,6 +209,7 @@ test("failed Firebase progress keeps bots hidden and offers retry",async()=>{
   assert.equal(g.element("botLevels").hidden,true);
   assert.equal(g.element("retryAccount").hidden,false);
   assert.equal(g.element("accountSpinner").hidden,true);
+  assert.equal(g.element("botLaunchSplash").hidden,true);
   assert.equal(g.playButton(),"");
 });
 test("completed requirements remain ticked on locked bots and disappear after unlock",async()=>{
@@ -220,19 +224,20 @@ test("completed requirements remain ticked on locked bots and disappear after un
   const card=unlocked.element("botLevels").innerHTML.split('id="bot-level-3"')[1].split("</article>")[0];
   assert.match(card,/Venton Bot/);assert.doesNotMatch(card,/Requirements to play/);
 });
-test("completion modal Play respects bot and format locks",async()=>{
+test("completion modal is read-only; playing and Bull confirmation stay on the ladder",async()=>{
   const g=await gameHarness();
   const open=key=>g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-community-key]"?{dataset:{communityKey:key}}:null}});
   const play=(level,format)=>g.element("completionDialog").listeners.click({target:{closest:()=>({dataset:{completionLevel:String(level),completionFormat:String(format)}})}});
-  open("1-9");assert.match(g.element("completionActions").innerHTML,/disabled>Play Bull or Bust/);
+  open("1-9");assert.equal(g.element("completionActions").innerHTML,"");
   assert.notEqual(g.element("bullStartDialog").open,true);
-  assert.match(g.element("completionPlayHint").textContent,/Beat BO1, BO3, BO5 and BO7/);
+  assert.equal(g.element("completionPlayHint").textContent,"");
   play(1,9);assert.equal(g.playButton(1,9),"");
-  open("2-1");assert.match(g.element("completionActions").innerHTML,/disabled>Play BO1/);
+  open("2-1");assert.equal(g.element("completionActions").innerHTML,"");
   play(2,1);assert.equal(g.playButton(2,1),"");
   open("1-3");assert.doesNotMatch(g.element("completionActions").innerHTML,/disabled/);
   assert.notEqual(g.element("bullStartDialog").open,true);
-  play(1,3);assert.equal(g.playButton(1,3),"dart-scorer.html?mode=bot&level=1&format=3");
+  play(1,3);assert.equal(g.location.href,"");assert.equal(g.playButton(1,3),"dart-scorer.html?mode=bot&level=1&format=3");
+  const page=fs.readFileSync(require.resolve("../monster-bot.html"),"utf8");assert.doesNotMatch(page,/id="completionActions"|id="completionPlayHint"|data-completion-format/);
   const unlocked=await gameHarness(new Map(),{uid:"test-member",seedWins:E.STANDARD_MODES.map(m=>`1-${m}`)});
   assert.equal(unlocked.playButton(1,9),"");
   assert.equal(unlocked.element("bullStartDialog").open,true);

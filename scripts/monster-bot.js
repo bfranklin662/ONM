@@ -170,9 +170,6 @@
       return `<li class="completionPlayerRow"><span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(leaderboardPhoto(row))}" alt="" loading="lazy" referrerpolicy="no-referrer"><strong>${escape(row.name)}</strong>${row.flag?`<span class="botLeaderboardFlag" role="img" aria-label="${escape(row.nationality||"Nationality")}">${escape(row.flag)}</span>`:""}</span><span class="completionAward ${gold?"gold":"won"}" aria-label="${gold?"Flawless win":"Beaten"}">${gold?"★":"✓"}</span></li>`;
     }).join("");
     $("retryCompletions").hidden = !communityError;
-    const formats = parts[0] === "level" ? E.MODES : [Number(parts[1])];
-    $("completionActions").innerHTML = formats.map(format => `<button type="button" class="primary" data-completion-level="${level}" data-completion-format="${format}" ${canPlay(level,format) ? "" : "disabled"}>Play ${E.modeLabel(format)}${E.isFormatUnlocked(level,format,progress) ? "" : " 🔒"}</button>`).join("");
-    $("completionPlayHint").textContent = !user ? "Sign in with a registered account to play." : formats.length===1&&isFlawless(level,formats[0]) ? "Completed flawlessly. Play this bot again in Casual mode once Level 3 is unlocked." : level > E.highestUnlocked(progress,bestScores) ? "This bot is locked. Meet its ladder requirements first." : formats.includes(E.BULL_MODE) && !E.isFormatUnlocked(level,E.BULL_MODE,progress) ? "Beat BO1, BO3, BO5 and BO7 on this bot to unlock Bull or Bust." : "";
   }
   async function loadCommunity(refresh = false) {
     if (communityLoading) return communityLoading;
@@ -232,6 +229,8 @@
   }
   async function loadProgress() {
     ready = false;
+    $("botLaunchText").textContent="Loading your Monster Bot ladder…";
+    $("botLaunchSplash").hidden=false;
     $("accountLoadingText").textContent = "Loading your Monster Bot progress…";
     $("accountSpinner").hidden = false;
     $("saveStatus").hidden = true;
@@ -245,7 +244,7 @@
       $("retryAccount").hidden = false;
       $("accountLoadingText").textContent = "We couldn't check your account. Please retry above.";
       $("accountSpinner").hidden = true;
-      renderLevels(); loadCommunity(); return;
+      renderLevels(); $("botLaunchSplash").hidden=true; loadCommunity(); return;
     }
     storageKey = user ? `onm-monster-bot-${user.uid}` : "onm-monster-bot-guest";
     progress = new Set(user ? safeLoad(storageKey) : []);
@@ -268,11 +267,12 @@
         $("saveStatus").hidden = false; $("retryAccount").hidden = false;
         $("accountLoadingText").textContent = "Waiting for your saved progress. Please retry above.";
         $("accountSpinner").hidden = true;
-        renderLevels(); return;
+        renderLevels(); $("botLaunchSplash").hidden=true; return;
       }
     } else $("saveStatus").innerHTML = `No active sign-in was found in this browser. <a href="${authUrl("login")}">Sign in and return to the game</a> or <a href="${authUrl("register")}">sign up</a>.`;
     ready = true;
     renderLevels();
+    $("botLaunchSplash").hidden=true;
     focusUnlocked();
     showUnlockNotices();
     loadCommunity(Boolean(user));
@@ -453,8 +453,6 @@
   });
   $("completionDialog").addEventListener("click", event => {
     if (event.target === $("completionDialog")) { $("completionDialog").close(); return; }
-    const button = event.target.closest("[data-completion-format]");
-    if (button) playGame(Number(button.dataset.completionLevel),Number(button.dataset.completionFormat));
   });
   $("retryCompletions").addEventListener("click", () => { $("completionStatus").textContent = "Loading completions…"; loadCommunity(Boolean(user)); });
   $("scoreForm").addEventListener("submit", event => { event.preventDefault(); humanVisit(); });
