@@ -4,7 +4,7 @@
   let match = null, undo = null, timer = null, user = null, progress = new Set(), storageKey = "", busy = false, ready = false;
   const validKeys = new Set(E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)));
   const modes = new Map();
-  const BULL_RULES = "One-shot Bull or Bust · 301 · BO1 on every level. You must win with a Bullseye (50) checkout and confirm Bull on the checkout prompt. Going below 50, busting, or scoring zero when on a finish loses immediately. You can't intentionally bust your checkout to return to 50 or more. The bot plays normal double-out.";
+  let pendingBullGame=null;
   const authUrl = mode => `auth.html?mode=${mode}&redirect=monster-bot.html`;
   const isFlawless = (level,format) => {const key=`${level}-${format}`;return progress.has(key)&&E.validWinningScore(key,bestScores[key])&&bestScores[key].lost===0;};
   const canPlay = (level,format) => ready && user && E.LEVELS.some(p=>p.level===level) && level <= E.highestUnlocked(progress,bestScores) && E.isFormatUnlocked(level,format,progress) && !isFlawless(level,format);
@@ -45,8 +45,13 @@
     if(window.ONMBotLaunch.open)window.ONMBotLaunch.open(url);
     else window.ONMBotLaunch.start(played=>{window.location.href=url+(played?"&intro=played":"");});
   }
-  function playGame(level,format) {
+  function playGame(level,format,confirmed=false) {
     if (!canPlay(level,format)) return;
+    if(format===E.BULL_MODE&&!confirmed){
+      pendingBullGame={level,format};$("completionDialog").close();
+      $("bullStartOpponent").textContent=`${botName(level)} · 301 · One leg`;
+      $("bullStartDialog").showModal();return;
+    }
     launch(`dart-scorer.html?mode=bot&level=${level}&format=${format}`,`Loading ${botName(level)} · ${E.modeLabel(format)}`);
   }
   function focusUnlocked() {
@@ -152,8 +157,6 @@
     const parts = completionKey.split("-");
     const level = parts[0] === "level" ? Number(parts[1]) : Number(parts[0]);
     $("completionTitle").textContent = `${botName(level)} · ${parts[0] === "level" ? "All formats" : E.modeLabel(Number(parts[1]))}`;
-    $("completionModeRules").hidden = level !== 1 || parts[0] === "level" || Number(parts[1]) !== E.BULL_MODE;
-    $("completionModeRules").textContent = BULL_RULES;
     const ownScore = bestScores[completionKey], beaten = Boolean(user && progress.has(completionKey));
     const flawless = beaten && E.validWinningScore(completionKey,ownScore) && ownScore.lost === 0;
     $("completionYourResult").hidden = !beaten;
@@ -221,7 +224,6 @@
         ${modeResults(p.level,selectedMode)}
         <div class="botCardControls pillPlayControls"><input id="bot-mode-${p.level}" type="hidden" value="${selectedMode}">${!user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary ${flawlessReplay ? "replayGame" : ""}" data-play-level="${p.level}" ${canPlay(p.level,selectedMode) ? "" : "disabled"}>${flawlessReplay ? "Completed this game mode" : replay ? `Replay ${p.name} · ${E.modeLabel(selectedMode)}` : `Play ${p.name} · ${selectedMode===E.BULL_MODE ? "Bull or Bust" : `Best of ${selectedMode}`}`}</button>`}</div>
         ${selectedMode===E.BULL_MODE && !E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? '<p class="lockedHint">🔒 Beat BO1, BO3, BO5 and BO7 on this bot first to unlock Bull or Bust.</p>' : ""}
-        ${p.level === 1 ? `<p id="bot-mode-rules-${p.level}" class="bullModeRules" ${selectedMode === E.BULL_MODE ? "" : "hidden"}>${BULL_RULES}</p>` : ""}
         ${requirements(p.level)}</article>`;
     }).join("");
     complete = E.LEVELS.filter(p => E.MODES.every(mode => progress.has(`${p.level}-${mode}`))).length;
@@ -428,6 +430,12 @@
     if (event.target.matches?.(".modePicker") && event.target.open) requestAnimationFrame(()=>event.target.scrollIntoView({block:"nearest",inline:"nearest"}));
   },true);
   $("closeCompletions").addEventListener("click", () => $("completionDialog").close());
+  $("confirmBullStart").addEventListener("click",()=>{
+    const game=pendingBullGame;pendingBullGame=null;$("bullStartDialog").close();
+    if(game)playGame(game.level,game.format,true);
+  });
+  $("cancelBullStart").addEventListener("click",()=>{pendingBullGame=null;$("bullStartDialog").close();});
+  $("bullStartDialog").addEventListener("cancel",()=>{pendingBullGame=null;});
   $("closeLadderUnlocked").addEventListener("click",()=>{
     let queue=[];try{queue=JSON.parse(localStorage.getItem(unlockQueueKey())||"[]");}catch{}
     try{localStorage.setItem(unlockQueueKey(),JSON.stringify(Array.isArray(queue)?queue.filter(level=>level!==unlockNoticeLevel):[]));}catch{}

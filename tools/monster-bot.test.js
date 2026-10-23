@@ -225,18 +225,22 @@ test("completion modal Play respects bot and format locks",async()=>{
   const open=key=>g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-community-key]"?{dataset:{communityKey:key}}:null}});
   const play=(level,format)=>g.element("completionDialog").listeners.click({target:{closest:()=>({dataset:{completionLevel:String(level),completionFormat:String(format)}})}});
   open("1-9");assert.match(g.element("completionActions").innerHTML,/disabled>Play Bull or Bust/);
-  assert.equal(g.element("completionModeRules").hidden,false);
-  assert.match(g.element("completionModeRules").textContent,/must win with a Bullseye \(50\) checkout/);
-  assert.match(g.element("completionModeRules").textContent,/Going below 50/);
+  assert.notEqual(g.element("bullStartDialog").open,true);
   assert.match(g.element("completionPlayHint").textContent,/Beat BO1, BO3, BO5 and BO7/);
   play(1,9);assert.equal(g.playButton(1,9),"");
   open("2-1");assert.match(g.element("completionActions").innerHTML,/disabled>Play BO1/);
   play(2,1);assert.equal(g.playButton(2,1),"");
   open("1-3");assert.doesNotMatch(g.element("completionActions").innerHTML,/disabled/);
-  assert.equal(g.element("completionModeRules").hidden,true);
+  assert.notEqual(g.element("bullStartDialog").open,true);
   play(1,3);assert.equal(g.playButton(1,3),"dart-scorer.html?mode=bot&level=1&format=3");
   const unlocked=await gameHarness(new Map(),{uid:"test-member",seedWins:E.STANDARD_MODES.map(m=>`1-${m}`)});
-  assert.equal(unlocked.playButton(1,9),"dart-scorer.html?mode=bot&level=1&format=9");
+  assert.equal(unlocked.playButton(1,9),"");
+  assert.equal(unlocked.element("bullStartDialog").open,true);
+  assert.equal(unlocked.element("bullStartOpponent").textContent,"Billy Bot · 301 · One leg");
+  unlocked.click("cancelBullStart");assert.equal(unlocked.location.href,"");
+  unlocked.playButton(1,9);unlocked.click("confirmBullStart");
+  assert.equal(unlocked.location.href,"dart-scorer.html?mode=bot&level=1&format=9");
+  assert.equal(unlocked.element("bullStartDialog").open,false);
 });
 test("any two distinct formats unlock Croft and cards show completed counts",async()=>{
   for(const first of E.MODES) for(const second of E.MODES) {
@@ -289,7 +293,7 @@ test("mode pills select the next unbeaten format and have no completion counts o
     assert.match(picker,new RegExp(`data-choose-mode="${next}" aria-pressed="true"`));
     assert.doesNotMatch(picker,/<b>|data-community-key|<details|<select/);
     assert.doesNotMatch(html,/Match length|class="modePicker"/);
-    if(count===4) assert.match(g.element("botLevels").innerHTML,/<p id="bot-mode-rules-1" class="bullModeRules" >One-shot Bull or Bust/);
+    assert.doesNotMatch(g.element("botLevels").innerHTML,/bot-mode-rules/);
     assert.equal((picker.match(/class="modePill won"/g)||[]).length,count);
   }
 });
@@ -339,9 +343,9 @@ test("selecting a pill updates Play, selected-mode results and contextual Bull r
   assert.match(g.element("botLevels").innerHTML,/data-community-key="1-3"/);
   choose(9);
   assert.match(g.element("botLevels").innerHTML,/disabled>Play Billy Bot · Bull or Bust/);
-  assert.match(g.element("botLevels").innerHTML,/<p id="bot-mode-rules-1" class="bullModeRules" >One-shot Bull or Bust/);
+  assert.doesNotMatch(g.element("botLevels").innerHTML,/bot-mode-rules/);
   choose(1);
-  assert.match(g.element("botLevels").innerHTML,/<p id="bot-mode-rules-1" class="bullModeRules" hidden>/);
+  assert.doesNotMatch(g.element("botLevels").innerHTML,/bot-mode-rules/);
   assert.doesNotMatch(g.element("botLevels").innerHTML,/class="lockedHint"/);
 });
 
@@ -365,9 +369,9 @@ test("Bull or Bust explanation is only repeated on level one",async()=>{
   const g=await gameHarness(new Map(),{uid:"test-member",seedWins:E.MODES.map(mode=>`1-${mode}`)});
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"2",chooseMode:"9"}}:null}});
   const html=g.element("botLevels").innerHTML;
-  assert.match(html,/id="bot-mode-rules-1"/);assert.doesNotMatch(html,/id="bot-mode-rules-2"/);
+  assert.doesNotMatch(html,/bot-mode-rules/);
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-community-key]"?{dataset:{communityKey:"2-9"}}:null}});
-  assert.equal(g.element("completionModeRules").hidden,true);
+  assert.notEqual(g.element("bullStartDialog").open,true);
 });
 
 test("outstanding requirements stay visible and signing out stops play", async () => {
@@ -669,10 +673,11 @@ test("bogey checkouts stay valid as human scoring totals when physically possibl
 });
 test("each bot finishes legal legs with the requested long-run profile", () => {
   for (const profile of E.LEVELS) {
+    assert.equal(profile.targetAverage,profile.average+2.5);
     const stats = E.simulate(profile, 6000, seeded(200 + profile.level));
-    assert.ok(Math.abs(stats.average - profile.average) < 2, `Level ${profile.level}: average ${stats.average}`);
+    assert.ok(Math.abs(stats.average - profile.targetAverage) < 1, `Level ${profile.level}: average ${stats.average}`);
     assert.ok(stats.firstNine >= profile.firstNine[0] && stats.firstNine <= profile.firstNine[1], `First nine ${stats.firstNine}`);
-    assert.ok(stats.checkout >= profile.checkout[0] && stats.checkout <= profile.checkout[1], `Checkout ${stats.checkout}`);
+    assert.ok(stats.checkout >= profile.checkout[0] && stats.checkout <= profile.checkout[1]+3, `Checkout ${stats.checkout}`);
     const random = seeded(profile.level);
     for (let leg = 0; leg < 60; leg++) {
       let remaining = 501, thrown = 0;

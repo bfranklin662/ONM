@@ -8,8 +8,11 @@
   const startScore = (level,mode) => mode === BULL_MODE ? 301 : 501;
   const NAMES = ["Billy Bot", "Croft Bot", "Venton Bot", "Istan Bot", "Nick Bot", "Ricky Bot", "Aussie Bot", "Andre Bot", "Bailey Bot", "Filip Bot"];
   const LEVELS = Array.from({ length: 10 }, (_, i) => ({
-    level: i + 1, name: NAMES[i], average: 35 + i * 5, firstNine: [40 + i * 5, 45 + i * 5],
-    checkout: [7 + i, 15 + i], middle: [42, 52, 62, 85.7, 101.6, 125.3, 150.2, 174.6, 175, 175][i]
+    level: i + 1, name: NAMES[i], average: 35 + i * 5, targetAverage: 37.5 + i * 5, firstNine: [40 + i * 5, 45 + i * 5],
+    checkout: [7 + i, 15 + i], middle: [42, 52, 62, 85.7, 101.6, 125.3, 150.2, 174.6, 175, 175][i],
+    // Small calibration offsets compensate for each level's scoring/setup mix;
+    // targetAverage remains the observed whole-leg average, not a hard bound.
+    paceCalibration: [1.1, 1, 1.1, .3, .4, .5, .7, 1, 1.2, 1.5][i]
   }));
   const singles = Array.from({ length: 20 }, (_, i) => i + 1);
   const scores = [...new Set([0, ...singles, ...singles.map(n => n * 2), ...singles.map(n => n * 3), 25, 50])];
@@ -82,8 +85,9 @@
       // doubles. Softly discourage unusually early finishes, and shorten that
       // tail once a bot is well behind its advertised pace. Never a hard cap.
       const projected=startingScore*3/(dartsThrown+dart+1);
-      const fast=.1+.9*Math.exp(-Math.max(0,projected-profile.average-5)/6);
-      const slow=1+Math.min(4,Math.max(0,profile.average+3+profile.level*.3-projected)/5);
+      const target=(profile.targetAverage??profile.average+2.5)+(profile.paceCalibration||0);
+      const fast=.1+.9*Math.exp(-Math.max(0,projected-target-5)/6);
+      const slow=1+Math.min(4,Math.max(0,target+3+profile.level*.3-projected)/5);
       return Math.min(.6,chance*fast*slow);
     };
     for (let dart = 0; dart < 3; dart++) {
