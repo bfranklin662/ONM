@@ -192,9 +192,10 @@ test("mode completion ticks distinguish wins from flawless wins, never selection
   const stored=new Map([["onm-monster-bot-test-member",JSON.stringify(["1-1","1-3"])],["onm-monster-bot-test-member-scores",JSON.stringify({"1-1":{won:1,lost:0},"1-3":{won:2,lost:1}})]]);
   const g=await gameHarness(stored);
   const picker=g.element("botLevels").innerHTML.split('id="bot-level-1"')[1].match(/<div class="modeMarks"[^>]*>(.*?)<\/div>/)[1];
-  assert.match(picker,/class="modePill gold"[^>]*data-choose-mode="1"[^>]*><span>BO1<\/span><span[^>]*>★/);
-  assert.match(picker,/class="modePill won"[^>]*data-choose-mode="3"[^>]*><span>BO3<\/span><span[^>]*>✓/);
-  assert.match(picker,/data-choose-mode="5" aria-pressed="true"[^>]*><span>BO5<\/span><span[^>]*>○/);
+  assert.match(picker,/class="modePill gold"[^>]*data-choose-mode="1"[^>]*>BO1 ★<\/button>/);
+  assert.match(picker,/class="modePill won"[^>]*data-choose-mode="3"[^>]*>BO3 ✓<\/button>/);
+  assert.match(picker,/data-choose-mode="5" aria-pressed="true"[^>]*>BO5 ○<\/button>/);
+  assert.doesNotMatch(picker,/<span|<div/);
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:"3"}}:null}});
   assert.match(g.element("botLevels").innerHTML,/id="bot-mode-1" type="hidden" value="3"/);
 });
@@ -202,10 +203,11 @@ test("selecting a pill updates Play, selected-mode results and contextual Bull r
   const g=await gameHarness(new Map(),{uid:"test-member"},async()=>({completions:{"1-1":[{},{},{},{}],"1-3":[{}]},leaderboard:[]}));
   const choose=mode=>g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:String(mode)}}:null}});
   assert.match(g.element("botLevels").innerHTML,/Play Billy Bot · Best of 1/);
-  assert.match(g.element("botLevels").innerHTML,/4 players have beaten this/);
+  assert.match(g.element("botLevels").innerHTML,/4 players have beaten Billy Bot BO1/);
   choose(3);
   assert.match(g.element("botLevels").innerHTML,/Play Billy Bot · Best of 3/);
-  assert.match(g.element("botLevels").innerHTML,/1 player has beaten this/);
+  assert.match(g.element("botLevels").innerHTML,/1 player has beaten Billy Bot BO3/);
+  assert.match(g.element("botLevels").innerHTML,/title="View players and scores">👤<\/button>/);
   assert.match(g.element("botLevels").innerHTML,/data-community-key="1-3"/);
   choose(9);
   assert.match(g.element("botLevels").innerHTML,/disabled>Play Billy Bot · Bull or Bust/);

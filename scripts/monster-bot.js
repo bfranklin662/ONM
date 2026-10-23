@@ -41,12 +41,12 @@
   function modeChip(level, mode, selectedMode) {
     const key = `${level}-${mode}`, won = progress.has(key), score = bestScores[key];
     const flawless = won && E.validWinningScore(key,score) && score.lost === 0;
-    return `<button type="button" class="modePill ${flawless ? "gold" : won ? "won" : ""}" data-choose-level="${level}" data-choose-mode="${mode}" aria-pressed="${mode===selectedMode}" aria-label="${E.modeLabel(mode)}, ${flawless ? "flawless win" : won ? "beaten" : "not beaten"}"><span>${E.modeLabel(mode)}</span><span class="modePillMark" aria-hidden="true">${flawless ? "★" : won ? "✓" : "○"}</span></button>`;
+    return `<button type="button" class="modePill ${flawless ? "gold" : won ? "won" : ""}" data-choose-level="${level}" data-choose-mode="${mode}" aria-pressed="${mode===selectedMode}" aria-label="${E.modeLabel(mode)}, ${flawless ? "flawless win" : won ? "beaten" : "not beaten"}">${E.modeLabel(mode)} ${flawless ? "★" : won ? "✓" : "○"}</button>`;
   }
   function modeResults(level,mode) {
     const key = `${level}-${mode}`, count = community ? (community[key] || []).length : null;
-    const label = count === null ? (communityError ? "Results unavailable" : "Loading results…") : `${count} ${count === 1 ? "player has" : "players have"} beaten this`;
-    return `<div class="selectedModeResults"><span>${label}</span><button type="button" class="modeResultsLink" data-community-key="${key}" aria-label="View players and scores for ${botName(level)} ${E.modeLabel(mode)}" title="View players and scores"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h12v14H8M4 8l4 4-4 4M8 12h8"/></svg></button></div>`;
+    const label = count === null ? (communityError ? "Results unavailable" : "Loading results…") : `${count} ${count === 1 ? "player has" : "players have"} beaten ${botName(level)} ${E.modeLabel(mode)}`;
+    return `<div class="selectedModeResults"><span>${label}</span><button type="button" class="modeResultsLink" data-community-key="${key}" aria-label="View players and scores for ${botName(level)} ${E.modeLabel(mode)}" title="View players and scores">👤</button></div>`;
   }
   function readScores(key) {
     try { return Object.fromEntries(Object.entries(JSON.parse(localStorage.getItem(key) || "{}")).filter(([k,v]) => E.validWinningScore(k,v))); } catch { return {}; }
