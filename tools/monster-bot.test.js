@@ -226,6 +226,14 @@ test("mode completion ticks distinguish wins from flawless wins, never selection
   assert.doesNotMatch(picker,/<span|<div/);
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:"3"}}:null}});
   assert.match(g.element("botLevels").innerHTML,/id="bot-mode-1" type="hidden" value="3"/);
+  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame"[^>]*>Replay this game<\/button>/);
+});
+test("fully completed bots offer a grey replay button without adding duplicate awards",async()=>{
+  const wins=E.MODES.map(mode=>`1-${mode}`),scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(scores)]]));
+  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame"[^>]*>Replay this game<\/button>/);
+  const set=new Set(wins);set.add("1-1");scores["1-1"]=E.bestScore(scores["1-1"],{won:1,lost:0});
+  assert.equal(set.size,5);assert.equal(E.goldStars(set,scores),5);
 });
 test("bot cards stay neutral until all modes are beaten and gold requires all flawless",async()=>{
   for(const count of [0,2,5]) {

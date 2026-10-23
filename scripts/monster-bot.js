@@ -147,6 +147,7 @@
         return E.validWinningScore(key,bestScores[key]) && bestScores[key].lost === 0;
       }).length;
       const selectedMode = modes.get(p.level) || E.MODES.find(mode => !progress.has(`${p.level}-${mode}`)) || E.MODES[0];
+      const replay = progress.has(`${p.level}-${selectedMode}`);
       const beaten = wins.length === E.MODES.length;
       const gold = flawless === E.MODES.length;
       const unlocked = E.isUnlocked(p.level, progress, bestScores);
@@ -157,7 +158,7 @@
         <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><div class="completionMedals"><span class="${wins.length ? "won beatenCount" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span>${wins.length ? `<span class="gold flawlessCount">★ Flawless ${flawless}/${E.MODES.length}</span>` : ""}</div></div><span class="levelStats">${p.average}–${p.average + 5} average</span></div></div>
         <div class="modeMarks" role="group" aria-label="Match formats for ${p.name}">${E.MODES.map(mode => modeChip(p.level, mode, selectedMode)).join("")}</div>
         ${modeResults(p.level,selectedMode)}
-        <div class="botCardControls pillPlayControls"><input id="bot-mode-${p.level}" type="hidden" value="${selectedMode}">${!user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${canPlay(p.level,selectedMode) ? "" : "disabled"}>Play ${p.name} · ${selectedMode===E.BULL_MODE ? "Bull or Bust" : `Best of ${selectedMode}`}</button>`}</div>
+        <div class="botCardControls pillPlayControls"><input id="bot-mode-${p.level}" type="hidden" value="${selectedMode}">${!user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary ${replay ? "replayGame" : ""}" data-play-level="${p.level}" ${canPlay(p.level,selectedMode) ? "" : "disabled"}>${replay ? "Replay this game" : `Play ${p.name} · ${selectedMode===E.BULL_MODE ? "Bull or Bust" : `Best of ${selectedMode}`}`}</button>`}</div>
         ${selectedMode===E.BULL_MODE && !E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? '<p class="lockedHint">🔒 Beat BO1, BO3, BO5 and BO7 on this bot first to unlock Bull or Bust.</p>' : ""}
         <p id="bot-mode-rules-${p.level}" class="bullModeRules" ${selectedMode === E.BULL_MODE ? "" : "hidden"}>${BULL_RULES}</p>
         ${requirements(p.level)}</article>`;
