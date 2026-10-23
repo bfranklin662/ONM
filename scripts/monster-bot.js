@@ -68,8 +68,12 @@
     $("leaderboardStatus").textContent = leaderboard ? (leaderboard.length ? `${leaderboard.length} players · Ranked by challenges completed, then level unlocked.` : "No players yet. Start your first match to join the leaderboard.") : communityError ? "Leaderboard could not be loaded. Please retry." : "Loading leaderboard…";
     $("leaderboardRows").innerHTML = (leaderboard || []).map((row,i) => `<tr><td>${i+1}</td><th scope="row">${escape(row.name)}</th><td>Level ${row.level}</td><td class="challengesTotal">${row.completed} / 50</td><td class="flawlessTotal">★ ${row.flawless ?? 0}</td></tr>`).join("");
     $("retryLeaderboard").hidden = !communityError;
+    $("refreshLeaderboard").disabled = Boolean(communityLoading);
+    $("refreshLeaderboard").setAttribute("aria-busy",String(Boolean(communityLoading)));
   }
   function showTab(board) {
+    const hash = board ? "#leaderboard" : "#game";
+    if (window.location.hash !== hash) window.history?.replaceState(null,"",hash);
     $("botPageTitle").textContent = board ? "Leaderboard" : "Monster Bot Game";
     document.title = `${board ? "Leaderboard" : "Monster Bot Game"} | Oche Ness Monsters`;
     $("ladderPanel").hidden = board; $("leaderboardPanel").hidden = !board;
@@ -107,6 +111,8 @@
     if (communityLoading) return communityLoading;
     communityError = false;
     renderLeaderboard(); showCompletionList();
+    $("refreshLeaderboard").disabled = true;
+    $("refreshLeaderboard").setAttribute("aria-busy","true");
     communityLoading = Promise.resolve().then(async () => {
       try {
         const response = await window.ONMBotData.fetchCommunity({projectId:window.ONMFirebase.config.projectId,refresh,getToken:user?.getIdToken ? ()=>user.getIdToken() : null});
@@ -369,10 +375,12 @@
   $("ladderTab").addEventListener("click", () => showTab(false));
   $("leaderboardTab").addEventListener("click", () => showTab(true));
   $("retryLeaderboard").addEventListener("click", () => loadCommunity(Boolean(user)));
+  $("refreshLeaderboard").addEventListener("click", () => loadCommunity(true));
   $("retryAccount").addEventListener("click", () => loadProgress());
   window.addEventListener("beforeunload", event => { if (match && !match.ended) { event.preventDefault(); event.returnValue = ""; } });
   loadCommunity();
-  if (window.location.hash === "#leaderboard") showTab(true);
+  showTab(window.location.hash === "#leaderboard");
+  window.addEventListener("hashchange",()=>showTab(window.location.hash === "#leaderboard"));
   loadProgress().then(async () => {
     try {
       const {auth, authSdk} = await window.ONMFirebase.ready;

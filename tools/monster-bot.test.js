@@ -38,7 +38,7 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" },
         runTransaction: async (_db, fn) => fn({ get: async () => ({ data: () => ({ monsterBotBestScores: {} }) }), update: (path, data) => writes.push({ path, data }) }),
         updateDoc: async (path, data) => writes.push({ path, data })
       } })
-    }, location: {href:""}, addEventListener() {} },
+    }, location: {href:"",hash:account?.initialHash||""}, history:{replaceState(_state,_title,hash){context.window.location.hash=hash;}}, addEventListener() {} },
     document: { getElementById: element },
     localStorage: { getItem: k => stored.get(k) || null, setItem: (k, v) => stored.set(k, v) },
     requestAnimationFrame: fn => fn(), setTimeout: fn => { callback = fn; return 1; }, clearTimeout: () => { callback = null; }, confirm: () => true, Math
@@ -56,8 +56,28 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" },
   const score = n => { element("visitScore").value = String(n); element("scoreForm").listeners.submit({ preventDefault() {} }); };
   const signOut = async () => { account = null; authCallback(null); await new Promise(resolve => setImmediate(resolve)); };
   const playButton = (level=1,mode=1) => {element(`bot-mode-${level}`).value=String(mode);element("botLevels").listeners.click({target:{closest:selector=>selector==="[data-play-level]"?{dataset:{playLevel:String(level)}}:null}});return context.window.location.href;};
-  return { element, click, bot, score, stored, writes, start, signOut, playButton };
+  return { element, click, bot, score, stored, writes, start, signOut, playButton, location:context.window.location };
 }
+test("switching tabs updates the URL so reload restores the last viewed tab",async()=>{
+  const g=await gameHarness(new Map(),{uid:"member",initialHash:"#leaderboard"});
+  assert.equal(g.element("botPageTitle").textContent,"Leaderboard");
+  g.click("ladderTab");assert.equal(g.location.hash,"#game");
+  const reloaded=await gameHarness(new Map(),{uid:"member",initialHash:g.location.hash});
+  assert.equal(reloaded.element("botPageTitle").textContent,"Monster Bot Game");
+  reloaded.click("leaderboardTab");assert.equal(reloaded.location.hash,"#leaderboard");
+  const board=await gameHarness(new Map(),{uid:"member",initialHash:reloaded.location.hash});
+  assert.equal(board.element("botPageTitle").textContent,"Leaderboard");
+});
+test("leaderboard refresh icon fetches fresh results and resets its loading state",async()=>{
+  const requests=[];
+  const g=await gameHarness(new Map(),null,async options=>{requests.push(options);return{completions:{},leaderboard:[]};});
+  g.click("leaderboardTab");await new Promise(done=>setImmediate(done));
+  const before=requests.length;
+  g.click("refreshLeaderboard");assert.equal(g.element("refreshLeaderboard").disabled,true);
+  await new Promise(done=>setImmediate(done));
+  assert.equal(requests.length,before+1);assert.equal(requests.at(-1).refresh,true);
+  assert.equal(g.element("refreshLeaderboard").disabled,false);
+});
 test("real play buttons open the league scorer in bot mode and respect locks",async()=>{
   const g=await gameHarness();assert.equal(g.playButton(2),"");
   assert.equal(g.playButton(1,7),"dart-scorer.html?mode=bot&level=1&format=7");
