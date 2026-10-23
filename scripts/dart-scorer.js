@@ -4660,7 +4660,7 @@ function resetLeg() {
 }
 
 function undoLastVisit() {
-  if (BOT_MODE) return;
+  if (BOT_MODE) { window.ONMMonsterScorer?.undo(); return; }
   if (state.legJustWon) {
     els.input.blur();
     return;
@@ -5394,9 +5394,10 @@ document.querySelectorAll("#matchModeSwitch .toggleBtn").forEach(button => {
 });
 
 els.keypad.addEventListener("click", event => {
-  if (BOT_MODE && (state.currentPlayer !== 0 || state.winnerIndex !== null || !window.ONMMonsterScorer?.canPlay())) return;
   const button = event.target.closest("button");
   if (!button) return;
+  if (BOT_MODE && button.dataset.action === "undo") { undoLastVisit(); return; }
+  if (BOT_MODE && (state.currentPlayer !== 0 || state.winnerIndex !== null || !window.ONMMonsterScorer?.canPlay())) return;
 
   if (button.dataset.key) {
     const nextValue = `${els.input.value}${button.dataset.key}`;

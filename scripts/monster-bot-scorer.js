@@ -8,6 +8,25 @@
   let user = null, active = false, timer = null, recorded = false, resultMessage = "", saving = null;
   let playerPhoto = "graphics/logoWoText.png";
   let knownWins = new Set(), knownScores = {}, pendingUnlock = null, resultVisible = false;
+  let undoFrame = null, replayVisit = null;
+  const clone = value => JSON.parse(JSON.stringify(value));
+  function humanVisit(visit) {
+    undoFrame = {players:clone(state.players),visitHistory:clone(state.visitHistory),currentPlayer:state.currentPlayer,legJustWon:state.legJustWon,reply:replayVisit};
+    applyVisit(visit);
+  }
+  function undo() {
+    if (!active || !undoFrame || state.winnerIndex !== null || pendingCheckoutPrompt) return;
+    clearTimeout(timer); timer = null;
+    replayVisit = undoFrame.reply;
+    state.players = clone(undoFrame.players);
+    state.visitHistory = clone(undoFrame.visitHistory);
+    state.currentPlayer = undoFrame.currentPlayer;
+    state.legJustWon = undoFrame.legJustWon;
+    undoFrame = null;
+    els.input.value = "";
+    render();
+    els.turnMessage.textContent = "Score undone for both players. Enter your corrected score.";
+  }
   function showUnlock() {
     resultVisible = true;
     if (!pendingUnlock) return;
@@ -41,7 +60,7 @@
     const playable = active && state.currentPlayer === 0 && state.winnerIndex === null;
     els.submit.disabled = !playable;
     els.input.disabled = !playable;
-    els.keypad.querySelectorAll("button").forEach(button => { button.disabled = !playable || button.dataset.action === "undo"; });
+    els.keypad.querySelectorAll("button").forEach(button => { button.disabled = button.dataset.action === "undo" ? !active || !undoFrame || state.winnerIndex !== null || Boolean(pendingCheckoutPrompt) : !playable; });
     if (active && state.winnerIndex === null && state.currentPlayer === 1) els.turnMessage.textContent = `${profile.name} is throwing…`;
     else if (playable && els.names[0].value === "You") els.turnMessage.textContent = "Your turn!";
   }
@@ -95,17 +114,17 @@
     if (!E.possibleScore(score)) { showImpossibleMessage("Enter a possible score from 0 to 180"); return; }
     if (bullMode && remaining !== 0 && remaining < 50) { state.players[0].score = remaining; lose("Below 50 — Bull or Bust lost."); return; }
     if (!bullMode && (remaining < 0 || remaining === 1)) {
-      applyVisit({playerIndex:0,visitScore:0,previousScore,legWon:false,bust:true,dartsUsed:3,doublesAttempted:0}); return;
+      humanVisit({playerIndex:0,visitScore:0,previousScore,legWon:false,bust:true,dartsUsed:3,doublesAttempted:0}); return;
     }
     const error = E.validateVisit(previousScore,score,3);
     if (error) { showImpossibleMessage(error); return; }
     if (remaining === 0) {
       const visit = {playerIndex:0,visitScore:score,previousScore,legWon:true,bust:false,dartsUsed:3,doublesAttempted:0};
-      if (!bullMode) { applyVisit(visit); return; }
+      if (!bullMode) { humanVisit(visit); return; }
       openCheckoutPrompt({...visit,monsterBot:true,doubleOptions:null,checkoutOptions:null,bullOutOptions:["No","Yes"],bullOutDefault:"No",forcedBullOut:false});
       return;
     }
-    applyVisit({playerIndex:0,visitScore:score,previousScore,legWon:false,bust:false,dartsUsed:3,doublesAttempted:0});
+    humanVisit({playerIndex:0,visitScore:score,previousScore,legWon:false,bust:false,dartsUsed:3,doublesAttempted:0});
   }
   function confirmCheckout() {
     if (!active || !pendingCheckoutPrompt?.monsterBot || state.currentPlayer !== 0) return;
@@ -116,9 +135,10 @@
     closeCheckoutPrompt();
     if (bullMode && (!bullOut || !E.bullCheckoutPossible(visit.visitScore,dartsUsed))) { lose("Bull or Bust needs a valid, confirmed Bullseye finish."); return; }
     if (!E.checkoutPossible(visit.visitScore,dartsUsed)) { showImpossibleMessage("That checkout is not possible with those darts"); return; }
-    applyVisit({...visit,dartsUsed,doublesAttempted:0,bullOut});
+    humanVisit({...visit,dartsUsed,doublesAttempted:0,bullOut});
   }
-  function afterVisit() {
+  function afterVisit({legWon} = {}) {
+    if (legWon) { undoFrame = null; replayVisit = null; onRender(); }
     if (state.winnerIndex !== null) {
       clearTimeout(timer); timer = null;
       if (state.winnerIndex === 0) saving = saveVictory();
@@ -136,7 +156,9 @@
         if (!active || state.winnerIndex !== null || state.currentPlayer !== 1) return;
         if (isDartCalloutBusy()) { waitForAnnouncement(); return; }
         const player = state.players[1], previousScore = player.score;
-        const visit = E.botVisit(previousScore,player.currentLegDarts,profile);
+        const visit = undoFrame?.reply || replayVisit || E.botVisit(previousScore,player.currentLegDarts,profile);
+        if (undoFrame) undoFrame.reply = clone(visit);
+        replayVisit = null;
         els.submit.disabled = false;
         applyVisit({playerIndex:1,visitScore:visit.score,previousScore,legWon:visit.remaining === 0,bust:Boolean(visit.bust),dartsUsed:visit.darts,doublesAttempted:0,bullOut:visit.remaining === 0 && visit.hits?.at(-1) === 50});
       },1000);
@@ -220,7 +242,7 @@
   }
   function photo(index) { return index === 1 ? `graphics/bots/${avatars[level-1]}-bot.png` : playerPhoto; }
   $("closeBotUnlocked").addEventListener("click",()=>$("botUnlockedDialog").close());
-  window.ONMMonsterScorer = {init,submit,confirmCheckout,afterVisit,onRender,showResult,showUnlock,exit,rematch,photo,cancelCheckout:()=>{if(bullMode && pendingCheckoutPrompt?.legWon){lose("Bull checkout was not confirmed.");return true;}return false;},canPlay:()=>active && state.currentPlayer === 0 && state.winnerIndex === null};
+  window.ONMMonsterScorer = {init,submit,undo,confirmCheckout,afterVisit,onRender,showResult,showUnlock,exit,rematch,photo,cancelCheckout:()=>{if(bullMode && pendingCheckoutPrompt?.legWon){lose("Bull checkout was not confirmed.");return true;}return false;},canPlay:()=>active && state.currentPlayer === 0 && state.winnerIndex === null};
   window.addEventListener("pagehide",()=>{active=false;clearTimeout(timer);});
   init();
 })();

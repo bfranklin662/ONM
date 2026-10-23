@@ -103,6 +103,18 @@ test("failed Firebase progress keeps bots hidden and offers retry",async()=>{
   assert.equal(g.element("accountSpinner").hidden,true);
   assert.equal(g.playButton(),"");
 });
+test("completed requirements remain ticked on locked bots and disappear after unlock",async()=>{
+  const wins=[...E.MODES.map(mode=>`1-${mode}`),"2-1"];
+  const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const stored=new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(scores)]]);
+  const locked=await gameHarness(stored);
+  assert.match(locked.element("botLevels").innerHTML,/<li class="met"><span aria-label="Met">✓<\/span> Collect 6 gold stars \(6\/6\)/);
+  assert.match(locked.element("botLevels").innerHTML,/Beat Billy Bot in BO1, BO3, BO5 and BO7/);
+  wins.push("2-3");stored.set("onm-monster-bot-test-member",JSON.stringify(wins));
+  const unlocked=await gameHarness(stored);
+  const card=unlocked.element("botLevels").innerHTML.split('id="bot-level-3"')[1].split("</article>")[0];
+  assert.match(card,/Venton Bot/);assert.doesNotMatch(card,/Requirements to play/);
+});
 test("completion modal Play respects bot and format locks",async()=>{
   const g=await gameHarness();
   const open=key=>g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-community-key]"?{dataset:{communityKey:key}}:null}});

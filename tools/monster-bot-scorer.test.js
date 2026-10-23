@@ -42,6 +42,39 @@ test("shared scorer applies the human score, waits exactly one second, then retu
   g.bot();assert.equal(g.state.players[1].score,471);assert.equal(g.ctx.lastBotProfile,6);
   assert.equal(g.state.currentPlayer,0);assert.equal(g.els.submit.disabled,false);
 });
+test("Undo restores both visits and all stats, then replays the original bot score",async()=>{
+  const g=await harness();let calls=0;
+  g.ctx.window.MonsterBotEngine.botVisit=remaining=>{const score=++calls*30;return{score,remaining:remaining-score,darts:3,hits:[10,10,10]};};
+  const before=JSON.stringify(g.state.players);
+  g.score(180);g.bot();assert.equal(calls,1);
+  assert.equal(g.state.players[1].score,471);
+  g.api.undo();
+  assert.equal(JSON.stringify(g.state.players),before);
+  assert.equal(g.state.visitHistory.length,0);assert.equal(g.state.currentPlayer,0);
+  g.score(60);g.bot();
+  assert.equal(g.state.players[0].score,441);assert.equal(g.state.players[0].highScore,60);
+  assert.equal(g.state.players[1].score,471);assert.equal(calls,1);
+  g.api.undo();g.score(45);g.bot();
+  assert.equal(g.state.players[0].score,456);assert.equal(g.state.players[1].score,471);assert.equal(calls,1);
+  g.score(60);g.bot();assert.equal(calls,2);assert.equal(g.state.players[1].score,411);
+  assert.equal(g.state.players[0].dartsThrown,6);assert.equal(g.state.players[1].dartsThrown,6);
+});
+test("Undo during the bot delay cancels the pending throw and enables correction",async()=>{
+  const g=await harness();
+  const undoButton={dataset:{action:"undo"},disabled:true};
+  g.els.keypad.querySelectorAll=()=>[undoButton];g.api.onRender();assert.equal(undoButton.disabled,true);
+  g.score(60);assert.equal(undoButton.disabled,false);
+  g.api.undo();assert.equal(undoButton.disabled,true);
+  g.bot();assert.equal(g.state.players[1].score,501);
+  assert.equal(g.state.players[0].score,501);
+  g.score("");g.bot();assert.equal(g.state.players[0].score,501);assert.equal(g.state.players[1].score,471);
+  assert.equal(g.state.visitHistory.length,2);
+});
+test("bot undo routing is enabled without changing other scorer modes",()=>{
+  const source=fs.readFileSync(require.resolve("../scripts/dart-scorer.js"),"utf8");
+  assert.match(source,/if \(BOT_MODE\) \{ window.ONMMonsterScorer\?\.undo\(\); return; \}/);
+  assert.match(source,/BOT_MODE && button.dataset.action === "undo"/);
+});
 test("bot games open fullscreen with the player's first name and the bot's name",async()=>{
   const g=await harness();
   assert.equal(g.els.names[0].value,"Nick");

@@ -35,8 +35,8 @@
       const key = `${level - 4}-${mode}`;
       return progress.has(key) && E.validWinningScore(key, bestScores[key]) && bestScores[key].lost === 0;
     }) });
-    const outstanding = rows.filter(row => !row.met);
-    return outstanding.length ? `<div class="unlockRequirements"><h4>Requirements to play</h4><ul>${outstanding.map(row => `<li><span aria-label="Not met">○</span> ${row.label}</li>`).join("")}</ul></div>` : "";
+    if (E.isUnlocked(level,progress,bestScores)) return "";
+    return rows.length ? `<div class="unlockRequirements"><h4>Requirements to play</h4><ul>${rows.map(row => `<li class="${row.met ? "met" : ""}"><span aria-label="${row.met ? "Met" : "Not met"}">${row.met ? "✓" : "○"}</span> ${row.label}</li>`).join("")}</ul></div>` : "";
   }
   function modeChip(level, mode) {
     const key = `${level}-${mode}`, won = progress.has(key), score = bestScores[key];
