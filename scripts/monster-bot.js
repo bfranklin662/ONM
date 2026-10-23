@@ -24,7 +24,10 @@
   const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png?v=20261022-avatar` : "";
   function requirements(level) {
     const rows = [];
-    if (level === 5) rows.push({ label: `Collect 14 gold stars (${E.goldStars(progress,bestScores)}/14)`, met: E.goldStars(progress,bestScores) >= 14 });
+    if (level >= 4) {
+      const required = 10 + (level - 4) * 4;
+      rows.push({ label: `Collect ${required} gold stars (${E.goldStars(progress,bestScores)}/${required})`, met: E.goldStars(progress,bestScores) >= required });
+    }
     const won = (bot, modes) => modes.every(mode => progress.has(`${bot}-${mode}`));
     if (level >= 2) rows.push({ label: `Beat ${botName(level - 1)} in 2 modes`, met: E.MODES.filter(mode => progress.has(`${level - 1}-${mode}`)).length >= 2 });
     if (level >= 3) rows.push({ label: `Beat ${botName(level - 2)} in BO1, BO3, BO5 and BO7`, met: won(level - 2, E.STANDARD_MODES) });

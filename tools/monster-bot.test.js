@@ -349,7 +349,10 @@ test("ladder requires any two previous-bot modes and all four formats two levels
       }
       assert.equal(E.isUnlocked(level,wins), false);
     }
-    if (level === 5) for (const key of [...wins].slice(0,14)) scores[key] = {won:E.legsNeeded(Number(key.split("-")[1])),lost:0};
+    if (level >= 4) {
+      for (let bot=1;bot<level-1;bot++) for (const mode of E.MODES) wins.add(`${bot}-${mode}`);
+      for (const key of [...wins]) scores[key] = {won:E.legsNeeded(Number(key.split("-")[1])),lost:0};
+    }
     assert.equal(E.isUnlocked(level,wins,scores), true);
     wins.delete(`${level-1}-3`); assert.equal(E.isUnlocked(level,wins,scores), false);
   }
@@ -358,7 +361,7 @@ test("levels 5–10 require valid flawless scores in all five formats four level
   const wins = new Set(E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)));
   for (let level=5;level<=10;level++) {
     const scores = Object.fromEntries(E.MODES.map(mode => [`${level-4}-${mode}`,{won:E.legsNeeded(mode),lost:0}]));
-    if (level === 5) for (const key of [...wins].slice(0,14)) scores[key] = {won:E.legsNeeded(Number(key.split("-")[1])),lost:0};
+    for (const key of [...wins].slice(0,10+(level-4)*4)) scores[key] = {won:E.legsNeeded(Number(key.split("-")[1])),lost:0};
     assert.equal(E.isUnlocked(level,wins,scores),true);
     for (const mode of E.MODES) {
       const key = `${level-4}-${mode}`, saved = scores[key];
@@ -372,7 +375,7 @@ test("levels 5–10 require valid flawless scores in all five formats four level
   const stored = new Map([["onm-monster-bot-test-member",JSON.stringify([...wins])]]);
   const g = await gameHarness(stored); g.start(5);
   assert.equal(g.element("matchTitle").textContent,"");
-  assert.match(g.element("botLevels").innerHTML,/flawless wins in all five Billy Bot formats/);
+  assert.match(g.element("botLevels").innerHTML,/Collect 10 gold stars \(0\/10\)/);
   const scores = Object.fromEntries(E.MODES.map(mode => [`1-${mode}`,{won:E.legsNeeded(mode),lost:0}]));
   for (const key of [...wins].slice(0,14)) scores[key] = {won:E.legsNeeded(Number(key.split("-")[1])),lost:0};
   stored.set("onm-monster-bot-test-member-scores",JSON.stringify(scores));
@@ -392,6 +395,20 @@ test("Nick Bot requires 14 unique flawless challenges as well as existing requir
   assert.equal(E.goldStars(wins,scores),14);
   wins.delete("1-9");
   assert.equal(E.isUnlocked(5,wins,scores),false);
+});
+test("levels four to ten enforce their gold-star threshold on game and leaderboard", () => {
+  const {buildLeaderboard} = require("../functions/bot-completions");
+  const keys = E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)), wins = new Set(keys);
+  for (let level=4;level<=10;level++) {
+    const required = 10+(level-4)*4;
+    const scores = Object.fromEntries(keys.slice(0,required-1).map(key => [key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+    const account = {id:"stars",monsterBotWins:keys,monsterBotBestScores:scores};
+    assert.equal(E.isUnlocked(level,wins,scores),false);
+    assert.equal(buildLeaderboard([account],new Map())[0].level,level-1);
+    const key = keys[required-1]; scores[key] = {won:E.legsNeeded(Number(key.split("-")[1])),lost:0};
+    assert.equal(E.isUnlocked(level,wins,scores),true);
+    assert.equal(buildLeaderboard([account],new Map())[0].level,level);
+  }
 });
 test("Bull or Bust requires a possible Bull finish and explicit confirmation", async () => {
   const g = await gameHarness(new Map(),{uid:"test-member",seedWins:E.STANDARD_MODES.map(m=>`1-${m}`)}); g.start(1, E.BULL_MODE);
