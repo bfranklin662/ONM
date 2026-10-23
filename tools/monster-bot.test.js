@@ -239,7 +239,9 @@ test("mode completion ticks distinguish wins from flawless wins, never selection
   assert.doesNotMatch(picker,/<span|<div/);
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:"3"}}:null}});
   assert.match(g.element("botLevels").innerHTML,/id="bot-mode-1" type="hidden" value="3"/);
-  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame"[^>]*>Replay Billy Bot · BO3<\/button>/);
+  assert.match(g.element("botLevels").innerHTML,/class="primary "[^>]*>Replay Billy Bot · BO3<\/button>/);
+  g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:"1"}}:null}});
+  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame"[^>]*>Replay Billy Bot · BO1<\/button>/);
 });
 test("fully completed bots offer a grey replay button without adding duplicate awards",async()=>{
   const wins=E.MODES.map(mode=>`1-${mode}`),scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
