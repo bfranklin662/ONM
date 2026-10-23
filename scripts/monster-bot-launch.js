@@ -38,9 +38,18 @@
     }
     return true;
   }
-  function celebrate(){
+  function celebrate(dialog){
     try{context?.resume()?.catch(()=>{});if(context)[523.25,659.25,783.99,1046.5].forEach((note,i)=>tone(note,context.currentTime+i*.12,.28));}catch{}
+    if(!dialog||root.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
+    for(let i=0;i<42;i++){
+      const spark=document.createElement("span");spark.className="botUnlockSpark";spark.setAttribute("aria-hidden","true");
+      const angle=Math.PI*2*i/14,distance=70+Math.random()*100;
+      spark.style.setProperty("--x",`${Math.cos(angle)*distance}px`);spark.style.setProperty("--y",`${Math.sin(angle)*distance}px`);
+      spark.style.setProperty("--delay",`${Math.floor(i/14)*.35}s`);spark.style.setProperty("--spark-color",["#ffd740","#67e0bd","#fff"][i%3]);
+      dialog.appendChild(spark);setTimeout(()=>spark.remove(),2000);
+    }
   }
+  function close(){stop();frame?.remove();frame=null;document.body.style.overflow="";}
   function stop(){if(audio){audio.pause();audio.loop=false;}}
   function start(done){
     if(busy)return;
@@ -59,5 +68,5 @@
     // This call must stay synchronous inside the user's Play/Restart click.
     try{audio.play()?.catch(()=>finish(false));}catch{finish(false);}
   }
-  root.ONMBotLaunch={start,open,ready,celebrate,stop,isPlaying:()=>Boolean(audio&&!audio.paused&&audio.volume>0)};
+  root.ONMBotLaunch={start,open,ready,celebrate,stop,close,isPlaying:()=>Boolean(audio&&!audio.paused&&audio.volume>0)};
 })(typeof window!=="undefined"?window:globalThis);

@@ -11,10 +11,27 @@
   const casualUnlocked = () => ready && user && E.highestUnlocked(progress,bestScores)>=3;
   function renderCasual() {
     $("casualTab").hidden=!casualUnlocked();
-    const previous=$("casualBot").value;
-    $("casualBot").innerHTML=E.LEVELS.filter(p=>p.level<=E.highestUnlocked(progress,bestScores)).map(p=>`<option value="${p.level}">${p.name}</option>`).join("");
-    if(previous)$("casualBot").value=previous;
-    $("casualLocked").hidden=Boolean(casualUnlocked());$("casualForm").hidden=!casualUnlocked();
+    const bots=casualUnlocked()?E.LEVELS.filter(p=>p.level<=E.highestUnlocked(progress,bestScores)):[];
+    const selected=bots.find(p=>p.level===Number($("casualBot").value));
+    $("casualBotCount").textContent=`Bots unlocked: ${bots.length}`;
+    $("casualBots").innerHTML=bots.map(p=>`<button type="button" class="casualBotChoice" data-casual-bot="${p.level}" aria-pressed="${selected?.level===p.level}"><img src="${botAvatar(p.level)}" alt="" width="100" height="110"><span>${p.name}</span></button>`).join("");
+    $("casualSelectedName").textContent=selected?`${selected.name} · ${selected.average}–${selected.average+5} average`:"";
+    $("casualLocked").hidden=Boolean(casualUnlocked());$("casualForm").hidden=!selected;
+  }
+  let unlockNoticeLevel=null;
+  const unlockQueueKey=()=>`onm-monster-bot-${user.uid}-unlocks`;
+  function showUnlockNotices(){
+    if(!ready||!user)return;
+    let queue=[];try{queue=JSON.parse(localStorage.getItem(unlockQueueKey())||"[]");}catch{}
+    const next=Array.isArray(queue)?queue.find(level=>Number.isInteger(level)&&level>1&&level<=E.highestUnlocked(progress,bestScores)):null;
+    if(next){
+      unlockNoticeLevel=next;const bot=E.LEVELS[next-1];
+      $("ladderUnlockedTitle").textContent=`You've unlocked ${bot.name}!`;
+      $("ladderUnlockedAvatar").src=botAvatar(next);
+      $("ladderUnlockedDetail").textContent=`Level ${next} · ${bot.average}–${bot.average+5} average. Your next Monster is ready.`;
+      $("ladderUnlockedDialog").showModal();window.ONMBotLaunch?.celebrate?.($("ladderUnlockedDialog"));return;
+    }
+    if(casualUnlocked()&&!playerProfile.monsterBotCasualNoticeSeen)$("casualUnlockDialog").showModal();
   }
   function openCasual() {
     $("ladderPanel").hidden=true;$("leaderboardPanel").hidden=true;$("casualPanel").hidden=false;
@@ -64,7 +81,7 @@
     const won = (bot, modes) => modes.every(mode => progress.has(`${bot}-${mode}`));
     if (level >= 2) rows.push({ label: `Beat ${botName(level - 1)} in 2 modes`, met: E.MODES.filter(mode => progress.has(`${level - 1}-${mode}`)).length >= 2 });
     if (level >= 3) rows.push({ label: `Beat ${botName(level - 2)} in BO1, BO3, BO5 and BO7`, met: won(level - 2, E.STANDARD_MODES) });
-    if (level >= 4) rows.push({ label: `Beat ${botName(level - 3)} in all five formats, including Bull or Bust`, met: won(level - 3, E.MODES) });
+    if (level >= 4) rows.push({ label: level===4 ? "Beat Billy Bot in Bull or Bust format" : `Beat ${botName(level - 3)} in all five formats, including Bull or Bust`, met: won(level - 3, E.MODES) });
     if (level >= 5) rows.push({ label: `Earn flawless wins in all five ${botName(level - 4)} formats (gold ticks)`, met: E.MODES.every(mode => {
       const key = `${level - 4}-${mode}`;
       return progress.has(key) && E.validWinningScore(key, bestScores[key]) && bestScores[key].lost === 0;
@@ -249,8 +266,8 @@
     } else $("saveStatus").innerHTML = `No active sign-in was found in this browser. <a href="${authUrl("login")}">Sign in and return to the game</a> or <a href="${authUrl("register")}">sign up</a>.`;
     ready = true;
     renderLevels();
-    if (casualUnlocked() && !playerProfile.monsterBotCasualNoticeSeen) $("casualUnlockDialog").showModal();
     focusUnlocked();
+    showUnlockNotices();
     loadCommunity(Boolean(user));
   }
   async function saveWin(game) {
@@ -406,6 +423,12 @@
     if (event.target.matches?.(".modePicker") && event.target.open) requestAnimationFrame(()=>event.target.scrollIntoView({block:"nearest",inline:"nearest"}));
   },true);
   $("closeCompletions").addEventListener("click", () => $("completionDialog").close());
+  $("closeLadderUnlocked").addEventListener("click",()=>{
+    let queue=[];try{queue=JSON.parse(localStorage.getItem(unlockQueueKey())||"[]");}catch{}
+    try{localStorage.setItem(unlockQueueKey(),JSON.stringify(Array.isArray(queue)?queue.filter(level=>level!==unlockNoticeLevel):[]));}catch{}
+    $("ladderUnlockedDialog").close();unlockNoticeLevel=null;showUnlockNotices();
+  });
+  $("ladderUnlockedDialog").addEventListener("cancel",event=>{event.preventDefault();$("closeLadderUnlocked").click();});
   $("closeCasualUnlock").addEventListener("click", async () => {
     $("casualUnlockDialog").close();
     playerProfile.monsterBotCasualNoticeSeen = true;
@@ -435,11 +458,22 @@
   $("ladderTab").addEventListener("click", () => showTab(false));
   $("leaderboardTab").addEventListener("click", () => showTab(true));
   $("casualTab").addEventListener("click",openCasual);
-  $("casualForm").addEventListener("submit",event=>{
-    event.preventDefault();const level=Number($("casualBot").value),legs=Number($("casualLegs").value);
-    if(!casualUnlocked()||!Number.isSafeInteger(legs)||legs<1||!E.LEVELS.some(p=>p.level===level&&level<=E.highestUnlocked(progress,bestScores))){$("casualError").textContent="Choose an unlocked bot and a positive whole-number leg target.";return;}
-    launch(`dart-scorer.html?mode=bot&casual=1&level=${level}&format=1&legs=${legs}`,`Loading casual ${botName(level)} · First to ${legs}`);
+  $("casualBots").addEventListener("click",event=>{
+    const button=event.target.closest("[data-casual-bot]");if(!button)return;
+    $("casualBot").value=button.dataset.casualBot;renderCasual();
   });
+  const adjustLegs=change=>{const value=Number($("casualLegs").value)||1;$("casualLegs").value=String(Math.max(1,value+change));};
+  $("casualLegsDown").addEventListener("click",()=>adjustLegs(-2));
+  $("casualLegsUp").addEventListener("click",()=>adjustLegs(2));
+  $("casualForm").addEventListener("submit",event=>{
+    event.preventDefault();const level=Number($("casualBot").value),legs=Number($("casualLegs").value),start=Number($("casualStart").value)||501;
+    if(!casualUnlocked()||!Number.isSafeInteger(legs)||legs<1||legs%2!==1||![301,501,701].includes(start)||!E.LEVELS.some(p=>p.level===level&&level<=E.highestUnlocked(progress,bestScores))){$("casualError").textContent="Choose an unlocked bot and an odd best-of length: 1, 3, 5, 7…";return;}
+    launch(`dart-scorer.html?mode=bot&casual=1&level=${level}&format=1&legs=${legs}&start=${start}`,`Loading casual ${botName(level)} · BO${legs}`);
+  });
+  window.ONMMonsterLadder={returnToLadder:async(casual)=>{
+    window.ONMBotLaunch?.close?.();if(casual)openCasual();else showTab(false);
+    await loadProgress();
+  }};
   $("retryLeaderboard").addEventListener("click", () => loadCommunity(Boolean(user)));
   $("refreshLeaderboard").addEventListener("click", () => loadCommunity(true));
   $("playerSummaryPhoto").addEventListener("error",()=>{

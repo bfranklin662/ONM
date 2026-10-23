@@ -82,6 +82,19 @@ test("existing level-three players see the casual announcement until acknowledge
   assert.notEqual(seen.element("casualUnlockDialog").open,true);
   const locked=await gameHarness();assert.notEqual(locked.element("casualUnlockDialog").open,true);
 });
+test("returning to ladder announces the bot first, then Casual separately",async()=>{
+  const wins=[...E.MODES.map(m=>`1-${m}`),"2-1","2-3"];
+  const scores=Object.fromEntries(wins.map(k=>[k,{won:E.legsNeeded(Number(k.split("-")[1])),lost:0}]));
+  const stored=new Map([["onm-monster-bot-member-unlocks","[3]"]]);
+  const g=await gameHarness(stored,{uid:"member",seedWins:wins,seedScores:scores});
+  assert.equal(g.element("ladderUnlockedDialog").open,true);
+  assert.equal(g.element("ladderUnlockedTitle").textContent,"You've unlocked Venton Bot!");
+  assert.notEqual(g.element("casualUnlockDialog").open,true);
+  g.click("closeLadderUnlocked");
+  assert.equal(g.element("ladderUnlockedDialog").open,false);
+  assert.equal(g.element("casualUnlockDialog").open,true);
+  assert.deepEqual(JSON.parse(stored.get("onm-monster-bot-member-unlocks")),[]);
+});
 test("leaderboard refresh icon fetches fresh results and resets its loading state",async()=>{
   const requests=[];
   const g=await gameHarness(new Map(),null,async options=>{requests.push(options);return{completions:{},leaderboard:[]};});
@@ -124,10 +137,14 @@ test("casual menu unlocks at level three and only launches unlocked opponents",a
   const g=await gameHarness(new Map(),{uid:"member",seedWins:wins,seedScores:scores});
   assert.equal(g.element("casualTab").hidden,false);g.click("casualTab");
   assert.equal(g.element("botPageTitle").textContent,"Casual Bot Game");
-  assert.match(g.element("casualBot").innerHTML,/Venton Bot/);assert.doesNotMatch(g.element("casualBot").innerHTML,/Istan Bot/);
+  assert.match(g.element("casualBots").innerHTML,/Venton Bot/);assert.doesNotMatch(g.element("casualBots").innerHTML,/Istan Bot/);
+  assert.equal(g.element("casualBotCount").textContent,"Bots unlocked: 3");
+  g.element("casualBots").listeners.click({target:{closest:()=>({dataset:{casualBot:"2"}})}});
+  assert.equal(g.element("casualSelectedName").textContent,"Croft Bot · 40–45 average");
+  g.element("casualLegs").value="7";g.click("casualLegsUp");assert.equal(g.element("casualLegs").value,"9");g.click("casualLegsDown");assert.equal(g.element("casualLegs").value,"7");
   g.element("casualBot").value="4";g.element("casualLegs").value="11";g.element("casualForm").listeners.submit({preventDefault(){}});assert.equal(g.location.href,"");
   g.element("casualBot").value="2";g.element("casualForm").listeners.submit({preventDefault(){}});
-  assert.equal(g.location.href,"dart-scorer.html?mode=bot&casual=1&level=2&format=1&legs=11");
+  assert.equal(g.location.href,"dart-scorer.html?mode=bot&casual=1&level=2&format=1&legs=11&start=501");
   const locked=await gameHarness();assert.equal(locked.element("casualTab").hidden,true);
 });
 test("Play uses the gesture-bound launch audio before navigating to the scorer",async()=>{

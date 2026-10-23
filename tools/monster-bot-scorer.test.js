@@ -1,6 +1,6 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const E=require("../scripts/monster-bot-engine");
-async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,profilePhoto=null,audioBlocked=false,introPlayed=false,casual=false,legs=3,completed=false}={}){
+async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,profilePhoto=null,audioBlocked=false,introPlayed=false,casual=false,legs=3,start=501,completed=false}={}){
   const nodes=new Map(),timers=new Map(),writes=[],stored=new Map();let nextTimer=0,bullSelected=false,authChanged;
   const element=id=>{if(!nodes.has(id))nodes.set(id,{id,value:"",textContent:"",hidden:false,disabled:false,dataset:{},children:[],style:{setProperty(){}},setAttribute(){},appendChild(child){this.children.push(child);},remove(){},classList:{add(){},remove(){},toggle(){}},querySelector(){return element("kicker");},querySelectorAll(){return [];},before(){},after(){},blur(){},showModal(){this.open=true;},close(){this.open=false;},addEventListener(event,fn){(this.listeners ||= {})[event]=fn;}});return nodes.get(id);};
   const player=()=>({score:501,legs:0,totalScored:0,dartsThrown:0,currentLegDarts:0,firstNineScored:0,firstNineDarts:0,currentLegFirstNineScored:0,currentLegFirstNineDarts:0,highScore:0,checkoutHits:0,checkoutAttempts:0,highestOut:0,oneEightys:0,bullOuts:0,legDarts:[],lastScore:null});
@@ -10,12 +10,12 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
   const scores=Object.fromEntries(E.LEVELS.flatMap(p=>E.MODES.map(m=>[`${p.level}-${m}`,{won:E.legsNeeded(m),lost:0}])));
   if(!completed&&!casual)delete scores[`${level}-${format}`];
   const sdk={doc:(_db,c,id)=>`${c}/${id}`,getDoc:async()=>({data:()=>({firstName:"Nick",nickname:"Nickname",monsterBotWins:wins,monsterBotBestScores:scores})}),updateDoc:async(path,data)=>writes.push({path,data}),arrayUnion:(...a)=>a,runTransaction:async(_db,fn)=>fn({get:async()=>({data:()=>({})}),update:(path,data)=>writes.push({path,data})})};
-  const ctx={BOT_MODE:true,params:new URLSearchParams(`level=${level}&format=${format}${casual?`&casual=1&legs=${legs}`:""}`),state,els,STARTING_SCORE:501,LEGS_TO_WIN:E.legsNeeded(format),MATCH_MODE:"local",STATS_MODE:"casual",pendingCheckoutPrompt:null,
+  const ctx={BOT_MODE:true,params:new URLSearchParams(`level=${level}&format=${format}${casual?`&casual=1&legs=${legs}&start=${start}`:""}`),state,els,STARTING_SCORE:501,LEGS_TO_WIN:E.legsNeeded(format),MATCH_MODE:"local",STATS_MODE:"casual",pendingCheckoutPrompt:null,
     window:{MonsterBotEngine:{...E,botVisit:(remaining,darts,profile)=>{ctx.lastBotProfile=profile.level;return botFinish?{score:remaining,remaining:0,darts:3,attempts:1,hits:[remaining]}:{score:30,remaining:remaining-30,darts:3,attempts:0,hits:[10,10,10]};}},ONMFirebase:{currentFirebaseUser:async()=>account,ready:Promise.resolve({db:{},firestoreSdk:sdk,auth:{},authSdk:{onAuthStateChanged:(_auth,fn)=>{authChanged=fn;}}})},location:{href:"",reload(){ctx.reloaded=true;}},eventHandlers:{},addEventListener(type,fn){(this.eventHandlers[type] ||= []).push(fn);}},
     document:{body:{classList:{add(){},remove(){}}},getElementById:element,createElement:()=>element(`created${nodes.size}`),querySelector:()=>bullSelected?{dataset:{value:"Yes"}}:null},
     localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},
     setTimeout:(fn,delay)=>{const id=++nextTimer;timers.set(id,{fn,delay});return id;},clearTimeout:id=>timers.delete(id),Date,
-    enterScorerFullscreen(){ctx.fullscreen=true;},syncMainViews(){},applyMatchSettings(settings){ctx.STARTING_SCORE=settings.startScore;ctx.targetLegs=settings.gameType==="firstTo"?settings.legsCount:E.legsNeeded(format);ctx.LEGS_TO_WIN=ctx.targetLegs;for(const p of state.players)p.score=settings.startScore;},newGame(){},setVisiblePlayerNames:(a,b)=>{els.names[0].value=a;els.names[1].value=b;},
+    enterScorerFullscreen(){ctx.fullscreen=true;},syncMainViews(){},applyMatchSettings(settings){ctx.STARTING_SCORE=settings.startScore;ctx.targetLegs=settings.gameType==="firstTo"?settings.legsCount:Math.floor(settings.legsCount/2)+1;ctx.LEGS_TO_WIN=ctx.targetLegs;for(const p of state.players)p.score=settings.startScore;},newGame(){},setVisiblePlayerNames:(a,b)=>{els.names[0].value=a;els.names[1].value=b;},
     render:()=>ctx.window.ONMMonsterScorer?.onRender(),switchPlayer(){state.currentPlayer=state.currentPlayer===0?1:0;},updateLegTarget(){ctx.LEGS_TO_WIN=ctx.targetLegs||E.legsNeeded(format);},resetLeg(){for(const p of state.players){p.score=ctx.STARTING_SCORE;p.currentLegDarts=0;}},
     isDartCalloutBusy:()=>Boolean(ctx.audioBusy),launchFireworks(){},announceLegWon(){},announceDartVisit(){},announceRequiredScore:score=>{ctx.requiredCalls.push(score);},requiredCalls:[],shouldPlayFinishHim:()=>false,playDartCallout:(file,fallback,onBlocked,onReady)=>{ctx.callouts.push({file,onBlocked});if(ctx.audioBlocked)onBlocked?.();else onReady?.(true);},callouts:[],audioBlocked,
     showImpossibleMessage:message=>{ctx.error=message;},getBullOutPromptConfig:()=>({bullOutOptions:["No","Yes"],bullOutDefault:"No"}),
@@ -181,12 +181,10 @@ test("winning a new unlock celebrates the right bot once, without celebrating re
   }
   g.ctx.openMolVictoryScreen();
   const dialog=g.ctx.document.getElementById("botUnlockedDialog");
-  assert.equal(dialog.open,true);
-  assert.equal(dialog.children.filter(child=>child.className==="botUnlockSpark").length,42);
-  assert.equal(g.ctx.document.getElementById("botUnlockedTitle").textContent,"You've unlocked Croft Bot!");
-  assert.match(g.ctx.document.getElementById("botUnlockedDetail").textContent,/40–45 average/);
-  assert.equal(g.ctx.document.getElementById("botUnlockedAvatar").src,"graphics/bots/croft-bot.png");
-  g.ctx.document.getElementById("closeBotUnlocked").listeners.click();g.api.showUnlock();assert.equal(dialog.open,false);
+  assert.notEqual(dialog.open,true);
+  assert.deepEqual(JSON.parse(g.stored.get("onm-monster-bot-member-unlocks")),[2]);
+  assert.equal(g.els.molVictoryRematchBtn.hidden,true);
+  assert.equal(g.els.molVictoryCloseBtn.textContent,"Back to ladder");
   const replay=await harness({seedWins:["1-1","1-3"]});
   replay.score(180);replay.bot();replay.score(180);replay.bot();replay.score(141);replay.ctx.openMolVictoryScreen();
   assert.notEqual(replay.ctx.document.getElementById("botUnlockedDialog").open,true);
@@ -303,15 +301,31 @@ test("casual games allow custom leg targets and completed bots without storing r
   g.api.showResult();
   assert.match(g.ctx.document.getElementById("monsterBotResultStatus").textContent,/no stats or progress saved/);
   assert.equal(g.els.molVictoryRematchBtn.textContent,"Restart");
-  const long=await harness({casual:true,legs:23});assert.equal(long.ctx.LEGS_TO_WIN,23);assert.equal(long.api.canPlay(),true);
+  const long=await harness({casual:true,legs:23});assert.equal(long.ctx.LEGS_TO_WIN,12);assert.equal(long.api.canPlay(),true);
+  const nine=await harness({casual:true,legs:9});assert.equal(nine.ctx.LEGS_TO_WIN,5);
 });
 test("casual mode requires level three and validates the chosen leg target",async()=>{
   const locked=await harness({casual:true,seedWins:["1-1"]});assert.equal(locked.api.canPlay(),false);assert.equal(locked.writes.length,0);
-  for(const legs of [0,-1,1.5]){const g=await harness({casual:true,legs});assert.equal(g.api.canPlay(),false);}
+  for(const legs of [0,-1,1.5,2,8]){const g=await harness({casual:true,legs});assert.equal(g.api.canPlay(),false);}
+});
+test("casual starting score is selectable and results still earn no ladder awards",async()=>{
+  const g=await harness({casual:true,legs:1,start:301});
+  assert.equal(g.ctx.STARTING_SCORE,301);g.score(180);g.bot();g.score(121);g.confirm();
+  await new Promise(done=>setImmediate(done));g.api.showResult();
+  assert.equal(g.state.winnerIndex,0);assert.equal(g.writes.length,0);assert.equal(g.stored.size,0);
+  assert.equal(g.els.molVictoryRematchBtn.hidden,false);
+  assert.equal((await harness({casual:true,start:302})).api.canPlay(),false);
+});
+test("Back to ladder returns to the host instead of opening an unlock over results",async()=>{
+  const g=await harness();const returned=[];
+  g.ctx.window.parent={ONMMonsterLadder:{returnToLadder:casual=>returned.push(casual)}};
+  g.api.exit();assert.deepEqual(returned,[false]);
 });
 test("reaching level three celebrates Casual mode in the unlock modal",async()=>{
   const g=await harness({level:2,format:3,seedWins:[...E.MODES.map(mode=>`1-${mode}`),"2-1"]});
   for(let leg=0;leg<2;leg++){if(leg)g.bot();g.score(180);g.bot();g.score(180);g.bot();g.score(141);}
   await new Promise(done=>setImmediate(done));g.api.showUnlock();
-  assert.match(g.ctx.document.getElementById("botUnlockedTitle").textContent,/Casual mode/);
+  assert.notEqual(g.ctx.document.getElementById("botUnlockedDialog").open,true);
+  assert.deepEqual(JSON.parse(g.stored.get("onm-monster-bot-member-unlocks")),[3]);
+  assert.ok(!g.writes.some(w=>w.data.monsterBotCasualNoticeSeen));
 });

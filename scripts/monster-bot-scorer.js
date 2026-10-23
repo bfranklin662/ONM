@@ -5,13 +5,14 @@
   const level = Number(params.get("level")), format = Number(params.get("format"));
   const casual = params.get("casual")==="1";
   const casualLegs = Number(params.get("legs"));
-  const formatLabel = casual ? `Casual · First to ${casualLegs}` : E.modeLabel(format);
-  const gameUrl = `dart-scorer.html?mode=bot&level=${level}&format=${format}${casual?`&casual=1&legs=${casualLegs}`:""}`;
+  const casualStart=Number(params.get("start")||501);
+  const formatLabel = casual ? `Casual · BO${casualLegs}` : E.modeLabel(format);
+  const gameUrl = `dart-scorer.html?mode=bot&level=${level}&format=${format}${casual?`&casual=1&legs=${casualLegs}&start=${casualStart}`:""}`;
   const profile = E.LEVELS.find(p => p.level === level);
   const avatars = ["billy","croft","venton","istan","nick","ricky","aussie","andre","bailey","filip"];
   let user = null, active = false, timer = null, recorded = false, resultMessage = "", saving = null;
   let playerPhoto = "graphics/logoWoText.png";
-  let knownWins = new Set(), knownScores = {}, pendingUnlock = null, resultVisible = false, pendingCasualUnlock = false;
+  let knownWins = new Set(), knownScores = {};
   let undoFrame = null, replayVisit = null;
   let initialized = false, exited = false;
   let lossAnnounced = false, lossVoiceTimer = null;
@@ -60,30 +61,7 @@
     els.turnMessage.textContent = "Score undone for both players. Enter your corrected score.";
   }
   function showUnlock() {
-    resultVisible = true;
-    if (!pendingUnlock) return;
-    const unlocked = pendingUnlock; pendingUnlock = null;
-    const casualMilestone=pendingCasualUnlock;pendingCasualUnlock=false;
-    $("botUnlockedTitle").textContent = casualMilestone ? `You've unlocked ${unlocked.name} and Casual mode!` : `You've unlocked ${unlocked.name}!`;
-    $("botUnlockedAvatar").src = `graphics/bots/${avatars[unlocked.level-1]}-bot.png`;
-    $("botUnlockedAvatar").alt = `${unlocked.name} avatar`;
-    $("botUnlockedDetail").textContent = `Level ${unlocked.level} · ${unlocked.average}–${unlocked.average + 5} average. ${casualMilestone?"Casual mode is now available from the dice icon: play any unlocked bot with your own leg target, without saving stats or earning awards.":"Your next Monster is ready."}`;
-    $("botUnlockedDialog").showModal();
-    celebrateUnlock();
-    if(casualMilestone&&user)window.ONMFirebase.ready.then(({db,firestoreSdk:sdk})=>sdk.updateDoc(sdk.doc(db,"users",user.uid),{monsterBotCasualNoticeSeen:true})).catch(()=>{});
-  }
-  function celebrateUnlock(){
-    const host=window.parent!==window?window.parent:window;
-    host?.ONMBotLaunch?.celebrate();
-    if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
-    const dialog=$("botUnlockedDialog");
-    for(let i=0;i<42;i++){
-      const spark=document.createElement("span");spark.className="botUnlockSpark";spark.setAttribute("aria-hidden","true");
-      const angle=Math.PI*2*i/14,distance=70+Math.random()*100;
-      spark.style.setProperty("--x",`${Math.cos(angle)*distance}px`);spark.style.setProperty("--y",`${Math.sin(angle)*distance}px`);
-      spark.style.setProperty("--delay",`${Math.floor(i/14)*.35}s`);spark.style.setProperty("--spark-color",["#ffd740","#67e0bd","#fff"][i%3]);
-      dialog.appendChild(spark);setTimeout(()=>spark.remove(),2000);
-    }
+    // Unlock announcements belong to the ladder, after the results screen.
   }
   async function loadPlayerPhoto(account) {
     try {
@@ -96,7 +74,7 @@
     } catch { /* Keep the existing fallback if the linked photo is unavailable. */ }
   }
   const bullMode = !casual && format === E.BULL_MODE;
-  const startingScore = casual?501:E.startScore(level,format);
+  const startingScore = casual?casualStart:E.startScore(level,format);
   const $ = id => document.getElementById(id);
   const key = `${level}-${format}`;
   const storageKey = uid => `onm-monster-bot-${uid}`;
@@ -121,15 +99,19 @@
     knownWins.add(key);
     knownScores[key] = E.bestScore(E.validWinningScore(key,knownScores[key]) ? knownScores[key] : null,score);
     const nowUnlocked = E.highestUnlocked(knownWins,knownScores);
-    if(previouslyUnlocked<3&&nowUnlocked>=3)pendingCasualUnlock=true;
-    if (nowUnlocked > previouslyUnlocked) pendingUnlock = E.LEVELS[nowUnlocked-1];
-    if (resultVisible) showUnlock();
     const local = localProgress(user.uid);
     local.wins = [...new Set([...local.wins,key])];
     local.scores[key] = E.bestScore(E.validWinningScore(key,local.scores[key]) ? local.scores[key] : null,score);
     try {
       localStorage.setItem(storageKey(user.uid),JSON.stringify(local.wins));
       localStorage.setItem(storageKey(user.uid)+"-scores",JSON.stringify(local.scores));
+      if(nowUnlocked>previouslyUnlocked){
+        const noticeKey=storageKey(user.uid)+"-unlocks";
+        let queue=[];try{queue=JSON.parse(localStorage.getItem(noticeKey)||"[]");}catch{}
+        if(!Array.isArray(queue))queue=[];
+        for(let next=previouslyUnlocked+1;next<=nowUnlocked;next++)if(!queue.includes(next))queue.push(next);
+        localStorage.setItem(noticeKey,JSON.stringify(queue));
+      }
     } catch { /* Account save below still runs when browser storage is blocked. */ }
     resultMessage = "Victory saved on this device. Syncing to your account…";
     try {
@@ -148,7 +130,7 @@
     els.molVictoryTitle.textContent = `${startingScore} · ${formatLabel}`;
     els.molVictoryCloseBtn.textContent = casual?"Back to casual":"Back to ladder";
     els.molVictoryRematchBtn.textContent = "Restart";
-    if(!casual&&knownWins.has(key)&&E.validWinningScore(key,knownScores[key])&&knownScores[key].lost===0){els.molVictoryRematchBtn.textContent="Completed this game mode";els.molVictoryRematchBtn.disabled=true;}
+    els.molVictoryRematchBtn.hidden=!casual&&state.winnerIndex===0&&state.players[1].legs===0;
     let status = $("monsterBotResultStatus");
     if (!status) { status = document.createElement("p"); status.id = "monsterBotResultStatus"; els.molVictoryTitle.after(status); }
     const won = state.winnerIndex === 0;
@@ -233,7 +215,8 @@
     clearTimeout(lossVoiceTimer); window.speechSynthesis?.cancel();
     const destination=casual?"monster-bot.html#casual":"monster-bot.html";
     window.parent?.ONMBotLaunch?.stop?.();
-    if(window.parent!==window&&window.parent?.ONMBotLaunch?.open)window.parent.location.href=destination;
+    if(window.parent!==window&&window.parent?.ONMMonsterLadder?.returnToLadder)window.parent.ONMMonsterLadder.returnToLadder(casual);
+    else if(window.parent!==window&&window.parent?.ONMBotLaunch?.open)window.parent.location.href=destination;
     else window.location.href=destination;
   }
   async function rematch() {
@@ -257,7 +240,7 @@
     syncMainViews("none");
     $("screenTitleText").classList.remove("hidden");
     $("screenTitleText").textContent = "Loading Monster Bot…";
-    if (!profile || !E.MODES.includes(format) || casual&&(!Number.isSafeInteger(casualLegs)||casualLegs<1)) { exit(); return; }
+    if (!profile || !E.MODES.includes(format) || casual&&(!Number.isSafeInteger(casualLegs)||casualLegs<1||casualLegs%2!==1||![301,501,701].includes(casualStart))) { exit(); return; }
     try {
       user = await window.ONMBotData.withTimeout(window.ONMFirebase.currentFirebaseUser());
       if (!user) {
@@ -280,7 +263,7 @@
       knownWins = wins; knownScores = scores;
       loadPlayerPhoto(accountProfile);
       MATCH_MODE = "local"; STATS_MODE = "casual"; window.STATS_MODE = STATS_MODE;
-      applyMatchSettings({startScore:startingScore,gameType:casual?"firstTo":"bestOf",legsCount:casual?casualLegs:bullMode ? 1 : format,inMode:"straight"});
+      applyMatchSettings({startScore:startingScore,gameType:"bestOf",legsCount:casual?casualLegs:bullMode ? 1 : format,inMode:"straight"});
       newGame(); state.winnerIndex = null; state.matchStartedAt = new Date();
       let name = firstName || "You";
       try { const account = JSON.parse(localStorage.getItem("onmUser") || "null"); if (!firstName && account?.uid === user.uid) name = account.firstName?.trim() || "You"; } catch {}
