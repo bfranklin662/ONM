@@ -105,6 +105,18 @@ test("real play buttons open the league scorer in bot mode and respect locks",as
   assert.equal(g.playButton(1,7),"dart-scorer.html?mode=bot&level=1&format=7");
   const visitor=await gameHarness(new Map(),null);assert.equal(visitor.playButton(),"");
 });
+test("casual menu unlocks at level three and only launches unlocked opponents",async()=>{
+  const wins=E.LEVELS.slice(0,2).flatMap(p=>E.MODES.map(mode=>`${p.level}-${mode}`));
+  const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const g=await gameHarness(new Map(),{uid:"member",seedWins:wins,seedScores:scores});
+  assert.equal(g.element("casualTab").hidden,false);g.click("casualTab");
+  assert.equal(g.element("botPageTitle").textContent,"Casual Bot Game");
+  assert.match(g.element("casualBot").innerHTML,/Venton Bot/);assert.doesNotMatch(g.element("casualBot").innerHTML,/Istan Bot/);
+  g.element("casualBot").value="4";g.element("casualLegs").value="11";g.element("casualForm").listeners.submit({preventDefault(){}});assert.equal(g.location.href,"");
+  g.element("casualBot").value="2";g.element("casualForm").listeners.submit({preventDefault(){}});
+  assert.equal(g.location.href,"dart-scorer.html?mode=bot&casual=1&level=2&format=1&legs=11");
+  const locked=await gameHarness();assert.equal(locked.element("casualTab").hidden,true);
+});
 test("Play uses the gesture-bound launch audio before navigating to the scorer",async()=>{
   let finish;
   const g=await gameHarness(new Map(),{uid:"member",launcher:{start:done=>{finish=done;}}});
@@ -248,12 +260,13 @@ test("mode completion ticks distinguish wins from flawless wins, never selection
   assert.match(g.element("botLevels").innerHTML,/id="bot-mode-1" type="hidden" value="3"/);
   assert.match(g.element("botLevels").innerHTML,/class="primary "[^>]*>Replay Billy Bot · BO3<\/button>/);
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:"1"}}:null}});
-  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame"[^>]*>Replay Billy Bot · BO1<\/button>/);
+  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame"[^>]*disabled>Completed this game mode<\/button>/);
+  assert.equal(g.playButton(1,1),"");
 });
 test("fully completed bots offer a grey replay button without adding duplicate awards",async()=>{
   const wins=E.MODES.map(mode=>`1-${mode}`),scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
   const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(scores)]]));
-  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame"[^>]*>Replay Billy Bot · BO1<\/button>/);
+  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame"[^>]*disabled>Completed this game mode<\/button>/);
   const set=new Set(wins);set.add("1-1");scores["1-1"]=E.bestScore(scores["1-1"],{won:1,lost:0});
   assert.equal(set.size,5);assert.equal(E.goldStars(set,scores),5);
 });
@@ -356,14 +369,13 @@ test("available avatars appear in the ladder and scorer without leaking into oth
   const g = await gameHarness(new Map([["onm-monster-bot-test-member", JSON.stringify(wins)], ["onm-monster-bot-test-member-scores", JSON.stringify(scores)]]));
   assert.match(g.element("botLevels").innerHTML, /venton-bot.png/);
   for (const [level, name] of [[1,"billy"],[2,"croft"],[3,"venton"],[4,"istan"],[5,"nick"],[6,"ricky"],[7,"aussie"],[8,"andre"],[9,"bailey"]]) {
-    g.start(level);
-    assert.equal(g.element("scorerBotAvatar").src, `graphics/bots/${name}-bot.png?v=20261022-avatar`);
-    assert.equal(g.element("scorerBotAvatar").hidden, false);
-    g.click("leaveMatch");
+    const playableScores={...scores};delete playableScores[`${level}-1`];
+    const game=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(playableScores)]]));
+    game.start(level);
+    assert.equal(game.element("scorerBotAvatar").src, `graphics/bots/${name}-bot.png?v=20261022-avatar`);
+    assert.equal(game.element("scorerBotAvatar").hidden, false);
   }
-  g.start(10);
-  assert.equal(g.element("scorerBotAvatar").hidden, false);
-  assert.equal(g.element("scorerBotAvatar").src, "graphics/bots/filip-bot.png?v=20261022-avatar");
+  assert.match(g.element("botLevels").innerHTML,/filip-bot.png/);
 });
 
 test("match lengths, alternating starters, wins and gold progress survive reload", async () => {
@@ -643,8 +655,8 @@ test("weak bots rarely hit ton checkouts or Bull finishes; strong bots are more 
     }
     rates.push({tons:tons/30000,bulls:bulls/30000});
   }
-  assert.ok(rates[0].tons<0.04);assert.ok(rates[0].bulls<0.001);
-  assert.ok(rates[1].tons>rates[0].tons*5);assert.ok(rates[1].bulls>rates[0].bulls*5);
+  assert.ok(rates[0].tons<0.07);assert.ok(rates[0].bulls<0.06);
+  assert.ok(rates[1].tons>rates[0].tons*3);assert.ok(rates[1].bulls>rates[0].bulls*1.5);
 });
 test("Croft's whole-leg ton-plus and Bull finishes remain rare",()=>{
   const random=seeded(20261023);let tons=0,bulls=0;
@@ -653,5 +665,5 @@ test("Croft's whole-leg ton-plus and Bull finishes remain rare",()=>{
     while(left&&darts<600){const visit=E.botVisit(left,darts,E.LEVELS[1],random);left=visit.remaining;darts+=visit.darts;if(!left){tons+=visit.score>=100;bulls+=visit.hits.at(-1)===50;}}
     assert.equal(left,0);
   }
-  assert.ok(tons/12000<0.015);assert.ok(bulls/12000<0.002);
+  assert.ok(tons/12000>0.004&&tons/12000<0.02);assert.ok(bulls/12000>0.004&&bulls/12000<0.02);
 });

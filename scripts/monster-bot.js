@@ -6,15 +6,30 @@
   const modes = new Map();
   const BULL_RULES = "One-shot Bull or Bust · 301 · BO1 on every level. You must win with a Bullseye (50) checkout and confirm Bull on the checkout prompt. Going below 50, busting, or scoring zero when on a finish loses immediately. You can't intentionally bust your checkout to return to 50 or more. The bot plays normal double-out.";
   const authUrl = mode => `auth.html?mode=${mode}&redirect=monster-bot.html`;
-  const canPlay = (level,format) => ready && user && E.LEVELS.some(p=>p.level===level) && level <= E.highestUnlocked(progress,bestScores) && E.isFormatUnlocked(level,format,progress);
+  const isFlawless = (level,format) => {const key=`${level}-${format}`;return progress.has(key)&&E.validWinningScore(key,bestScores[key])&&bestScores[key].lost===0;};
+  const canPlay = (level,format) => ready && user && E.LEVELS.some(p=>p.level===level) && level <= E.highestUnlocked(progress,bestScores) && E.isFormatUnlocked(level,format,progress) && !isFlawless(level,format);
+  const casualUnlocked = () => ready && user && E.highestUnlocked(progress,bestScores)>=3;
+  function renderCasual() {
+    $("casualTab").hidden=!casualUnlocked();
+    const previous=$("casualBot").value;
+    $("casualBot").innerHTML=E.LEVELS.filter(p=>p.level<=E.highestUnlocked(progress,bestScores)).map(p=>`<option value="${p.level}">${p.name}</option>`).join("");
+    if(previous)$("casualBot").value=previous;
+    $("casualLocked").hidden=Boolean(casualUnlocked());$("casualForm").hidden=!casualUnlocked();
+  }
+  function openCasual() {
+    $("ladderPanel").hidden=true;$("leaderboardPanel").hidden=true;$("casualPanel").hidden=false;
+    $("botPageTitle").textContent="Casual Bot Game";document.title="Casual Bot Game | Oche Ness Monsters";
+    $("ladderTab").setAttribute("aria-selected","false");$("leaderboardTab").setAttribute("aria-selected","false");$("casualTab").setAttribute("aria-selected","true");
+    window.history?.replaceState(null,"","#casual");renderCasual();
+  }
+  function launch(url,label) {
+    if(!window.ONMBotLaunch){window.location.href=url;return;}
+    $("completionDialog").close();$("botLaunchText").textContent=label;$("botLaunchSplash").hidden=false;
+    window.ONMBotLaunch.start(played=>{window.location.href=url+(played?"&intro=played":"");});
+  }
   function playGame(level,format) {
     if (!canPlay(level,format)) return;
-    const url=`dart-scorer.html?mode=bot&level=${level}&format=${format}`;
-    if(!window.ONMBotLaunch){window.location.href=url;return;}
-    $("completionDialog").close();
-    $("botLaunchText").textContent=`Loading ${botName(level)} · ${E.modeLabel(format)}`;
-    $("botLaunchSplash").hidden=false;
-    window.ONMBotLaunch.start(played=>{window.location.href=url+(played?"&intro=played":"");});
+    launch(`dart-scorer.html?mode=bot&level=${level}&format=${format}`,`Loading ${botName(level)} · ${E.modeLabel(format)}`);
   }
   function focusUnlocked() {
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -97,6 +112,7 @@
     $("refreshLeaderboard").setAttribute("aria-busy",String(Boolean(communityLoading)));
   }
   function showTab(board) {
+    $("casualPanel").hidden=true;$("casualTab").setAttribute("aria-selected","false");
     const hash = board ? "#leaderboard" : "#game";
     if (window.location.hash !== hash) window.history?.replaceState(null,"",hash);
     $("botPageTitle").textContent = board ? "Leaderboard" : "Monster Bot Game";
@@ -130,7 +146,7 @@
     $("retryCompletions").hidden = !communityError;
     const formats = parts[0] === "level" ? E.MODES : [Number(parts[1])];
     $("completionActions").innerHTML = formats.map(format => `<button type="button" class="primary" data-completion-level="${level}" data-completion-format="${format}" ${canPlay(level,format) ? "" : "disabled"}>Play ${E.modeLabel(format)}${E.isFormatUnlocked(level,format,progress) ? "" : " 🔒"}</button>`).join("");
-    $("completionPlayHint").textContent = !user ? "Sign in with a registered account to play." : level > E.highestUnlocked(progress,bestScores) ? "This bot is locked. Meet its ladder requirements first." : formats.includes(E.BULL_MODE) && !E.isFormatUnlocked(level,E.BULL_MODE,progress) ? "Beat BO1, BO3, BO5 and BO7 on this bot to unlock Bull or Bust." : "";
+    $("completionPlayHint").textContent = !user ? "Sign in with a registered account to play." : formats.length===1&&isFlawless(level,formats[0]) ? "Completed flawlessly. Play this bot again in Casual mode once Level 3 is unlocked." : level > E.highestUnlocked(progress,bestScores) ? "This bot is locked. Meet its ladder requirements first." : formats.includes(E.BULL_MODE) && !E.isFormatUnlocked(level,E.BULL_MODE,progress) ? "Beat BO1, BO3, BO5 and BO7 on this bot to unlock Bull or Bust." : "";
   }
   async function loadCommunity(refresh = false) {
     if (communityLoading) return communityLoading;
@@ -152,6 +168,7 @@
   const escape = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   function renderLevels() {
     renderPlayerSummary();
+    renderCasual();
     $("accountLoading").hidden = ready;
     $("botLevels").hidden = !ready;
     $("progressSummary").hidden = !ready;
@@ -179,7 +196,7 @@
         <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><div class="completionMedals"><span class="${wins.length ? "won beatenCount" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span>${wins.length ? `<span class="gold flawlessCount">★ Flawless ${flawless}/${E.MODES.length}</span>` : ""}</div></div><span class="levelStats">${p.average}–${p.average + 5} average</span></div></div>
         <div class="modeMarks" role="group" aria-label="Match formats for ${p.name}">${E.MODES.map(mode => modeChip(p.level, mode, selectedMode)).join("")}</div>
         ${modeResults(p.level,selectedMode)}
-        <div class="botCardControls pillPlayControls"><input id="bot-mode-${p.level}" type="hidden" value="${selectedMode}">${!user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary ${flawlessReplay ? "replayGame" : ""}" data-play-level="${p.level}" ${canPlay(p.level,selectedMode) ? "" : "disabled"}>${replay ? `Replay ${p.name} · ${E.modeLabel(selectedMode)}` : `Play ${p.name} · ${selectedMode===E.BULL_MODE ? "Bull or Bust" : `Best of ${selectedMode}`}`}</button>`}</div>
+        <div class="botCardControls pillPlayControls"><input id="bot-mode-${p.level}" type="hidden" value="${selectedMode}">${!user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary ${flawlessReplay ? "replayGame" : ""}" data-play-level="${p.level}" ${canPlay(p.level,selectedMode) ? "" : "disabled"}>${flawlessReplay ? "Completed this game mode" : replay ? `Replay ${p.name} · ${E.modeLabel(selectedMode)}` : `Play ${p.name} · ${selectedMode===E.BULL_MODE ? "Bull or Bust" : `Best of ${selectedMode}`}`}</button>`}</div>
         ${selectedMode===E.BULL_MODE && !E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? '<p class="lockedHint">🔒 Beat BO1, BO3, BO5 and BO7 on this bot first to unlock Bull or Bust.</p>' : ""}
         ${p.level === 1 ? `<p id="bot-mode-rules-${p.level}" class="bullModeRules" ${selectedMode === E.BULL_MODE ? "" : "hidden"}>${BULL_RULES}</p>` : ""}
         ${requirements(p.level)}</article>`;
@@ -406,6 +423,12 @@
   $("leaveMatch").addEventListener("click", levels); $("backToLevels").addEventListener("click", levels);
   $("ladderTab").addEventListener("click", () => showTab(false));
   $("leaderboardTab").addEventListener("click", () => showTab(true));
+  $("casualTab").addEventListener("click",openCasual);
+  $("casualForm").addEventListener("submit",event=>{
+    event.preventDefault();const level=Number($("casualBot").value),legs=Number($("casualLegs").value);
+    if(!casualUnlocked()||!Number.isSafeInteger(legs)||legs<1||!E.LEVELS.some(p=>p.level===level&&level<=E.highestUnlocked(progress,bestScores))){$("casualError").textContent="Choose an unlocked bot and a positive whole-number leg target.";return;}
+    launch(`dart-scorer.html?mode=bot&casual=1&level=${level}&format=1&legs=${legs}`,`Loading casual ${botName(level)} · First to ${legs}`);
+  });
   $("retryLeaderboard").addEventListener("click", () => loadCommunity(Boolean(user)));
   $("refreshLeaderboard").addEventListener("click", () => loadCommunity(true));
   $("playerSummaryPhoto").addEventListener("error",()=>{
@@ -418,8 +441,8 @@
   window.addEventListener("beforeunload", event => { if (match && !match.ended) { event.preventDefault(); event.returnValue = ""; } });
   loadCommunity();
   if(typeof fetch==="function") fetch("data/player-photo-map.json").then(response=>response.ok?response.json():{}).then(photos=>{leaderboardPhotos=photos||{};renderLeaderboard();renderPlayerSummary();}).catch(()=>{});
-  showTab(window.location.hash === "#leaderboard");
-  window.addEventListener("hashchange",()=>showTab(window.location.hash === "#leaderboard"));
+  if(window.location.hash==="#casual")openCasual();else showTab(window.location.hash === "#leaderboard");
+  window.addEventListener("hashchange",()=>window.location.hash==="#casual"?openCasual():showTab(window.location.hash === "#leaderboard"));
   loadProgress().then(async () => {
     try {
       const {auth, authSdk} = await window.ONMFirebase.ready;

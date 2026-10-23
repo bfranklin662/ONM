@@ -1,6 +1,6 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const E=require("../scripts/monster-bot-engine");
-async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,profilePhoto=null,audioBlocked=false,introPlayed=false}={}){
+async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,profilePhoto=null,audioBlocked=false,introPlayed=false,casual=false,legs=3,completed=false}={}){
   const nodes=new Map(),timers=new Map(),writes=[],stored=new Map();let nextTimer=0,bullSelected=false,authChanged;
   const element=id=>{if(!nodes.has(id))nodes.set(id,{id,value:"",textContent:"",hidden:false,disabled:false,dataset:{},classList:{add(){},remove(){},toggle(){}},querySelector(){return element("kicker");},querySelectorAll(){return [];},before(){},after(){},blur(){},showModal(){this.open=true;},close(){this.open=false;},addEventListener(event,fn){(this.listeners ||= {})[event]=fn;}});return nodes.get(id);};
   const player=()=>({score:501,legs:0,totalScored:0,dartsThrown:0,currentLegDarts:0,firstNineScored:0,firstNineDarts:0,currentLegFirstNineScored:0,currentLegFirstNineDarts:0,highScore:0,checkoutHits:0,checkoutAttempts:0,highestOut:0,oneEightys:0,bullOuts:0,legDarts:[],lastScore:null});
@@ -8,16 +8,18 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
   const els=new Proxy({names:[element("name0"),element("name1")]},{get:(o,k)=>o[k]||element(k)});
   const wins=seedWins || E.LEVELS.flatMap(p=>E.MODES.map(m=>`${p.level}-${m}`));
   const scores=Object.fromEntries(E.LEVELS.flatMap(p=>E.MODES.map(m=>[`${p.level}-${m}`,{won:E.legsNeeded(m),lost:0}])));
+  if(!completed&&!casual)delete scores[`${level}-${format}`];
   const sdk={doc:(_db,c,id)=>`${c}/${id}`,getDoc:async()=>({data:()=>({firstName:"Nick",nickname:"Nickname",monsterBotWins:wins,monsterBotBestScores:scores})}),updateDoc:async(path,data)=>writes.push({path,data}),arrayUnion:(...a)=>a,runTransaction:async(_db,fn)=>fn({get:async()=>({data:()=>({})}),update:(path,data)=>writes.push({path,data})})};
-  const ctx={BOT_MODE:true,params:new URLSearchParams(`level=${level}&format=${format}`),state,els,STARTING_SCORE:501,LEGS_TO_WIN:E.legsNeeded(format),MATCH_MODE:"local",STATS_MODE:"casual",pendingCheckoutPrompt:null,
+  const ctx={BOT_MODE:true,params:new URLSearchParams(`level=${level}&format=${format}${casual?`&casual=1&legs=${legs}`:""}`),state,els,STARTING_SCORE:501,LEGS_TO_WIN:E.legsNeeded(format),MATCH_MODE:"local",STATS_MODE:"casual",pendingCheckoutPrompt:null,
     window:{MonsterBotEngine:{...E,botVisit:(remaining,darts,profile)=>{ctx.lastBotProfile=profile.level;return botFinish?{score:remaining,remaining:0,darts:3,attempts:1,hits:[remaining]}:{score:30,remaining:remaining-30,darts:3,attempts:0,hits:[10,10,10]};}},ONMFirebase:{currentFirebaseUser:async()=>account,ready:Promise.resolve({db:{},firestoreSdk:sdk,auth:{},authSdk:{onAuthStateChanged:(_auth,fn)=>{authChanged=fn;}}})},location:{href:"",reload(){ctx.reloaded=true;}},eventHandlers:{},addEventListener(type,fn){(this.eventHandlers[type] ||= []).push(fn);}},
     document:{body:{classList:{add(){},remove(){}}},getElementById:element,createElement:()=>element(`created${nodes.size}`),querySelector:()=>bullSelected?{dataset:{value:"Yes"}}:null},
     localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},
     setTimeout:(fn,delay)=>{const id=++nextTimer;timers.set(id,{fn,delay});return id;},clearTimeout:id=>timers.delete(id),Date,
-    enterScorerFullscreen(){ctx.fullscreen=true;},syncMainViews(){},applyMatchSettings(settings){ctx.STARTING_SCORE=settings.startScore;for(const p of state.players)p.score=settings.startScore;},newGame(){},setVisiblePlayerNames:(a,b)=>{els.names[0].value=a;els.names[1].value=b;},
-    render:()=>ctx.window.ONMMonsterScorer?.onRender(),switchPlayer(){state.currentPlayer=state.currentPlayer===0?1:0;},updateLegTarget(){ctx.LEGS_TO_WIN=E.legsNeeded(format);},resetLeg(){for(const p of state.players){p.score=501;p.currentLegDarts=0;}},
+    enterScorerFullscreen(){ctx.fullscreen=true;},syncMainViews(){},applyMatchSettings(settings){ctx.STARTING_SCORE=settings.startScore;ctx.targetLegs=settings.gameType==="firstTo"?settings.legsCount:E.legsNeeded(format);ctx.LEGS_TO_WIN=ctx.targetLegs;for(const p of state.players)p.score=settings.startScore;},newGame(){},setVisiblePlayerNames:(a,b)=>{els.names[0].value=a;els.names[1].value=b;},
+    render:()=>ctx.window.ONMMonsterScorer?.onRender(),switchPlayer(){state.currentPlayer=state.currentPlayer===0?1:0;},updateLegTarget(){ctx.LEGS_TO_WIN=ctx.targetLegs||E.legsNeeded(format);},resetLeg(){for(const p of state.players){p.score=ctx.STARTING_SCORE;p.currentLegDarts=0;}},
     isDartCalloutBusy:()=>Boolean(ctx.audioBusy),launchFireworks(){},announceLegWon(){},announceDartVisit(){},announceRequiredScore:score=>{ctx.requiredCalls.push(score);},requiredCalls:[],shouldPlayFinishHim:()=>false,playDartCallout:(file,fallback,onBlocked,onReady)=>{ctx.callouts.push({file,onBlocked});if(ctx.audioBlocked)onBlocked?.();else onReady?.(true);},callouts:[],audioBlocked,
     showImpossibleMessage:message=>{ctx.error=message;},getBullOutPromptConfig:()=>({bullOutOptions:["No","Yes"],bullOutDefault:"No"}),
+    getMinimumCheckoutDarts:score=>E.checkoutPossible(score,1)?1:E.checkoutPossible(score,2)?2:3,getDoubleOptionsForMissedVisit:(before,score)=>before-score<=50?[0,1,2,3]:null,
     openCheckoutPrompt:config=>{ctx.pendingCheckoutPrompt=config;},closeCheckoutPrompt:()=>{ctx.pendingCheckoutPrompt=null;},getSelectedPromptValue:()=>3,
     buildLocalMatchStatsData:()=>({}),openMolVictoryScreen:()=>{ctx.resultOpened=true;ctx.window.ONMMonsterScorer.showResult();ctx.window.ONMMonsterScorer.showUnlock();}
   };
@@ -216,7 +218,7 @@ test("bot matches cannot upload detailed statistics through the league save rout
 });
 test("bot result pages omit checkout totals and rate without changing league results",()=>{
   const source=fs.readFileSync(require.resolve("../scripts/dart-scorer.js"),"utf8");
-  const ctx={BOT_MODE:true,els:{molStatsPageOne:{},molStatsPageTwo:{}},buildStatsRowsHtml:rows=>rows.map(row=>row[0]).join("|"),setMolStatsPage(){}};
+  const ctx={BOT_MODE:true,window:{},els:{molStatsPageOne:{},molStatsPageTwo:{}},buildStatsRowsHtml:rows=>rows.map(row=>row[0]).join("|"),setMolStatsPage(){}};
   vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf("function populateMolVictoryStats("),source.indexOf("function getOnlineMatchId()")),ctx);
   const result={players:[{stats:{}},{stats:{}}]};ctx.populateMolVictoryStats(result);
   const botRows=ctx.els.molStatsPageOne.innerHTML+ctx.els.molStatsPageTwo.innerHTML;
@@ -286,4 +288,29 @@ test("a direct Bull or Bust scorer URL requires all four standard wins",async()=
   assert.equal(locked.api.canPlay(),false);
   const unlocked=await harness({format:9,seedWins:["1-1","1-3","1-5","1-7"]});
   assert.equal(unlocked.api.canPlay(),true);
+});
+test("flawless ladder modes cannot be replayed through direct scorer URLs",async()=>{
+  const g=await harness({completed:true});assert.equal(g.api.canPlay(),false);assert.equal(g.ctx.window.location.href,"monster-bot.html");assert.equal(g.writes.length,0);
+});
+test("casual games allow custom leg targets and completed bots without storing results",async()=>{
+  const g=await harness({casual:true,legs:1,completed:true});
+  assert.equal(g.api.canPlay(),true);assert.equal(g.api.tracksCheckouts(),true);assert.equal(g.ctx.LEGS_TO_WIN,1);
+  g.score(180);g.bot();g.score(180);g.bot();g.score(141);
+  assert.ok(g.ctx.pendingCheckoutPrompt);g.confirm();await new Promise(done=>setImmediate(done));
+  assert.equal(g.state.winnerIndex,0);assert.equal(g.state.players[0].checkoutHits,1);assert.equal(g.state.players[0].checkoutAttempts,3);
+  assert.equal(g.writes.length,0);assert.equal(g.stored.size,0);
+  g.api.showResult();
+  assert.match(g.ctx.document.getElementById("monsterBotResultStatus").textContent,/no stats or progress saved/);
+  assert.equal(g.els.molVictoryRematchBtn.textContent,"Restart");
+  const long=await harness({casual:true,legs:23});assert.equal(long.ctx.LEGS_TO_WIN,23);assert.equal(long.api.canPlay(),true);
+});
+test("casual mode requires level three and validates the chosen leg target",async()=>{
+  const locked=await harness({casual:true,seedWins:["1-1"]});assert.equal(locked.api.canPlay(),false);assert.equal(locked.writes.length,0);
+  for(const legs of [0,-1,1.5]){const g=await harness({casual:true,legs});assert.equal(g.api.canPlay(),false);}
+});
+test("reaching level three celebrates Casual mode in the unlock modal",async()=>{
+  const g=await harness({level:2,format:3,seedWins:[...E.MODES.map(mode=>`1-${mode}`),"2-1"]});
+  for(let leg=0;leg<2;leg++){if(leg)g.bot();g.score(180);g.bot();g.score(180);g.bot();g.score(141);}
+  await new Promise(done=>setImmediate(done));g.api.showUnlock();
+  assert.match(g.ctx.document.getElementById("botUnlockedTitle").textContent,/Casual mode/);
 });

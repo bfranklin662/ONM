@@ -1470,7 +1470,7 @@ function populateMolVictoryStats(matchData) {
   const rows = [
     ["3-dart avg.", p1.average, p2.average],
     ["First 9 avg.", p1.firstNineAvg, p2.firstNineAvg],
-    ...(!BOT_MODE ? [["Checkouts", p1.checkouts, p2.checkouts], ["Checkout rate", p1.checkoutRate, p2.checkoutRate]] : []),
+    ...(!BOT_MODE || window.ONMMonsterScorer?.tracksCheckouts() ? [["Checkouts", p1.checkouts, p2.checkouts], ["Checkout rate", p1.checkoutRate, p2.checkoutRate]] : []),
     ["Highest out", p1.highestOut, p2.highestOut],
     ["High score", p1.highScore, p2.highScore],
     ["Best leg", p1.bestLeg, p2.bestLeg],
@@ -4596,7 +4596,7 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
       player.bullOuts += 1;
     }
     player.legs += 1;
-    if (!BOT_MODE) {
+    if (!BOT_MODE || window.ONMMonsterScorer?.tracksCheckouts()) {
       player.checkoutHits += 1;
       player.checkoutAttempts += Math.max(1, doublesAttempted);
     }
@@ -4625,7 +4625,7 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
       announceLegWon(false, bullOut);
       resetLeg();
     }
-  } else if (!BOT_MODE && !bust && doublesAttempted) {
+  } else if ((!BOT_MODE || window.ONMMonsterScorer?.tracksCheckouts()) && doublesAttempted) {
     if (doublesAttempted) {
       player.checkoutAttempts += doublesAttempted;
     }

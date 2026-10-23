@@ -74,12 +74,12 @@
     if (remaining>180) return scoringVisit(remaining,dartsThrown,profile,random);
     const before = remaining, hits = [];
     const singleAccuracy=0.70+profile.level*0.022;
-    const trebleAccuracy=0.04+profile.level*0.024+Math.max(0,profile.level-6)*0.04;
-    const bullAccuracy=0.002+0.0007*profile.level*profile.level;
+    const trebleAccuracy=0.10+profile.level*0.03+Math.max(0,profile.level-6)*0.04;
+    const bullAccuracy=0.055+profile.level*0.004;
     let attempts = 0;
     for (let dart = 0; dart < 3; dart++) {
       let hit;
-      if (remaining === 50 && dart < 2 && random() >= Math.max(0,(profile.level-3)*0.04)) {
+      if (remaining === 50 && dart < 2 && random() >= 0.35+(profile.level-1)*0.035) {
         // With darts in hand, weaker bots sensibly leave D16 instead of
         // treating Bull as an ordinary double on every dart.
         hit = random() < singleAccuracy ? 18 : (random()<0.6?0:1);
