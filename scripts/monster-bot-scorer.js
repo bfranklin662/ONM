@@ -67,6 +67,7 @@
     $("botUnlockedAvatar").alt = `${unlocked.name} avatar`;
     $("botUnlockedDetail").textContent = `Level ${unlocked.level} · ${unlocked.average}–${unlocked.average + 5} average. ${casualMilestone?"Casual mode is now available from the dice icon: play any unlocked bot with your own leg target, without saving stats or earning awards.":"Your next Monster is ready."}`;
     $("botUnlockedDialog").showModal();
+    if(casualMilestone&&user)window.ONMFirebase.ready.then(({db,firestoreSdk:sdk})=>sdk.updateDoc(sdk.doc(db,"users",user.uid),{monsterBotCasualNoticeSeen:true})).catch(()=>{});
   }
   async function loadPlayerPhoto(account) {
     try {

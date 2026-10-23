@@ -69,6 +69,19 @@ test("switching tabs updates the URL so reload restores the last viewed tab",asy
   const board=await gameHarness(new Map(),{uid:"member",initialHash:reloaded.location.hash});
   assert.equal(board.element("botPageTitle").textContent,"Leaderboard");
 });
+test("existing level-three players see the casual announcement until acknowledged",async()=>{
+  const wins=[...E.MODES.map(m=>`1-${m}`),...E.MODES.map(m=>`2-${m}`)];
+  const scores=Object.fromEntries(wins.map(k=>[k,{won:(Number(k.split("-")[1])===9?1:Math.ceil(Number(k.split("-")[1])/2)),lost:0}]));
+  const account={uid:"member",seedWins:wins,seedScores:scores};
+  const g=await gameHarness(new Map(),account);
+  assert.equal(g.element("casualUnlockDialog").open,true);
+  await g.click("closeCasualUnlock");
+  assert.equal(g.element("casualUnlockDialog").open,false);
+  assert.ok(g.writes.some(w=>w.data.monsterBotCasualNoticeSeen===true));
+  const seen=await gameHarness(new Map(),{...account,profile:{monsterBotCasualNoticeSeen:true}});
+  assert.notEqual(seen.element("casualUnlockDialog").open,true);
+  const locked=await gameHarness();assert.notEqual(locked.element("casualUnlockDialog").open,true);
+});
 test("leaderboard refresh icon fetches fresh results and resets its loading state",async()=>{
   const requests=[];
   const g=await gameHarness(new Map(),null,async options=>{requests.push(options);return{completions:{},leaderboard:[]};});

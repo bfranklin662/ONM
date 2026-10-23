@@ -248,6 +248,7 @@
     } else $("saveStatus").innerHTML = `No active sign-in was found in this browser. <a href="${authUrl("login")}">Sign in and return to the game</a> or <a href="${authUrl("register")}">sign up</a>.`;
     ready = true;
     renderLevels();
+    if (casualUnlocked() && !playerProfile.monsterBotCasualNoticeSeen) $("casualUnlockDialog").showModal();
     focusUnlocked();
     loadCommunity(Boolean(user));
   }
@@ -404,6 +405,15 @@
     if (event.target.matches?.(".modePicker") && event.target.open) requestAnimationFrame(()=>event.target.scrollIntoView({block:"nearest",inline:"nearest"}));
   },true);
   $("closeCompletions").addEventListener("click", () => $("completionDialog").close());
+  $("closeCasualUnlock").addEventListener("click", async () => {
+    $("casualUnlockDialog").close();
+    playerProfile.monsterBotCasualNoticeSeen = true;
+    if (!user) return;
+    try {
+      const {db,firestoreSdk:sdk}=await window.ONMFirebase.ready;
+      await sdk.updateDoc(sdk.doc(db,"users",user.uid),{monsterBotCasualNoticeSeen:true});
+    } catch { /* Keep the announcement eligible on the next visit if saving failed. */ }
+  });
   $("completionDialog").addEventListener("click", event => {
     if (event.target === $("completionDialog")) { $("completionDialog").close(); return; }
     const button = event.target.closest("[data-completion-format]");
