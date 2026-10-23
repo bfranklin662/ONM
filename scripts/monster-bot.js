@@ -162,6 +162,12 @@
     $("completionYourResult").hidden = !beaten;
     $("completionYourResult").className = `completionYourResult ${flawless ? "gold" : "won"}`;
     $("completionYourResult").textContent = beaten ? `${flawless ? "★ Flawless win" : "✓ You've beaten this challenge"}${E.validWinningScore(completionKey,ownScore) ? ` · ${ownScore.won}–${ownScore.lost}` : ""}` : "";
+    $("completionYourAttempts").hidden=!user||!ready;
+    if(user&&ready){
+      const counts=window.ONMBotAttempts?.counts(user.uid)||{};
+      const attempts=parts[0]==="level"?E.MODES.reduce((sum,mode)=>sum+(counts[`${level}-${mode}`]||0),0):counts[completionKey]||0;
+      $("completionYourAttempts").textContent=`Your attempts: ${attempts}`;
+    }
     const names = community?.[completionKey] || [];
     $("completionStatus").textContent = community ? `${names.length} ${names.length === 1 ? "player has" : "players have"} won${names.length ? ":" : " this challenge yet."}` : communityError ? "Completion counts could not be loaded. Please retry." : "Loading completions…";
     $("completionNames").innerHTML = names.map(value=>{
@@ -254,6 +260,10 @@
         const { db, firestoreSdk: sdk } = await window.ONMBotData.withTimeout(window.ONMFirebase.ready);
         const snap = await window.ONMBotData.withTimeout(sdk.getDoc(sdk.doc(db, "users", user.uid)));
         playerProfile = snap.data() || {};
+        window.ONMBotAttempts?.load(user.uid,playerProfile);
+        if(window.ONMBotAttempts&&Object.keys(window.ONMBotAttempts.counts(user.uid)).length){
+          window.ONMBotAttempts.sync(user.uid,db,sdk).then(()=>showCompletionList()).catch(()=>{});
+        }
         (snap.data()?.monsterBotWins || []).filter(k => validKeys.has(k)).forEach(k => progress.add(k));
         for (const [key, score] of Object.entries(snap.data()?.monsterBotBestScores || {})) if (E.validWinningScore(key, score)) bestScores[key] = E.bestScore(bestScores[key], score);
         // Retry wins that were saved on this device while offline.

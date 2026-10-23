@@ -1,6 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { buildCompletions, buildLeaderboard } = require("./bot-completions");
+test("private attempt counters never enter public completions or leaderboards",()=>{
+  const users=[{id:"private",firstName:"Nick",monsterBotWins:["1-9"],monsterBotAttemptDevices:{"private-device-secret":{"1-9":12345}}}];
+  const publicData=JSON.stringify({completions:buildCompletions(users,new Map()),leaderboard:buildLeaderboard(users,new Map())});
+  assert.equal(publicData.includes("monsterBotAttemptDevices"),false);assert.equal(publicData.includes("private-device-secret"),false);assert.equal(publicData.includes("12345"),false);
+});
 test("completion rows include only public photo and nationality alongside results",()=>{
   const rows=buildCompletions([{id:"private",firstName:"Nick",email:"secret@example.test",linkedPlayerKey:"nick",monsterBotWins:["1-3"],monsterBotBestScores:{"1-3":{won:2,lost:0}}}],new Map([["nick",{publicName:"Nick",photoUrl:"https://example.test/nick.jpg",nationality:"Australia"}]]));
   assert.equal(rows["1-3"][0].photoUrl,"https://example.test/nick.jpg");assert.equal(rows["1-3"][0].flag,"🇦🇺");

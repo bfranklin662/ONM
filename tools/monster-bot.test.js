@@ -46,6 +46,7 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" },
   // Retain coverage of the original scoring/progress implementation while
   // separately checking that real ladder clicks route to the shared scorer.
   if(account?.launcher)context.window.ONMBotLaunch=account.launcher;
+  context.window.ONMBotAttempts=require("../scripts/monster-bot-attempts")(context.localStorage,()=>"test-device-123");
   vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/monster-bot.js"), "utf8").replace("  loadProgress().then", "  window.testBegin = begin;\n  loadProgress().then"), context);
   await new Promise(resolve => setImmediate(resolve));
   const click = id => element(id).listeners.click();
@@ -119,6 +120,15 @@ test("completion modal shows photo, name, flag and right-aligned award without o
   const html=g.element("completionNames").innerHTML;
   assert.ok(html.indexOf("nick.jpg")<html.indexOf("<strong>Nick</strong>"));assert.ok(html.indexOf("<strong>Nick</strong>")<html.indexOf("🇦🇺"));
   assert.match(html,/completionAward gold/);assert.match(html,/completionAward won/);assert.doesNotMatch(html,/2–0|2–1|Score not recorded/);
+});
+test("completion modal displays your private attempts even before a first win",async()=>{
+  const stored=new Map([["onm-bot-attempt-device",JSON.stringify("test-device-123")],["onm-bot-attempts-member",JSON.stringify({"1-9":4})]]);
+  const g=await gameHarness(stored,{uid:"member"});
+  g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-community-key]"?{dataset:{communityKey:"1-9"}}:null}});
+  assert.equal(g.element("completionYourAttempts").hidden,false);assert.equal(g.element("completionYourAttempts").textContent,"Your attempts: 4");
+  const visitor=await gameHarness(stored,null);
+  visitor.element("botLevels").listeners.click({target:{closest:s=>s==="[data-community-key]"?{dataset:{communityKey:"1-9"}}:null}});
+  assert.equal(visitor.element("completionYourAttempts").hidden,true);
 });
 test("player summary shows identity, beaten and flawless totals and completion percentage",async()=>{
   const wins=["1-1","1-3","1-5","1-7","1-9","2-1","2-3"];

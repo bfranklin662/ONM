@@ -25,6 +25,7 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
   };
   if(introPlayed){ctx.params.set("intro","played");ctx.URL=URL;ctx.window.location.href=`https://ochenessmonsters.com/dart-scorer.html?mode=bot&level=${level}&format=${format}&intro=played`;ctx.window.history={replaceState(_state,_title,url){ctx.cleanedUrl=url;}};}
   vm.createContext(ctx);
+  ctx.window.ONMBotAttempts=require("../scripts/monster-bot-attempts")(ctx.localStorage,()=>"test-device-123");
   ctx.window.ONMBotData=require("../scripts/monster-bot-data");
   if(profilePhoto) ctx.window.ONMSession={resolveProfileImage:async()=>profilePhoto};
   const source=fs.readFileSync(require.resolve("../scripts/dart-scorer.js"),"utf8");
@@ -288,6 +289,16 @@ test("Restart keeps the authenticated scorer and cancels the previous bot throw"
   await g.ctx.document.getElementById("botRestartGame").listeners.click();g.bot();
   assert.notEqual(g.ctx.reloaded,true);assert.equal(g.ctx.window.location.href,"");assert.equal(g.state.players[1].score,501);
   assert.equal(g.state.players[0].score,501);assert.equal(g.api.canPlay(),true);assert.equal(g.state.visitHistory.length,0);
+});
+test("ladder starts and Restarts count once; loss shows only this account's challenge attempts",async()=>{
+  const g=await harness({format:9});
+  assert.equal(g.ctx.window.ONMBotAttempts.counts("member")["1-9"],1);
+  g.score(180);g.bot();g.score(100);
+  assert.match(g.ctx.document.getElementById("monsterBotResultStatus").textContent,/Your attempts: 1/);
+  await g.api.rematch();
+  assert.equal(g.ctx.window.ONMBotAttempts.counts("member")["1-9"],2);
+  g.score(180);g.api.undo();assert.equal(g.ctx.window.ONMBotAttempts.counts("member")["1-9"],2);
+  assert.equal(g.ctx.window.ONMBotAttempts.counts("other-account")["1-9"],undefined);
 });
 test("Venton can be retried repeatedly without navigation or another sign-in check",async()=>{
   const g=await harness({level:3});let announcements=0;

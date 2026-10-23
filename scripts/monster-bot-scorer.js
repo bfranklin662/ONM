@@ -29,6 +29,10 @@
   }
   function startWithAudio() {
     if (!initialized || active || exited) return;
+    if(!casual&&user&&window.ONMBotAttempts){
+      window.ONMBotAttempts.start(user.uid,key);
+      window.ONMFirebase.ready.then(({db,firestoreSdk:sdk})=>window.ONMBotAttempts.sync(user.uid,db,sdk)).then(()=>{if(state.winnerIndex!==null)showResult();}).catch(()=>{});
+    }
     active = true;
     state.matchStartedAt = new Date();
     $("monsterBotSplash").hidden = true;
@@ -135,6 +139,7 @@
     if (!status) { status = document.createElement("p"); status.id = "monsterBotResultStatus"; els.molVictoryTitle.after(status); }
     const won = state.winnerIndex === 0;
     status.textContent = casual ? `${won?"You win!":"You lose."} Casual game — no stats or progress saved.` : `${won ? (state.players[1].legs === 0 ? "★ Flawless victory · Gold star! " : "✓ Challenge beaten. ") : "You lose. "}${resultMessage}`;
+    if(!casual&&window.ONMBotAttempts)status.textContent+=` · Your attempts: ${window.ONMBotAttempts.counts(user.uid)[key]||0}`;
   }
   function lose(reason) {
     clearTimeout(timer); timer = null;
@@ -269,6 +274,7 @@
       const highest=E.highestUnlocked(wins,scores);
       if (level>highest || casual&&highest<3 || !casual&&(!E.isFormatUnlocked(level,format,wins)||wins.has(key)&&E.validWinningScore(key,scores[key])&&scores[key].lost===0)) { exit(); return; }
       knownWins = wins; knownScores = scores;
+      if(!casual)window.ONMBotAttempts?.load(user.uid,accountProfile);
       loadPlayerPhoto(accountProfile);
       MATCH_MODE = "local"; STATS_MODE = "casual"; window.STATS_MODE = STATS_MODE;
       applyMatchSettings({startScore:startingScore,gameType:"bestOf",legsCount:casual?casualLegs:bullMode ? 1 : format,inMode:"straight"});
