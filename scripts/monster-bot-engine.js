@@ -9,7 +9,7 @@
   const NAMES = ["Billy Bot", "Croft Bot", "Venton Bot", "Istan Bot", "Nick Bot", "Ricky Bot", "Aussie Bot", "Andre Bot", "Bailey Bot", "Filip Bot"];
   const LEVELS = Array.from({ length: 10 }, (_, i) => ({
     level: i + 1, name: NAMES[i], average: 35 + i * 5, firstNine: [40 + i * 5, 45 + i * 5],
-    checkout: [7 + i, 15 + i], middle: [45.4, 56.9, 69.9, 85.7, 101.6, 125.3, 150.2, 174.6, 175, 175][i]
+    checkout: [7 + i, 15 + i], middle: [42, 52, 62, 85.7, 101.6, 125.3, 150.2, 174.6, 175, 175][i]
   }));
   const singles = Array.from({ length: 20 }, (_, i) => i + 1);
   const scores = [...new Set([0, ...singles, ...singles.map(n => n * 2), ...singles.map(n => n * 3), 25, 50])];
@@ -70,13 +70,22 @@
     for(const row of allowed) {pick-=row.probability;if(pick<=0){total=row.score;break;}}
     return {score:total,remaining:remaining-total,darts:3,bust:false,attempts:0,hits:[...visitHits.get(total)]};
   }
-  function botVisit(remaining, dartsThrown, profile, random = Math.random) {
+  function botVisit(remaining, dartsThrown, profile, random = Math.random, startingScore = 501) {
     if (remaining>180) return scoringVisit(remaining,dartsThrown,profile,random);
     const before = remaining, hits = [];
     const singleAccuracy=0.70+profile.level*0.022;
     const trebleAccuracy=0.10+profile.level*0.03+Math.max(0,profile.level-6)*0.04;
     const bullAccuracy=0.055+profile.level*0.004;
     let attempts = 0;
+    const finishChance=(chance,dart)=>{
+      // A mean alone hides too many fast legs behind a long tail of missed
+      // doubles. Softly discourage unusually early finishes, and shorten that
+      // tail once a bot is well behind its advertised pace. Never a hard cap.
+      const projected=startingScore*3/(dartsThrown+dart+1);
+      const fast=.1+.9*Math.exp(-Math.max(0,projected-profile.average-5)/6);
+      const slow=1+Math.min(4,Math.max(0,profile.average+3+profile.level*.3-projected)/5);
+      return Math.min(.6,chance*fast*slow);
+    };
     for (let dart = 0; dart < 3; dart++) {
       let hit;
       if (remaining === 50 && dart < 2 && random() >= 0.35+(profile.level-1)*0.035) {
@@ -86,7 +95,7 @@
       } else if (doubles.has(remaining) && remaining <= 40 || remaining === 50) {
         attempts++;
         const chance = remaining === 50 ? bullAccuracy : profile.level === 10 ? 0.24 : profile.checkout[0] / 100 + random() * (profile.checkout[1] - profile.checkout[0]) / 100 + (profile.level === 9 ? 0.015 : 0);
-        if (random() < chance) hit = remaining;
+        if (random() < finishChance(chance,dart)) hit = remaining;
         else hit = random() < 0.55 ? 0 : remaining / 2;
       } else if (remaining <= 61) {
         // Set up a favourite double; misses can leave a different finish.

@@ -710,5 +710,24 @@ test("Croft's whole-leg ton-plus and Bull finishes remain rare",()=>{
     while(left&&darts<600){const visit=E.botVisit(left,darts,E.LEVELS[1],random);left=visit.remaining;darts+=visit.darts;if(!left){tons+=visit.score>=100;bulls+=visit.hits.at(-1)===50;}}
     assert.equal(left,0);
   }
-  assert.ok(tons/12000>0.004&&tons/12000<0.02);assert.ok(bulls/12000>0.004&&bulls/12000<0.02);
+  assert.ok(tons/12000>0.001&&tons/12000<0.02);assert.ok(bulls/12000>0.001&&bulls/12000<0.02);
+});
+test("Venton's typical leg matches its label and 60-average legs are exceptional",()=>{
+  const random=seeded(93281),averages=[];let totalDarts=0;
+  for(let leg=0;leg<20000;leg++){
+    let remaining=501,darts=0;
+    while(remaining&&darts<600){const visit=E.botVisit(remaining,darts,E.LEVELS[2],random);remaining=visit.remaining;darts+=visit.darts;}
+    totalDarts+=darts;averages.push(1503/darts);
+  }
+  averages.sort((a,b)=>a-b);
+  assert.ok(averages[10000]>=44&&averages[10000]<=50,`Median ${averages[10000]}`);
+  assert.ok(20000*1503/totalDarts>=44&&20000*1503/totalDarts<=48);
+  assert.ok(averages.filter(value=>value>=60).length/20000<.07);
+  assert.ok(averages.filter(value=>value>=55).length/20000<.15);
+  assert.ok(averages.some(value=>value>55),"Strong legs remain possible, not hard-capped");
+});
+test("soft finish pacing uses the actual starting score, including 301",()=>{
+  const counts=[];
+  for(const start of [301,501]){const random=seeded(31415);let wins=0;for(let n=0;n<10000;n++)wins+=E.botVisit(40,18,E.LEVELS[2],random,start).remaining===0;counts.push(wins);}
+  assert.ok(counts[0]>counts[1]*2,`${counts}`);
 });

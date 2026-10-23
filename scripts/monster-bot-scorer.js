@@ -200,7 +200,7 @@
         if (!active || state.winnerIndex !== null || state.currentPlayer !== 1) return;
         if (isDartCalloutBusy()) { waitForAnnouncement(); return; }
         const player = state.players[1], previousScore = player.score;
-        const visit = undoFrame?.reply || replayVisit || E.botVisit(previousScore,player.currentLegDarts,profile);
+        const visit = undoFrame?.reply || replayVisit || E.botVisit(previousScore,player.currentLegDarts,profile,Math.random,startingScore);
         if (undoFrame) undoFrame.reply = clone(visit);
         replayVisit = null;
         els.submit.disabled = false;
