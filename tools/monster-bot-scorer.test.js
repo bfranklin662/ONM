@@ -42,9 +42,9 @@ test("shared scorer applies the human score, waits exactly one second, then retu
   g.bot();assert.equal(g.state.players[1].score,471);assert.equal(g.ctx.lastBotProfile,6);
   assert.equal(g.state.currentPlayer,0);assert.equal(g.els.submit.disabled,false);
 });
-test("Bull or Bust starts at 301 for levels 1–3 and 501 thereafter; standard modes remain 501",async()=>{
+test("Bull or Bust starts at 301 on every level; standard modes remain 501",async()=>{
   for(let level=1;level<=10;level++) for(const format of E.MODES) {
-    const g=await harness({level,format}), expected=format===9&&level<=3?301:501;
+    const g=await harness({level,format}), expected=format===9?301:501;
     assert.equal(g.ctx.STARTING_SCORE,expected);
     assert.equal(g.state.players[0].score,expected);assert.equal(g.state.players[1].score,expected);
     assert.ok(g.els.gameTitleText.textContent.startsWith(String(expected)));
@@ -246,6 +246,29 @@ test("Bull or Bust enforces below-50 losses and an explicitly confirmed Bull fin
   assert.equal(other.state.winnerIndex,1);
   const win=await harness({format:9});win.score(180);win.bot();win.score(121);win.confirm(true);
   await new Promise(r=>setImmediate(r));assert.equal(win.state.winnerIndex,0);assert.ok(win.writes.some(w=>w.data.monsterBotBestScores?.["1-9"]?.won===1));
+});
+test("zero or blank visits on any finish lose Bull or Bust, but not standard modes",async()=>{
+  for(const remaining of [50,60,100,170]) for(const value of [0,""]) {
+    const g=await harness({format:9});g.state.players[0].score=remaining;g.score(value);
+    assert.equal(g.state.winnerIndex,1);assert.equal(g.api.canPlay(),false);
+    assert.match(g.ctx.document.getElementById("monsterBotResultStatus").textContent,/one-shot Bull or Bust/);
+    assert.ok(g.writes.every(w=>!w.data.monsterBotWins));
+  }
+  const early=await harness({format:9});early.score(0);assert.equal(early.state.winnerIndex,null);
+  const standard=await harness({format:1});standard.state.players[0].score=50;standard.score(0);assert.equal(standard.state.winnerIndex,null);
+});
+test("losses announce You lose once where speech is supported and offer Restart",async()=>{
+  const g=await harness({format:9}),spoken=[];
+  g.ctx.window.SpeechSynthesisUtterance=function(text){this.text=text;};
+  g.ctx.window.speechSynthesis={speak:utterance=>spoken.push(utterance.text),cancel(){}};
+  g.state.players[0].score=50;g.score(0);g.api.afterVisit();
+  assert.deepEqual(spoken,["You lose"]);assert.equal(g.els.molVictoryRematchBtn.textContent,"Restart");
+});
+test("Restart from the quit menu cancels the pending bot throw and reloads the same game",async()=>{
+  const g=await harness();g.score(60);
+  assert.equal(g.ctx.document.getElementById("botRestartGame").hidden,false);
+  await g.ctx.document.getElementById("botRestartGame").listeners.click();g.bot();
+  assert.equal(g.ctx.reloaded,true);assert.equal(g.state.players[1].score,501);
 });
 test("sign-out and quitting cancel a pending bot throw; guests must log in with a return URL",async()=>{
   const g=await harness();g.score(60);g.signOut();g.bot();assert.equal(g.state.players[1].score,501);assert.equal(g.ctx.window.location.href,"monster-bot.html");

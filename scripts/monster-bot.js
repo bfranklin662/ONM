@@ -4,7 +4,7 @@
   let match = null, undo = null, timer = null, user = null, progress = new Set(), storageKey = "", busy = false, ready = false;
   const validKeys = new Set(E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)));
   const modes = new Map();
-  const BULL_RULES = "Bull or Bust · BO1: 301 for levels 1–3, 501 for levels 4–10. You must win with a Bullseye (50) checkout and confirm Bull on the checkout prompt. Going below 50 without a Bull finish loses immediately. The bot plays normal double-out.";
+  const BULL_RULES = "One-shot Bull or Bust · 301 · BO1 on every level. You must win with a Bullseye (50) checkout and confirm Bull on the checkout prompt. Going below 50, busting, or scoring zero when on a finish loses immediately. You can't intentionally bust your checkout to return to 50 or more. The bot plays normal double-out.";
   const authUrl = mode => `auth.html?mode=${mode}&redirect=monster-bot.html`;
   const canPlay = (level,format) => ready && user && E.LEVELS.some(p=>p.level===level) && level <= E.highestUnlocked(progress,bestScores) && E.isFormatUnlocked(level,format,progress);
   function playGame(level,format) {
@@ -310,6 +310,7 @@
     if (match.bestOf === E.BULL_MODE) {
       if (bust) { loseBull("Bust — Bull or Bust lost."); return; }
       if (!E.possibleScore(score)) { $("scoreError").textContent = "Enter a possible three-dart score from 0 to 180."; return; }
+      if (score === 0 && E.checkoutPossible(match.player.remaining,3)) { loseBull("You lose — one-shot Bull or Bust: a zero visit on a finish ends the game. Better luck next time!"); return; }
       const remaining = match.player.remaining - score;
       if (remaining === 0) {
         pendingCheckout = { score, remaining, darts, bust: false };

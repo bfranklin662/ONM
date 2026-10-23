@@ -225,7 +225,7 @@ test("mode pills select the next unbeaten format and have no completion counts o
     assert.match(picker,new RegExp(`data-choose-mode="${next}" aria-pressed="true"`));
     assert.doesNotMatch(picker,/<b>|data-community-key|<details|<select/);
     assert.doesNotMatch(html,/Match length|class="modePicker"/);
-    if(count===4) assert.match(g.element("botLevels").innerHTML,/<p id="bot-mode-rules-1" class="bullModeRules" >Bull or Bust/);
+    if(count===4) assert.match(g.element("botLevels").innerHTML,/<p id="bot-mode-rules-1" class="bullModeRules" >One-shot Bull or Bust/);
     assert.equal((picker.match(/class="modePill won"/g)||[]).length,count);
   }
 });
@@ -272,7 +272,7 @@ test("selecting a pill updates Play, selected-mode results and contextual Bull r
   assert.match(g.element("botLevels").innerHTML,/data-community-key="1-3"/);
   choose(9);
   assert.match(g.element("botLevels").innerHTML,/disabled>Play Billy Bot · Bull or Bust/);
-  assert.match(g.element("botLevels").innerHTML,/<p id="bot-mode-rules-1" class="bullModeRules" >Bull or Bust/);
+  assert.match(g.element("botLevels").innerHTML,/<p id="bot-mode-rules-1" class="bullModeRules" >One-shot Bull or Bust/);
   choose(1);
   assert.match(g.element("botLevels").innerHTML,/<p id="bot-mode-rules-1" class="bullModeRules" hidden>/);
   assert.doesNotMatch(g.element("botLevels").innerHTML,/class="lockedHint"/);

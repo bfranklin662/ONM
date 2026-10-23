@@ -5,7 +5,7 @@
   const MODES = [...STANDARD_MODES, BULL_MODE];
   const modeLabel = mode => mode === BULL_MODE ? "Bull or Bust" : `BO${mode}`;
   const legsNeeded = mode => mode === BULL_MODE ? 1 : (mode + 1) / 2;
-  const startScore = (level,mode) => mode === BULL_MODE && level >= 1 && level <= 3 ? 301 : 501;
+  const startScore = (level,mode) => mode === BULL_MODE ? 301 : 501;
   const NAMES = ["Billy Bot", "Croft Bot", "Venton Bot", "Istan Bot", "Nick Bot", "Ricky Bot", "Aussie Bot", "Andre Bot", "Bailey Bot", "Filip Bot"];
   const LEVELS = Array.from({ length: 10 }, (_, i) => ({
     level: i + 1, name: NAMES[i], average: 35 + i * 5, firstNine: [40 + i * 5, 45 + i * 5],

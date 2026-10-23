@@ -10,6 +10,18 @@
   let knownWins = new Set(), knownScores = {}, pendingUnlock = null, resultVisible = false;
   let undoFrame = null, replayVisit = null;
   let initialized = false, exited = false;
+  let lossAnnounced = false, lossVoiceTimer = null;
+  const ONE_SHOT_LOSS = "You can't intentionally bust your checkout to return to a score of 50 or more. This is one-shot Bull or Bust — better luck next time!";
+  function announceLoss() {
+    if(lossAnnounced || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+    lossAnnounced = true;
+    const speak = () => {
+      if(exited) return;
+      if(isDartCalloutBusy()) {lossVoiceTimer=setTimeout(speak,100);return;}
+      try {window.speechSynthesis.speak(new window.SpeechSynthesisUtterance("You lose"));} catch {}
+    };
+    speak();
+  }
   function startWithAudio() {
     if (!initialized || active || exited) return;
     active = true;
@@ -109,22 +121,24 @@
     if (kicker) kicker.textContent = "Monster Bot Game";
     els.molVictoryTitle.textContent = `${startingScore} · ${E.modeLabel(format)}`;
     els.molVictoryCloseBtn.textContent = "Back to ladder";
+    els.molVictoryRematchBtn.textContent = "Restart";
     let status = $("monsterBotResultStatus");
     if (!status) { status = document.createElement("p"); status.id = "monsterBotResultStatus"; els.molVictoryTitle.after(status); }
     const won = state.winnerIndex === 0;
-    status.textContent = `${won ? (state.players[1].legs === 0 ? "★ Flawless victory · Gold star! " : "✓ Challenge beaten. ") : "Challenge not completed. "}${resultMessage}`;
+    status.textContent = `${won ? (state.players[1].legs === 0 ? "★ Flawless victory · Gold star! " : "✓ Challenge beaten. ") : "You lose. "}${resultMessage}`;
   }
   function lose(reason) {
     clearTimeout(timer); timer = null;
     state.players[1].legs = E.legsNeeded(format); state.winnerIndex = 1; active = false;
-    resultMessage = reason; closeCheckoutPrompt(); render();
+    resultMessage = reason; closeCheckoutPrompt(); render(); announceLoss();
     openMolVictoryScreen(buildLocalMatchStatsData());
   }
   function submit() {
     if (!active || state.currentPlayer !== 0 || state.winnerIndex !== null || pendingCheckoutPrompt) return;
     const score = Number(els.input.value), previousScore = state.players[0].score, remaining = previousScore - score;
     if (!E.possibleScore(score)) { showImpossibleMessage("Enter a possible score from 0 to 180"); return; }
-    if (bullMode && remaining !== 0 && remaining < 50) { state.players[0].score = remaining; lose("Below 50 — Bull or Bust lost."); return; }
+    if (bullMode && score === 0 && E.checkoutPossible(previousScore,3)) { lose(ONE_SHOT_LOSS); return; }
+    if (bullMode && remaining !== 0 && remaining < 50) { state.players[0].score = remaining; lose(ONE_SHOT_LOSS); return; }
     if (!bullMode && (remaining < 0 || remaining === 1)) {
       humanVisit({playerIndex:0,visitScore:0,previousScore,legWon:false,bust:true,dartsUsed:3,doublesAttempted:0}); return;
     }
@@ -145,7 +159,7 @@
     const selected = document.querySelector("#bullOutPromptOptions button.selected");
     const bullOut = selected ? selected.dataset.value === "Yes" : Boolean(visit.forcedBullOut);
     closeCheckoutPrompt();
-    if (bullMode && (!bullOut || !E.bullCheckoutPossible(visit.visitScore,dartsUsed))) { lose("Bull or Bust needs a valid, confirmed Bullseye finish."); return; }
+    if (bullMode && (!bullOut || !E.bullCheckoutPossible(visit.visitScore,dartsUsed))) { lose(`A confirmed Bullseye finish is required. ${ONE_SHOT_LOSS}`); return; }
     if (!E.checkoutPossible(visit.visitScore,dartsUsed)) { showImpossibleMessage("That checkout is not possible with those darts"); return; }
     humanVisit({...visit,dartsUsed,doublesAttempted:0,bullOut});
   }
@@ -154,6 +168,7 @@
     if (state.winnerIndex !== null) {
       clearTimeout(timer); timer = null;
       if (state.winnerIndex === 0) saving = saveVictory();
+      else announceLoss();
       return;
     }
     if (!active || state.currentPlayer !== 1 || timer !== null) return;
@@ -180,9 +195,16 @@
   function exit() {
     exited = true;
     active = false; clearTimeout(timer); timer = null;
+    clearTimeout(lossVoiceTimer); window.speechSynthesis?.cancel();
     window.location.href = "monster-bot.html";
   }
-  async function rematch() { if (saving) await saving; window.location.reload(); }
+  async function rematch() {
+    active=false; exited=true; clearTimeout(timer); clearTimeout(lossVoiceTimer);
+    window.speechSynthesis?.cancel();
+    if(typeof fullyStopDartAudio==="function") fullyStopDartAudio();
+    if (saving) await saving;
+    window.location.reload();
+  }
   async function init() {
     document.body.classList.add("monsterBotScorer");
     document.body.classList.remove("casualMode"); document.body.classList.add("leagueMode");
@@ -221,7 +243,8 @@
       els.names[1].before(avatar);
       $("screenTitleText").textContent = "Monster Bot Game";
       els.gameTitleText.textContent = `${startingScore} · ${E.modeLabel(format)} · ${profile.name}`;
-      $("monsterBotNotice").textContent = bullMode ? `${startingScore} · Bull or Bust: finish on Bull and confirm it at checkout. Below 50 loses. You throw first.` : "You throw first in leg one; the starting player alternates each leg. The bot throws one second after the announcement finishes.";
+      $("monsterBotNotice").textContent = bullMode ? "301 · One-shot Bull or Bust: finish on Bull and confirm it. Below 50, a bust or a zero visit when on a finish loses. You can't intentionally bust to return to 50 or more." : "You throw first in leg one; the starting player alternates each leg. The bot throws one second after the announcement finishes.";
+      $("botRestartGame").hidden = false;
       $("monsterBotNotice").classList.remove("hidden");
       state.currentPlayer = 0; syncMainViews("game"); render();
       enterScorerFullscreen();
@@ -244,7 +267,8 @@
   }
   function photo(index) { return index === 1 ? `graphics/bots/${avatars[level-1]}-bot.png` : playerPhoto; }
   $("closeBotUnlocked").addEventListener("click",()=>$("botUnlockedDialog").close());
+  $("botRestartGame").addEventListener("click",rematch);
   window.ONMMonsterScorer = {init,submit,undo,confirmCheckout,afterVisit,onRender,showResult,showUnlock,exit,rematch,photo,cancelCheckout:()=>{if(bullMode && pendingCheckoutPrompt?.legWon){lose("Bull checkout was not confirmed.");return true;}return false;},canPlay:()=>active && state.currentPlayer === 0 && state.winnerIndex === null};
-  window.addEventListener("pagehide",()=>{exited=true;active=false;clearTimeout(timer);});
+  window.addEventListener("pagehide",()=>{exited=true;active=false;clearTimeout(timer);clearTimeout(lossVoiceTimer);window.speechSynthesis?.cancel();});
   init();
 })();
