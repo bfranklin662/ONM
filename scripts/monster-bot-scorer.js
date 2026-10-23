@@ -9,6 +9,27 @@
   let playerPhoto = "graphics/logoWoText.png";
   let knownWins = new Set(), knownScores = {}, pendingUnlock = null, resultVisible = false;
   let undoFrame = null, replayVisit = null;
+  let starting = false, initialized = false, exited = false;
+  function startWithAudio() {
+    if (!initialized || active || starting || exited) return;
+    starting = true;
+    $("monsterBotStart").disabled = true;
+    playDartCallout("game-on.mp3",null,()=>{
+      if (exited) return;
+      starting = false;
+      $("monsterBotLoadingText").textContent = `${profile.name} · ${E.modeLabel(format)} is ready`;
+      $("monsterBotStart").hidden = false;
+      $("monsterBotStart").disabled = false;
+      $("monsterBotLoadingDots").hidden = true;
+    },()=>{
+      if (exited) return;
+      starting = false; active = true;
+      state.matchStartedAt = new Date();
+      $("monsterBotSplash").hidden = true;
+      document.body.classList.remove("monsterBotLoading");
+      render();
+    });
+  }
   const clone = value => JSON.parse(JSON.stringify(value));
   function humanVisit(visit) {
     undoFrame = {players:clone(state.players),visitHistory:clone(state.visitHistory),currentPlayer:state.currentPlayer,legJustWon:state.legJustWon,reply:replayVisit};
@@ -166,6 +187,7 @@
     waitForAnnouncement();
   }
   function exit() {
+    exited = true;
     active = false; clearTimeout(timer); timer = null;
     window.location.href = "monster-bot.html";
   }
@@ -210,21 +232,10 @@
       els.gameTitleText.textContent = `501 · ${E.modeLabel(format)} · ${profile.name}`;
       $("monsterBotNotice").textContent = bullMode ? "Bull or Bust: finish on Bull and confirm it at checkout. Below 50 loses. You throw first." : "You throw first in leg one; the starting player alternates each leg. The bot throws one second after the announcement finishes.";
       $("monsterBotNotice").classList.remove("hidden");
-      active = true; state.currentPlayer = 0; syncMainViews("game"); render();
+      state.currentPlayer = 0; syncMainViews("game"); render();
       enterScorerFullscreen();
-      $("monsterBotSplash").hidden = true;
-      document.body.classList.remove("monsterBotLoading");
-      playDartCallout("game-on.mp3", null, () => {
-        // Some mobile browsers require the first tap before allowing sound.
-        let retried = false;
-        const retry = () => {
-          if (retried) return;
-          retried = true;
-          if (active && state.winnerIndex === null) playDartCallout("game-on.mp3");
-        };
-        window.addEventListener("pointerdown", retry, {once:true});
-        window.addEventListener("keydown", retry, {once:true});
-      });
+      initialized = true;
+      startWithAudio();
       window.addEventListener("pointerdown", () => {
         if (!active || document.fullscreenElement) return;
         document.documentElement?.requestFullscreen?.()?.catch?.(() => {});
@@ -242,7 +253,8 @@
   }
   function photo(index) { return index === 1 ? `graphics/bots/${avatars[level-1]}-bot.png` : playerPhoto; }
   $("closeBotUnlocked").addEventListener("click",()=>$("botUnlockedDialog").close());
+  $("monsterBotStart").addEventListener("click",startWithAudio);
   window.ONMMonsterScorer = {init,submit,undo,confirmCheckout,afterVisit,onRender,showResult,showUnlock,exit,rematch,photo,cancelCheckout:()=>{if(bullMode && pendingCheckoutPrompt?.legWon){lose("Bull checkout was not confirmed.");return true;}return false;},canPlay:()=>active && state.currentPlayer === 0 && state.winnerIndex === null};
-  window.addEventListener("pagehide",()=>{active=false;clearTimeout(timer);});
+  window.addEventListener("pagehide",()=>{exited=true;active=false;clearTimeout(timer);});
   init();
 })();

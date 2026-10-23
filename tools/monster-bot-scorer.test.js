@@ -1,6 +1,6 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const E=require("../scripts/monster-bot-engine");
-async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,profilePhoto=null}={}){
+async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,profilePhoto=null,audioBlocked=false}={}){
   const nodes=new Map(),timers=new Map(),writes=[],stored=new Map();let nextTimer=0,bullSelected=false,authChanged;
   const element=id=>{if(!nodes.has(id))nodes.set(id,{id,value:"",textContent:"",hidden:false,disabled:false,dataset:{},classList:{add(){},remove(){},toggle(){}},querySelector(){return element("kicker");},querySelectorAll(){return [];},before(){},after(){},blur(){},showModal(){this.open=true;},close(){this.open=false;},addEventListener(event,fn){(this.listeners ||= {})[event]=fn;}});return nodes.get(id);};
   const player=()=>({score:501,legs:0,totalScored:0,dartsThrown:0,currentLegDarts:0,firstNineScored:0,firstNineDarts:0,currentLegFirstNineScored:0,currentLegFirstNineDarts:0,highScore:0,checkoutHits:0,checkoutAttempts:0,highestOut:0,oneEightys:0,bullOuts:0,legDarts:[],lastScore:null});
@@ -16,7 +16,7 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
     setTimeout:(fn,delay)=>{const id=++nextTimer;timers.set(id,{fn,delay});return id;},clearTimeout:id=>timers.delete(id),Date,
     enterScorerFullscreen(){ctx.fullscreen=true;},syncMainViews(){},applyMatchSettings(){},newGame(){},setVisiblePlayerNames:(a,b)=>{els.names[0].value=a;els.names[1].value=b;},
     render:()=>ctx.window.ONMMonsterScorer?.onRender(),switchPlayer(){state.currentPlayer=state.currentPlayer===0?1:0;},updateLegTarget(){ctx.LEGS_TO_WIN=E.legsNeeded(format);},resetLeg(){for(const p of state.players){p.score=501;p.currentLegDarts=0;}},
-    isDartCalloutBusy:()=>Boolean(ctx.audioBusy),launchFireworks(){},announceLegWon(){},announceDartVisit(){},announceRequiredScore:score=>{ctx.requiredCalls.push(score);},requiredCalls:[],shouldPlayFinishHim:()=>false,playDartCallout:(file,fallback,onBlocked)=>{ctx.callouts.push({file,onBlocked});},callouts:[],
+    isDartCalloutBusy:()=>Boolean(ctx.audioBusy),launchFireworks(){},announceLegWon(){},announceDartVisit(){},announceRequiredScore:score=>{ctx.requiredCalls.push(score);},requiredCalls:[],shouldPlayFinishHim:()=>false,playDartCallout:(file,fallback,onBlocked,onReady)=>{ctx.callouts.push({file,onBlocked});if(ctx.audioBlocked)onBlocked?.();else onReady?.(true);},callouts:[],audioBlocked,
     showImpossibleMessage:message=>{ctx.error=message;},getBullOutPromptConfig:()=>({bullOutOptions:["No","Yes"],bullOutDefault:"No"}),
     openCheckoutPrompt:config=>{ctx.pendingCheckoutPrompt=config;},closeCheckoutPrompt:()=>{ctx.pendingCheckoutPrompt=null;},getSelectedPromptValue:()=>3,
     buildLocalMatchStatsData:()=>({}),openMolVictoryScreen:()=>{ctx.resultOpened=true;ctx.window.ONMMonsterScorer.showResult();ctx.window.ONMMonsterScorer.showUnlock();}
@@ -93,12 +93,19 @@ test("Monsters splash names the selected bot and format without affecting league
     assert.equal(nodes.monsterBotLoadingText.textContent,label||"");
   }
 });
-test("blocked game-on audio retries only once after a user gesture",async()=>{
-  const g=await harness();g.ctx.callouts[0].onBlocked();
-  for(const fn of g.ctx.window.eventHandlers.pointerdown) fn();
-  for(const fn of g.ctx.window.eventHandlers.keydown) fn();
-  assert.equal(g.ctx.callouts.length,2);
-  assert.equal(g.ctx.callouts[1].file,"game-on.mp3");
+test("blocked Game on keeps play gated until the explicit Start button is tapped",async()=>{
+  const g=await harness({audioBlocked:true});
+  assert.equal(g.api.canPlay(),false);assert.equal(g.els.submit.disabled,true);
+  assert.equal(g.ctx.document.getElementById("monsterBotStart").hidden,false);
+  assert.equal(g.ctx.document.getElementById("monsterBotLoadingDots").hidden,true);
+  g.score(60);assert.equal(g.state.players[0].score,501);
+  for(const fn of g.ctx.window.eventHandlers.pointerdown||[]) fn();
+  assert.equal(g.ctx.callouts.length,1);
+  g.ctx.audioBlocked=false;
+  g.ctx.document.getElementById("monsterBotStart").listeners.click();
+  assert.equal(g.ctx.callouts.length,2);assert.equal(g.ctx.callouts[1].file,"game-on.mp3");
+  assert.equal(g.api.canPlay(),true);assert.equal(g.ctx.document.getElementById("monsterBotSplash").hidden,true);
+  g.ctx.document.getElementById("monsterBotStart").listeners.click();assert.equal(g.ctx.callouts.length,2);
   const guest=await harness({account:null});assert.equal(guest.ctx.callouts.length,0);
 });
 test("bot waits for the announcement to finish, then pauses another second",async()=>{

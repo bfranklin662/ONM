@@ -46,3 +46,15 @@ test("announcement busy state includes queued clips, but not suppressed audio",(
   ctx.dartAudioPlaying=false;ctx.dartAudioQueue.push({});assert.equal(ctx.isDartCalloutBusy(),true);
   ctx.isDartAudioSuppressed=()=>true;assert.equal(ctx.isDartCalloutBusy(),false);
 });
+test("callout readiness distinguishes playback from autoplay denial and missing audio",async()=>{
+  for(const outcome of ["playing","blocked","missing"]) {
+    const ready=[],blocked=[];
+    const player={pause(){},play:()=>outcome==="playing"?Promise.resolve():Promise.reject(Object.assign(new Error(outcome),{name:outcome==="blocked"?"NotAllowedError":"NotSupportedError"}))};
+    const ctx={dartAudioPlaying:false,dartAudioQueue:[{src:"game-on.mp3",onPlaybackReady:value=>ready.push(value),onAutoplayBlocked:()=>blocked.push(true)}],dartAudioPlayer:player,isDartAudioSuppressed:()=>false,unlockDartAudio(){},console:{warn(){}}};
+    vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf("function playNextDartCallout()"),source.indexOf("function announceDartVisit(")),ctx);
+    ctx.playNextDartCallout();await new Promise(done=>setImmediate(done));
+    assert.deepEqual(ready,outcome==="blocked"?[]:[outcome==="playing"]);
+    assert.equal(blocked.length,outcome==="blocked"?1:0);
+    if(outcome==="playing") {player.onerror();assert.equal(ready.length,1);}
+  }
+});

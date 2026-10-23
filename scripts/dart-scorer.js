@@ -922,14 +922,15 @@ function fullyStopDartAudio() {
   dartAudioUnlocked = false;
 }
 
-function playDartCallout(fileName, fallbackFileName = null, onAutoplayBlocked = null) {
+function playDartCallout(fileName, fallbackFileName = null, onAutoplayBlocked = null, onPlaybackReady = null) {
   const credit = DART_VOICE_CREDITS[fileName];
   if (credit) showDartVoiceToast(credit);
 
   dartAudioQueue.push({
     src: `audio/darts/${fileName}`,
     fallbackSrc: fallbackFileName ? `audio/darts/${fallbackFileName}` : null,
-    onAutoplayBlocked
+    onAutoplayBlocked,
+    onPlaybackReady
   });
 
   playNextDartCallout();
@@ -1195,6 +1196,12 @@ function playNextDartCallout() {
   const item = dartAudioQueue.shift();
   const src = item.src;
   const fallbackSrc = item.fallbackSrc;
+  let readyNotified = false;
+  function notifyReady(playing) {
+    if (readyNotified) return;
+    readyNotified = true;
+    item.onPlaybackReady?.(playing);
+  }
 
   function playFallbackOrNext() {
     if (fallbackSrc) {
@@ -1224,14 +1231,16 @@ function playNextDartCallout() {
     dartAudioPlayer.onended = null;
     dartAudioPlayer.onerror = null;
     console.warn("Could not load dart callout:", src);
+    notifyReady(false);
     playFallbackOrNext();
   };
 
-  dartAudioPlayer.play().catch(err => {
+  dartAudioPlayer.play().then(() => notifyReady(true)).catch(err => {
     dartAudioPlayer.onended = null;
     dartAudioPlayer.onerror = null;
     console.warn("Could not play dart callout:", src, err);
     if (err?.name === "NotAllowedError") item.onAutoplayBlocked?.();
+    else notifyReady(false);
     playFallbackOrNext();
   });
 }
