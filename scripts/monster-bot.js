@@ -196,6 +196,7 @@
   const safeLoad = key => { try { return JSON.parse(localStorage.getItem(key) || "[]").filter(value => validKeys.has(value)); } catch { return []; } };
   const escape = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   function renderLevels() {
+    if(!ready||!user){$("completionYourAttempts").hidden=true;$("completionYourResult").hidden=true;}
     renderPlayerSummary();
     renderCasual();
     $("accountLoading").hidden = ready;
