@@ -199,6 +199,18 @@ test("mode completion ticks distinguish wins from flawless wins, never selection
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:"3"}}:null}});
   assert.match(g.element("botLevels").innerHTML,/id="bot-mode-1" type="hidden" value="3"/);
 });
+test("bot cards stay neutral until all modes are beaten and gold requires all flawless",async()=>{
+  for(const count of [0,2,5]) {
+    const wins=E.MODES.slice(0,count).map(mode=>`1-${mode}`);
+    for(const flawless of [false,true]) {
+      const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:flawless||["1-1","1-9"].includes(key)?0:1}]));
+      const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(scores)]]));
+      const classes=g.element("botLevels").innerHTML.match(/<article class="([^"]*)" id="bot-level-1"/)[1];
+      assert.equal(classes.includes("flawlessComplete"),count===5&&flawless);
+      assert.equal(classes.includes("beatenComplete"),count===5&&!flawless);
+    }
+  }
+});
 test("selecting a pill updates Play, selected-mode results and contextual Bull rules",async()=>{
   const g=await gameHarness(new Map(),{uid:"test-member"},async()=>({completions:{"1-1":[{},{},{},{}],"1-3":[{}]},leaderboard:[]}));
   const choose=mode=>g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:String(mode)}}:null}});

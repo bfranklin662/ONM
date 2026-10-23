@@ -134,12 +134,13 @@
         return E.validWinningScore(key,bestScores[key]) && bestScores[key].lost === 0;
       }).length;
       const selectedMode = modes.get(p.level) || E.MODES.find(mode => !progress.has(`${p.level}-${mode}`)) || E.MODES[0];
-      const gold = wins.length === E.MODES.length;
+      const beaten = wins.length === E.MODES.length;
+      const gold = flawless === E.MODES.length;
       const unlocked = E.isUnlocked(p.level, progress, bestScores);
       if (!unlocked) return `<article class="botLevel locked mysteryBot" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}"><div class="mysteryPreview" aria-hidden="true"><img src="${botAvatar(p.level)}" alt=""><div>?????<br>Monster Bot</div></div><div class="mysteryLock"><span aria-hidden="true">🔒</span><h3 id="bot-title-${p.level}">Level ${p.level} · Mystery Bot</h3><p>Unlock this level to reveal your opponent.</p></div>${requirements(p.level)}${!user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : ""}</article>`;
       if (gold) complete++;
       const avatar = botAvatar(p.level) ? `<img class="botAvatar" src="${botAvatar(p.level)}" alt="${p.name} cartoon avatar">` : "";
-      return `<article class="botLevel ${gold ? "complete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}">
+      return `<article class="botLevel ${gold ? "complete flawlessComplete" : beaten ? "beatenComplete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}">
         <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><div class="completionMedals"><span class="${wins.length ? "won beatenCount" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span>${wins.length ? `<span class="gold flawlessCount">★ Flawless ${flawless}/${E.MODES.length}</span>` : ""}</div></div><span class="levelStats">${p.average}–${p.average + 5} average</span></div></div>
         <div class="modeMarks" role="group" aria-label="Match formats for ${p.name}">${E.MODES.map(mode => modeChip(p.level, mode, selectedMode)).join("")}</div>
         ${modeResults(p.level,selectedMode)}
