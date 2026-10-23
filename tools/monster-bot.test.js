@@ -631,3 +631,27 @@ test("each bot finishes legal legs with the requested long-run profile", () => {
     }
   }
 });
+test("weak bots rarely hit ton checkouts or Bull finishes; strong bots are more capable",()=>{
+  const rates=[];
+  for(const level of [2,10]){
+    const random=seeded(5100+level),profile=E.LEVELS[level-1];let tons=0,bulls=0;
+    for(let i=0;i<30000;i++){
+      const ton=E.botVisit(100,18,profile,random),bull=E.botVisit(50,18,profile,random);
+      tons+=ton.remaining===0;bulls+=bull.remaining===0&&bull.hits.at(-1)===50;
+      if(!ton.bust)assert.equal(E.validateVisit(100,ton.score,ton.darts),"");
+      if(!bull.bust)assert.equal(E.validateVisit(50,bull.score,bull.darts),"");
+    }
+    rates.push({tons:tons/30000,bulls:bulls/30000});
+  }
+  assert.ok(rates[0].tons<0.04);assert.ok(rates[0].bulls<0.001);
+  assert.ok(rates[1].tons>rates[0].tons*5);assert.ok(rates[1].bulls>rates[0].bulls*5);
+});
+test("Croft's whole-leg ton-plus and Bull finishes remain rare",()=>{
+  const random=seeded(20261023);let tons=0,bulls=0;
+  for(let i=0;i<12000;i++){
+    let left=501,darts=0;
+    while(left&&darts<600){const visit=E.botVisit(left,darts,E.LEVELS[1],random);left=visit.remaining;darts+=visit.darts;if(!left){tons+=visit.score>=100;bulls+=visit.hits.at(-1)===50;}}
+    assert.equal(left,0);
+  }
+  assert.ok(tons/12000<0.015);assert.ok(bulls/12000<0.002);
+});

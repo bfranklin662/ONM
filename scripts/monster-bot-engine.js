@@ -9,7 +9,7 @@
   const NAMES = ["Billy Bot", "Croft Bot", "Venton Bot", "Istan Bot", "Nick Bot", "Ricky Bot", "Aussie Bot", "Andre Bot", "Bailey Bot", "Filip Bot"];
   const LEVELS = Array.from({ length: 10 }, (_, i) => ({
     level: i + 1, name: NAMES[i], average: 35 + i * 5, firstNine: [40 + i * 5, 45 + i * 5],
-    checkout: [7 + i, 15 + i], middle: [39.8, 46.7, 57.4, 68.7, 81.6, 95.2, 114.4, 139, 175, 165][i]
+    checkout: [7 + i, 15 + i], middle: [45.4, 56.9, 69.9, 85.7, 101.6, 125.3, 150.2, 174.6, 175, 175][i]
   }));
   const singles = Array.from({ length: 20 }, (_, i) => i + 1);
   const scores = [...new Set([0, ...singles, ...singles.map(n => n * 2), ...singles.map(n => n * 3), 25, 50])];
@@ -73,12 +73,19 @@
   function botVisit(remaining, dartsThrown, profile, random = Math.random) {
     if (remaining>180) return scoringVisit(remaining,dartsThrown,profile,random);
     const before = remaining, hits = [];
+    const singleAccuracy=0.70+profile.level*0.022;
+    const trebleAccuracy=0.04+profile.level*0.024+Math.max(0,profile.level-6)*0.04;
+    const bullAccuracy=0.002+0.0007*profile.level*profile.level;
     let attempts = 0;
     for (let dart = 0; dart < 3; dart++) {
       let hit;
-      if (doubles.has(remaining) && remaining <= 40 || remaining === 50) {
+      if (remaining === 50 && dart < 2 && random() >= Math.max(0,(profile.level-3)*0.04)) {
+        // With darts in hand, weaker bots sensibly leave D16 instead of
+        // treating Bull as an ordinary double on every dart.
+        hit = random() < singleAccuracy ? 18 : (random()<0.6?0:1);
+      } else if (doubles.has(remaining) && remaining <= 40 || remaining === 50) {
         attempts++;
-        const chance = profile.level === 10 ? 0.23 : profile.checkout[0] / 100 + random() * (profile.checkout[1] - profile.checkout[0]) / 100;
+        const chance = remaining === 50 ? bullAccuracy : profile.level === 10 ? 0.24 : profile.checkout[0] / 100 + random() * (profile.checkout[1] - profile.checkout[0]) / 100 + (profile.level === 9 ? 0.015 : 0);
         if (random() < chance) hit = remaining;
         else hit = random() < 0.55 ? 0 : remaining / 2;
       } else if (remaining <= 61) {
@@ -89,7 +96,12 @@
       } else if (remaining <= 120) {
         const setups = scores.filter(s => s > 0 && doubles.has(remaining - s));
         const target = setups.sort((a, b) => Math.abs(remaining - a - 32) - Math.abs(remaining - b - 32))[0];
-        hit = target !== undefined && random() < 0.8 ? target : singles[Math.floor(random() * singles.length)];
+        if (target === undefined) hit = singles[Math.floor(random() * singles.length)];
+        else if (target <= 20) hit = random()<singleAccuracy ? target : (random()<0.6?0:1);
+        else if (target === 25) hit = random()<0.10+profile.level*0.01 ? 25 : (random()<0.6?0:1);
+        else if (target === 50) hit = random()<bullAccuracy ? 50 : (random()<0.6?0:25);
+        else if (target % 3 === 0) hit = random()<trebleAccuracy ? target : (random()<0.75?target/3:singles[Math.floor(random()*20)]);
+        else hit = random()<(profile.checkout[0]+profile.checkout[1])/200 ? target : (random()<0.6?target/2:0);
       } else {
         const target = dartsThrown + dart < 9 ? (profile.firstNine[0] + profile.firstNine[1]) / 2 - Math.max(0, 4 - profile.level * 0.4) : profile.middle;
         const normal = Math.sqrt(-2 * Math.log(Math.max(1e-10, random()))) * Math.cos(2 * Math.PI * random());
