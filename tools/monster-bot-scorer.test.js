@@ -1,6 +1,6 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const E=require("../scripts/monster-bot-engine");
-async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,profilePhoto=null,audioBlocked=false}={}){
+async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,profilePhoto=null,audioBlocked=false,introPlayed=false}={}){
   const nodes=new Map(),timers=new Map(),writes=[],stored=new Map();let nextTimer=0,bullSelected=false,authChanged;
   const element=id=>{if(!nodes.has(id))nodes.set(id,{id,value:"",textContent:"",hidden:false,disabled:false,dataset:{},classList:{add(){},remove(){},toggle(){}},querySelector(){return element("kicker");},querySelectorAll(){return [];},before(){},after(){},blur(){},showModal(){this.open=true;},close(){this.open=false;},addEventListener(event,fn){(this.listeners ||= {})[event]=fn;}});return nodes.get(id);};
   const player=()=>({score:501,legs:0,totalScored:0,dartsThrown:0,currentLegDarts:0,firstNineScored:0,firstNineDarts:0,currentLegFirstNineScored:0,currentLegFirstNineDarts:0,highScore:0,checkoutHits:0,checkoutAttempts:0,highestOut:0,oneEightys:0,bullOuts:0,legDarts:[],lastScore:null});
@@ -21,6 +21,7 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
     openCheckoutPrompt:config=>{ctx.pendingCheckoutPrompt=config;},closeCheckoutPrompt:()=>{ctx.pendingCheckoutPrompt=null;},getSelectedPromptValue:()=>3,
     buildLocalMatchStatsData:()=>({}),openMolVictoryScreen:()=>{ctx.resultOpened=true;ctx.window.ONMMonsterScorer.showResult();ctx.window.ONMMonsterScorer.showUnlock();}
   };
+  if(introPlayed){ctx.params.set("intro","played");ctx.URL=URL;ctx.window.location.href=`https://ochenessmonsters.com/dart-scorer.html?mode=bot&level=${level}&format=${format}&intro=played`;ctx.window.history={replaceState(_state,_title,url){ctx.cleanedUrl=url;}};}
   vm.createContext(ctx);
   ctx.window.ONMBotData=require("../scripts/monster-bot-data");
   if(profilePhoto) ctx.window.ONMSession={resolveProfileImage:async()=>profilePhoto};
@@ -91,6 +92,11 @@ test("bot games open fullscreen with the player's first name and the bot's name"
   assert.equal(g.ctx.fullscreen,true);
   assert.equal(g.ctx.document.getElementById("monsterBotSplash").hidden,true);
   assert.equal(g.ctx.callouts[0].file,"game-on.mp3");
+});
+test("a Game on clip already heard during launch is not announced twice",async()=>{
+  const g=await harness({introPlayed:true});
+  assert.equal(g.ctx.callouts.length,0);assert.equal(g.api.canPlay(),true);
+  assert.ok(!g.ctx.cleanedUrl.includes("intro="));
 });
 test("Monsters splash names the selected bot and format without affecting league games",()=>{
   const source=fs.readFileSync(require.resolve("../scripts/monster-bot-splash.js"),"utf8");

@@ -29,8 +29,11 @@
     $("monsterBotSplash").hidden = true;
     document.body.classList.remove("monsterBotLoading");
     render();
-    // Try automatically, but never replay a blocked opening announcement mid-game.
-    playDartCallout("game-on.mp3");
+    if(params.get("intro")==="played") {
+      // Consume the launch cue so a later refresh is treated as a fresh game.
+      const url=new URL(window.location.href);url.searchParams.delete("intro");
+      window.history?.replaceState(null,"",url.pathname+url.search+url.hash);
+    } else playDartCallout("game-on.mp3");
   }
   const clone = value => JSON.parse(JSON.stringify(value));
   function humanVisit(visit) {
@@ -202,8 +205,13 @@
     active=false; exited=true; clearTimeout(timer); clearTimeout(lossVoiceTimer);
     window.speechSynthesis?.cancel();
     if(typeof fullyStopDartAudio==="function") fullyStopDartAudio();
-    if (saving) await saving;
-    window.location.reload();
+    let played=false;
+    const intro=window.ONMBotLaunch?new Promise(resolve=>window.ONMBotLaunch.start(value=>{played=value;resolve();})):Promise.resolve();
+    $("monsterBotLoadingText").textContent=`Restarting ${profile.name} · ${E.modeLabel(format)}`;
+    $("monsterBotSplash").hidden=false;
+    await Promise.all([intro,saving]);
+    if(played)window.location.href=`dart-scorer.html?mode=bot&level=${level}&format=${format}&intro=played`;
+    else window.location.reload();
   }
   async function init() {
     document.body.classList.add("monsterBotScorer");

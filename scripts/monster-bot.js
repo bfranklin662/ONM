@@ -8,7 +8,13 @@
   const authUrl = mode => `auth.html?mode=${mode}&redirect=monster-bot.html`;
   const canPlay = (level,format) => ready && user && E.LEVELS.some(p=>p.level===level) && level <= E.highestUnlocked(progress,bestScores) && E.isFormatUnlocked(level,format,progress);
   function playGame(level,format) {
-    if (canPlay(level,format)) window.location.href = `dart-scorer.html?mode=bot&level=${level}&format=${format}`;
+    if (!canPlay(level,format)) return;
+    const url=`dart-scorer.html?mode=bot&level=${level}&format=${format}`;
+    if(!window.ONMBotLaunch){window.location.href=url;return;}
+    $("completionDialog").close();
+    $("botLaunchText").textContent=`Loading ${botName(level)} · ${E.modeLabel(format)}`;
+    $("botLaunchSplash").hidden=false;
+    window.ONMBotLaunch.start(played=>{window.location.href=url+(played?"&intro=played":"");});
   }
   function focusUnlocked() {
     requestAnimationFrame(() => requestAnimationFrame(() => {

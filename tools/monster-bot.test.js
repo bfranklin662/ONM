@@ -45,6 +45,7 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" },
   };
   // Retain coverage of the original scoring/progress implementation while
   // separately checking that real ladder clicks route to the shared scorer.
+  if(account?.launcher)context.window.ONMBotLaunch=account.launcher;
   vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/monster-bot.js"), "utf8").replace("  loadProgress().then", "  window.testBegin = begin;\n  loadProgress().then"), context);
   await new Promise(resolve => setImmediate(resolve));
   const click = id => element(id).listeners.click();
@@ -103,6 +104,12 @@ test("real play buttons open the league scorer in bot mode and respect locks",as
   const g=await gameHarness();assert.equal(g.playButton(2),"");
   assert.equal(g.playButton(1,7),"dart-scorer.html?mode=bot&level=1&format=7");
   const visitor=await gameHarness(new Map(),null);assert.equal(visitor.playButton(),"");
+});
+test("Play uses the gesture-bound launch audio before navigating to the scorer",async()=>{
+  let finish;
+  const g=await gameHarness(new Map(),{uid:"member",launcher:{start:done=>{finish=done;}}});
+  assert.equal(g.playButton(1,3),"");assert.equal(g.element("botLaunchSplash").hidden,false);
+  finish(true);assert.equal(g.location.href,"dart-scorer.html?mode=bot&level=1&format=3&intro=played");
 });
 test("leaderboard loads while account verification is pending and account timeout offers Retry",async()=>{
   const g=await gameHarness(new Map(),{authPending:true},async()=>({completions:{},leaderboard:[{name:"Public player",level:2,completed:2,flawless:1}]}));
