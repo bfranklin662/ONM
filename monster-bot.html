@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Monster Bot Game | Oche Ness Monsters</title><link rel="icon" href="graphics/favicon1.png"><link rel="stylesheet" href="styles/monster-bot.css?v=20261023-star-gates"><link rel="stylesheet" href="styles/monster-bot-compact.css?v=20261023-star-gates"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Monster Bot Game | Oche Ness Monsters</title><link rel="icon" href="graphics/favicon1.png"><link rel="stylesheet" href="styles/monster-bot.css?v=20261023-mystery-loading"><link rel="stylesheet" href="styles/monster-bot-compact.css?v=20261023-mystery-loading"></head>
 <body>
 <header class="botHeader"><a href="index.html"><img src="graphics/logoWText.png" alt="Oche Ness Monsters"></a><a href="games.html">← Play Darts</a></header>
 <main>
@@ -8,7 +8,8 @@
     <div id="ladderPanel" role="tabpanel" aria-labelledby="ladderTab">
     <h2 id="challengeHeading" class="srOnly">Choose your Monster</h2>
     <div class="challengeBar"><p id="progressSummary" aria-live="polite"></p><p id="saveStatus" role="status" hidden></p><button id="retryAccount" type="button" class="secondary" hidden>Retry sign-in check</button></div>
-    <div id="botLevels" class="botLevels" role="region" aria-label="Monster ladder, next locked level at the top, Billy at the bottom" tabindex="0"></div>
+    <div id="accountLoading" class="accountLoading" role="status" aria-live="polite"><img src="graphics/logoWText.png" alt="Oche Ness Monsters"><span id="accountSpinner" class="accountSpinner" aria-hidden="true"></span><p id="accountLoadingText">Loading your Monster Bot progress…</p></div>
+    <div id="botLevels" class="botLevels" role="region" aria-label="Monster bots, strongest at the top" tabindex="0" hidden></div>
     </div>
     <div id="leaderboardPanel" role="tabpanel" aria-labelledby="leaderboardTab" hidden><h2 class="srOnly">Leaderboard</h2><p id="leaderboardStatus" class="muted" role="status">Loading leaderboard…</p><div class="leaderboardScroll"><table class="leaderboardTable"><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Level unlocked</th><th scope="col">Challenges</th><th scope="col">Gold stars</th></tr></thead><tbody id="leaderboardRows"></tbody></table></div><button id="retryLeaderboard" type="button" class="secondary" hidden>Retry</button></div>
   </section>
@@ -24,5 +25,5 @@
 </main>
 <dialog id="completionDialog" class="completionDialog" aria-labelledby="completionTitle"><div class="completionHeading"><h2 id="completionTitle">Players who have won</h2><button id="closeCompletions" type="button" class="secondary" aria-label="Close completion list">✕</button></div><p id="completionYourResult" class="completionYourResult" hidden></p><p id="completionModeRules" class="bullModeRules" hidden></p><p id="completionStatus" role="status"></p><ul id="completionNames"></ul><div id="completionActions" class="completionActions"></div><p id="completionPlayHint"></p><button id="retryCompletions" type="button" class="secondary" hidden>Retry</button></dialog>
 <dialog id="bullCheckoutDialog" class="completionDialog" aria-labelledby="bullCheckoutTitle"><h2 id="bullCheckoutTitle">How did you check out?</h2><p>Only a Bullseye (50) finish wins Bull or Bust. Any other finish loses the challenge.</p><div class="matchActions"><button id="confirmBullCheckout" type="button" class="primary">Bullseye 🎯</button><button id="otherCheckout" type="button" class="secondary">Other finish — I lose</button></div></dialog>
-<script src="scripts/firebase-client.js?v=20261022-session-return"></script><script src="scripts/monster-bot-data.js?v=20261022-belgium"></script><script src="scripts/monster-bot-engine.js?v=20261023-star-gates"></script><script src="scripts/monster-bot.js?v=20261023-star-gates"></script>
+<script src="scripts/firebase-client.js?v=20261022-session-return"></script><script src="scripts/monster-bot-data.js?v=20261022-belgium"></script><script src="scripts/monster-bot-engine.js?v=20261023-mystery-loading"></script><script src="scripts/monster-bot.js?v=20261023-mystery-loading"></script>
 </body></html>

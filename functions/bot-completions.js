@@ -52,7 +52,7 @@ function buildLeaderboard(users, profiles) {
     let level=1;
     for (let next=2;next<=10;next++) {
       if (modes.filter(mode => row.wins.has(`${next-1}-${mode}`)).length < 2 || next>=3 && !won(next-2,[1,3,5,7]) || next>=4 && !won(next-3,modes) || next>=5 && !modes.every(mode => row.wins.has(`${next-4}-${mode}`) && row.scores[`${next-4}-${mode}`]?.lost === 0)) break;
-      if (next >= 4 && flawless < 10 + (next - 4) * 4) break;
+      if (next >= 3 && flawless < 6 + (next - 3) * 4) break;
       level=next;
     }
     return {name:row.name,level,completed:row.wins.size,flawless};

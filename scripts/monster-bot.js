@@ -10,12 +10,11 @@
   function playGame(level,format) {
     if (canPlay(level,format)) window.location.href = `dart-scorer.html?mode=bot&level=${level}&format=${format}`;
   }
-  function focusBilly() {
+  function focusUnlocked() {
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      const billy = $("bot-level-1");
-      if (!billy || $("challengeSetup").hidden || $("ladderPanel").hidden) return;
-      $("botLevels").scrollTop = $("botLevels").scrollHeight;
-      billy.scrollIntoView({block:"start",inline:"nearest",behavior:"instant"});
+      const current = $("bot-level-" + E.highestUnlocked(progress,bestScores));
+      if (!ready || !current || $("challengeSetup").hidden || $("ladderPanel").hidden) return;
+      current.scrollIntoView({block:"start",inline:"nearest",behavior:"instant"});
     }));
   }
   let bestScores = {};
@@ -24,8 +23,8 @@
   const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png?v=20261022-avatar` : "";
   function requirements(level) {
     const rows = [];
-    if (level >= 4) {
-      const required = 10 + (level - 4) * 4;
+    if (level >= 3) {
+      const required = 6 + (level - 3) * 4;
       rows.push({ label: `Collect ${required} gold stars (${E.goldStars(progress,bestScores)}/${required})`, met: E.goldStars(progress,bestScores) >= required });
     }
     const won = (bot, modes) => modes.every(mode => progress.has(`${bot}-${mode}`));
@@ -36,7 +35,8 @@
       const key = `${level - 4}-${mode}`;
       return progress.has(key) && E.validWinningScore(key, bestScores[key]) && bestScores[key].lost === 0;
     }) });
-    return rows.length ? `<div class="unlockRequirements"><h4>Requirements to play</h4><ul>${rows.map(row => `<li class="${row.met ? "met" : ""}"><span aria-label="${row.met ? "Met" : "Not met"}">${row.met ? "✓" : "○"}</span> ${row.label}</li>`).join("")}</ul></div>` : "";
+    const outstanding = rows.filter(row => !row.met);
+    return outstanding.length ? `<div class="unlockRequirements"><h4>Requirements to play</h4><ul>${outstanding.map(row => `<li><span aria-label="Not met">○</span> ${row.label}</li>`).join("")}</ul></div>` : "";
   }
   function modeChip(level, mode) {
     const key = `${level}-${mode}`, won = progress.has(key), score = bestScores[key];
@@ -80,6 +80,7 @@
     $("ladderTab").setAttribute("aria-selected", String(!board));
     $("leaderboardTab").setAttribute("aria-selected", String(board));
     if (board) { renderLeaderboard(); loadCommunity(Boolean(user)); }
+    else focusUnlocked();
   }
   function communityButton(key, label, classes = "") {
     const count = community ? (community[key] || []).length : communityError ? "—" : "…";
@@ -123,6 +124,10 @@
   const safeLoad = key => { try { return JSON.parse(localStorage.getItem(key) || "[]").filter(value => validKeys.has(value)); } catch { return []; } };
   const escape = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   function renderLevels() {
+    $("accountLoading").hidden = ready;
+    $("botLevels").hidden = !ready;
+    $("progressSummary").hidden = !ready;
+    if (!ready) { $("botLevels").innerHTML = ""; return; }
     let complete = 0;
     const scrollTop = $("botLevels").scrollTop;
     const visibleThrough = Math.min(10, E.highestUnlocked(progress, bestScores) + 1);
@@ -135,6 +140,7 @@
       const selectedMode = modes.get(p.level) || E.MODES.find(mode => !progress.has(`${p.level}-${mode}`)) || E.MODES[0];
       const gold = wins.length === E.MODES.length;
       const unlocked = E.isUnlocked(p.level, progress, bestScores);
+      if (!unlocked) return `<article class="botLevel locked mysteryBot" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}"><div class="mysteryPreview" aria-hidden="true"><img src="${botAvatar(p.level)}" alt=""><div>?????<br>Monster Bot</div></div><div class="mysteryLock"><span aria-hidden="true">🔒</span><h3 id="bot-title-${p.level}">Level ${p.level} · Mystery Bot</h3><p>Unlock this level to reveal your opponent.</p></div>${requirements(p.level)}${!user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : ""}</article>`;
       if (gold) complete++;
       const avatar = botAvatar(p.level) ? `<img class="botAvatar" src="${botAvatar(p.level)}" alt="${p.name} cartoon avatar">` : "";
       return `<article class="botLevel ${gold ? "complete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}">
@@ -151,6 +157,8 @@
   }
   async function loadProgress() {
     ready = false;
+    $("accountLoadingText").textContent = "Loading your Monster Bot progress…";
+    $("accountSpinner").hidden = false;
     $("saveStatus").hidden = true;
     $("retryAccount").hidden = true;
     renderLevels();
@@ -160,6 +168,8 @@
       $("saveStatus").textContent = "Your sign-in could not be checked. Please retry; you do not need to create another account.";
       $("saveStatus").hidden = false;
       $("retryAccount").hidden = false;
+      $("accountLoadingText").textContent = "We couldn't check your account. Please retry above.";
+      $("accountSpinner").hidden = true;
       renderLevels(); loadCommunity(); return;
     }
     storageKey = user ? `onm-monster-bot-${user.uid}` : "onm-monster-bot-guest";
@@ -177,12 +187,17 @@
           $("saveStatus").hidden = false;
         });
         $("saveStatus").textContent = "Signed in. Progress synced to your account.";
-      } catch { $("saveStatus").textContent = "Signed in. Account sync is unavailable; progress saves on this device until you reconnect."; $("saveStatus").hidden = false; }
+      } catch {
+        $("saveStatus").textContent = "Your account progress could not be loaded. Please retry.";
+        $("saveStatus").hidden = false; $("retryAccount").hidden = false;
+        $("accountLoadingText").textContent = "Waiting for your saved progress. Please retry above.";
+        $("accountSpinner").hidden = true;
+        renderLevels(); return;
+      }
     } else $("saveStatus").innerHTML = `No active sign-in was found in this browser. <a href="${authUrl("login")}">Sign in and return to the game</a> or <a href="${authUrl("register")}">sign up</a>.`;
     ready = true;
     renderLevels();
-    $("botLevels").scrollTop = $("botLevels").scrollHeight;
-    focusBilly();
+    focusUnlocked();
     loadCommunity(Boolean(user));
   }
   async function saveWin(game) {

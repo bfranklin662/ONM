@@ -123,7 +123,7 @@
       && (level < 5 || MODES.every(mode => {
         const key = `${level - 4}-${mode}`, score = bestScores[key];
         return wins.has(key) && validWinningScore(key, score) && score.lost === 0;
-      })) && (level < 4 || goldStars(wins, bestScores) >= 10 + (level - 4) * 4);
+      })) && (level < 3 || goldStars(wins, bestScores) >= 6 + (level - 3) * 4);
   }
   function goldStars(wins, scores = {}) {
     return [...wins].filter(key => validWinningScore(key, scores[key]) && scores[key].lost === 0).length;

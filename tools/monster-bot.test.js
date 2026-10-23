@@ -33,7 +33,7 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" },
       loadOwnUser: async () => { throw new Error("Profile could not be loaded"); },
       ready: Promise.resolve({ auth: {}, authSdk: { onAuthStateChanged: (_auth, fn) => { authCallback = fn; } }, db: {}, firestoreSdk: {
         doc: (_db, collection, uid) => `${collection}/${uid}`,
-        getDoc: async () => ({ data: () => ({ monsterBotWins: account?.seedWins || [] }) }),
+        getDoc: async () => account?.docPromise ? await account.docPromise : ({ data: () => ({ monsterBotWins: account?.seedWins || [], monsterBotBestScores: account?.seedScores || {} }) }),
         arrayUnion: (...values) => values,
         runTransaction: async (_db, fn) => fn({ get: async () => ({ data: () => ({ monsterBotBestScores: {} }) }), update: (path, data) => writes.push({ path, data }) }),
         updateDoc: async (path, data) => writes.push({ path, data })
@@ -79,6 +79,29 @@ test("a failed leaderboard request can be retried successfully",async()=>{
   g.click("retryLeaderboard");await new Promise(resolve=>setImmediate(resolve));
   assert.match(g.element("leaderboardRows").innerHTML,/Recovered player/);
   assert.equal(g.element("retryLeaderboard").hidden,true);
+});
+test("ladder waits for Firebase progress then focuses the highest unlocked bot",async()=>{
+  let resolve;
+  const docPromise = new Promise(done=>{resolve=done;});
+  const g = await gameHarness(new Map(),{uid:"test-member",docPromise});
+  assert.equal(g.element("botLevels").hidden,true);
+  assert.equal(g.element("botLevels").innerHTML,"");
+  assert.equal(g.element("accountLoading").hidden,false);
+  resolve({data:()=>({monsterBotWins:["1-1","1-3"]})});
+  await new Promise(done=>setImmediate(done));
+  assert.equal(g.element("accountLoading").hidden,true);
+  assert.equal(g.element("botLevels").hidden,false);
+  assert.equal(g.element("bot-level-2").scrolledIntoView.block,"start");
+  assert.match(g.element("botLevels").innerHTML,/Level 3 · Mystery Bot/);
+  assert.doesNotMatch(g.element("botLevels").innerHTML,/Venton Bot|Beat Billy Bot in 2 modes/);
+});
+test("failed Firebase progress keeps bots hidden and offers retry",async()=>{
+  const docPromise = Promise.reject(new Error("Unavailable"));
+  const g = await gameHarness(new Map(),{uid:"test-member",docPromise});
+  assert.equal(g.element("botLevels").hidden,true);
+  assert.equal(g.element("retryAccount").hidden,false);
+  assert.equal(g.element("accountSpinner").hidden,true);
+  assert.equal(g.playButton(),"");
 });
 test("completion modal Play respects bot and format locks",async()=>{
   const g=await gameHarness();
@@ -182,7 +205,7 @@ test("visitors see only the first two levels and all modes but cannot play", asy
   assert.equal(g.writes.length,0);
 });
 
-test("requirements remain visible after unlocking and signing out stops play", async () => {
+test("outstanding requirements stay visible and signing out stops play", async () => {
   const g = await gameHarness();
   assert.equal((g.element("botLevels").innerHTML.match(/Requirements to play/g)||[]).length,1);
   assert.doesNotMatch(g.element("botLevels").innerHTML,/Sign in with a registered account/);
@@ -208,8 +231,9 @@ test("unlocking the next bot reveals exactly one more locked preview", async () 
   await new Promise(resolve => setImmediate(resolve));
   g.click("backToLevels");
   const html=g.element("botLevels").innerHTML;
-  assert.match(html,/Venton Bot/); assert.doesNotMatch(html,/Istan Bot/);
-  assert.equal((html.match(/Requirements to play/g)||[]).length,2);
+  assert.match(html,/Level 3 · Mystery Bot/); assert.doesNotMatch(html,/Venton Bot/);
+  assert.equal((html.match(/Requirements to play/g)||[]).length,1);
+  assert.doesNotMatch(html,/Beat Billy Bot in 2 modes/);
   g.click("leaderboardTab");
   assert.equal(g.element("botPageTitle").textContent,"Leaderboard");
   assert.equal(g.element("ladderPanel").hidden,true);
@@ -317,7 +341,8 @@ test("ladder requires any two previous-bot modes and all four formats two levels
   }
   const g = await gameHarness();
   const html = g.element("botLevels").innerHTML;
-  assert.ok(html.indexOf("Croft Bot") < html.indexOf("Billy Bot"));
+  assert.ok(html.indexOf("Level 2 · Mystery Bot") < html.indexOf("Billy Bot"));
+  assert.doesNotMatch(html,/Croft Bot/);
   assert.equal(html.includes("First 9"), false); assert.equal(html.includes("Checkout:"), false);
   g.start(2);
   assert.equal(g.element("matchTitle").textContent, "");
@@ -349,7 +374,7 @@ test("ladder requires any two previous-bot modes and all four formats two levels
       }
       assert.equal(E.isUnlocked(level,wins), false);
     }
-    if (level >= 4) {
+    if (level >= 3) {
       for (let bot=1;bot<level-1;bot++) for (const mode of E.MODES) wins.add(`${bot}-${mode}`);
       for (const key of [...wins]) scores[key] = {won:E.legsNeeded(Number(key.split("-")[1])),lost:0};
     }
@@ -375,7 +400,7 @@ test("levels 5–10 require valid flawless scores in all five formats four level
   const stored = new Map([["onm-monster-bot-test-member",JSON.stringify([...wins])]]);
   const g = await gameHarness(stored); g.start(5);
   assert.equal(g.element("matchTitle").textContent,"");
-  assert.match(g.element("botLevels").innerHTML,/Collect 10 gold stars \(0\/10\)/);
+  assert.match(g.element("botLevels").innerHTML,/Collect 6 gold stars \(0\/6\)/);
   const scores = Object.fromEntries(E.MODES.map(mode => [`1-${mode}`,{won:E.legsNeeded(mode),lost:0}]));
   for (const key of [...wins].slice(0,14)) scores[key] = {won:E.legsNeeded(Number(key.split("-")[1])),lost:0};
   stored.set("onm-monster-bot-test-member-scores",JSON.stringify(scores));
@@ -396,10 +421,10 @@ test("Nick Bot requires 14 unique flawless challenges as well as existing requir
   wins.delete("1-9");
   assert.equal(E.isUnlocked(5,wins,scores),false);
 });
-test("levels four to ten enforce their gold-star threshold on game and leaderboard", () => {
+test("levels three to ten enforce their gold-star threshold on game and leaderboard", () => {
   const {buildLeaderboard} = require("../functions/bot-completions");
   const keys = E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)), wins = new Set(keys);
-  for (let level=4;level<=10;level++) {
+  for (let level=3;level<=10;level++) {
     const required = 10+(level-4)*4;
     const scores = Object.fromEntries(keys.slice(0,required-1).map(key => [key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
     const account = {id:"stars",monsterBotWins:keys,monsterBotBestScores:scores};
