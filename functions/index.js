@@ -53,8 +53,8 @@ const getMonsterBotCompletions = async request => {
   if (botCompletionCache && Date.now() - botCompletionCacheAt < 30000 && !(request.auth && request.data?.refresh === true)) return response();
   const db = getFirestore();
   const [accounts, profiles] = await Promise.all([
-    db.collection("users").select("monsterBotWins", "monsterBotBestScores", "monsterBotStarted", "linkedPlayerKey", "firstName").get(),
-    db.collection("publicPlayers").select("publicName").get()
+    db.collection("users").select("monsterBotWins", "monsterBotBestScores", "monsterBotStarted", "linkedPlayerKey", "firstName", "photoUrl", "nationality").get(),
+    db.collection("publicPlayers").select("publicName", "photoUrl", "nationality").get()
   ]);
   const users = accounts.docs.map(doc => ({id:doc.id,...doc.data()})), publicProfiles = new Map(profiles.docs.map(doc => [doc.id,doc.data()]));
   botCompletionCache = { completions: buildCompletions(users,publicProfiles), leaderboard: buildLeaderboard(users,publicProfiles), updatedAt: new Date().toISOString() };

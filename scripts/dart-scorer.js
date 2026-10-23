@@ -4637,13 +4637,13 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
   if (!els.submit.disabled) {
     switchPlayer();
 
-    if (!legWon && !bust) {
+    if (!legWon) {
       const nextPlayer = state.players[state.currentPlayer];
 
-      announceDartVisit(visitScore);
+      announceDartVisit(bust ? 0 : visitScore);
       if (!BOT_MODE || state.currentPlayer === 0) announceRequiredScore(nextPlayer.score);
 
-      if (shouldPlayFinishHim(nextPlayer)) {
+      if (!bust && shouldPlayFinishHim(nextPlayer)) {
         nextPlayer.finishHimPlayed = true;
         playDartCallout("finish-him.mp3");
       }

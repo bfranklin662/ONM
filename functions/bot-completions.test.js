@@ -1,6 +1,15 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { buildCompletions, buildLeaderboard } = require("./bot-completions");
+test("leaderboard publishes profile photo and nationality without private account fields",()=>{
+  const users=[{id:"private",firstName:"Nick",email:"private@example.test",nationality:"Australia",photoUrl:"https://example.test/account.jpg",linkedPlayerKey:"nick",monsterBotStarted:true}];
+  const profiles=new Map([["nick",{publicName:"Nick",nationality:"England",photoUrl:"https://example.test/public.jpg"}]]);
+  const [row]=buildLeaderboard(users,profiles);
+  assert.equal(row.photoUrl,"https://example.test/public.jpg");assert.equal(row.nationality,"England");assert.ok(row.flag.startsWith("🏴"));
+  const [unlinked]=buildLeaderboard(users,new Map());assert.equal(unlinked.flag,"🇦🇺");
+  users[0].photoUrl="javascript:alert(1)";assert.equal(buildLeaderboard(users,new Map())[0].photoUrl,undefined);
+  assert.equal(JSON.stringify(row).includes("private@example.test"),false);
+});
 test("unlinked players use first names in the leaderboard and completion lists, not private details",()=>{
   const users=[
     {id:"private-id-a",firstName:"  Alex  ",surname:"PrivateSurname",email:"hidden@example.test",monsterBotWins:["1-1"]},

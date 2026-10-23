@@ -1,5 +1,24 @@
 "use strict";
 const validWins = new Set(Array.from({ length: 10 }, (_, i) => [1, 3, 5, 7, 9].map(mode => `${i + 1}-${mode}`)).flat());
+const regionNames = new Intl.DisplayNames(["en"],{type:"region"});
+const countryCodes = new Map();
+for(let a=65;a<=90;a++) for(let b=65;b<=90;b++) {
+  const code=String.fromCharCode(a,b), name=regionNames.of(code);
+  if(name!==code) {countryCodes.set(name.toLowerCase(),code);countryCodes.set(code.toLowerCase(),code);}
+}
+function publicIdentity(user,profile) {
+  const result={}, photo=profile?.photoUrl || user.photoUrl, nationality=profile?.nationality || user.nationality;
+  if(typeof photo==="string" && (/^https:\/\//i.test(photo) || /^(?:\/?)(?:graphics|images)\/[\w/.-]+$/.test(photo))) result.photoUrl=photo.slice(0,1500);
+  if(typeof nationality==="string" && nationality.trim()) {
+    result.nationality=nationality.trim().slice(0,80);
+    const name=result.nationality.toLowerCase();
+    const home={england:"🏴\u{e0067}\u{e0062}\u{e0065}\u{e006e}\u{e0067}\u{e007f}",scotland:"🏴\u{e0067}\u{e0062}\u{e0073}\u{e0063}\u{e0074}\u{e007f}",wales:"🏴\u{e0067}\u{e0062}\u{e0077}\u{e006c}\u{e0073}\u{e007f}"};
+    const aliases={english:"england",scottish:"scotland",welsh:"wales",british:"united kingdom",irish:"ireland",australian:"australia",polish:"poland","czech republic":"czechia",usa:"united states"};
+    const country=aliases[name]||name, code=countryCodes.get(country);
+    result.flag=home[country] || (code ? [...code].map(c=>String.fromCodePoint(127397+c.charCodeAt(0))).join("") : "🌍");
+  }
+  return result;
+}
 function displayName(user,profile) {
   if (typeof profile?.publicName === "string" && profile.publicName.trim()) return profile.publicName.trim().slice(0,80);
   return typeof user.firstName === "string" && user.firstName.trim() ? user.firstName.trim().slice(0,80) : "Player";
@@ -38,7 +57,7 @@ function buildLeaderboard(users, profiles) {
     const profile = profiles.get(user.linkedPlayerKey);
     const identity = profile ? `player:${user.linkedPlayerKey}` : `account:${user.id}`;
     const name = displayName(user,profile);
-    const row = players.get(identity) || { name, wins:new Set(), scores:{} };
+    const row = players.get(identity) || { name, ...publicIdentity(user,profile), wins:new Set(), scores:{} };
     for (const key of wins) {
       row.wins.add(key);
       const mode = Number(key.split("-")[1]), needed = mode === 9 ? 1 : (mode+1)/2, score = user.monsterBotBestScores?.[key];
@@ -55,7 +74,7 @@ function buildLeaderboard(users, profiles) {
       if (next >= 3 && flawless < 6 + (next - 3) * 4) break;
       level=next;
     }
-    return {name:row.name,level,completed:row.wins.size,flawless};
+    return {name:row.name,level,completed:row.wins.size,flawless,...(row.photoUrl?{photoUrl:row.photoUrl}:{}),...(row.nationality?{nationality:row.nationality,flag:row.flag}:{})};
   }).sort((a,b) => b.completed-a.completed || b.level-a.level || a.name.localeCompare(b.name));
 }
 module.exports = { buildCompletions, buildLeaderboard };

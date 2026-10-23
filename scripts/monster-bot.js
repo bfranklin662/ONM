@@ -66,7 +66,7 @@
   let community = null, leaderboard = null, communityError = false, completionKey = null, communityLoading = null;
   function renderLeaderboard() {
     $("leaderboardStatus").textContent = leaderboard ? (leaderboard.length ? `${leaderboard.length} players · Ranked by challenges completed, then level unlocked.` : "No players yet. Start your first match to join the leaderboard.") : communityError ? "Leaderboard could not be loaded. Please retry." : "Loading leaderboard…";
-    $("leaderboardRows").innerHTML = (leaderboard || []).map((row,i) => `<tr><td>${i+1}</td><th scope="row">${escape(row.name)}</th><td>Level ${row.level}</td><td class="challengesTotal">${row.completed} / 50</td><td class="flawlessTotal">★ ${row.flawless ?? 0}</td></tr>`).join("");
+    $("leaderboardRows").innerHTML = (leaderboard || []).map((row,i) => `<tr><td>${i+1}</td><th scope="row"><span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(row.photoUrl || "graphics/logoWoText.png")}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${escape(row.name)}</span>${row.flag ? `<span class="botLeaderboardFlag" role="img" aria-label="${escape(row.nationality || "Nationality")}" title="${escape(row.nationality || "Nationality")}">${escape(row.flag)}</span>` : ""}</span></th><td>Level ${row.level}</td><td class="challengesTotal">${row.completed} / 50</td><td class="flawlessTotal">★ ${row.flawless ?? 0}</td></tr>`).join("");
     $("retryLeaderboard").hidden = !communityError;
     $("refreshLeaderboard").disabled = Boolean(communityLoading);
     $("refreshLeaderboard").setAttribute("aria-busy",String(Boolean(communityLoading)));
@@ -376,6 +376,9 @@
   $("leaderboardTab").addEventListener("click", () => showTab(true));
   $("retryLeaderboard").addEventListener("click", () => loadCommunity(Boolean(user)));
   $("refreshLeaderboard").addEventListener("click", () => loadCommunity(true));
+  $("leaderboardRows").addEventListener("error",event=>{
+    if(event.target.classList?.contains("botLeaderboardPhoto") && event.target.getAttribute("src")!=="graphics/logoWoText.png") event.target.src="graphics/logoWoText.png";
+  },true);
   $("retryAccount").addEventListener("click", () => loadProgress());
   window.addEventListener("beforeunload", event => { if (match && !match.ended) { event.preventDefault(); event.returnValue = ""; } });
   loadCommunity();

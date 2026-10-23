@@ -93,20 +93,24 @@ test("Monsters splash names the selected bot and format without affecting league
     assert.equal(nodes.monsterBotLoadingText.textContent,label||"");
   }
 });
-test("blocked Game on keeps play gated until the explicit Start button is tapped",async()=>{
+test("games start automatically even when autoplay is blocked, without a late Game on retry",async()=>{
   const g=await harness({audioBlocked:true});
-  assert.equal(g.api.canPlay(),false);assert.equal(g.els.submit.disabled,true);
-  assert.equal(g.ctx.document.getElementById("monsterBotStart").hidden,false);
-  assert.equal(g.ctx.document.getElementById("monsterBotLoadingDots").hidden,true);
-  g.score(60);assert.equal(g.state.players[0].score,501);
+  assert.equal(g.api.canPlay(),true);assert.equal(g.els.submit.disabled,false);
+  assert.equal(g.ctx.document.getElementById("monsterBotSplash").hidden,true);
   for(const fn of g.ctx.window.eventHandlers.pointerdown||[]) fn();
+  for(const fn of g.ctx.window.eventHandlers.keydown||[]) fn();
   assert.equal(g.ctx.callouts.length,1);
-  g.ctx.audioBlocked=false;
-  g.ctx.document.getElementById("monsterBotStart").listeners.click();
-  assert.equal(g.ctx.callouts.length,2);assert.equal(g.ctx.callouts[1].file,"game-on.mp3");
-  assert.equal(g.api.canPlay(),true);assert.equal(g.ctx.document.getElementById("monsterBotSplash").hidden,true);
-  g.ctx.document.getElementById("monsterBotStart").listeners.click();assert.equal(g.ctx.callouts.length,2);
+  g.score(60);assert.equal(g.state.players[0].score,441);
   const guest=await harness({account:null});assert.equal(guest.ctx.callouts.length,0);
+});
+test("human and bot busts both announce No score",async()=>{
+  const g=await harness(),announced=[];
+  g.ctx.announceDartVisit=n=>announced.push(n);
+  g.ctx.window.MonsterBotEngine.botVisit=remaining=>({score:0,remaining,darts:3,bust:true,hits:[60,60,60]});
+  g.score(60);g.bot();assert.deepEqual(announced,[60,0]);
+  assert.equal(g.state.players[1].score,501);
+  g.state.players[0].score=20;g.score(26);
+  assert.deepEqual(announced,[60,0,0]);assert.equal(g.state.players[0].score,20);
 });
 test("bot waits for the announcement to finish, then pauses another second",async()=>{
   const g=await harness();g.ctx.audioBusy=true;g.score(60);

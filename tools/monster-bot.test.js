@@ -78,6 +78,14 @@ test("leaderboard refresh icon fetches fresh results and resets its loading stat
   assert.equal(requests.length,before+1);assert.equal(requests.at(-1).refresh,true);
   assert.equal(g.element("refreshLeaderboard").disabled,false);
 });
+test("leaderboard displays photo, player name and nationality flag in order",async()=>{
+  const g=await gameHarness(new Map(),null,async()=>({completions:{},leaderboard:[{name:"Nick",photoUrl:"https://example.test/nick.jpg",nationality:"Australia",flag:"🇦🇺",level:2,completed:4,flawless:3}]}));
+  const html=g.element("leaderboardRows").innerHTML;
+  assert.match(html,/src="https:\/\/example.test\/nick.jpg"/);
+  assert.ok(html.indexOf("botLeaderboardPhoto")<html.indexOf("<span>Nick</span>"));
+  assert.ok(html.indexOf("<span>Nick</span>")<html.indexOf("🇦🇺"));
+  assert.match(html,/aria-label="Australia"/);
+});
 test("real play buttons open the league scorer in bot mode and respect locks",async()=>{
   const g=await gameHarness();assert.equal(g.playButton(2),"");
   assert.equal(g.playButton(1,7),"dart-scorer.html?mode=bot&level=1&format=7");

@@ -9,26 +9,16 @@
   let playerPhoto = "graphics/logoWoText.png";
   let knownWins = new Set(), knownScores = {}, pendingUnlock = null, resultVisible = false;
   let undoFrame = null, replayVisit = null;
-  let starting = false, initialized = false, exited = false;
+  let initialized = false, exited = false;
   function startWithAudio() {
-    if (!initialized || active || starting || exited) return;
-    starting = true;
-    $("monsterBotStart").disabled = true;
-    playDartCallout("game-on.mp3",null,()=>{
-      if (exited) return;
-      starting = false;
-      $("monsterBotLoadingText").textContent = `${profile.name} · ${E.modeLabel(format)} is ready`;
-      $("monsterBotStart").hidden = false;
-      $("monsterBotStart").disabled = false;
-      $("monsterBotLoadingDots").hidden = true;
-    },()=>{
-      if (exited) return;
-      starting = false; active = true;
-      state.matchStartedAt = new Date();
-      $("monsterBotSplash").hidden = true;
-      document.body.classList.remove("monsterBotLoading");
-      render();
-    });
+    if (!initialized || active || exited) return;
+    active = true;
+    state.matchStartedAt = new Date();
+    $("monsterBotSplash").hidden = true;
+    document.body.classList.remove("monsterBotLoading");
+    render();
+    // Try automatically, but never replay a blocked opening announcement mid-game.
+    playDartCallout("game-on.mp3");
   }
   const clone = value => JSON.parse(JSON.stringify(value));
   function humanVisit(visit) {
@@ -253,7 +243,6 @@
   }
   function photo(index) { return index === 1 ? `graphics/bots/${avatars[level-1]}-bot.png` : playerPhoto; }
   $("closeBotUnlocked").addEventListener("click",()=>$("botUnlockedDialog").close());
-  $("monsterBotStart").addEventListener("click",startWithAudio);
   window.ONMMonsterScorer = {init,submit,undo,confirmCheckout,afterVisit,onRender,showResult,showUnlock,exit,rematch,photo,cancelCheckout:()=>{if(bullMode && pendingCheckoutPrompt?.legWon){lose("Bull checkout was not confirmed.");return true;}return false;},canPlay:()=>active && state.currentPlayer === 0 && state.winnerIndex === null};
   window.addEventListener("pagehide",()=>{exited=true;active=false;clearTimeout(timer);});
   init();
