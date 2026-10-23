@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Monster Bot Game | Oche Ness Monsters</title><link rel="icon" href="graphics/favicon1.png"><link rel="stylesheet" href="styles/monster-bot.css?v=20261023-lower-stars"><link rel="stylesheet" href="styles/monster-bot-compact.css?v=20261023-lower-stars"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Monster Bot Game | Oche Ness Monsters</title><link rel="icon" href="graphics/favicon1.png"><link rel="stylesheet" href="styles/monster-bot.css?v=20261023-player-summary"><link rel="stylesheet" href="styles/monster-bot-compact.css?v=20261023-player-summary"></head>
 <body>
 <header class="botHeader"><a href="index.html"><img src="graphics/logoWText.png" alt="Oche Ness Monsters"></a><a href="games.html">← Play Darts</a></header>
 <main>
@@ -7,7 +7,8 @@
   <section id="challengeSetup" aria-labelledby="challengeHeading">
     <div id="ladderPanel" role="tabpanel" aria-labelledby="ladderTab">
     <h2 id="challengeHeading" class="srOnly">Choose your Monster</h2>
-    <div class="challengeBar"><p id="progressSummary" aria-live="polite"></p><p id="saveStatus" role="status" hidden></p><button id="retryAccount" type="button" class="secondary" hidden>Retry sign-in check</button></div>
+    <section id="playerSummary" class="playerSummary" aria-label="Your game progress" hidden><img id="playerSummaryPhoto" src="graphics/logoWoText.png" alt=""><div class="playerSummaryDetails"><strong id="playerSummaryName"></strong><div class="playerSummaryTotals"><span id="playerSummaryBeaten" class="summaryBeaten"></span><span id="playerSummaryFlawless" class="summaryFlawless"></span></div><div class="playerSummaryCompletion"><progress id="playerSummaryBar" max="50" value="0" aria-label="Challenges completed"></progress><span id="playerSummaryPercent"></span></div></div></section>
+    <div class="challengeBar"><p id="progressSummary" class="srOnly" aria-live="polite"></p><p id="saveStatus" role="status" hidden></p><button id="retryAccount" type="button" class="secondary" hidden>Retry sign-in check</button></div>
     <div id="accountLoading" class="accountLoading" role="status" aria-live="polite"><img src="graphics/logoWText.png" alt="Oche Ness Monsters"><span id="accountSpinner" class="accountSpinner" aria-hidden="true"></span><p id="accountLoadingText">Loading your Monster Bot progress…</p></div>
     <div id="botLevels" class="botLevels" role="region" aria-label="Monster bots, strongest at the top" tabindex="0" hidden></div>
     </div>
@@ -25,5 +26,5 @@
 </main>
 <dialog id="completionDialog" class="completionDialog" aria-labelledby="completionTitle"><div class="completionHeading"><h2 id="completionTitle">Players who have won</h2><button id="closeCompletions" type="button" class="secondary" aria-label="Close completion list">✕</button></div><p id="completionYourResult" class="completionYourResult" hidden></p><p id="completionModeRules" class="bullModeRules" hidden></p><p id="completionStatus" role="status"></p><ul id="completionNames"></ul><div id="completionActions" class="completionActions"></div><p id="completionPlayHint"></p><button id="retryCompletions" type="button" class="secondary" hidden>Retry</button></dialog>
 <dialog id="bullCheckoutDialog" class="completionDialog" aria-labelledby="bullCheckoutTitle"><h2 id="bullCheckoutTitle">How did you check out?</h2><p>Only a Bullseye (50) finish wins Bull or Bust. Any other finish loses the challenge.</p><div class="matchActions"><button id="confirmBullCheckout" type="button" class="primary">Bullseye 🎯</button><button id="otherCheckout" type="button" class="secondary">Other finish — I lose</button></div></dialog>
-<script src="scripts/firebase-client.js?v=20261022-session-return"></script><script src="scripts/monster-bot-data.js?v=20261022-belgium"></script><script src="scripts/monster-bot-engine.js?v=20261023-lower-stars"></script><script src="scripts/monster-bot.js?v=20261023-lower-stars"></script>
+<script src="scripts/firebase-client.js?v=20261022-session-return"></script><script src="scripts/monster-bot-data.js?v=20261022-belgium"></script><script src="scripts/monster-bot-engine.js?v=20261023-player-summary"></script><script src="scripts/monster-bot.js?v=20261023-player-summary"></script>
 </body></html>

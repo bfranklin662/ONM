@@ -18,6 +18,18 @@
     }));
   }
   let bestScores = {};
+  let playerProfile = {};
+  function renderPlayerSummary() {
+    $("playerSummary").hidden = !ready || !user;
+    if (!ready || !user) return;
+    const firstName = playerProfile.firstName || user.displayName?.split(" ")[0] || "Player";
+    $("playerSummaryName").textContent = firstName;
+    $("playerSummaryPhoto").src = leaderboardPhoto({photoUrl:playerProfile.photoUrl,name:playerProfile.linkedPlayerName || firstName});
+    $("playerSummaryBeaten").textContent = `✓ Beaten ${progress.size}/50`;
+    $("playerSummaryFlawless").textContent = `★ Flawless ${E.goldStars(progress,bestScores)}/50`;
+    $("playerSummaryPercent").textContent = `${Math.round(progress.size/50*100)}% complete`;
+    $("playerSummaryBar").value = progress.size;
+  }
   const botName = level => E.LEVELS[level - 1].name;
   const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick", 6: "ricky", 7: "aussie", 8: "andre", 9: "bailey", 10: "filip" };
   const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png?v=20261022-avatar` : "";
@@ -133,6 +145,7 @@
   const safeLoad = key => { try { return JSON.parse(localStorage.getItem(key) || "[]").filter(value => validKeys.has(value)); } catch { return []; } };
   const escape = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   function renderLevels() {
+    renderPlayerSummary();
     $("accountLoading").hidden = ready;
     $("botLevels").hidden = !ready;
     $("progressSummary").hidden = !ready;
@@ -191,6 +204,7 @@
       try {
         const { db, firestoreSdk: sdk } = await window.ONMBotData.withTimeout(window.ONMFirebase.ready);
         const snap = await window.ONMBotData.withTimeout(sdk.getDoc(sdk.doc(db, "users", user.uid)));
+        playerProfile = snap.data() || {};
         (snap.data()?.monsterBotWins || []).filter(k => validKeys.has(k)).forEach(k => progress.add(k));
         for (const [key, score] of Object.entries(snap.data()?.monsterBotBestScores || {})) if (E.validWinningScore(key, score)) bestScores[key] = E.bestScore(bestScores[key], score);
         // Retry wins that were saved on this device while offline.
@@ -384,13 +398,16 @@
   $("leaderboardTab").addEventListener("click", () => showTab(true));
   $("retryLeaderboard").addEventListener("click", () => loadCommunity(Boolean(user)));
   $("refreshLeaderboard").addEventListener("click", () => loadCommunity(true));
+  $("playerSummaryPhoto").addEventListener("error",()=>{
+    if($("playerSummaryPhoto").getAttribute("src")!=="graphics/logoWoText.png") $("playerSummaryPhoto").src="graphics/logoWoText.png";
+  });
   $("leaderboardRows").addEventListener("error",event=>{
     if(event.target.classList?.contains("botLeaderboardPhoto") && event.target.getAttribute("src")!=="graphics/logoWoText.png") event.target.src="graphics/logoWoText.png";
   },true);
   $("retryAccount").addEventListener("click", () => loadProgress());
   window.addEventListener("beforeunload", event => { if (match && !match.ended) { event.preventDefault(); event.returnValue = ""; } });
   loadCommunity();
-  if(typeof fetch==="function") fetch("data/player-photo-map.json").then(response=>response.ok?response.json():{}).then(photos=>{leaderboardPhotos=photos||{};renderLeaderboard();}).catch(()=>{});
+  if(typeof fetch==="function") fetch("data/player-photo-map.json").then(response=>response.ok?response.json():{}).then(photos=>{leaderboardPhotos=photos||{};renderLeaderboard();renderPlayerSummary();}).catch(()=>{});
   showTab(window.location.hash === "#leaderboard");
   window.addEventListener("hashchange",()=>showTab(window.location.hash === "#leaderboard"));
   loadProgress().then(async () => {

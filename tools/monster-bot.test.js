@@ -33,7 +33,7 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" },
       loadOwnUser: async () => { throw new Error("Profile could not be loaded"); },
       ready: Promise.resolve({ auth: {}, authSdk: { onAuthStateChanged: (_auth, fn) => { authCallback = fn; } }, db: {}, firestoreSdk: {
         doc: (_db, collection, uid) => `${collection}/${uid}`,
-        getDoc: async () => account?.docPromise ? await account.docPromise : ({ data: () => ({ monsterBotWins: account?.seedWins || [], monsterBotBestScores: account?.seedScores || {} }) }),
+        getDoc: async () => account?.docPromise ? await account.docPromise : ({ data: () => ({ monsterBotWins: account?.seedWins || [], monsterBotBestScores: account?.seedScores || {},...account?.profile }) }),
         arrayUnion: (...values) => values,
         runTransaction: async (_db, fn) => fn({ get: async () => ({ data: () => ({ monsterBotBestScores: {} }) }), update: (path, data) => writes.push({ path, data }) }),
         updateDoc: async (path, data) => writes.push({ path, data })
@@ -85,6 +85,19 @@ test("leaderboard displays photo, player name and nationality flag in order",asy
   assert.ok(html.indexOf("botLeaderboardPhoto")<html.indexOf("<span>Nick</span>"));
   assert.ok(html.indexOf("<span>Nick</span>")<html.indexOf("🇦🇺"));
   assert.match(html,/aria-label="Australia"/);
+});
+test("player summary shows identity, beaten and flawless totals and completion percentage",async()=>{
+  const wins=["1-1","1-3","1-5","1-7","1-9","2-1","2-3"];
+  const scores=Object.fromEntries(wins.slice(0,3).map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const g=await gameHarness(new Map(),{uid:"member",seedWins:wins,seedScores:scores,profile:{firstName:"Nick",photoUrl:"https://example.test/nick.jpg"}});
+  assert.equal(g.element("playerSummary").hidden,false);
+  assert.equal(g.element("playerSummaryName").textContent,"Nick");
+  assert.equal(g.element("playerSummaryPhoto").src,"https://example.test/nick.jpg");
+  assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Beaten 7/50");
+  assert.equal(g.element("playerSummaryFlawless").textContent,"★ Flawless 3/50");
+  assert.equal(g.element("playerSummaryPercent").textContent,"14% complete");
+  assert.equal(g.element("playerSummaryBar").value,7);
+  const guest=await gameHarness(new Map(),null);assert.equal(guest.element("playerSummary").hidden,true);
 });
 test("real play buttons open the league scorer in bot mode and respect locks",async()=>{
   const g=await gameHarness();assert.equal(g.playButton(2),"");
