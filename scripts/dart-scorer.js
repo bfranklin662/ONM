@@ -5455,13 +5455,6 @@ if (els.newGame) {
 let wakeLock = null;
 let wakeLockRequest = null;
 let wakeLockWatchdog = null;
-let wakeLockWarningShown = false;
-
-function warnScreenMaySleep(message) {
-  if (wakeLockWarningShown) return;
-  wakeLockWarningShown = true;
-  showOnlineNotice(message, "Keep screen awake");
-}
 
 function stopWakeLockWatchdog() {
   if (wakeLockWatchdog !== null) clearInterval(wakeLockWatchdog);
@@ -5471,7 +5464,6 @@ function stopWakeLockWatchdog() {
 async function requestWakeLock() {
   if (document.visibilityState !== "visible" || !document.body.classList.contains("scorer-fullscreen")) { stopWakeLockWatchdog(); return; }
   if (!("wakeLock" in navigator)) {
-    warnScreenMaySleep("This browser cannot keep the screen awake. Use an up-to-date browser or temporarily increase your device's auto-lock time.");
     return;
   }
   if (wakeLockWatchdog === null) wakeLockWatchdog = setInterval(() => { requestWakeLock(); },10000);
@@ -5483,7 +5475,6 @@ async function requestWakeLock() {
         const lock = await navigator.wakeLock.request("screen");
         if (document.visibilityState !== "visible" || !document.body.classList.contains("scorer-fullscreen")) { await lock.release(); return; }
         wakeLock = lock;
-        wakeLockWarningShown = false;
         lock.addEventListener("release", () => {
           if (wakeLock === lock) wakeLock = null;
           if (document.visibilityState === "visible" && document.body.classList.contains("scorer-fullscreen")) {
@@ -5493,7 +5484,6 @@ async function requestWakeLock() {
       }
     } catch (err) {
       console.warn("Wake lock failed:", err);
-      warnScreenMaySleep("Your browser has not allowed the screen to stay awake. We will retry automatically; check the device's auto-lock settings if it continues.");
     }
   })();
   try { await wakeLockRequest; } finally { wakeLockRequest = null; }

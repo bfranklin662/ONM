@@ -23,13 +23,14 @@ test("screen lock retries on interaction and returning to a visible game",async(
 test("unsupported browsers and non-fullscreen screens do not request a lock",async()=>{
   const g=harness();g.fullscreen(false);await g.ctx.requestWakeLock();assert.equal(g.requests(),0);
   g.fullscreen(true);g.ctx.navigator={};await g.ctx.requestWakeLock();assert.equal(g.requests(),0);
+  assert.equal(g.warnings.length,0);
 });
-test("a failed lock is retried automatically while idle, with only one warning",async()=>{
+test("a failed lock is retried automatically while idle without a visible warning",async()=>{
   const g=harness({fail:true});await g.ctx.requestWakeLock();
-  assert.equal(g.warnings.length,1);assert.equal(g.intervals.size,1);
+  assert.equal(g.warnings.length,0);assert.equal(g.intervals.size,1);
   const watchdog=[...g.intervals.values()][0];assert.equal(watchdog.delay,10000);
   watchdog.fn();await new Promise(r=>setImmediate(r));assert.equal(g.requests(),2);assert.equal(g.locks.length,1);
-  watchdog.fn();await new Promise(r=>setImmediate(r));assert.equal(g.requests(),2);assert.equal(g.warnings.length,1);
+  watchdog.fn();await new Promise(r=>setImmediate(r));assert.equal(g.requests(),2);assert.equal(g.warnings.length,0);
   g.fullscreen(false);await g.ctx.releaseWakeLock();assert.equal(g.intervals.size,0);
 });
 test("hidden pages stop polling and resume it when the game becomes visible",async()=>{
