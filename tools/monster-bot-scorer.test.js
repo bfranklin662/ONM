@@ -14,7 +14,7 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
     document:{body:{classList:{add(){},remove(){}}},getElementById:element,createElement:()=>element(`created${nodes.size}`),querySelector:()=>bullSelected?{dataset:{value:"Yes"}}:null},
     localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},
     setTimeout:(fn,delay)=>{const id=++nextTimer;timers.set(id,{fn,delay});return id;},clearTimeout:id=>timers.delete(id),Date,
-    enterScorerFullscreen(){ctx.fullscreen=true;},syncMainViews(){},applyMatchSettings(){},newGame(){},setVisiblePlayerNames:(a,b)=>{els.names[0].value=a;els.names[1].value=b;},
+    enterScorerFullscreen(){ctx.fullscreen=true;},syncMainViews(){},applyMatchSettings(settings){ctx.STARTING_SCORE=settings.startScore;for(const p of state.players)p.score=settings.startScore;},newGame(){},setVisiblePlayerNames:(a,b)=>{els.names[0].value=a;els.names[1].value=b;},
     render:()=>ctx.window.ONMMonsterScorer?.onRender(),switchPlayer(){state.currentPlayer=state.currentPlayer===0?1:0;},updateLegTarget(){ctx.LEGS_TO_WIN=E.legsNeeded(format);},resetLeg(){for(const p of state.players){p.score=501;p.currentLegDarts=0;}},
     isDartCalloutBusy:()=>Boolean(ctx.audioBusy),launchFireworks(){},announceLegWon(){},announceDartVisit(){},announceRequiredScore:score=>{ctx.requiredCalls.push(score);},requiredCalls:[],shouldPlayFinishHim:()=>false,playDartCallout:(file,fallback,onBlocked,onReady)=>{ctx.callouts.push({file,onBlocked});if(ctx.audioBlocked)onBlocked?.();else onReady?.(true);},callouts:[],audioBlocked,
     showImpossibleMessage:message=>{ctx.error=message;},getBullOutPromptConfig:()=>({bullOutOptions:["No","Yes"],bullOutDefault:"No"}),
@@ -41,6 +41,15 @@ test("shared scorer applies the human score, waits exactly one second, then retu
   g.score(60);assert.equal(g.state.players[0].score,441);
   g.bot();assert.equal(g.state.players[1].score,471);assert.equal(g.ctx.lastBotProfile,6);
   assert.equal(g.state.currentPlayer,0);assert.equal(g.els.submit.disabled,false);
+});
+test("Bull or Bust starts at 301 for levels 1–3 and 501 thereafter; standard modes remain 501",async()=>{
+  for(let level=1;level<=10;level++) for(const format of E.MODES) {
+    const g=await harness({level,format}), expected=format===9&&level<=3?301:501;
+    assert.equal(g.ctx.STARTING_SCORE,expected);
+    assert.equal(g.state.players[0].score,expected);assert.equal(g.state.players[1].score,expected);
+    assert.ok(g.els.gameTitleText.textContent.startsWith(String(expected)));
+    g.api.showResult();assert.ok(g.els.molVictoryTitle.textContent.startsWith(String(expected)));
+  }
 });
 test("Undo restores both visits and all stats, then replays the original bot score",async()=>{
   const g=await harness();let calls=0;
@@ -231,11 +240,11 @@ test("leg starters alternate regardless of who won the previous leg",async()=>{
   botWins.bot();assert.equal(botWins.state.players[1].legs,2);assert.equal(botWins.state.currentPlayer,0);
 });
 test("Bull or Bust enforces below-50 losses and an explicitly confirmed Bull finish",async()=>{
-  const below=await harness({format:9});below.score(180);below.bot();below.score(180);below.bot();below.score(100);
+  const below=await harness({format:9});below.score(180);below.bot();below.score(100);
   assert.equal(below.state.winnerIndex,1);
-  const other=await harness({format:9});other.score(180);other.bot();other.score(180);other.bot();other.score(141);other.confirm(false);
+  const other=await harness({format:9});other.score(180);other.bot();other.score(121);other.confirm(false);
   assert.equal(other.state.winnerIndex,1);
-  const win=await harness({format:9});win.score(180);win.bot();win.score(180);win.bot();win.score(141);win.confirm(true);
+  const win=await harness({format:9});win.score(180);win.bot();win.score(121);win.confirm(true);
   await new Promise(r=>setImmediate(r));assert.equal(win.state.winnerIndex,0);assert.ok(win.writes.some(w=>w.data.monsterBotBestScores?.["1-9"]?.won===1));
 });
 test("sign-out and quitting cancel a pending bot throw; guests must log in with a return URL",async()=>{

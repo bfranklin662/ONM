@@ -59,6 +59,7 @@
     } catch { /* Keep the existing fallback if the linked photo is unavailable. */ }
   }
   const bullMode = format === E.BULL_MODE;
+  const startingScore = E.startScore(level,format);
   const $ = id => document.getElementById(id);
   const key = `${level}-${format}`;
   const storageKey = uid => `onm-monster-bot-${uid}`;
@@ -106,7 +107,7 @@
   function showResult() {
     const kicker = els.molVictoryOverlay?.querySelector(".readyLeagueKicker");
     if (kicker) kicker.textContent = "Monster Bot Game";
-    els.molVictoryTitle.textContent = `501 · ${E.modeLabel(format)}`;
+    els.molVictoryTitle.textContent = `${startingScore} · ${E.modeLabel(format)}`;
     els.molVictoryCloseBtn.textContent = "Back to ladder";
     let status = $("monsterBotResultStatus");
     if (!status) { status = document.createElement("p"); status.id = "monsterBotResultStatus"; els.molVictoryTitle.after(status); }
@@ -210,7 +211,7 @@
       knownWins = wins; knownScores = scores;
       loadPlayerPhoto(accountProfile);
       MATCH_MODE = "local"; STATS_MODE = "casual"; window.STATS_MODE = STATS_MODE;
-      applyMatchSettings({startScore:501,gameType:"bestOf",legsCount:bullMode ? 1 : format,inMode:"straight"});
+      applyMatchSettings({startScore:startingScore,gameType:"bestOf",legsCount:bullMode ? 1 : format,inMode:"straight"});
       newGame(); state.winnerIndex = null; state.matchStartedAt = new Date();
       let name = firstName || "You";
       try { const account = JSON.parse(localStorage.getItem("onmUser") || "null"); if (!firstName && account?.uid === user.uid) name = account.firstName?.trim() || "You"; } catch {}
@@ -219,8 +220,8 @@
       const avatar = document.createElement("img"); avatar.className = "monsterScorerAvatar"; avatar.src = photo(1); avatar.alt = `${profile.name} avatar`;
       els.names[1].before(avatar);
       $("screenTitleText").textContent = "Monster Bot Game";
-      els.gameTitleText.textContent = `501 · ${E.modeLabel(format)} · ${profile.name}`;
-      $("monsterBotNotice").textContent = bullMode ? "Bull or Bust: finish on Bull and confirm it at checkout. Below 50 loses. You throw first." : "You throw first in leg one; the starting player alternates each leg. The bot throws one second after the announcement finishes.";
+      els.gameTitleText.textContent = `${startingScore} · ${E.modeLabel(format)} · ${profile.name}`;
+      $("monsterBotNotice").textContent = bullMode ? `${startingScore} · Bull or Bust: finish on Bull and confirm it at checkout. Below 50 loses. You throw first.` : "You throw first in leg one; the starting player alternates each leg. The bot throws one second after the announcement finishes.";
       $("monsterBotNotice").classList.remove("hidden");
       state.currentPlayer = 0; syncMainViews("game"); render();
       enterScorerFullscreen();

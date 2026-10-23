@@ -536,7 +536,7 @@ test("levels three to ten enforce their gold-star threshold on game and leaderbo
 test("Bull or Bust requires a possible Bull finish and explicit confirmation", async () => {
   const g = await gameHarness(new Map(),{uid:"test-member",seedWins:E.STANDARD_MODES.map(m=>`1-${m}`)}); g.start(1, E.BULL_MODE);
   assert.match(g.element("matchFormat").textContent, /Bull or Bust/);
-  g.score(180); g.bot(); g.score(180); g.bot(); g.score(91); g.bot();
+  g.score(180); g.bot(); g.score(71); g.bot();
   assert.equal(g.element("playerRemaining").textContent, 50);
   g.element("checkoutDarts").value = "1";
   g.score(50);
@@ -555,12 +555,12 @@ test("Bull or Bust requires a possible Bull finish and explicit confirmation", a
 test("Bull or Bust below 50, bust and non-Bull checkouts lose without saving", async () => {
   for (const action of ["below", "other", "bust", "impossible", "cancel"]) {
     const g = await gameHarness(new Map(),{uid:"test-member",seedWins:E.STANDARD_MODES.map(m=>`1-${m}`)}); g.start(1, E.BULL_MODE);
-    g.score(180); g.bot(); g.score(180); g.bot();
+    g.score(180); g.bot();
     if (action === "below") g.score(100);
     else if (action === "bust") g.click("bustVisit");
     else {
       g.element("checkoutDarts").value = action === "impossible" ? "1" : "3";
-      g.score(141);
+      g.score(121);
       if (action === "cancel") g.element("bullCheckoutDialog").listeners.cancel({preventDefault(){}});
       else g.click(action === "other" ? "otherCheckout" : "confirmBullCheckout");
     }

@@ -4,7 +4,7 @@
   let match = null, undo = null, timer = null, user = null, progress = new Set(), storageKey = "", busy = false, ready = false;
   const validKeys = new Set(E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)));
   const modes = new Map();
-  const BULL_RULES = "Bull or Bust · BO1: you must win with a Bullseye (50) checkout and confirm Bull on the checkout prompt. Going below 50 without a Bull finish loses immediately. The bot plays normal double-out.";
+  const BULL_RULES = "Bull or Bust · BO1: 301 for levels 1–3, 501 for levels 4–10. You must win with a Bullseye (50) checkout and confirm Bull on the checkout prompt. Going below 50 without a Bull finish loses immediately. The bot plays normal double-out.";
   const authUrl = mode => `auth.html?mode=${mode}&redirect=monster-bot.html`;
   const canPlay = (level,format) => ready && user && E.LEVELS.some(p=>p.level===level) && level <= E.highestUnlocked(progress,bestScores) && E.isFormatUnlocked(level,format,progress);
   function playGame(level,format) {
@@ -242,17 +242,18 @@
     }
     renderLevels();
   }
-  function newPlayer() { return { remaining: 501, legs: 0, points: 0, darts: 0, legDarts: 0 }; }
+  function newPlayer(start = 501) { return { remaining: start, legs: 0, points: 0, darts: 0, legDarts: 0 }; }
   function begin(level, bestOf) {
     if (!canPlay(level,bestOf)) return;
     clearTimeout(timer);
-    match = { level, bestOf, leg: 1, starter: "player", player: newPlayer(), bot: newPlayer(), history: [], ended: false, legEnded: false };
+    const startingScore = E.startScore(level,bestOf);
+    match = { level, bestOf, leg: 1, starter: "player", player: newPlayer(startingScore), bot: newPlayer(startingScore), history: [], ended: false, legEnded: false };
     match.turn = match.starter;
     const playingUid = user.uid;
     window.ONMFirebase.ready.then(({db,firestoreSdk:sdk}) => sdk.updateDoc(sdk.doc(db,"users",playingUid),{monsterBotStarted:true})).then(() => loadCommunity(true)).catch(() => {});
     undo = null; busy = false;
     $("challengeSetup").hidden = true; $("matchPanel").hidden = false;
-    $("matchFormat").textContent = match.bestOf === E.BULL_MODE ? "501 · Bull or Bust · BO1 · Bull out only" : `501 · Best of ${match.bestOf} · First to ${E.legsNeeded(match.bestOf)} ${match.bestOf === 1 ? "leg" : "legs"}`;
+    $("matchFormat").textContent = match.bestOf === E.BULL_MODE ? `${startingScore} · Bull or Bust · BO1 · Bull out only` : `501 · Best of ${match.bestOf} · First to ${E.legsNeeded(match.bestOf)} ${match.bestOf === 1 ? "leg" : "legs"}`;
     $("bullRules").hidden = match.bestOf !== E.BULL_MODE;
     $("matchTitle").textContent = `You vs ${botName(match.level)}`;
     $("botName").textContent = botName(match.level);
@@ -390,7 +391,7 @@
     if (!match?.legEnded || match.ended) return;
     match.leg++; match.starter = match.leg % 2 === 1 ? "player" : "bot";
     match.turn = match.starter; match.legEnded = false; undo = null;
-    for (const side of ["player", "bot"]) { match[side].remaining = 501; match[side].legDarts = 0; }
+    for (const side of ["player", "bot"]) { match[side].remaining = E.startScore(match.level,match.bestOf); match[side].legDarts = 0; }
     renderMatch(); scheduleBot();
   });
   $("leaveMatch").addEventListener("click", levels); $("backToLevels").addEventListener("click", levels);
