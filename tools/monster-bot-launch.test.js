@@ -17,3 +17,13 @@ test("blocked or broken launch audio never traps the player on the splash",async
   const h=harness();h.api.start(value=>results.push(value));[...h.timers.values()][0]();
   assert.deepEqual(results,[false,false]);
 });
+test("embedded scorer reveals and announces only when its own ready signal arrives",()=>{
+  let audio,frame;const splash={hidden:false},calls=[];
+  const ctx={URL,window:{location:{href:"https://example.test/monster-bot.html",origin:"https://example.test"}},Audio:function(){audio=this;this.paused=true;this.pause=()=>{this.paused=true;};this.play=()=>{calls.push(this.volume);this.paused=false;return Promise.resolve();};},document:{body:{style:{},appendChild(node){frame=node;}},createElement(){return{style:{},contentWindow:{},remove(){}};},getElementById:()=>splash},setTimeout,clearTimeout};
+  vm.runInNewContext(source,ctx);
+  ctx.window.ONMBotLaunch.open("dart-scorer.html?mode=bot&level=1&format=3");
+  assert.deepEqual(calls,[0]);assert.equal(splash.hidden,false);
+  assert.equal(ctx.window.ONMBotLaunch.ready({}),false);assert.deepEqual(calls,[0]);
+  assert.equal(ctx.window.ONMBotLaunch.ready(frame.contentWindow),true);
+  assert.equal(splash.hidden,true);assert.deepEqual(calls,[0,1]);assert.equal(audio.loop,false);assert.equal(audio.currentTime,0);
+});

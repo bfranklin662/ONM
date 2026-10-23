@@ -2,7 +2,7 @@ const test=require("node:test"),assert=require("node:assert/strict"),fs=require(
 const E=require("../scripts/monster-bot-engine");
 async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,profilePhoto=null,audioBlocked=false,introPlayed=false,casual=false,legs=3,completed=false}={}){
   const nodes=new Map(),timers=new Map(),writes=[],stored=new Map();let nextTimer=0,bullSelected=false,authChanged;
-  const element=id=>{if(!nodes.has(id))nodes.set(id,{id,value:"",textContent:"",hidden:false,disabled:false,dataset:{},classList:{add(){},remove(){},toggle(){}},querySelector(){return element("kicker");},querySelectorAll(){return [];},before(){},after(){},blur(){},showModal(){this.open=true;},close(){this.open=false;},addEventListener(event,fn){(this.listeners ||= {})[event]=fn;}});return nodes.get(id);};
+  const element=id=>{if(!nodes.has(id))nodes.set(id,{id,value:"",textContent:"",hidden:false,disabled:false,dataset:{},children:[],style:{setProperty(){}},setAttribute(){},appendChild(child){this.children.push(child);},remove(){},classList:{add(){},remove(){},toggle(){}},querySelector(){return element("kicker");},querySelectorAll(){return [];},before(){},after(){},blur(){},showModal(){this.open=true;},close(){this.open=false;},addEventListener(event,fn){(this.listeners ||= {})[event]=fn;}});return nodes.get(id);};
   const player=()=>({score:501,legs:0,totalScored:0,dartsThrown:0,currentLegDarts:0,firstNineScored:0,firstNineDarts:0,currentLegFirstNineScored:0,currentLegFirstNineDarts:0,highScore:0,checkoutHits:0,checkoutAttempts:0,highestOut:0,oneEightys:0,bullOuts:0,legDarts:[],lastScore:null});
   const state={players:[player(),player()],currentPlayer:0,winnerIndex:null,visitHistory:[],legJustWon:false};
   const els=new Proxy({names:[element("name0"),element("name1")]},{get:(o,k)=>o[k]||element(k)});
@@ -182,6 +182,7 @@ test("winning a new unlock celebrates the right bot once, without celebrating re
   g.ctx.openMolVictoryScreen();
   const dialog=g.ctx.document.getElementById("botUnlockedDialog");
   assert.equal(dialog.open,true);
+  assert.equal(dialog.children.filter(child=>child.className==="botUnlockSpark").length,42);
   assert.equal(g.ctx.document.getElementById("botUnlockedTitle").textContent,"You've unlocked Croft Bot!");
   assert.match(g.ctx.document.getElementById("botUnlockedDetail").textContent,/40–45 average/);
   assert.equal(g.ctx.document.getElementById("botUnlockedAvatar").src,"graphics/bots/croft-bot.png");

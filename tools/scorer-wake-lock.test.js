@@ -40,7 +40,7 @@ test("hidden pages stop polling and resume it when the game becomes visible",asy
   await new Promise(r=>setImmediate(r));assert.equal(g.intervals.size,1);assert.equal(g.locks.length,2);
 });
 test("announcement busy state includes queued clips, but not suppressed audio",()=>{
-  const ctx={dartAudioPlaying:false,dartAudioQueue:[],isDartAudioSuppressed:()=>false};vm.createContext(ctx);
+  const ctx={BOT_MODE:false,dartAudioPlaying:false,dartAudioQueue:[],isDartAudioSuppressed:()=>false};vm.createContext(ctx);
   vm.runInContext(source.slice(source.indexOf("function isDartCalloutBusy()"),source.indexOf("function playNextDartCallout()")),ctx);
   assert.equal(ctx.isDartCalloutBusy(),false);ctx.dartAudioPlaying=true;assert.equal(ctx.isDartCalloutBusy(),true);
   ctx.dartAudioPlaying=false;ctx.dartAudioQueue.push({});assert.equal(ctx.isDartCalloutBusy(),true);

@@ -25,7 +25,8 @@
   function launch(url,label) {
     if(!window.ONMBotLaunch){window.location.href=url;return;}
     $("completionDialog").close();$("botLaunchText").textContent=label;$("botLaunchSplash").hidden=false;
-    window.ONMBotLaunch.start(played=>{window.location.href=url+(played?"&intro=played":"");});
+    if(window.ONMBotLaunch.open)window.ONMBotLaunch.open(url);
+    else window.ONMBotLaunch.start(played=>{window.location.href=url+(played?"&intro=played":"");});
   }
   function playGame(level,format) {
     if (!canPlay(level,format)) return;

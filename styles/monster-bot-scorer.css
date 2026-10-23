@@ -22,3 +22,7 @@
 @media(max-width:600px){.monsterScorerAvatar{width:30px;height:36px}.monsterBotScorer .playerTop{height:36px;gap:5px}.monsterBotScorer #playerTwoCard .playerTop{grid-template-columns:9px 30px minmax(0,1fr) 28px}.monsterBotScorer .monsterBotNotice{font-size:11px}}
 .monsterBotSplash>button{padding:14px 24px;border:1px solid #e3c342;border-radius:10px;background:#ffd740;color:#151515;font:800 16px system-ui;cursor:pointer}.monsterBotSplash>button:disabled{opacity:.6}.monsterBotSplash>button[hidden],#monsterBotLoadingDots[hidden]{display:none!important}
 #botRestartGame[hidden]{display:none!important}
+.botUnlockedDialog{position:fixed;overflow:visible}
+.botUnlockSpark{position:absolute;left:50%;top:35%;width:7px;height:7px;border-radius:50%;background:var(--spark-color);pointer-events:none;opacity:0;animation:botUnlockBurst .95s ease-out var(--delay) both}
+@keyframes botUnlockBurst{0%{opacity:0;transform:translate(0,0) scale(.5)}15%{opacity:1}100%{opacity:0;transform:translate(var(--x),var(--y)) scale(.2)}}
+@media(prefers-reduced-motion:reduce){.botUnlockSpark{display:none}}

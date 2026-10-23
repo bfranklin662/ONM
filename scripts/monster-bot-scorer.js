@@ -33,7 +33,9 @@
     $("monsterBotSplash").hidden = true;
     document.body.classList.remove("monsterBotLoading");
     render();
-    if(params.get("intro")==="played") {
+    if(window.parent!==window && window.parent?.ONMBotLaunch?.ready(window)) {
+      // The gesture-authorised parent audio plays as the ready scorer is revealed.
+    } else if(params.get("intro")==="played") {
       // Consume the launch cue so a later refresh is treated as a fresh game.
       const url=new URL(window.location.href);url.searchParams.delete("intro");
       window.history?.replaceState(null,"",url.pathname+url.search+url.hash);
@@ -67,7 +69,21 @@
     $("botUnlockedAvatar").alt = `${unlocked.name} avatar`;
     $("botUnlockedDetail").textContent = `Level ${unlocked.level} · ${unlocked.average}–${unlocked.average + 5} average. ${casualMilestone?"Casual mode is now available from the dice icon: play any unlocked bot with your own leg target, without saving stats or earning awards.":"Your next Monster is ready."}`;
     $("botUnlockedDialog").showModal();
+    celebrateUnlock();
     if(casualMilestone&&user)window.ONMFirebase.ready.then(({db,firestoreSdk:sdk})=>sdk.updateDoc(sdk.doc(db,"users",user.uid),{monsterBotCasualNoticeSeen:true})).catch(()=>{});
+  }
+  function celebrateUnlock(){
+    const host=window.parent!==window?window.parent:window;
+    host?.ONMBotLaunch?.celebrate();
+    if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
+    const dialog=$("botUnlockedDialog");
+    for(let i=0;i<42;i++){
+      const spark=document.createElement("span");spark.className="botUnlockSpark";spark.setAttribute("aria-hidden","true");
+      const angle=Math.PI*2*i/14,distance=70+Math.random()*100;
+      spark.style.setProperty("--x",`${Math.cos(angle)*distance}px`);spark.style.setProperty("--y",`${Math.sin(angle)*distance}px`);
+      spark.style.setProperty("--delay",`${Math.floor(i/14)*.35}s`);spark.style.setProperty("--spark-color",["#ffd740","#67e0bd","#fff"][i%3]);
+      dialog.appendChild(spark);setTimeout(()=>spark.remove(),2000);
+    }
   }
   async function loadPlayerPhoto(account) {
     try {
@@ -215,13 +231,18 @@
     exited = true;
     active = false; clearTimeout(timer); timer = null;
     clearTimeout(lossVoiceTimer); window.speechSynthesis?.cancel();
-    window.location.href = casual?"monster-bot.html#casual":"monster-bot.html";
+    const destination=casual?"monster-bot.html#casual":"monster-bot.html";
+    window.parent?.ONMBotLaunch?.stop?.();
+    if(window.parent!==window&&window.parent?.ONMBotLaunch?.open)window.parent.location.href=destination;
+    else window.location.href=destination;
   }
   async function rematch() {
     if(!casual&&knownWins.has(key)&&E.validWinningScore(key,knownScores[key])&&knownScores[key].lost===0)return;
     active=false; exited=true; clearTimeout(timer); clearTimeout(lossVoiceTimer);
     window.speechSynthesis?.cancel();
     if(typeof fullyStopDartAudio==="function") fullyStopDartAudio();
+    const host=window.parent!==window&&window.parent?.ONMBotLaunch?.open?window.parent:window;
+    if(host.ONMBotLaunch?.open){host.ONMBotLaunch.open(gameUrl,saving);return;}
     let played=false;
     const intro=window.ONMBotLaunch?new Promise(resolve=>window.ONMBotLaunch.start(value=>{played=value;resolve();})):Promise.resolve();
     $("monsterBotLoadingText").textContent=`Restarting ${profile.name} · ${formatLabel}`;

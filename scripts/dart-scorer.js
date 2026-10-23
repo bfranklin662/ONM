@@ -1180,7 +1180,7 @@ function showDartVoiceToast(label) {
 
 
 function isDartCalloutBusy() {
-  return !isDartAudioSuppressed() && (dartAudioPlaying || dartAudioQueue.length > 0);
+  return !isDartAudioSuppressed() && (dartAudioPlaying || dartAudioQueue.length > 0 || (BOT_MODE && window.parent !== window && window.parent?.ONMBotLaunch?.isPlaying()));
 }
 
 function playNextDartCallout() {

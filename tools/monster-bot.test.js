@@ -136,6 +136,13 @@ test("Play uses the gesture-bound launch audio before navigating to the scorer",
   assert.equal(g.playButton(1,3),"");assert.equal(g.element("botLaunchSplash").hidden,false);
   finish(true);assert.equal(g.location.href,"dart-scorer.html?mode=bot&level=1&format=3&intro=played");
 });
+test("Play keeps gesture-authorised audio alive until the embedded scorer is ready",async()=>{
+  const opened=[];
+  const g=await gameHarness(new Map(),{uid:"member",launcher:{open:url=>opened.push(url),start:()=>assert.fail("Audio must not announce before loading")}});
+  g.playButton(1,3);
+  assert.deepEqual(opened,["dart-scorer.html?mode=bot&level=1&format=3"]);
+  assert.equal(g.location.href,"");assert.equal(g.element("botLaunchSplash").hidden,false);
+});
 test("leaderboard loads while account verification is pending and account timeout offers Retry",async()=>{
   const g=await gameHarness(new Map(),{authPending:true},async()=>({completions:{},leaderboard:[{name:"Public player",level:2,completed:2,flawless:1}]}));
   g.click("leaderboardTab");
