@@ -281,6 +281,14 @@ test("visitors see only the first two levels and all modes but cannot play", asy
   assert.equal(g.element("matchTitle").textContent,"");
   assert.equal(g.writes.length,0);
 });
+test("Bull or Bust explanation is only repeated on level one",async()=>{
+  const g=await gameHarness(new Map(),{uid:"test-member",seedWins:E.MODES.map(mode=>`1-${mode}`)});
+  g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"2",chooseMode:"9"}}:null}});
+  const html=g.element("botLevels").innerHTML;
+  assert.match(html,/id="bot-mode-rules-1"/);assert.doesNotMatch(html,/id="bot-mode-rules-2"/);
+  g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-community-key]"?{dataset:{communityKey:"2-9"}}:null}});
+  assert.equal(g.element("completionModeRules").hidden,true);
+});
 
 test("outstanding requirements stay visible and signing out stops play", async () => {
   const g = await gameHarness();

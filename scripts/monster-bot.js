@@ -99,7 +99,7 @@
     const parts = completionKey.split("-");
     const level = parts[0] === "level" ? Number(parts[1]) : Number(parts[0]);
     $("completionTitle").textContent = `${botName(level)} · ${parts[0] === "level" ? "All formats" : E.modeLabel(Number(parts[1]))}`;
-    $("completionModeRules").hidden = parts[0] === "level" || Number(parts[1]) !== E.BULL_MODE;
+    $("completionModeRules").hidden = level !== 1 || parts[0] === "level" || Number(parts[1]) !== E.BULL_MODE;
     $("completionModeRules").textContent = BULL_RULES;
     const ownScore = bestScores[completionKey], beaten = Boolean(user && progress.has(completionKey));
     const flawless = beaten && E.validWinningScore(completionKey,ownScore) && ownScore.lost === 0;
@@ -160,7 +160,7 @@
         ${modeResults(p.level,selectedMode)}
         <div class="botCardControls pillPlayControls"><input id="bot-mode-${p.level}" type="hidden" value="${selectedMode}">${!user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary ${replay ? "replayGame" : ""}" data-play-level="${p.level}" ${canPlay(p.level,selectedMode) ? "" : "disabled"}>${replay ? "Replay this game" : `Play ${p.name} · ${selectedMode===E.BULL_MODE ? "Bull or Bust" : `Best of ${selectedMode}`}`}</button>`}</div>
         ${selectedMode===E.BULL_MODE && !E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? '<p class="lockedHint">🔒 Beat BO1, BO3, BO5 and BO7 on this bot first to unlock Bull or Bust.</p>' : ""}
-        <p id="bot-mode-rules-${p.level}" class="bullModeRules" ${selectedMode === E.BULL_MODE ? "" : "hidden"}>${BULL_RULES}</p>
+        ${p.level === 1 ? `<p id="bot-mode-rules-${p.level}" class="bullModeRules" ${selectedMode === E.BULL_MODE ? "" : "hidden"}>${BULL_RULES}</p>` : ""}
         ${requirements(p.level)}</article>`;
     }).join("");
     complete = E.LEVELS.filter(p => E.MODES.every(mode => progress.has(`${p.level}-${mode}`))).length;
