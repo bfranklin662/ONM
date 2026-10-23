@@ -24,7 +24,7 @@
   function requirements(level) {
     const rows = [];
     if (level >= 3) {
-      const required = 6 + (level - 3) * 4;
+      const required = 5 + (level - 3) * 4;
       rows.push({ label: `Collect ${required} gold stars (${E.goldStars(progress,bestScores)}/${required})`, met: E.goldStars(progress,bestScores) >= required });
     }
     const won = (bot, modes) => modes.every(mode => progress.has(`${bot}-${mode}`));

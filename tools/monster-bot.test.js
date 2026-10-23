@@ -136,7 +136,7 @@ test("completed requirements remain ticked on locked bots and disappear after un
   const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
   const stored=new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(scores)]]);
   const locked=await gameHarness(stored);
-  assert.match(locked.element("botLevels").innerHTML,/<li class="met"><span aria-label="Met">✓<\/span> Collect 6 gold stars \(6\/6\)/);
+  assert.match(locked.element("botLevels").innerHTML,/<li class="met"><span aria-label="Met">✓<\/span> Collect 5 gold stars \(6\/5\)/);
   assert.match(locked.element("botLevels").innerHTML,/Beat Billy Bot in BO1, BO3, BO5 and BO7/);
   wins.push("2-3");stored.set("onm-monster-bot-test-member",JSON.stringify(wins));
   const unlocked=await gameHarness(stored);
@@ -485,24 +485,24 @@ test("levels 5–10 require valid flawless scores in all five formats four level
   const stored = new Map([["onm-monster-bot-test-member",JSON.stringify([...wins])]]);
   const g = await gameHarness(stored); g.start(5);
   assert.equal(g.element("matchTitle").textContent,"");
-  assert.match(g.element("botLevels").innerHTML,/Collect 6 gold stars \(0\/6\)/);
+  assert.match(g.element("botLevels").innerHTML,/Collect 5 gold stars \(0\/5\)/);
   const scores = Object.fromEntries(E.MODES.map(mode => [`1-${mode}`,{won:E.legsNeeded(mode),lost:0}]));
   for (const key of [...wins].slice(0,14)) scores[key] = {won:E.legsNeeded(Number(key.split("-")[1])),lost:0};
   stored.set("onm-monster-bot-test-member-scores",JSON.stringify(scores));
   const reloaded = await gameHarness(stored); reloaded.start(5);
   assert.equal(reloaded.element("matchTitle").textContent,"You vs Nick Bot");
 });
-test("Nick Bot requires 14 unique flawless challenges as well as existing requirements", () => {
+test("Nick Bot requires 13 unique flawless challenges as well as existing requirements", () => {
   const keys = E.LEVELS.slice(0,4).flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`));
   const wins = new Set(keys), scores = {};
-  for (const key of keys.slice(0,13)) scores[key] = {won:E.legsNeeded(Number(key.split("-")[1])),lost:0};
-  assert.equal(E.goldStars(wins,scores),13);
+  for (const key of keys.slice(0,12)) scores[key] = {won:E.legsNeeded(Number(key.split("-")[1])),lost:0};
+  assert.equal(E.goldStars(wins,scores),12);
   assert.equal(E.isUnlocked(5,wins,scores),false);
-  scores[keys[13]] = {won:E.legsNeeded(Number(keys[13].split("-")[1])),lost:0};
-  assert.equal(E.goldStars(wins,scores),14);
+  scores[keys[12]] = {won:E.legsNeeded(Number(keys[12].split("-")[1])),lost:0};
+  assert.equal(E.goldStars(wins,scores),13);
   assert.equal(E.isUnlocked(5,wins,scores),true);
   scores["99-1"] = {won:1,lost:0};
-  assert.equal(E.goldStars(wins,scores),14);
+  assert.equal(E.goldStars(wins,scores),13);
   wins.delete("1-9");
   assert.equal(E.isUnlocked(5,wins,scores),false);
 });
@@ -510,7 +510,7 @@ test("levels three to ten enforce their gold-star threshold on game and leaderbo
   const {buildLeaderboard} = require("../functions/bot-completions");
   const keys = E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)), wins = new Set(keys);
   for (let level=3;level<=10;level++) {
-    const required = 10+(level-4)*4;
+    const required = 5+(level-3)*4;
     const scores = Object.fromEntries(keys.slice(0,required-1).map(key => [key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
     const account = {id:"stars",monsterBotWins:keys,monsterBotBestScores:scores};
     assert.equal(E.isUnlocked(level,wins,scores),false);
