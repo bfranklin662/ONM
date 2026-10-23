@@ -38,19 +38,15 @@
     if (E.isUnlocked(level,progress,bestScores)) return "";
     return rows.length ? `<div class="unlockRequirements"><h4>Requirements to play</h4><ul>${rows.map(row => `<li class="${row.met ? "met" : ""}"><span aria-label="${row.met ? "Met" : "Not met"}">${row.met ? "✓" : "○"}</span> ${row.label}</li>`).join("")}</ul></div>` : "";
   }
-  function modeChip(level, mode) {
+  function modeChip(level, mode, selectedMode) {
     const key = `${level}-${mode}`, won = progress.has(key), score = bestScores[key];
-    const flawless = won && score?.lost === 0;
-    return communityButton(key, `${won ? "✓" : "○"} ${E.modeLabel(mode)}`, flawless ? "gold" : won ? "won" : "");
+    const flawless = won && E.validWinningScore(key,score) && score.lost === 0;
+    return `<button type="button" class="modePill ${flawless ? "gold" : won ? "won" : ""}" data-choose-level="${level}" data-choose-mode="${mode}" aria-pressed="${mode===selectedMode}" aria-label="${E.modeLabel(mode)}, ${flawless ? "flawless win" : won ? "beaten" : "not beaten"}"><span>${E.modeLabel(mode)}</span><span class="modePillMark" aria-hidden="true">${flawless ? "★" : won ? "✓" : "○"}</span></button>`;
   }
-  function completionTick(level,mode) {
-    const key = `${level}-${mode}`;
-    if (!progress.has(key)) return "";
-    const flawless = E.validWinningScore(key,bestScores[key]) && bestScores[key].lost === 0;
-    return `<span class="modeCompletionTick ${flawless ? "gold" : "won"}" aria-label="${flawless ? "Flawless win" : "Beaten"}">✓</span>`;
-  }
-  function modePicker(level,selectedMode) {
-    return `<div class="modePickerField"><input id="bot-mode-${level}" type="hidden" value="${selectedMode}"><details class="modePicker" name="monster-mode-picker" data-picker-level="${level}"><summary aria-label="Match length for ${botName(level)}"><span>${E.modeLabel(selectedMode)}</span><span class="modePickerEnd"><span class="modeChevron" aria-hidden="true">⌄</span>${completionTick(level,selectedMode)}</span></summary><div class="modeOptions" role="group" aria-label="Match formats for ${botName(level)}">${E.MODES.map(mode=>`<button type="button" data-choose-level="${level}" data-choose-mode="${mode}" aria-pressed="${selectedMode===mode}" ${E.isFormatUnlocked(level,mode,progress) ? "" : "disabled"}><span>${E.modeLabel(mode)}</span>${E.isFormatUnlocked(level,mode,progress) ? completionTick(level,mode) : '<span aria-label="Locked">🔒</span>'}</button>`).join("")}</div></details></div>`;
+  function modeResults(level,mode) {
+    const key = `${level}-${mode}`, count = community ? (community[key] || []).length : null;
+    const label = count === null ? (communityError ? "Results unavailable" : "Loading results…") : `${count} ${count === 1 ? "player has" : "players have"} beaten this`;
+    return `<div class="selectedModeResults"><span>${label}</span><button type="button" class="modeResultsLink" data-community-key="${key}" aria-label="View players and scores for ${botName(level)} ${E.modeLabel(mode)}" title="View players and scores"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h12v14H8M4 8l4 4-4 4M8 12h8"/></svg></button></div>`;
   }
   function readScores(key) {
     try { return Object.fromEntries(Object.entries(JSON.parse(localStorage.getItem(key) || "{}")).filter(([k,v]) => E.validWinningScore(k,v))); } catch { return {}; }
@@ -145,9 +141,10 @@
       const avatar = botAvatar(p.level) ? `<img class="botAvatar" src="${botAvatar(p.level)}" alt="${p.name} cartoon avatar">` : "";
       return `<article class="botLevel ${gold ? "complete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}">
         <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><div class="completionMedals"><span class="${wins.length ? "won beatenCount" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span>${wins.length ? `<span class="gold flawlessCount">★ Flawless ${flawless}/${E.MODES.length}</span>` : ""}</div></div><span class="levelStats">${p.average}–${p.average + 5} average</span></div></div>
-        <div class="modeMarks">${E.MODES.map(mode => modeChip(p.level, mode)).join("")}</div>
-        <div class="botCardControls"><span class="modePickerLabel">Match length</span>${modePicker(p.level,selectedMode)}${!ready ? '<button type="button" class="primary" disabled>Loading account…</button>' : !user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${unlocked ? "" : "disabled"}>Play ${p.name}</button>`}</div>
-        ${E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? "" : '<p class="lockedHint">🔒 Bull or Bust: beat BO1, BO3, BO5 and BO7 on this bot first.</p>'}
+        <div class="modeMarks" role="group" aria-label="Match formats for ${p.name}">${E.MODES.map(mode => modeChip(p.level, mode, selectedMode)).join("")}</div>
+        ${modeResults(p.level,selectedMode)}
+        <div class="botCardControls pillPlayControls"><input id="bot-mode-${p.level}" type="hidden" value="${selectedMode}">${!user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${canPlay(p.level,selectedMode) ? "" : "disabled"}>Play ${p.name} · ${selectedMode===E.BULL_MODE ? "Bull or Bust" : `Best of ${selectedMode}`}</button>`}</div>
+        ${selectedMode===E.BULL_MODE && !E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? '<p class="lockedHint">🔒 Beat BO1, BO3, BO5 and BO7 on this bot first to unlock Bull or Bust.</p>' : ""}
         <p id="bot-mode-rules-${p.level}" class="bullModeRules" ${selectedMode === E.BULL_MODE ? "" : "hidden"}>${BULL_RULES}</p>
         ${requirements(p.level)}</article>`;
     }).join("");
@@ -329,9 +326,9 @@
     const choice = event.target.closest("[data-choose-mode]");
     if (choice) {
       const level = Number(choice.dataset.chooseLevel), mode = Number(choice.dataset.chooseMode);
-      if (!E.isFormatUnlocked(level,mode,progress)) return;
+      if (!E.MODES.includes(mode)) return;
       modes.set(level,mode); renderLevels();
-      $("bot-level-"+level)?.querySelector?.("summary")?.focus();
+      $("bot-level-"+level)?.querySelector?.(`[data-choose-mode="${mode}"]`)?.focus();
       return;
     }
     const completion = event.target.closest("[data-community-key]");

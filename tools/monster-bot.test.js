@@ -173,31 +173,46 @@ test("completion modal highlights the player's own result independently of commu
     assert.equal(g.element("saveStatus").hidden,true);
   }
 });
-test("mode picker selects the next unbeaten format but ticks completed formats only",async()=>{
+test("mode pills select the next unbeaten format and have no completion counts or dropdown",async()=>{
   for (let count=0;count<=E.MODES.length;count++) {
     const wins=E.MODES.slice(0,count).map(mode=>`1-${mode}`);
     const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)]]));
     const html=g.element("botLevels").innerHTML;
-    const picker=html.match(/<details class="modePicker"[^>]*data-picker-level="1">(.*?)<\/details>/)[1];
+    const picker=html.split('id="bot-level-1"')[1].match(/<div class="modeMarks"[^>]*>(.*?)<\/div>/)[1];
     const next=E.MODES[count]||E.MODES[0];
     assert.match(html,new RegExp(`id="bot-mode-1" type="hidden" value="${next}"`));
     assert.match(picker,new RegExp(`data-choose-mode="${next}" aria-pressed="true"`));
-    if(count<4) assert.match(picker,/data-choose-mode="9"[^>]*disabled/);
+    assert.doesNotMatch(picker,/<b>|data-community-key|<details|<select/);
+    assert.doesNotMatch(html,/Match length|class="modePicker"/);
     if(count===4) assert.match(g.element("botLevels").innerHTML,/<p id="bot-mode-rules-1" class="bullModeRules" >Bull or Bust/);
-    const options=picker.split('<div class="modeOptions"')[1];
-    assert.equal((options.match(/class="modeCompletionTick won"/g)||[]).length,count);
-    if(count<5) assert.doesNotMatch(picker.match(/<summary[^>]*>(.*?)<\/summary>/)[1],/modeCompletionTick/);
+    assert.equal((picker.match(/class="modePill won"/g)||[]).length,count);
   }
 });
 test("mode completion ticks distinguish wins from flawless wins, never selection",async()=>{
   const stored=new Map([["onm-monster-bot-test-member",JSON.stringify(["1-1","1-3"])],["onm-monster-bot-test-member-scores",JSON.stringify({"1-1":{won:1,lost:0},"1-3":{won:2,lost:1}})]]);
   const g=await gameHarness(stored);
-  const picker=g.element("botLevels").innerHTML.match(/<details class="modePicker"[^>]*data-picker-level="1">(.*?)<\/details>/)[1];
-  assert.match(picker,/data-choose-mode="1"[^>]*><span>BO1<\/span><span class="modeCompletionTick gold"/);
-  assert.match(picker,/data-choose-mode="3"[^>]*><span>BO3<\/span><span class="modeCompletionTick won"/);
-  assert.match(picker,/data-choose-mode="5" aria-pressed="true"[^>]*><span>BO5<\/span><\/button>/);
+  const picker=g.element("botLevels").innerHTML.split('id="bot-level-1"')[1].match(/<div class="modeMarks"[^>]*>(.*?)<\/div>/)[1];
+  assert.match(picker,/class="modePill gold"[^>]*data-choose-mode="1"[^>]*><span>BO1<\/span><span[^>]*>★/);
+  assert.match(picker,/class="modePill won"[^>]*data-choose-mode="3"[^>]*><span>BO3<\/span><span[^>]*>✓/);
+  assert.match(picker,/data-choose-mode="5" aria-pressed="true"[^>]*><span>BO5<\/span><span[^>]*>○/);
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:"3"}}:null}});
   assert.match(g.element("botLevels").innerHTML,/id="bot-mode-1" type="hidden" value="3"/);
+});
+test("selecting a pill updates Play, selected-mode results and contextual Bull rules",async()=>{
+  const g=await gameHarness(new Map(),{uid:"test-member"},async()=>({completions:{"1-1":[{},{},{},{}],"1-3":[{}]},leaderboard:[]}));
+  const choose=mode=>g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:String(mode)}}:null}});
+  assert.match(g.element("botLevels").innerHTML,/Play Billy Bot · Best of 1/);
+  assert.match(g.element("botLevels").innerHTML,/4 players have beaten this/);
+  choose(3);
+  assert.match(g.element("botLevels").innerHTML,/Play Billy Bot · Best of 3/);
+  assert.match(g.element("botLevels").innerHTML,/1 player has beaten this/);
+  assert.match(g.element("botLevels").innerHTML,/data-community-key="1-3"/);
+  choose(9);
+  assert.match(g.element("botLevels").innerHTML,/disabled>Play Billy Bot · Bull or Bust/);
+  assert.match(g.element("botLevels").innerHTML,/<p id="bot-mode-rules-1" class="bullModeRules" >Bull or Bust/);
+  choose(1);
+  assert.match(g.element("botLevels").innerHTML,/<p id="bot-mode-rules-1" class="bullModeRules" hidden>/);
+  assert.doesNotMatch(g.element("botLevels").innerHTML,/class="lockedHint"/);
 });
 
 test("visitors see only the first two levels and all modes but cannot play", async () => {
