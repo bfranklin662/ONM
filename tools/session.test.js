@@ -25,3 +25,9 @@ test("failed or mismatched auth verification does not trust a stale cache",async
   assert.equal(await harness(null,true).session.init(),null);
   assert.equal(await harness({uid:"someone-else"}).session.check(),null);
 });
+test("embedded bot scorers reuse the authenticated same-origin Firebase client",()=>{
+  const firebase={firebasePrimary:true,ready:Promise.resolve({}),currentFirebaseUser:async()=>({uid:"member"})};
+  const ctx={URLSearchParams,window:{location:{origin:"https://example.test",search:"?mode=bot"},parent:{location:{origin:"https://example.test"},ONMFirebase:firebase}}};
+  vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/firebase-client.js"),"utf8"),ctx);
+  assert.equal(ctx.window.ONMFirebase,firebase);
+});

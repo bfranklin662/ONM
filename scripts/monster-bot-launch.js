@@ -63,6 +63,7 @@
   }
   function close(){++generation;opening=false;announcedSource=null;stop();frame?.remove();frame=null;document.body.style.overflow="";}
   function stop(){if(audio){audio.pause();audio.loop=false;}}
+  function resetAnnouncement(source){if(frame?.contentWindow===source){stop();announcedSource=null;}}
   function start(done){
     if(busy)return;
     if(!audio){done(false);return;}
@@ -80,5 +81,5 @@
     // This call must stay synchronous inside the user's Play/Restart click.
     try{audio.play()?.catch(()=>finish(false));}catch{finish(false);}
   }
-  root.ONMBotLaunch={start,open,ready,celebrate,stop,close,isPlaying:()=>Boolean(audio&&!audio.paused&&audio.src.endsWith("game-on.mp3"))};
+  root.ONMBotLaunch={start,open,ready,celebrate,stop,close,resetAnnouncement,isPlaying:()=>Boolean(audio&&!audio.paused&&audio.src.endsWith("game-on.mp3"))};
 })(typeof window!=="undefined"?window:globalThis);

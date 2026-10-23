@@ -1,6 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { buildCompletions, buildLeaderboard } = require("./bot-completions");
+test("completion rows include only public photo and nationality alongside results",()=>{
+  const rows=buildCompletions([{id:"private",firstName:"Nick",email:"secret@example.test",linkedPlayerKey:"nick",monsterBotWins:["1-3"],monsterBotBestScores:{"1-3":{won:2,lost:0}}}],new Map([["nick",{publicName:"Nick",photoUrl:"https://example.test/nick.jpg",nationality:"Australia"}]]));
+  assert.equal(rows["1-3"][0].photoUrl,"https://example.test/nick.jpg");assert.equal(rows["1-3"][0].flag,"🇦🇺");
+  assert.equal(JSON.stringify(rows).includes("secret@example.test"),false);
+});
 test("leaderboard publishes profile photo and nationality without private account fields",()=>{
   const users=[{id:"private",firstName:"Nick",email:"private@example.test",nationality:"Australia",photoUrl:"https://example.test/account.jpg",linkedPlayerKey:"nick",monsterBotStarted:true}];
   const profiles=new Map([["nick",{publicName:"Nick",nationality:"England",photoUrl:"https://example.test/public.jpg"}]]);

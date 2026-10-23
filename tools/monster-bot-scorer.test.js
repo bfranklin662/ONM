@@ -15,7 +15,7 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
     document:{body:{classList:{add(){},remove(){}}},getElementById:element,createElement:()=>element(`created${nodes.size}`),querySelector:()=>bullSelected?{dataset:{value:"Yes"}}:null},
     localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},
     setTimeout:(fn,delay)=>{const id=++nextTimer;timers.set(id,{fn,delay});return id;},clearTimeout:id=>timers.delete(id),Date,
-    enterScorerFullscreen(){ctx.fullscreen=true;},syncMainViews(){},applyMatchSettings(settings){ctx.STARTING_SCORE=settings.startScore;ctx.targetLegs=settings.gameType==="firstTo"?settings.legsCount:Math.floor(settings.legsCount/2)+1;ctx.LEGS_TO_WIN=ctx.targetLegs;for(const p of state.players)p.score=settings.startScore;},newGame(){},setVisiblePlayerNames:(a,b)=>{els.names[0].value=a;els.names[1].value=b;},
+    enterScorerFullscreen(){ctx.fullscreen=true;},syncMainViews(){},applyMatchSettings(settings){ctx.STARTING_SCORE=settings.startScore;ctx.targetLegs=settings.gameType==="firstTo"?settings.legsCount:Math.floor(settings.legsCount/2)+1;ctx.LEGS_TO_WIN=ctx.targetLegs;for(const p of state.players)p.score=settings.startScore;},newGame(){state.players=[player(),player()];for(const p of state.players)p.score=ctx.STARTING_SCORE;state.visitHistory=[];state.legJustWon=false;},setVisiblePlayerNames:(a,b)=>{els.names[0].value=a;els.names[1].value=b;},
     render:()=>ctx.window.ONMMonsterScorer?.onRender(),switchPlayer(){state.currentPlayer=state.currentPlayer===0?1:0;},updateLegTarget(){ctx.LEGS_TO_WIN=ctx.targetLegs||E.legsNeeded(format);},resetLeg(){for(const p of state.players){p.score=ctx.STARTING_SCORE;p.currentLegDarts=0;}},
     isDartCalloutBusy:()=>Boolean(ctx.audioBusy),launchFireworks(){},announceLegWon(){},announceDartVisit(){},announceRequiredScore:score=>{ctx.requiredCalls.push(score);},requiredCalls:[],shouldPlayFinishHim:()=>false,playDartCallout:(file,fallback,onBlocked,onReady)=>{ctx.callouts.push({file,onBlocked});if(ctx.audioBlocked)onBlocked?.();else onReady?.(true);},callouts:[],audioBlocked,
     showImpossibleMessage:message=>{ctx.error=message;},getBullOutPromptConfig:()=>({bullOutOptions:["No","Yes"],bullOutDefault:"No"}),
@@ -271,11 +271,23 @@ test("losses announce You lose once where speech is supported and offer Restart"
   g.state.players[0].score=50;g.score(0);g.api.afterVisit();
   assert.deepEqual(spoken,["You lose"]);assert.equal(g.els.molVictoryRematchBtn.textContent,"Restart");
 });
-test("Restart from the quit menu cancels the pending bot throw and reloads the same game",async()=>{
+test("Restart keeps the authenticated scorer and cancels the previous bot throw",async()=>{
   const g=await harness();g.score(60);
   assert.equal(g.ctx.document.getElementById("botRestartGame").hidden,false);
   await g.ctx.document.getElementById("botRestartGame").listeners.click();g.bot();
-  assert.equal(g.ctx.reloaded,true);assert.equal(g.state.players[1].score,501);
+  assert.notEqual(g.ctx.reloaded,true);assert.equal(g.ctx.window.location.href,"");assert.equal(g.state.players[1].score,501);
+  assert.equal(g.state.players[0].score,501);assert.equal(g.api.canPlay(),true);assert.equal(g.state.visitHistory.length,0);
+});
+test("Venton can be retried repeatedly without navigation or another sign-in check",async()=>{
+  const g=await harness({level:3});let announcements=0;
+  g.ctx.window.ONMFirebase.currentFirebaseUser=()=>assert.fail("Retry must retain the existing authenticated client");
+  g.ctx.window.parent={ONMBotLaunch:{open:()=>assert.fail("Retry must not rebuild the iframe"),resetAnnouncement:()=>announcements++,ready:()=>true}};
+  for(let retry=0;retry<2;retry++){
+    g.score(60);await g.api.rematch();g.bot();
+    assert.equal(g.state.players[0].score,501);assert.equal(g.state.players[1].score,501);assert.equal(g.api.canPlay(),true);
+    assert.equal(g.ctx.window.location.href,"");
+  }
+  assert.equal(announcements,2);
 });
 test("sign-out and quitting cancel a pending bot throw; guests must log in with a return URL",async()=>{
   const g=await harness();g.score(60);g.signOut();g.bot();assert.equal(g.state.players[1].score,501);assert.equal(g.ctx.window.location.href,"monster-bot.html");

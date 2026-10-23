@@ -1,6 +1,16 @@
 (function () {
   "use strict";
 
+  // Embedded bot games share the already-initialised, authenticated site client.
+  // Rebuilding another Auth instance on every retry needlessly restores a session.
+  try {
+    if(window.parent!==window && window.parent.location.origin===window.location.origin &&
+       new URLSearchParams(window.location.search).get("mode")==="bot" && window.parent.ONMFirebase?.firebasePrimary){
+      window.ONMFirebase=window.parent.ONMFirebase;
+      return;
+    }
+  } catch { /* Standalone and cross-origin pages use their own client below. */ }
+
   const VERSION = "10.12.5";
   const BASE = `https://www.gstatic.com/firebasejs/${VERSION}`;
   // Keep the live site on Apps Script until Firebase services and data have

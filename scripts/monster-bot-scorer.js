@@ -14,7 +14,7 @@
   let playerPhoto = "graphics/logoWoText.png";
   let knownWins = new Set(), knownScores = {};
   let undoFrame = null, replayVisit = null;
-  let initialized = false, exited = false;
+  let initialized = false, exited = false, restarting=false;
   let lossAnnounced = false, lossVoiceTimer = null;
   const ONE_SHOT_LOSS = "You can't intentionally bust your checkout to return to a score of 50 or more. This is one-shot Bull or Bust — better luck next time!";
   function announceLoss() {
@@ -221,18 +221,23 @@
   }
   async function rematch() {
     if(!casual&&knownWins.has(key)&&E.validWinningScore(key,knownScores[key])&&knownScores[key].lost===0)return;
-    active=false; exited=true; clearTimeout(timer); clearTimeout(lossVoiceTimer);
+    if(!initialized||exited||restarting)return;
+    restarting=true;active=false;clearTimeout(timer); clearTimeout(lossVoiceTimer);
     window.speechSynthesis?.cancel();
-    if(typeof fullyStopDartAudio==="function") fullyStopDartAudio();
-    const host=window.parent!==window&&window.parent?.ONMBotLaunch?.open?window.parent:window;
-    if(host.ONMBotLaunch?.open){host.ONMBotLaunch.open(gameUrl,saving);return;}
-    let played=false;
-    const intro=window.ONMBotLaunch?new Promise(resolve=>window.ONMBotLaunch.start(value=>{played=value;resolve();})):Promise.resolve();
+    if(typeof clearDartAudioQueue==="function")clearDartAudioQueue();
     $("monsterBotLoadingText").textContent=`Restarting ${profile.name} · ${formatLabel}`;
     $("monsterBotSplash").hidden=false;
-    await Promise.all([intro,saving]);
-    if(played)window.location.href=gameUrl+"&intro=played";
-    else window.location.reload();
+    await saving;
+    restarting=false;if(exited)return;
+    undoFrame=null;replayVisit=null;recorded=false;resultMessage="";saving=null;lossAnnounced=false;
+    closeCheckoutPrompt();newGame();state.winnerIndex=null;state.currentPlayer=0;
+    els.molVictoryOverlay.classList.add("hidden");els.molVictoryOverlay.setAttribute?.("aria-hidden","true");
+    els.quitConfirmOverlay.classList.add("hidden");els.quitConfirmOverlay.setAttribute?.("aria-hidden","true");
+    exited=false;syncMainViews("game");render();
+    // Keep the same authenticated scorer and frame. A retry is a new game,
+    // not a fresh page load or a second Firebase sign-in restoration.
+    window.parent?.ONMBotLaunch?.resetAnnouncement?.(window);
+    startWithAudio();
   }
   async function init() {
     document.body.classList.add("monsterBotScorer");
@@ -244,7 +249,10 @@
     try {
       user = await window.ONMBotData.withTimeout(window.ONMFirebase.currentFirebaseUser());
       if (!user) {
-        window.location.href = `auth.html?mode=login&redirect=${encodeURIComponent(gameUrl)}`; return;
+        const url=`auth.html?mode=login&redirect=${encodeURIComponent(gameUrl)}`;
+        if(window.parent!==window&&window.parent?.ONMMonsterLadder)window.parent.location.href=url;
+        else window.location.href=url;
+        return;
       }
       const {db,firestoreSdk:sdk} = await window.ONMBotData.withTimeout(window.ONMFirebase.ready);
       const local = localProgress(user.uid), scores = {...local.scores}, wins = new Set(local.wins);

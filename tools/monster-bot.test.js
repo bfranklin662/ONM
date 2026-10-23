@@ -113,12 +113,20 @@ test("leaderboard displays photo, player name and nationality flag in order",asy
   assert.ok(html.indexOf("<span>Nick</span>")<html.indexOf("🇦🇺"));
   assert.match(html,/aria-label="Australia"/);
 });
+test("completion modal shows photo, name, flag and right-aligned award without others' scores",async()=>{
+  const g=await gameHarness(new Map(),null,async()=>({completions:{"1-3":[{name:"Nick",photoUrl:"https://example.test/nick.jpg",flag:"🇦🇺",nationality:"Australia",results:[{mode:3,won:2,lost:0,flawless:true}]},{name:"Alex",results:[{mode:3,won:2,lost:1,flawless:false}]}]},leaderboard:[]}));
+  g.element("botLevels").listeners.click({target:{closest:selector=>selector==="[data-community-key]"?{dataset:{communityKey:"1-3"}}:null}});
+  const html=g.element("completionNames").innerHTML;
+  assert.ok(html.indexOf("nick.jpg")<html.indexOf("<strong>Nick</strong>"));assert.ok(html.indexOf("<strong>Nick</strong>")<html.indexOf("🇦🇺"));
+  assert.match(html,/completionAward gold/);assert.match(html,/completionAward won/);assert.doesNotMatch(html,/2–0|2–1|Score not recorded/);
+});
 test("player summary shows identity, beaten and flawless totals and completion percentage",async()=>{
   const wins=["1-1","1-3","1-5","1-7","1-9","2-1","2-3"];
   const scores=Object.fromEntries(wins.slice(0,3).map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
   const g=await gameHarness(new Map(),{uid:"member",seedWins:wins,seedScores:scores,profile:{firstName:"Nick",photoUrl:"https://example.test/nick.jpg"}});
   assert.equal(g.element("playerSummary").hidden,false);
   assert.equal(g.element("playerSummaryName").textContent,"Nick");
+  assert.equal(g.element("playerSummaryLevel").textContent,`Level ${E.highestUnlocked(new Set(wins),scores)} unlocked`);
   assert.equal(g.element("playerSummaryPhoto").src,"https://example.test/nick.jpg");
   assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Beaten 7/50");
   assert.equal(g.element("playerSummaryFlawless").textContent,"★ Flawless 3/50");
@@ -341,7 +349,7 @@ test("visitors see only the first two levels and all modes but cannot play", asy
   const stored = new Map([["onm-monster-bot-guest",JSON.stringify(["1-1","1-3"])]]);
   const g = await gameHarness(stored,null);
   const html = g.element("botLevels").innerHTML;
-  assert.equal((html.match(/Sign up to play/g)||[]).length,2);
+  assert.equal((html.match(/Sign up to play/g)||[]).length,1);
   assert.equal((html.match(/Requirements to play/g)||[]).length,1);
   assert.doesNotMatch(html,/Filip Bot/); assert.match(html,/Bull or Bust/);
   assert.match(html,/auth.html\?mode=register/);
@@ -371,7 +379,7 @@ test("outstanding requirements stay visible and signing out stops play", async (
   await g.signOut(); g.bot(); g.score(180); g.start();
   assert.equal(g.element("matchPanel").hidden,true);
   assert.equal(g.element("challengeSetup").hidden,false);
-  assert.equal((g.element("botLevels").innerHTML.match(/Sign up to play/g)||[]).length,2);
+  assert.equal((g.element("botLevels").innerHTML.match(/Sign up to play/g)||[]).length,1);
   assert.equal(g.writes.filter(w => w.data.monsterBotWins).length,0);
 });
 

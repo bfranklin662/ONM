@@ -36,7 +36,7 @@ function buildCompletions(users, profiles) {
         const score = user.monsterBotBestScores?.[win];
         const valid = score?.won === needed && Number.isInteger(score.lost) && score.lost >= 0 && score.lost < needed;
         for (const groupKey of [win, `level-${win.split("-")[0]}`]) {
-          const row = groups.get(groupKey).get(identity) || { name, results: [] };
+          const row = groups.get(groupKey).get(identity) || { name, ...publicIdentity(user,profile), results: [] };
           const previous = row.results.find(r => r.mode === mode);
           const result = { mode, won: valid ? score.won : null, lost: valid ? score.lost : null, flawless: valid && score.lost === 0 };
           if (!previous) row.results.push(result);

@@ -63,6 +63,7 @@
     if (!ready || !user) return;
     const firstName = playerProfile.firstName || user.displayName?.split(" ")[0] || "Player";
     $("playerSummaryName").textContent = firstName;
+    $("playerSummaryLevel").textContent=`Level ${E.highestUnlocked(progress,bestScores)} unlocked`;
     $("playerSummaryPhoto").src = leaderboardPhoto({photoUrl:playerProfile.photoUrl,name:playerProfile.linkedPlayerName || firstName});
     $("playerSummaryBeaten").textContent = `✓ Beaten ${progress.size}/50`;
     $("playerSummaryFlawless").textContent = `★ Flawless ${E.goldStars(progress,bestScores)}/50`;
@@ -160,7 +161,11 @@
     $("completionYourResult").textContent = beaten ? `${flawless ? "★ Flawless win" : "✓ You've beaten this challenge"}${E.validWinningScore(completionKey,ownScore) ? ` · ${ownScore.won}–${ownScore.lost}` : ""}` : "";
     const names = community?.[completionKey] || [];
     $("completionStatus").textContent = community ? `${names.length} ${names.length === 1 ? "player has" : "players have"} won${names.length ? ":" : " this challenge yet."}` : communityError ? "Completion counts could not be loaded. Please retry." : "Loading completions…";
-    $("completionNames").innerHTML = names.map(row => typeof row === "string" ? `<li>${escape(row)}<small>Score not recorded</small></li>` : `<li><strong>${escape(row.name)}</strong><div class="completionScores">${row.results.map(result => `<span class="${result.flawless ? "gold" : "won"}">${E.modeLabel(result.mode)}: ${result.won === null ? "Score not recorded" : `${result.won}–${result.lost}${result.flawless ? " · Flawless ✓" : " ✓"}`}</span>`).join("")}</div></li>`).join("");
+    $("completionNames").innerHTML = names.map(value=>{
+      const row=typeof value==="string"?{name:value,results:[]}:value;
+      const results=row.results||[],gold=parts[0]==="level"?E.MODES.every(mode=>results.some(result=>result.mode===mode&&result.flawless)):results.some(result=>result.flawless);
+      return `<li class="completionPlayerRow"><span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(leaderboardPhoto(row))}" alt="" loading="lazy" referrerpolicy="no-referrer"><strong>${escape(row.name)}</strong>${row.flag?`<span class="botLeaderboardFlag" role="img" aria-label="${escape(row.nationality||"Nationality")}">${escape(row.flag)}</span>`:""}</span><span class="completionAward ${gold?"gold":"won"}" aria-label="${gold?"Flawless win":"Beaten"}">${gold?"★":"✓"}</span></li>`;
+    }).join("");
     $("retryCompletions").hidden = !communityError;
     const formats = parts[0] === "level" ? E.MODES : [Number(parts[1])];
     $("completionActions").innerHTML = formats.map(format => `<button type="button" class="primary" data-completion-level="${level}" data-completion-format="${format}" ${canPlay(level,format) ? "" : "disabled"}>Play ${E.modeLabel(format)}${E.isFormatUnlocked(level,format,progress) ? "" : " 🔒"}</button>`).join("");
@@ -207,7 +212,7 @@
       const beaten = wins.length === E.MODES.length;
       const gold = flawless === E.MODES.length;
       const unlocked = E.isUnlocked(p.level, progress, bestScores);
-      if (!unlocked) return `<article class="botLevel locked mysteryBot" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}"><div class="mysteryPreview" aria-hidden="true"><img src="${botAvatar(p.level)}" alt=""><div>?????<br>Monster Bot</div></div><div class="mysteryLock"><span aria-hidden="true">🔒</span><h3 id="bot-title-${p.level}">Level ${p.level} · Mystery Bot</h3><p>Unlock this level to reveal your opponent.</p></div>${requirements(p.level)}${!user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : ""}</article>`;
+      if (!unlocked) return `<article class="botLevel locked mysteryBot" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}"><div class="mysteryPreview" aria-hidden="true"><img src="${botAvatar(p.level)}" alt=""><div>?????<br>Monster Bot</div></div><div class="mysteryLock"><span aria-hidden="true">🔒</span><h3 id="bot-title-${p.level}">Level ${p.level} · Mystery Bot</h3><p>Unlock this level to reveal your opponent.</p></div>${requirements(p.level)}</article>`;
       if (gold) complete++;
       const avatar = botAvatar(p.level) ? `<img class="botAvatar" src="${botAvatar(p.level)}" alt="${p.name} cartoon avatar">` : "";
       return `<article class="botLevel ${gold ? "complete flawlessComplete" : beaten ? "beatenComplete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}">
@@ -479,13 +484,13 @@
   $("playerSummaryPhoto").addEventListener("error",()=>{
     if($("playerSummaryPhoto").getAttribute("src")!=="graphics/logoWoText.png") $("playerSummaryPhoto").src="graphics/logoWoText.png";
   });
-  $("leaderboardRows").addEventListener("error",event=>{
+  [$("leaderboardRows"),$("completionNames")].forEach(container=>container.addEventListener("error",event=>{
     if(event.target.classList?.contains("botLeaderboardPhoto") && event.target.getAttribute("src")!=="graphics/logoWoText.png") event.target.src="graphics/logoWoText.png";
-  },true);
+  },true));
   $("retryAccount").addEventListener("click", () => loadProgress());
   window.addEventListener("beforeunload", event => { if (match && !match.ended) { event.preventDefault(); event.returnValue = ""; } });
   loadCommunity();
-  if(typeof fetch==="function") fetch("data/player-photo-map.json").then(response=>response.ok?response.json():{}).then(photos=>{leaderboardPhotos=photos||{};renderLeaderboard();renderPlayerSummary();}).catch(()=>{});
+  if(typeof fetch==="function") fetch("data/player-photo-map.json").then(response=>response.ok?response.json():{}).then(photos=>{leaderboardPhotos=photos||{};renderLeaderboard();renderPlayerSummary();showCompletionList();}).catch(()=>{});
   if(window.location.hash==="#casual")openCasual();else showTab(window.location.hash === "#leaderboard");
   window.addEventListener("hashchange",()=>window.location.hash==="#casual"?openCasual():showTab(window.location.hash === "#leaderboard"));
   loadProgress().then(async () => {
