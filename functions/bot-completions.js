@@ -14,7 +14,7 @@ function publicIdentity(user,profile) {
     const name=result.nationality.toLowerCase();
     const home={england:"🏴\u{e0067}\u{e0062}\u{e0065}\u{e006e}\u{e0067}\u{e007f}",scotland:"🏴\u{e0067}\u{e0062}\u{e0073}\u{e0063}\u{e0074}\u{e007f}",wales:"🏴\u{e0067}\u{e0062}\u{e0077}\u{e006c}\u{e0073}\u{e007f}"};
     const aliases={english:"england",scottish:"scotland",welsh:"wales",british:"united kingdom",irish:"ireland",australian:"australia",polish:"poland","czech republic":"czechia",usa:"united states"};
-    const country=aliases[name]||name, code=countryCodes.get(country);
+    const country=aliases[name]||name, code=country==="united kingdom"||country==="uk" ? "GB" : countryCodes.get(country);
     result.flag=home[country] || (code ? [...code].map(c=>String.fromCodePoint(127397+c.charCodeAt(0))).join("") : "🌍");
   }
   return result;

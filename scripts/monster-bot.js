@@ -64,9 +64,16 @@
     bestScores = Object.fromEntries(Object.entries(syncedScores).filter(([key,score]) => E.validWinningScore(key,score)));
   }
   let community = null, leaderboard = null, communityError = false, completionKey = null, communityLoading = null;
+  let leaderboardPhotos = {};
+  const photoKey = value => String(value||"").toLowerCase().replace(/\.[^/.]+$/,"").replace(/[^a-z0-9]/g,"");
+  function leaderboardPhoto(row) {
+    const stored = row.photoUrl || "";
+    if (stored && !/^\/?images\/players\//i.test(stored)) return stored;
+    return leaderboardPhotos[photoKey(stored.split("/").pop())] || leaderboardPhotos[photoKey(row.name)] || "graphics/logoWoText.png";
+  }
   function renderLeaderboard() {
     $("leaderboardStatus").textContent = leaderboard ? (leaderboard.length ? `${leaderboard.length} players · Ranked by challenges completed, then level unlocked.` : "No players yet. Start your first match to join the leaderboard.") : communityError ? "Leaderboard could not be loaded. Please retry." : "Loading leaderboard…";
-    $("leaderboardRows").innerHTML = (leaderboard || []).map((row,i) => `<tr><td>${i+1}</td><th scope="row"><span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(row.photoUrl || "graphics/logoWoText.png")}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${escape(row.name)}</span>${row.flag ? `<span class="botLeaderboardFlag" role="img" aria-label="${escape(row.nationality || "Nationality")}" title="${escape(row.nationality || "Nationality")}">${escape(row.flag)}</span>` : ""}</span></th><td>Level ${row.level}</td><td class="challengesTotal">${row.completed} / 50</td><td class="flawlessTotal">★ ${row.flawless ?? 0}</td></tr>`).join("");
+    $("leaderboardRows").innerHTML = (leaderboard || []).map((row,i) => `<tr><td>${i+1}</td><th scope="row"><span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(leaderboardPhoto(row))}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${escape(row.name)}</span>${row.flag ? `<span class="botLeaderboardFlag" role="img" aria-label="${escape(row.nationality || "Nationality")}" title="${escape(row.nationality || "Nationality")}">${escape(row.flag)}</span>` : ""}</span></th><td>Level ${row.level}</td><td class="challengesTotal">${row.completed} / 50</td><td class="flawlessTotal">★ ${row.flawless ?? 0}</td></tr>`).join("");
     $("retryLeaderboard").hidden = !communityError;
     $("refreshLeaderboard").disabled = Boolean(communityLoading);
     $("refreshLeaderboard").setAttribute("aria-busy",String(Boolean(communityLoading)));
@@ -382,6 +389,7 @@
   $("retryAccount").addEventListener("click", () => loadProgress());
   window.addEventListener("beforeunload", event => { if (match && !match.ended) { event.preventDefault(); event.returnValue = ""; } });
   loadCommunity();
+  if(typeof fetch==="function") fetch("data/player-photo-map.json").then(response=>response.ok?response.json():{}).then(photos=>{leaderboardPhotos=photos||{};renderLeaderboard();}).catch(()=>{});
   showTab(window.location.hash === "#leaderboard");
   window.addEventListener("hashchange",()=>showTab(window.location.hash === "#leaderboard"));
   loadProgress().then(async () => {
