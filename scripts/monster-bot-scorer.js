@@ -81,7 +81,7 @@
     let status = $("monsterBotResultStatus");
     if (!status) { status = document.createElement("p"); status.id = "monsterBotResultStatus"; els.molVictoryTitle.after(status); }
     const won = state.winnerIndex === 0;
-    status.textContent = `${won ? (state.players[1].legs === 0 ? "★ Flawless victory · Gold tick! " : "✓ Challenge beaten. ") : "Challenge not completed. "}${resultMessage}`;
+    status.textContent = `${won ? (state.players[1].legs === 0 ? "★ Flawless victory · Gold star! " : "✓ Challenge beaten. ") : "Challenge not completed. "}${resultMessage}`;
   }
   function lose(reason) {
     clearTimeout(timer); timer = null;

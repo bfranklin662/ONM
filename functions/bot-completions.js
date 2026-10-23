@@ -48,12 +48,13 @@ function buildLeaderboard(users, profiles) {
   }
   return [...players.values()].map(row => {
     const won = (level, formats) => formats.every(mode => row.wins.has(`${level}-${mode}`));
+    const flawless = Object.values(row.scores).filter(score => score.lost === 0).length;
     let level=1;
     for (let next=2;next<=10;next++) {
       if (modes.filter(mode => row.wins.has(`${next-1}-${mode}`)).length < 2 || next>=3 && !won(next-2,[1,3,5,7]) || next>=4 && !won(next-3,modes) || next>=5 && !modes.every(mode => row.wins.has(`${next-4}-${mode}`) && row.scores[`${next-4}-${mode}`]?.lost === 0)) break;
+      if (next === 5 && flawless < 14) break;
       level=next;
     }
-    const flawless = Object.values(row.scores).filter(score => score.lost === 0).length;
     return {name:row.name,level,completed:row.wins.size,flawless};
   }).sort((a,b) => b.completed-a.completed || b.level-a.level || a.name.localeCompare(b.name));
 }
