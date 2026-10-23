@@ -5,6 +5,14 @@
 }
 
 /* Homepage welcome title */
+.home-shell > .home-bot-feature { margin-top: 12px; }
+.home-bot-feature { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:22px 28px; box-sizing:border-box; border:1px solid #377562; border-radius:18px; background:linear-gradient(120deg,#173e37,#101c27); }
+.home-bot-copy h2 { font-size:clamp(1.2rem,3vw,1.8rem); line-height:1.2; }
+.home-bot-copy p { margin:8px 0 14px; color:#c5ded5; }
+.home-bot-avatars { display:flex; flex:none; }
+.home-bot-avatars img { width:clamp(85px,11vw,140px); height:auto; object-fit:contain; }
+@media(max-width:600px) { .home-bot-feature { padding:18px; gap:8px; } .home-bot-avatars img { width:72px; } .home-bot-avatars img+img { display:none; } .home-bot-copy p { font-size:13px; } }
+
 .home-welcome {
   width: min(1500px, calc(100% - 32px));
   margin: 0 auto;
