@@ -702,6 +702,8 @@ document.addEventListener("DOMContentLoaded", () => {
 window.openProfileModal = openProfileModal;
 
 function initProfileButton() {
+  // Session owns this button; a second handler caused a timing-dependent popup.
+  if(window.ONMSession)return;
   const authBtn = document.getElementById("authNavBtn");
   if (!authBtn) return;
 
@@ -711,7 +713,7 @@ function initProfileButton() {
     authBtn.classList.add("isLoading");
 
     try {
-      await openProfileModal();
+      window.location.href="auth.html?mode=register";
     } finally {
       authBtn.classList.remove("isLoading");
     }

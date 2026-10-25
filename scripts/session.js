@@ -127,19 +127,23 @@ function updateAuthHeader(user) {
 
     try {
       if (user) window.location.href = "account.html";
-      else openLoggedOutProfileModal();
+      else window.location.href = "auth.html?mode=register";
     } finally {
       authBtn.classList.remove("isProfileLoading");
     }
   };
 
   if (!user) {
+    authBtn.setAttribute("href", "auth.html?mode=register");
+    authBtn.setAttribute("aria-label", "Sign up or sign in");
     authBtn.className = "authProfileBtn";
     authBtn.innerHTML = `<span class="authProfileInitial">👤</span>`;
     return;
   }
 
   const profileName = user.linkedPlayerName || user.firstName || "Profile";
+  authBtn.setAttribute("href", "account.html");
+  authBtn.setAttribute("aria-label", "My account");
   const cachedImage = user.photoUrl || getCachedProfileImage(user);
 
   authBtn.className = "authProfileBtn";
@@ -221,6 +225,8 @@ window.ONMSession = {
   resolveProfileImage: resolveLinkedPlayerImage
 };
 
+// Make the icon usable while Firebase restores the session in the background.
+updateAuthHeader(null);
 document.addEventListener("DOMContentLoaded", () => {
   initOnmSession();
 });

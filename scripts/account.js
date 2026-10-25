@@ -7,6 +7,10 @@
   const message = document.getElementById("accountMessage");
   let user = null;
   let linkedProfile = null;
+  function isMonsterPlayer() {
+    const team=clean(user?.team).toLowerCase();
+    return team==="oche ness monsters" || (!team && Boolean(user?.linkedPlayerKey || user?.linkedPlayerName));
+  }
 
   function clean(value) {
     return String(value == null ? "" : value).trim();
@@ -35,11 +39,26 @@
   }
 
   function populate() {
+    const monster=isMonsterPlayer();
+    ["bio","nickname","playerRole","highestCheckout","gooch","walkoutSong","accolades"].forEach(field=>{
+      const input=form.elements[field];
+      if(input){input.closest("label").hidden=!monster;input.disabled=!monster;}
+    });
+    document.getElementById("accountFixturesTab").hidden=!monster;
+    if(!monster){
+      document.getElementById("accountDetailsPanel").classList.remove("hidden");
+      document.getElementById("accountFixturesPanel").classList.add("hidden");
+      ["accountDetailsTab","accountFixturesTab"].forEach((id,index)=>{
+        const tab=document.getElementById(id);tab.classList.toggle("active",index===0);
+        tab.setAttribute("aria-selected",String(index===0));tab.tabIndex=index===0?0:-1;
+      });
+    }
+    document.getElementById("accountPlayer").closest("div").hidden=!monster;
     document.getElementById("accountName").textContent = displayName(user);
-    document.getElementById("accountLinkedPlayer").textContent = user.linkedPlayerName
+    document.getElementById("accountLinkedPlayer").textContent = !monster ? (user.team || "No affiliated team") : user.linkedPlayerName
       ? `Linked to ${user.linkedPlayerName}`
       : "This account is not linked to an ONM player yet.";
-    document.getElementById("accountLinkedPlayer").insertAdjacentHTML("beforeend", window.PlayerData?.registrationBadge(linkedProfile || {}) || "");
+    if(monster)document.getElementById("accountLinkedPlayer").insertAdjacentHTML("beforeend", window.PlayerData?.registrationBadge(linkedProfile || {}) || "");
     document.getElementById("accountPhoto").src = user.photoUrl || user.photo || user.linkedPhotoUrl || "graphics/logoWoText.png";
     const access = user.role === "owner" ? "Owner" : user.role === "admin" ? "Player + admin" : user.accountType === "supporter" ? "Supporter" : "Player";
     document.getElementById("accountRole").textContent = `${access}${user.adminRequestStatus === "pending" ? " · Admin request pending" : user.adminRequestStatus === "rejected" ? " · Admin request declined" : ""}`;
@@ -54,13 +73,13 @@
     form.elements.gooch.checked = user.gooch === "yes" || user.gooch === true;
 
     const actions = document.getElementById("accountHeroActions");
-    actions.innerHTML = user.linkedPlayerName
+    actions.innerHTML = monster && user.linkedPlayerName
       ? `<a class="btn btnGhost" href="player-profile.html?name=${encodeURIComponent(user.linkedPlayerName)}">View player profile</a>`
       : "";
   }
 
   async function loadLinkedPlayerProfile() {
-    if (!user.linkedPlayerName) return;
+    if (!isMonsterPlayer() || !user.linkedPlayerName) return;
     try {
       const result = await window.ONMFirebase.post({ action: "getPublicPlayerProfiles" });
       linkedProfile = (result.profiles || []).find(profile =>
@@ -110,7 +129,9 @@
     button.textContent = "Saving…";
     try {
       const data = new FormData(form);
-      const profile = Object.fromEntries(["firstName", "surname", "email", "team", "nationality", "nickname", "walkoutSong", "bio"]
+      const monster=isMonsterPlayer();
+      const fields=["firstName", "surname", "email", "team", "nationality", ...(monster?["bio","nickname","walkoutSong"]:[])];
+      const profile = Object.fromEntries(fields
         .map(field => [field, clean(data.get(field))]));
       const result = await window.ONMFirebase.post({ action: "updateProfile", profile });
       if (!result.success) throw new Error(result.error || "Could not save your profile.");
@@ -125,12 +146,12 @@
         photoUrl: linkedProfile?.photoUrl || linkedProfile?.photo || "",
         profileVisible: linkedProfile?.profileVisible !== false
       };
-      if (user.linkedPlayerKey) {
+      if (monster && user.linkedPlayerKey) {
         const playerResult = await window.ONMFirebase.post({ action: "updatePlayerProfile", playerKey: user.linkedPlayerKey, profile: playerValues });
         if (!playerResult.success) throw new Error(playerResult.error || "Your account saved, but the player profile could not be updated.");
         linkedProfile = { ...(linkedProfile || {}), ...playerValues };
       }
-      updateLocalUser({ ...profile, playerRole: playerValues.role, highestCheckout: playerValues.highestCheckout, accolades: playerValues.accolades.join(", "), gooch: playerValues.gooch ? "yes" : "" });
+      updateLocalUser({ ...profile, ...(monster?{playerRole: playerValues.role, highestCheckout: playerValues.highestCheckout, accolades: playerValues.accolades.join(", "), gooch: playerValues.gooch ? "yes" : ""}:{}) });
       populate();
       showMessage("Your account details have been saved.");
     } catch (error) {

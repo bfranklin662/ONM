@@ -50,6 +50,7 @@
 
   tabs.forEach((tab, index) => {
     tab.addEventListener("click", () => {
+      if(tab.hidden)return;
       tabs.forEach((item, itemIndex) => {
         item.classList.toggle("active", itemIndex === index);
         item.setAttribute("aria-selected", String(itemIndex === index));
@@ -61,6 +62,7 @@
     });
     tab.addEventListener("keydown", event => {
       if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      if(tabs[1].hidden)return;
       event.preventDefault();
       const next = event.key === "Home" ? 0 : event.key === "End" ? 1 : 1 - index;
       tabs[next].focus();
