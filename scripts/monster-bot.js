@@ -200,7 +200,8 @@
     renderPlayerSummary();
     renderCasual();
     $("accountLoading").hidden = ready;
-    $("botLevels").hidden = !ready;
+    $("guestLanding").hidden = !ready || Boolean(user);
+    $("botLevels").hidden = !ready || !user;
     $("progressSummary").hidden = !ready;
     if (!ready) { $("botLevels").innerHTML = ""; return; }
     let complete = 0;
@@ -226,7 +227,7 @@
         <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><div class="completionMedals"><span class="${wins.length ? "won beatenCount" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span>${wins.length ? `<span class="gold flawlessCount">★ Flawless ${flawless}/${E.MODES.length}</span>` : ""}</div></div><span class="levelStats">${p.average}–${p.average + 5} average</span></div></div>
         <div class="modeMarks" role="group" aria-label="Match formats for ${p.name}">${E.MODES.map(mode => modeChip(p.level, mode, selectedMode)).join("")}</div>
         ${modeResults(p.level,selectedMode)}
-        <div class="botCardControls pillPlayControls"><input id="bot-mode-${p.level}" type="hidden" value="${selectedMode}">${!user ? `<a class="primary signupToPlay" href="${authUrl("register")}">Sign up to play</a>` : `<button id="play-bot-${p.level}" type="button" class="primary ${flawlessReplay ? "replayGame" : ""}" data-play-level="${p.level}" ${canPlay(p.level,selectedMode) ? "" : "disabled"}>${flawlessReplay ? "Completed this game mode" : replay ? `Replay ${p.name} · ${E.modeLabel(selectedMode)}` : `Play ${p.name} · ${selectedMode===E.BULL_MODE ? "Bull or Bust" : `Best of ${selectedMode}`}`}</button>`}</div>
+        <div class="botCardControls pillPlayControls"><input id="bot-mode-${p.level}" type="hidden" value="${selectedMode}">${!user ? "" : flawlessReplay ? `<button type="button" class="primary replayGame" data-casual-level="${p.level}">Play in casual mode</button>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${canPlay(p.level,selectedMode) ? "" : "disabled"}>${replay ? `Replay ${p.name} · ${E.modeLabel(selectedMode)}` : `Play ${p.name} · ${selectedMode===E.BULL_MODE ? "Bull or Bust" : `Best of ${selectedMode}`}`}</button>`}</div>
         ${selectedMode===E.BULL_MODE && !E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? '<p class="lockedHint">🔒 Beat BO1, BO3, BO5 and BO7 on this bot first to unlock Bull or Bust.</p>' : ""}
         ${requirements(p.level)}</article>`;
     }).join("");
@@ -426,6 +427,8 @@
     }
     const completion = event.target.closest("[data-community-key]");
     if (completion) { completionKey = completion.dataset.communityKey; showCompletionList(); $("completionDialog").showModal(); return; }
+    const casualButton=event.target.closest("[data-casual-level]");
+    if(casualButton){$("casualBot").value=casualButton.dataset.casualLevel;openCasual();return;}
     const button = event.target.closest("[data-play-level]");
     if (button) {
       const level = Number(button.dataset.playLevel), format = Number($("bot-mode-" + level).value);
@@ -514,8 +517,14 @@
     try {
       const {auth, authSdk} = await window.ONMFirebase.ready;
       if (!authSdk?.onAuthStateChanged) return;
-      authSdk.onAuthStateChanged(auth, current => {
+      let authRevision=0;
+      authSdk.onAuthStateChanged(auth, async current => {
+        const revision=++authRevision;
         if ((current?.uid || null) === (user?.uid || null)) return;
+        if(!current&&user){
+          try{current=await window.ONMFirebase.currentFirebaseUser();}catch{return;}
+          if(revision!==authRevision||(current?.uid||null)===(user?.uid||null))return;
+        }
         clearTimeout(timer); match = null; undo = null; busy = false; pendingCheckout = null;
         $("bullCheckoutDialog").close(); $("matchPanel").hidden = true; $("challengeSetup").hidden = false;
         user = null; progress = new Set(); bestScores = {}; ready = false;

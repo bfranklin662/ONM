@@ -64,7 +64,7 @@
   }
   function close(){++generation;opening=false;announcedSource=null;stop();frame?.remove();frame=null;document.body.style.overflow="";}
   function stop(){if(audio){audio.pause();audio.loop=false;}}
-  function resetAnnouncement(source){if(frame?.contentWindow===source){stop();announcedSource=null;}}
+  function resetAnnouncement(source){if(frame?.contentWindow===source){stop();announcedSource=null;try{context?.resume()?.catch(()=>{});}catch{}}}
   function start(done){
     if(busy)return;
     if(!audio){done(false);return;}

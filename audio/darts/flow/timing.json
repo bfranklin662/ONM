@@ -1,0 +1,1853 @@
+{
+  "scores": [
+    {
+      "file": "score-0.mp3",
+      "removedMs": 471,
+      "duration": 1.305
+    },
+    {
+      "file": "score-1.mp3",
+      "removedMs": 291,
+      "duration": 2.325
+    },
+    {
+      "file": "score-10.mp3",
+      "removedMs": 739,
+      "duration": 0.965
+    },
+    {
+      "file": "score-100.mp3",
+      "removedMs": 179,
+      "duration": 1.165
+    },
+    {
+      "file": "score-101.mp3",
+      "removedMs": 119,
+      "duration": 1.345
+    },
+    {
+      "file": "score-102.mp3",
+      "removedMs": 99,
+      "duration": 1.245
+    },
+    {
+      "file": "score-103.mp3",
+      "removedMs": 51,
+      "duration": 1.245
+    },
+    {
+      "file": "score-104.mp3",
+      "removedMs": 83,
+      "duration": 2.845
+    },
+    {
+      "file": "score-105.mp3",
+      "removedMs": 189,
+      "duration": 1.275
+    },
+    {
+      "file": "score-106.mp3",
+      "removedMs": 30,
+      "duration": 1.194
+    },
+    {
+      "file": "score-107.mp3",
+      "removedMs": 51,
+      "duration": 1.245
+    },
+    {
+      "file": "score-108.mp3",
+      "removedMs": 263,
+      "duration": 0.985
+    },
+    {
+      "file": "score-109.mp3",
+      "removedMs": 93,
+      "duration": 1.275
+    },
+    {
+      "file": "score-11.mp3",
+      "removedMs": 509,
+      "duration": 0.715
+    },
+    {
+      "file": "score-110.mp3",
+      "removedMs": 69,
+      "duration": 1.395
+    },
+    {
+      "file": "score-111.mp3",
+      "removedMs": 91,
+      "duration": 1.325
+    },
+    {
+      "file": "score-112.mp3",
+      "removedMs": 163,
+      "duration": 1.205
+    },
+    {
+      "file": "score-113.mp3",
+      "removedMs": 70,
+      "duration": 1.418
+    },
+    {
+      "file": "score-114.mp3",
+      "removedMs": 79,
+      "duration": 1.505
+    },
+    {
+      "file": "score-115.mp3",
+      "removedMs": 153,
+      "duration": 1.455
+    },
+    {
+      "file": "score-116.mp3",
+      "removedMs": 71,
+      "duration": 1.585
+    },
+    {
+      "file": "score-117.mp3",
+      "removedMs": 43,
+      "duration": 1.565
+    },
+    {
+      "file": "score-118.mp3",
+      "removedMs": 101,
+      "duration": 1.315
+    },
+    {
+      "file": "score-119.mp3",
+      "removedMs": 99,
+      "duration": 1.485
+    },
+    {
+      "file": "score-12.mp3",
+      "removedMs": 793,
+      "duration": 0.575
+    },
+    {
+      "file": "score-120.mp3",
+      "removedMs": 211,
+      "duration": 1.565
+    },
+    {
+      "file": "score-121.mp3",
+      "removedMs": 90,
+      "duration": 1.638
+    },
+    {
+      "file": "score-122.mp3",
+      "removedMs": 70,
+      "duration": 1.658
+    },
+    {
+      "file": "score-123.mp3",
+      "removedMs": 91,
+      "duration": 1.565
+    },
+    {
+      "file": "score-124.mp3",
+      "removedMs": 123,
+      "duration": 1.485
+    },
+    {
+      "file": "score-125.mp3",
+      "removedMs": 103,
+      "duration": 1.625
+    },
+    {
+      "file": "score-126.mp3",
+      "removedMs": 201,
+      "duration": 1.335
+    },
+    {
+      "file": "score-127.mp3",
+      "removedMs": 73,
+      "duration": 1.655
+    },
+    {
+      "file": "score-128.mp3",
+      "removedMs": 199,
+      "duration": 1.385
+    },
+    {
+      "file": "score-129.mp3",
+      "removedMs": 93,
+      "duration": 1.635
+    },
+    {
+      "file": "score-13.mp3",
+      "removedMs": 633,
+      "duration": 0.855
+    },
+    {
+      "file": "score-130.mp3",
+      "removedMs": 133,
+      "duration": 1.355
+    },
+    {
+      "file": "score-131.mp3",
+      "removedMs": 20,
+      "duration": 1.588
+    },
+    {
+      "file": "score-132.mp3",
+      "removedMs": 43,
+      "duration": 1.565
+    },
+    {
+      "file": "score-133.mp3",
+      "removedMs": 33,
+      "duration": 1.575
+    },
+    {
+      "file": "score-134.mp3",
+      "removedMs": 50,
+      "duration": 1.654
+    },
+    {
+      "file": "score-135.mp3",
+      "removedMs": 83,
+      "duration": 5.125
+    },
+    {
+      "file": "score-136.mp3",
+      "removedMs": 149,
+      "duration": 1.435
+    },
+    {
+      "file": "score-137.mp3",
+      "removedMs": 71,
+      "duration": 1.585
+    },
+    {
+      "file": "score-138.mp3",
+      "removedMs": 129,
+      "duration": 1.335
+    },
+    {
+      "file": "score-139.mp3",
+      "removedMs": 50,
+      "duration": 1.606
+    },
+    {
+      "file": "score-14.mp3",
+      "removedMs": 749,
+      "duration": 0.835
+    },
+    {
+      "file": "score-140.mp3",
+      "removedMs": 271,
+      "duration": 4.265
+    },
+    {
+      "file": "score-141.mp3",
+      "removedMs": 131,
+      "duration": 1.645
+    },
+    {
+      "file": "score-142.mp3",
+      "removedMs": 80,
+      "duration": 1.696
+    },
+    {
+      "file": "score-143.mp3",
+      "removedMs": 81,
+      "duration": 1.695
+    },
+    {
+      "file": "score-144.mp3",
+      "removedMs": 51,
+      "duration": 1.605
+    },
+    {
+      "file": "score-145.mp3",
+      "removedMs": 89,
+      "duration": 1.615
+    },
+    {
+      "file": "score-146.mp3",
+      "removedMs": 279,
+      "duration": 1.425
+    },
+    {
+      "file": "score-147.mp3",
+      "removedMs": 79,
+      "duration": 1.625
+    },
+    {
+      "file": "score-148.mp3",
+      "removedMs": 259,
+      "duration": 1.325
+    },
+    {
+      "file": "score-149.mp3",
+      "removedMs": 109,
+      "duration": 1.595
+    },
+    {
+      "file": "score-15.mp3",
+      "removedMs": 471,
+      "duration": 0.825
+    },
+    {
+      "file": "score-150.mp3",
+      "removedMs": 149,
+      "duration": 1.435
+    },
+    {
+      "file": "score-151.mp3",
+      "removedMs": 99,
+      "duration": 1.485
+    },
+    {
+      "file": "score-152.mp3",
+      "removedMs": 40,
+      "duration": 1.568
+    },
+    {
+      "file": "score-153.mp3",
+      "removedMs": 131,
+      "duration": 1.525
+    },
+    {
+      "file": "score-154.mp3",
+      "removedMs": 29,
+      "duration": 1.555
+    },
+    {
+      "file": "score-155.mp3",
+      "removedMs": 99,
+      "duration": 1.485
+    },
+    {
+      "file": "score-156.mp3",
+      "removedMs": 243,
+      "duration": 1.365
+    },
+    {
+      "file": "score-157.mp3",
+      "removedMs": 63,
+      "duration": 1.545
+    },
+    {
+      "file": "score-158.mp3",
+      "removedMs": 243,
+      "duration": 1.365
+    },
+    {
+      "file": "score-159.mp3",
+      "removedMs": 171,
+      "duration": 1.485
+    },
+    {
+      "file": "score-16.mp3",
+      "removedMs": 413,
+      "duration": 0.955
+    },
+    {
+      "file": "score-160.mp3",
+      "removedMs": 81,
+      "duration": 1.455
+    },
+    {
+      "file": "score-161.mp3",
+      "removedMs": 103,
+      "duration": 1.505
+    },
+    {
+      "file": "score-162.mp3",
+      "removedMs": 59,
+      "duration": 1.525
+    },
+    {
+      "file": "score-163.mp3",
+      "removedMs": 41,
+      "duration": 1.495
+    },
+    {
+      "file": "score-164.mp3",
+      "removedMs": 41,
+      "duration": 1.495
+    },
+    {
+      "file": "score-165.mp3",
+      "removedMs": 93,
+      "duration": 1.515
+    },
+    {
+      "file": "score-166.mp3",
+      "removedMs": 223,
+      "duration": 1.385
+    },
+    {
+      "file": "score-167.mp3",
+      "removedMs": 20,
+      "duration": 1.564
+    },
+    {
+      "file": "score-168.mp3",
+      "removedMs": 71,
+      "duration": 1.345
+    },
+    {
+      "file": "score-169.mp3",
+      "removedMs": 99,
+      "duration": 1.605
+    },
+    {
+      "file": "score-17.mp3",
+      "removedMs": 743,
+      "duration": 0.865
+    },
+    {
+      "file": "score-170.mp3",
+      "removedMs": 51,
+      "duration": 1.485
+    },
+    {
+      "file": "score-171.mp3",
+      "removedMs": 69,
+      "duration": 1.515
+    },
+    {
+      "file": "score-174.mp3",
+      "removedMs": 49,
+      "duration": 1.535
+    },
+    {
+      "file": "score-177.mp3",
+      "removedMs": 63,
+      "duration": 1.665
+    },
+    {
+      "file": "score-18.mp3",
+      "removedMs": 151,
+      "duration": 2.465
+    },
+    {
+      "file": "score-180.mp3",
+      "removedMs": 119,
+      "duration": 1.345
+    },
+    {
+      "file": "score-19.mp3",
+      "removedMs": 469,
+      "duration": 0.995
+    },
+    {
+      "file": "score-2.mp3",
+      "removedMs": 523,
+      "duration": 0.605
+    },
+    {
+      "file": "score-20.mp3",
+      "removedMs": 603,
+      "duration": 0.645
+    },
+    {
+      "file": "score-21.mp3",
+      "removedMs": 283,
+      "duration": 0.965
+    },
+    {
+      "file": "score-22.mp3",
+      "removedMs": 10,
+      "duration": 3.518
+    },
+    {
+      "file": "score-23.mp3",
+      "removedMs": 331,
+      "duration": 0.965
+    },
+    {
+      "file": "score-24.mp3",
+      "removedMs": 541,
+      "duration": 0.875
+    },
+    {
+      "file": "score-25.mp3",
+      "removedMs": 413,
+      "duration": 0.835
+    },
+    {
+      "file": "score-26.mp3",
+      "removedMs": 403,
+      "duration": 1.085
+    },
+    {
+      "file": "score-27.mp3",
+      "removedMs": 329,
+      "duration": 0.895
+    },
+    {
+      "file": "score-28.mp3",
+      "removedMs": 451,
+      "duration": 0.725
+    },
+    {
+      "file": "score-29.mp3",
+      "removedMs": 353,
+      "duration": 0.895
+    },
+    {
+      "file": "score-3.mp3",
+      "removedMs": 131,
+      "duration": 1.525
+    },
+    {
+      "file": "score-30.mp3",
+      "removedMs": 341,
+      "duration": 0.715
+    },
+    {
+      "file": "score-31.mp3",
+      "removedMs": 323,
+      "duration": 0.805
+    },
+    {
+      "file": "score-32.mp3",
+      "removedMs": 463,
+      "duration": 0.905
+    },
+    {
+      "file": "score-33.mp3",
+      "removedMs": 413,
+      "duration": 0.835
+    },
+    {
+      "file": "score-34.mp3",
+      "removedMs": 431,
+      "duration": 0.865
+    },
+    {
+      "file": "score-35.mp3",
+      "removedMs": 331,
+      "duration": 0.845
+    },
+    {
+      "file": "score-36.mp3",
+      "removedMs": 331,
+      "duration": 0.845
+    },
+    {
+      "file": "score-37.mp3",
+      "removedMs": 213,
+      "duration": 1.035
+    },
+    {
+      "file": "score-38.mp3",
+      "removedMs": 509,
+      "duration": 0.715
+    },
+    {
+      "file": "score-39.mp3",
+      "removedMs": 379,
+      "duration": 0.965
+    },
+    {
+      "file": "score-4.mp3",
+      "removedMs": 553,
+      "duration": 0.455
+    },
+    {
+      "file": "score-40.mp3",
+      "removedMs": 521,
+      "duration": 0.655
+    },
+    {
+      "file": "score-41.mp3",
+      "removedMs": 341,
+      "duration": 0.835
+    },
+    {
+      "file": "score-42.mp3",
+      "removedMs": 389,
+      "duration": 0.835
+    },
+    {
+      "file": "score-43.mp3",
+      "removedMs": 351,
+      "duration": 0.825
+    },
+    {
+      "file": "score-44.mp3",
+      "removedMs": 301,
+      "duration": 0.875
+    },
+    {
+      "file": "score-45.mp3",
+      "removedMs": 301,
+      "duration": 2.195
+    },
+    {
+      "file": "score-46.mp3",
+      "removedMs": 269,
+      "duration": 0.835
+    },
+    {
+      "file": "score-47.mp3",
+      "removedMs": 379,
+      "duration": 0.845
+    },
+    {
+      "file": "score-48.mp3",
+      "removedMs": 399,
+      "duration": 0.945
+    },
+    {
+      "file": "score-49.mp3",
+      "removedMs": 293,
+      "duration": 0.955
+    },
+    {
+      "file": "score-5.mp3",
+      "removedMs": 471,
+      "duration": 0.585
+    },
+    {
+      "file": "score-50.mp3",
+      "removedMs": 299,
+      "duration": 0.805
+    },
+    {
+      "file": "score-51.mp3",
+      "removedMs": 353,
+      "duration": 0.895
+    },
+    {
+      "file": "score-52.mp3",
+      "removedMs": 181,
+      "duration": 1.235
+    },
+    {
+      "file": "score-53.mp3",
+      "removedMs": 313,
+      "duration": 0.935
+    },
+    {
+      "file": "score-54.mp3",
+      "removedMs": 361,
+      "duration": 0.935
+    },
+    {
+      "file": "score-55.mp3",
+      "removedMs": 363,
+      "duration": 0.885
+    },
+    {
+      "file": "score-56.mp3",
+      "removedMs": 323,
+      "duration": 0.925
+    },
+    {
+      "file": "score-57.mp3",
+      "removedMs": 273,
+      "duration": 0.975
+    },
+    {
+      "file": "score-58.mp3",
+      "removedMs": 483,
+      "duration": 0.765
+    },
+    {
+      "file": "score-59.mp3",
+      "removedMs": 299,
+      "duration": 1.045
+    },
+    {
+      "file": "score-6.mp3",
+      "removedMs": 359,
+      "duration": 0.625
+    },
+    {
+      "file": "score-60.mp3",
+      "removedMs": 111,
+      "duration": 2.265
+    },
+    {
+      "file": "score-61.mp3",
+      "removedMs": 249,
+      "duration": 0.975
+    },
+    {
+      "file": "score-62.mp3",
+      "removedMs": 303,
+      "duration": 1.185
+    },
+    {
+      "file": "score-63.mp3",
+      "removedMs": 323,
+      "duration": 1.045
+    },
+    {
+      "file": "score-64.mp3",
+      "removedMs": 403,
+      "duration": 1.085
+    },
+    {
+      "file": "score-65.mp3",
+      "removedMs": 439,
+      "duration": 1.025
+    },
+    {
+      "file": "score-66.mp3",
+      "removedMs": 121,
+      "duration": 1.295
+    },
+    {
+      "file": "score-67.mp3",
+      "removedMs": 263,
+      "duration": 3.145
+    },
+    {
+      "file": "score-68.mp3",
+      "removedMs": 303,
+      "duration": 0.825
+    },
+    {
+      "file": "score-69.mp3",
+      "removedMs": 203,
+      "duration": 1.405
+    },
+    {
+      "file": "score-7.mp3",
+      "removedMs": 333,
+      "duration": 0.675
+    },
+    {
+      "file": "score-70.mp3",
+      "removedMs": 313,
+      "duration": 0.815
+    },
+    {
+      "file": "score-71.mp3",
+      "removedMs": 219,
+      "duration": 1.005
+    },
+    {
+      "file": "score-72.mp3",
+      "removedMs": 40,
+      "duration": 1.208
+    },
+    {
+      "file": "score-73.mp3",
+      "removedMs": 123,
+      "duration": 1.005
+    },
+    {
+      "file": "score-74.mp3",
+      "removedMs": 191,
+      "duration": 0.985
+    },
+    {
+      "file": "score-75.mp3",
+      "removedMs": 171,
+      "duration": 1.005
+    },
+    {
+      "file": "score-76.mp3",
+      "removedMs": 279,
+      "duration": 0.825
+    },
+    {
+      "file": "score-77.mp3",
+      "removedMs": 259,
+      "duration": 0.965
+    },
+    {
+      "file": "score-78.mp3",
+      "removedMs": 251,
+      "duration": 0.805
+    },
+    {
+      "file": "score-79.mp3",
+      "removedMs": 289,
+      "duration": 1.055
+    },
+    {
+      "file": "score-8.mp3",
+      "removedMs": 599,
+      "duration": 0.385
+    },
+    {
+      "file": "score-80.mp3",
+      "removedMs": 273,
+      "duration": 0.855
+    },
+    {
+      "file": "score-81.mp3",
+      "removedMs": 261,
+      "duration": 0.915
+    },
+    {
+      "file": "score-82.mp3",
+      "removedMs": 71,
+      "duration": 1.105
+    },
+    {
+      "file": "score-83.mp3",
+      "removedMs": 303,
+      "duration": 0.945
+    },
+    {
+      "file": "score-84.mp3",
+      "removedMs": 249,
+      "duration": 0.975
+    },
+    {
+      "file": "score-85.mp3",
+      "removedMs": 209,
+      "duration": 1.015
+    },
+    {
+      "file": "score-86.mp3",
+      "removedMs": 251,
+      "duration": 0.805
+    },
+    {
+      "file": "score-87.mp3",
+      "removedMs": 119,
+      "duration": 0.985
+    },
+    {
+      "file": "score-88.mp3",
+      "removedMs": 409,
+      "duration": 0.815
+    },
+    {
+      "file": "score-89.mp3",
+      "removedMs": 161,
+      "duration": 1.015
+    },
+    {
+      "file": "score-9.mp3",
+      "removedMs": 283,
+      "duration": 2.165
+    },
+    {
+      "file": "score-90.mp3",
+      "removedMs": 243,
+      "duration": 1.005
+    },
+    {
+      "file": "score-91.mp3",
+      "removedMs": 101,
+      "duration": 1.195
+    },
+    {
+      "file": "score-92.mp3",
+      "removedMs": 60,
+      "duration": 1.308
+    },
+    {
+      "file": "score-93.mp3",
+      "removedMs": 233,
+      "duration": 1.135
+    },
+    {
+      "file": "score-94.mp3",
+      "removedMs": 131,
+      "duration": 1.165
+    },
+    {
+      "file": "score-95.mp3",
+      "removedMs": 169,
+      "duration": 3.215
+    },
+    {
+      "file": "score-96.mp3",
+      "removedMs": 399,
+      "duration": 0.945
+    },
+    {
+      "file": "score-97.mp3",
+      "removedMs": 131,
+      "duration": 1.165
+    },
+    {
+      "file": "score-98.mp3",
+      "removedMs": 191,
+      "duration": 0.985
+    },
+    {
+      "file": "score-99.mp3",
+      "removedMs": 379,
+      "duration": 2.405
+    }
+  ],
+  "checkouts": [
+    {
+      "score": 2,
+      "numberSource": "score-2.mp3",
+      "gapMs": 25,
+      "duration": 1.508
+    },
+    {
+      "score": 3,
+      "numberSource": "score-3-short.mp3",
+      "gapMs": 25,
+      "duration": 1.281
+    },
+    {
+      "score": 4,
+      "numberSource": "score-4.mp3",
+      "gapMs": 25,
+      "duration": 1.358
+    },
+    {
+      "score": 5,
+      "numberSource": "score-5.mp3",
+      "gapMs": 25,
+      "duration": 1.488
+    },
+    {
+      "score": 6,
+      "numberSource": "score-6.mp3",
+      "gapMs": 25,
+      "duration": 1.528
+    },
+    {
+      "score": 7,
+      "numberSource": "score-7.mp3",
+      "gapMs": 25,
+      "duration": 1.578
+    },
+    {
+      "score": 8,
+      "numberSource": "score-8.mp3",
+      "gapMs": 25,
+      "duration": 1.288
+    },
+    {
+      "score": 9,
+      "numberSource": "score-9-short.mp3",
+      "gapMs": 25,
+      "duration": 1.638
+    },
+    {
+      "score": 10,
+      "numberSource": "score-10-short.mp3",
+      "gapMs": 25,
+      "duration": 1.438
+    },
+    {
+      "score": 11,
+      "numberSource": "score-11.mp3",
+      "gapMs": 25,
+      "duration": 1.618
+    },
+    {
+      "score": 12,
+      "numberSource": "score-12.mp3",
+      "gapMs": 25,
+      "duration": 1.478
+    },
+    {
+      "score": 13,
+      "numberSource": "score-13.mp3",
+      "gapMs": 25,
+      "duration": 1.758
+    },
+    {
+      "score": 14,
+      "numberSource": "score-14.mp3",
+      "gapMs": 25,
+      "duration": 1.738
+    },
+    {
+      "score": 15,
+      "numberSource": "score-15.mp3",
+      "gapMs": 25,
+      "duration": 1.728
+    },
+    {
+      "score": 16,
+      "numberSource": "score-16.mp3",
+      "gapMs": 25,
+      "duration": 1.858
+    },
+    {
+      "score": 17,
+      "numberSource": "score-17.mp3",
+      "gapMs": 25,
+      "duration": 1.768
+    },
+    {
+      "score": 18,
+      "numberSource": "score-18-short.mp3",
+      "gapMs": 25,
+      "duration": 1.778
+    },
+    {
+      "score": 19,
+      "numberSource": "score-19.mp3",
+      "gapMs": 25,
+      "duration": 1.898
+    },
+    {
+      "score": 20,
+      "numberSource": "score-20.mp3",
+      "gapMs": 25,
+      "duration": 1.548
+    },
+    {
+      "score": 21,
+      "numberSource": "score-21.mp3",
+      "gapMs": 25,
+      "duration": 1.868
+    },
+    {
+      "score": 22,
+      "numberSource": "score-22-short.mp3",
+      "gapMs": 25,
+      "duration": 1.808
+    },
+    {
+      "score": 23,
+      "numberSource": "score-23.mp3",
+      "gapMs": 25,
+      "duration": 1.868
+    },
+    {
+      "score": 24,
+      "numberSource": "score-24.mp3",
+      "gapMs": 25,
+      "duration": 1.778
+    },
+    {
+      "score": 25,
+      "numberSource": "score-25.mp3",
+      "gapMs": 25,
+      "duration": 1.738
+    },
+    {
+      "score": 26,
+      "numberSource": "score-26.mp3",
+      "gapMs": 25,
+      "duration": 1.988
+    },
+    {
+      "score": 27,
+      "numberSource": "score-27.mp3",
+      "gapMs": 25,
+      "duration": 1.798
+    },
+    {
+      "score": 28,
+      "numberSource": "score-28.mp3",
+      "gapMs": 25,
+      "duration": 1.628
+    },
+    {
+      "score": 29,
+      "numberSource": "score-29.mp3",
+      "gapMs": 25,
+      "duration": 1.798
+    },
+    {
+      "score": 30,
+      "numberSource": "score-30.mp3",
+      "gapMs": 25,
+      "duration": 1.618
+    },
+    {
+      "score": 31,
+      "numberSource": "score-31.mp3",
+      "gapMs": 25,
+      "duration": 1.708
+    },
+    {
+      "score": 32,
+      "numberSource": "score-32.mp3",
+      "gapMs": 25,
+      "duration": 1.808
+    },
+    {
+      "score": 33,
+      "numberSource": "score-33.mp3",
+      "gapMs": 25,
+      "duration": 1.738
+    },
+    {
+      "score": 34,
+      "numberSource": "score-34.mp3",
+      "gapMs": 25,
+      "duration": 1.768
+    },
+    {
+      "score": 35,
+      "numberSource": "score-35.mp3",
+      "gapMs": 25,
+      "duration": 1.748
+    },
+    {
+      "score": 36,
+      "numberSource": "score-36.mp3",
+      "gapMs": 25,
+      "duration": 1.748
+    },
+    {
+      "score": 37,
+      "numberSource": "score-37.mp3",
+      "gapMs": 25,
+      "duration": 1.938
+    },
+    {
+      "score": 38,
+      "numberSource": "score-38.mp3",
+      "gapMs": 25,
+      "duration": 1.618
+    },
+    {
+      "score": 39,
+      "numberSource": "score-39.mp3",
+      "gapMs": 25,
+      "duration": 1.868
+    },
+    {
+      "score": 40,
+      "numberSource": "score-40.mp3",
+      "gapMs": 25,
+      "duration": 1.558
+    },
+    {
+      "score": 41,
+      "numberSource": "score-41.mp3",
+      "gapMs": 25,
+      "duration": 1.738
+    },
+    {
+      "score": 42,
+      "numberSource": "score-42.mp3",
+      "gapMs": 25,
+      "duration": 1.738
+    },
+    {
+      "score": 43,
+      "numberSource": "score-43.mp3",
+      "gapMs": 25,
+      "duration": 1.728
+    },
+    {
+      "score": 44,
+      "numberSource": "score-44.mp3",
+      "gapMs": 25,
+      "duration": 1.778
+    },
+    {
+      "score": 45,
+      "numberSource": "score-45-short.mp3",
+      "gapMs": 25,
+      "duration": 1.928
+    },
+    {
+      "score": 46,
+      "numberSource": "score-46.mp3",
+      "gapMs": 25,
+      "duration": 1.738
+    },
+    {
+      "score": 47,
+      "numberSource": "score-47.mp3",
+      "gapMs": 25,
+      "duration": 1.748
+    },
+    {
+      "score": 48,
+      "numberSource": "score-48.mp3",
+      "gapMs": 25,
+      "duration": 1.848
+    },
+    {
+      "score": 49,
+      "numberSource": "score-49.mp3",
+      "gapMs": 25,
+      "duration": 1.858
+    },
+    {
+      "score": 50,
+      "numberSource": "score-50.mp3",
+      "gapMs": 25,
+      "duration": 1.708
+    },
+    {
+      "score": 51,
+      "numberSource": "score-51.mp3",
+      "gapMs": 25,
+      "duration": 1.798
+    },
+    {
+      "score": 52,
+      "numberSource": "score-52.mp3",
+      "gapMs": 25,
+      "duration": 2.138
+    },
+    {
+      "score": 53,
+      "numberSource": "score-53.mp3",
+      "gapMs": 25,
+      "duration": 1.838
+    },
+    {
+      "score": 54,
+      "numberSource": "score-54.mp3",
+      "gapMs": 25,
+      "duration": 1.838
+    },
+    {
+      "score": 55,
+      "numberSource": "score-55.mp3",
+      "gapMs": 25,
+      "duration": 1.788
+    },
+    {
+      "score": 56,
+      "numberSource": "score-56.mp3",
+      "gapMs": 25,
+      "duration": 1.828
+    },
+    {
+      "score": 57,
+      "numberSource": "score-57.mp3",
+      "gapMs": 25,
+      "duration": 1.878
+    },
+    {
+      "score": 58,
+      "numberSource": "score-58.mp3",
+      "gapMs": 25,
+      "duration": 1.668
+    },
+    {
+      "score": 59,
+      "numberSource": "score-59.mp3",
+      "gapMs": 25,
+      "duration": 1.948
+    },
+    {
+      "score": 60,
+      "numberSource": "score-60-short.mp3",
+      "gapMs": 25,
+      "duration": 1.868
+    },
+    {
+      "score": 61,
+      "numberSource": "score-61.mp3",
+      "gapMs": 25,
+      "duration": 1.878
+    },
+    {
+      "score": 62,
+      "numberSource": "score-62.mp3",
+      "gapMs": 25,
+      "duration": 2.088
+    },
+    {
+      "score": 63,
+      "numberSource": "score-63.mp3",
+      "gapMs": 25,
+      "duration": 1.948
+    },
+    {
+      "score": 64,
+      "numberSource": "score-64.mp3",
+      "gapMs": 25,
+      "duration": 1.988
+    },
+    {
+      "score": 65,
+      "numberSource": "score-65.mp3",
+      "gapMs": 25,
+      "duration": 1.928
+    },
+    {
+      "score": 66,
+      "numberSource": "score-66.mp3",
+      "gapMs": 25,
+      "duration": 2.198
+    },
+    {
+      "score": 67,
+      "numberSource": "score-67-short.mp3",
+      "gapMs": 25,
+      "duration": 2.168
+    },
+    {
+      "score": 68,
+      "numberSource": "score-68.mp3",
+      "gapMs": 25,
+      "duration": 1.728
+    },
+    {
+      "score": 69,
+      "numberSource": "score-69-short.mp3",
+      "gapMs": 25,
+      "duration": 1.698
+    },
+    {
+      "score": 70,
+      "numberSource": "score-70.mp3",
+      "gapMs": 25,
+      "duration": 1.718
+    },
+    {
+      "score": 71,
+      "numberSource": "score-71.mp3",
+      "gapMs": 25,
+      "duration": 1.908
+    },
+    {
+      "score": 72,
+      "numberSource": "score-72.mp3",
+      "gapMs": 25,
+      "duration": 2.111
+    },
+    {
+      "score": 73,
+      "numberSource": "score-73.mp3",
+      "gapMs": 25,
+      "duration": 1.908
+    },
+    {
+      "score": 74,
+      "numberSource": "score-74.mp3",
+      "gapMs": 25,
+      "duration": 1.888
+    },
+    {
+      "score": 75,
+      "numberSource": "score-75.mp3",
+      "gapMs": 25,
+      "duration": 1.908
+    },
+    {
+      "score": 76,
+      "numberSource": "score-76.mp3",
+      "gapMs": 25,
+      "duration": 1.728
+    },
+    {
+      "score": 77,
+      "numberSource": "score-77.mp3",
+      "gapMs": 25,
+      "duration": 1.868
+    },
+    {
+      "score": 78,
+      "numberSource": "score-78.mp3",
+      "gapMs": 25,
+      "duration": 1.708
+    },
+    {
+      "score": 79,
+      "numberSource": "score-79.mp3",
+      "gapMs": 25,
+      "duration": 1.958
+    },
+    {
+      "score": 80,
+      "numberSource": "score-80.mp3",
+      "gapMs": 25,
+      "duration": 1.758
+    },
+    {
+      "score": 81,
+      "numberSource": "score-81.mp3",
+      "gapMs": 25,
+      "duration": 1.818
+    },
+    {
+      "score": 82,
+      "numberSource": "score-82.mp3",
+      "gapMs": 25,
+      "duration": 2.008
+    },
+    {
+      "score": 83,
+      "numberSource": "score-83.mp3",
+      "gapMs": 25,
+      "duration": 1.848
+    },
+    {
+      "score": 84,
+      "numberSource": "score-84.mp3",
+      "gapMs": 25,
+      "duration": 1.878
+    },
+    {
+      "score": 85,
+      "numberSource": "score-85.mp3",
+      "gapMs": 25,
+      "duration": 1.918
+    },
+    {
+      "score": 86,
+      "numberSource": "score-86.mp3",
+      "gapMs": 25,
+      "duration": 1.708
+    },
+    {
+      "score": 87,
+      "numberSource": "score-87.mp3",
+      "gapMs": 25,
+      "duration": 1.888
+    },
+    {
+      "score": 88,
+      "numberSource": "score-88.mp3",
+      "gapMs": 25,
+      "duration": 1.718
+    },
+    {
+      "score": 89,
+      "numberSource": "score-89.mp3",
+      "gapMs": 25,
+      "duration": 1.918
+    },
+    {
+      "score": 90,
+      "numberSource": "score-90.mp3",
+      "gapMs": 25,
+      "duration": 1.908
+    },
+    {
+      "score": 91,
+      "numberSource": "score-91.mp3",
+      "gapMs": 25,
+      "duration": 2.098
+    },
+    {
+      "score": 92,
+      "numberSource": "score-92.mp3",
+      "gapMs": 25,
+      "duration": 2.211
+    },
+    {
+      "score": 93,
+      "numberSource": "score-93.mp3",
+      "gapMs": 25,
+      "duration": 2.038
+    },
+    {
+      "score": 94,
+      "numberSource": "score-94.mp3",
+      "gapMs": 25,
+      "duration": 2.068
+    },
+    {
+      "score": 95,
+      "numberSource": "score-95-short.mp3",
+      "gapMs": 25,
+      "duration": 2.837
+    },
+    {
+      "score": 96,
+      "numberSource": "score-96.mp3",
+      "gapMs": 25,
+      "duration": 1.848
+    },
+    {
+      "score": 97,
+      "numberSource": "score-97.mp3",
+      "gapMs": 25,
+      "duration": 2.068
+    },
+    {
+      "score": 98,
+      "numberSource": "score-98.mp3",
+      "gapMs": 25,
+      "duration": 1.888
+    },
+    {
+      "score": 99,
+      "numberSource": "score-99-short.mp3",
+      "gapMs": 25,
+      "duration": 2.158
+    },
+    {
+      "score": 100,
+      "numberSource": "score-100.mp3",
+      "gapMs": 25,
+      "duration": 2.068
+    },
+    {
+      "score": 101,
+      "numberSource": "score-101.mp3",
+      "gapMs": 25,
+      "duration": 2.248
+    },
+    {
+      "score": 102,
+      "numberSource": "score-102.mp3",
+      "gapMs": 25,
+      "duration": 2.148
+    },
+    {
+      "score": 103,
+      "numberSource": "score-103.mp3",
+      "gapMs": 25,
+      "duration": 2.148
+    },
+    {
+      "score": 104,
+      "numberSource": "score-104-short.mp3",
+      "gapMs": 25,
+      "duration": 2.178
+    },
+    {
+      "score": 105,
+      "numberSource": "score-105.mp3",
+      "gapMs": 25,
+      "duration": 2.178
+    },
+    {
+      "score": 106,
+      "numberSource": "score-106.mp3",
+      "gapMs": 25,
+      "duration": 2.097
+    },
+    {
+      "score": 107,
+      "numberSource": "score-107.mp3",
+      "gapMs": 25,
+      "duration": 2.148
+    },
+    {
+      "score": 108,
+      "numberSource": "score-108.mp3",
+      "gapMs": 25,
+      "duration": 1.888
+    },
+    {
+      "score": 109,
+      "numberSource": "score-109.mp3",
+      "gapMs": 25,
+      "duration": 2.178
+    },
+    {
+      "score": 110,
+      "numberSource": "score-110.mp3",
+      "gapMs": 25,
+      "duration": 2.298
+    },
+    {
+      "score": 111,
+      "numberSource": "score-111.mp3",
+      "gapMs": 25,
+      "duration": 2.228
+    },
+    {
+      "score": 112,
+      "numberSource": "score-112.mp3",
+      "gapMs": 25,
+      "duration": 2.108
+    },
+    {
+      "score": 113,
+      "numberSource": "score-113.mp3",
+      "gapMs": 25,
+      "duration": 2.321
+    },
+    {
+      "score": 114,
+      "numberSource": "score-114.mp3",
+      "gapMs": 25,
+      "duration": 2.408
+    },
+    {
+      "score": 115,
+      "numberSource": "score-115.mp3",
+      "gapMs": 25,
+      "duration": 2.358
+    },
+    {
+      "score": 116,
+      "numberSource": "score-116.mp3",
+      "gapMs": 25,
+      "duration": 2.488
+    },
+    {
+      "score": 117,
+      "numberSource": "score-117.mp3",
+      "gapMs": 25,
+      "duration": 2.468
+    },
+    {
+      "score": 118,
+      "numberSource": "score-118.mp3",
+      "gapMs": 25,
+      "duration": 2.218
+    },
+    {
+      "score": 119,
+      "numberSource": "score-119.mp3",
+      "gapMs": 25,
+      "duration": 2.388
+    },
+    {
+      "score": 120,
+      "numberSource": "score-120.mp3",
+      "gapMs": 25,
+      "duration": 2.468
+    },
+    {
+      "score": 121,
+      "numberSource": "score-121.mp3",
+      "gapMs": 25,
+      "duration": 2.541
+    },
+    {
+      "score": 122,
+      "numberSource": "score-122.mp3",
+      "gapMs": 25,
+      "duration": 2.561
+    },
+    {
+      "score": 123,
+      "numberSource": "score-123.mp3",
+      "gapMs": 25,
+      "duration": 2.468
+    },
+    {
+      "score": 124,
+      "numberSource": "score-124.mp3",
+      "gapMs": 25,
+      "duration": 2.388
+    },
+    {
+      "score": 125,
+      "numberSource": "score-125.mp3",
+      "gapMs": 25,
+      "duration": 2.528
+    },
+    {
+      "score": 126,
+      "numberSource": "score-126.mp3",
+      "gapMs": 25,
+      "duration": 2.238
+    },
+    {
+      "score": 127,
+      "numberSource": "score-127.mp3",
+      "gapMs": 25,
+      "duration": 2.558
+    },
+    {
+      "score": 128,
+      "numberSource": "score-128.mp3",
+      "gapMs": 25,
+      "duration": 2.288
+    },
+    {
+      "score": 129,
+      "numberSource": "score-129.mp3",
+      "gapMs": 25,
+      "duration": 2.538
+    },
+    {
+      "score": 130,
+      "numberSource": "score-130.mp3",
+      "gapMs": 25,
+      "duration": 2.258
+    },
+    {
+      "score": 131,
+      "numberSource": "score-131.mp3",
+      "gapMs": 25,
+      "duration": 2.491
+    },
+    {
+      "score": 132,
+      "numberSource": "score-132.mp3",
+      "gapMs": 25,
+      "duration": 2.468
+    },
+    {
+      "score": 133,
+      "numberSource": "score-133.mp3",
+      "gapMs": 25,
+      "duration": 2.478
+    },
+    {
+      "score": 134,
+      "numberSource": "score-134.mp3",
+      "gapMs": 25,
+      "duration": 2.557
+    },
+    {
+      "score": 135,
+      "numberSource": "score-135-short.mp3",
+      "gapMs": 25,
+      "duration": 2.458
+    },
+    {
+      "score": 136,
+      "numberSource": "score-136.mp3",
+      "gapMs": 25,
+      "duration": 2.338
+    },
+    {
+      "score": 137,
+      "numberSource": "score-137.mp3",
+      "gapMs": 25,
+      "duration": 2.488
+    },
+    {
+      "score": 138,
+      "numberSource": "score-138.mp3",
+      "gapMs": 25,
+      "duration": 2.238
+    },
+    {
+      "score": 139,
+      "numberSource": "score-139.mp3",
+      "gapMs": 25,
+      "duration": 2.509
+    },
+    {
+      "score": 140,
+      "numberSource": "score-140-short.mp3",
+      "gapMs": 25,
+      "duration": 2.348
+    },
+    {
+      "score": 141,
+      "numberSource": "score-141.mp3",
+      "gapMs": 25,
+      "duration": 2.548
+    },
+    {
+      "score": 142,
+      "numberSource": "score-142.mp3",
+      "gapMs": 25,
+      "duration": 2.599
+    },
+    {
+      "score": 143,
+      "numberSource": "score-143.mp3",
+      "gapMs": 25,
+      "duration": 2.598
+    },
+    {
+      "score": 144,
+      "numberSource": "score-144.mp3",
+      "gapMs": 25,
+      "duration": 2.508
+    },
+    {
+      "score": 145,
+      "numberSource": "score-145.mp3",
+      "gapMs": 25,
+      "duration": 2.518
+    },
+    {
+      "score": 146,
+      "numberSource": "score-146.mp3",
+      "gapMs": 25,
+      "duration": 2.328
+    },
+    {
+      "score": 147,
+      "numberSource": "score-147.mp3",
+      "gapMs": 25,
+      "duration": 2.528
+    },
+    {
+      "score": 148,
+      "numberSource": "score-148.mp3",
+      "gapMs": 25,
+      "duration": 2.228
+    },
+    {
+      "score": 149,
+      "numberSource": "score-149.mp3",
+      "gapMs": 25,
+      "duration": 2.498
+    },
+    {
+      "score": 150,
+      "numberSource": "score-150.mp3",
+      "gapMs": 25,
+      "duration": 2.338
+    },
+    {
+      "score": 151,
+      "numberSource": "score-151.mp3",
+      "gapMs": 25,
+      "duration": 2.388
+    },
+    {
+      "score": 152,
+      "numberSource": "score-152.mp3",
+      "gapMs": 25,
+      "duration": 2.471
+    },
+    {
+      "score": 153,
+      "numberSource": "score-153.mp3",
+      "gapMs": 25,
+      "duration": 2.428
+    },
+    {
+      "score": 154,
+      "numberSource": "score-154.mp3",
+      "gapMs": 25,
+      "duration": 2.458
+    },
+    {
+      "score": 155,
+      "numberSource": "score-155.mp3",
+      "gapMs": 25,
+      "duration": 2.388
+    },
+    {
+      "score": 156,
+      "numberSource": "score-156.mp3",
+      "gapMs": 25,
+      "duration": 2.268
+    },
+    {
+      "score": 157,
+      "numberSource": "score-157.mp3",
+      "gapMs": 25,
+      "duration": 2.448
+    },
+    {
+      "score": 158,
+      "numberSource": "score-158.mp3",
+      "gapMs": 25,
+      "duration": 2.268
+    },
+    {
+      "score": 160,
+      "numberSource": "score-160.mp3",
+      "gapMs": 25,
+      "duration": 2.358
+    },
+    {
+      "score": 161,
+      "numberSource": "score-161.mp3",
+      "gapMs": 25,
+      "duration": 2.408
+    },
+    {
+      "score": 164,
+      "numberSource": "score-164.mp3",
+      "gapMs": 25,
+      "duration": 2.398
+    },
+    {
+      "score": 167,
+      "numberSource": "score-167.mp3",
+      "gapMs": 25,
+      "duration": 2.467
+    },
+    {
+      "score": 170,
+      "numberSource": "score-170.mp3",
+      "gapMs": 25,
+      "duration": 2.388
+    }
+  ]
+}

@@ -928,13 +928,24 @@ function dartCalloutSource(fileName) {
   return window.ONMNickAudio?.source(fileName,DART_VOICE_CREDITS[fileName])||`audio/darts/${fileName}`;
 }
 
+const dartCalloutPreloads=new Map();
+function preloadDartCallout(src){
+  if(typeof Audio!=="function"||dartCalloutPreloads.has(src))return;
+  const audio=new Audio();audio.preload="auto";audio.src=src;audio.load?.();
+  dartCalloutPreloads.set(src,audio);
+  if(dartCalloutPreloads.size>16)dartCalloutPreloads.delete(dartCalloutPreloads.keys().next().value);
+}
 function playDartCallout(fileName, fallbackFileName = null, onAutoplayBlocked = null, onPlaybackReady = null) {
   const credit = DART_VOICE_CREDITS[fileName];
   if (credit) showDartVoiceToast(credit);
 
+  const src=dartCalloutSource(fileName),required=/^require-(\d+)\.m4a$/.exec(fileName);
+  preloadDartCallout(src);
+  const base=file=>window.ONMNickAudio?.baseSource(file,DART_VOICE_CREDITS[file])||`audio/darts/${file}`;
   dartAudioQueue.push({
-    src: dartCalloutSource(fileName),
-    fallbackSrc: fallbackFileName ? dartCalloutSource(fallbackFileName) : window.ONMNickAudio?.isNick(fileName,DART_VOICE_CREDITS[fileName]) ? `audio/darts/${fileName}` : null,
+    src,
+    fallbackSrc: fallbackFileName ? dartCalloutSource(fallbackFileName) : /^score-\d+\.mp3$/.test(fileName)?base(fileName):window.ONMNickAudio?.isNick(fileName,DART_VOICE_CREDITS[fileName]) ? `audio/darts/${fileName}` : null,
+    fallbackSequence:required?[{src:base("you-require.mp3"),fallbackSrc:null},{src:base(`score-${required[1]}.mp3`),fallbackSrc:null}]:null,
     onAutoplayBlocked,
     onPlaybackReady
   });
@@ -1210,7 +1221,9 @@ function playNextDartCallout() {
   }
 
   function playFallbackOrNext() {
-    if (fallbackSrc) {
+    if(item.fallbackSequence){
+      dartAudioQueue.unshift(...item.fallbackSequence);
+    } else if (fallbackSrc) {
       dartAudioQueue.unshift({
         src: fallbackSrc,
         fallbackSrc: null
@@ -1268,9 +1281,7 @@ function announceRequiredScore(requiredScore) {
     required <= 170 &&
     POSSIBLE_CHECKOUTS.has(required)
   ) {
-    console.log("[AUDIO DEBUG] Queueing you-require and score", required);
-    playDartCallout("you-require.mp3");
-    playDartCallout(`score-${required}-short.mp3`, `score-${required}.mp3`);
+    playDartCallout(`require-${required}.m4a`);
   }
 }
 

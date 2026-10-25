@@ -15,7 +15,7 @@
   let knownWins = new Set(), knownScores = {};
   let undoFrame = null, replayVisit = null;
   let initialized = false, exited = false, restarting=false;
-  let lossAnnounced = false, lossVoiceTimer = null;
+  let lossAnnounced = false, lossVoiceTimer = null, lossSpeechUsed = false;
   const ONE_SHOT_LOSS = "You can't intentionally bust your checkout to return to a score of 50 or more. This is one-shot Bull or Bust — better luck next time!";
   function announceLoss() {
     if(lossAnnounced || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
@@ -23,13 +23,13 @@
     const speak = () => {
       if(exited) return;
       if(isDartCalloutBusy()) {lossVoiceTimer=setTimeout(speak,100);return;}
-      try {window.speechSynthesis.speak(new window.SpeechSynthesisUtterance("You lose"));} catch {}
+      try {lossSpeechUsed=true;window.speechSynthesis.speak(new window.SpeechSynthesisUtterance("You lose"));} catch {}
     };
     speak();
   }
-  function startWithAudio() {
+  function startWithAudio(countAttempt=true) {
     if (!initialized || active || exited) return;
-    if(!casual&&user&&window.ONMBotAttempts){
+    if(countAttempt&&!casual&&user&&window.ONMBotAttempts){
       window.ONMBotAttempts.start(user.uid,key);
       window.ONMFirebase.ready.then(({db,firestoreSdk:sdk})=>window.ONMBotAttempts.sync(user.uid,db,sdk)).then(()=>{if(state.winnerIndex!==null)showResult();}).catch(()=>{});
     }
@@ -230,11 +230,18 @@
   async function rematch() {
     if(!casual&&knownWins.has(key)&&E.validWinningScore(key,knownScores[key])&&knownScores[key].lost===0)return;
     if(!initialized||exited||restarting)return;
+    const countAttempt=state.winnerIndex!==null||state.players.some(player=>player.legs>0);
     restarting=true;active=false;clearTimeout(timer); clearTimeout(lossVoiceTimer);
     window.speechSynthesis?.cancel();
     if(typeof clearDartAudioQueue==="function")clearDartAudioQueue();
     $("monsterBotLoadingText").textContent=`Restarting ${profile.name} · ${formatLabel}`;
     $("monsterBotSplash").hidden=false;
+    // Mobile speech synthesis can keep media ducked briefly after cancel().
+    // Keep the restart splash visible until that audio session has released.
+    if(lossSpeechUsed){
+      await new Promise(resolve=>setTimeout(resolve,400));
+      lossSpeechUsed=false;
+    }
     await saving;
     restarting=false;if(exited)return;
     undoFrame=null;replayVisit=null;recorded=false;resultMessage="";saving=null;lossAnnounced=false;
@@ -245,7 +252,7 @@
     // Keep the same authenticated scorer and frame. A retry is a new game,
     // not a fresh page load or a second Firebase sign-in restoration.
     window.parent?.ONMBotLaunch?.resetAnnouncement?.(window);
-    startWithAudio();
+    startWithAudio(countAttempt);
   }
   async function init() {
     document.body.classList.add("monsterBotScorer");
@@ -305,7 +312,16 @@
       if(!casual)sdk.updateDoc(sdk.doc(db,"users",user.uid),{monsterBotStarted:true}).catch(()=>{});
       if (sdk && (await window.ONMFirebase.ready).authSdk?.onAuthStateChanged) {
         const {auth,authSdk} = await window.ONMFirebase.ready;
-        authSdk.onAuthStateChanged(auth,current => { if (current?.uid !== user.uid) exit(); });
+        let authLossTimer=null;
+        authSdk.onAuthStateChanged(auth,current => {
+          clearTimeout(authLossTimer);
+          if(current?.uid===user.uid)return;
+          if(current){exit();return;}
+          // A transient null notification must not eject a restored session.
+          authLossTimer=setTimeout(async()=>{
+            try{const restored=await window.ONMFirebase.currentFirebaseUser();if(restored?.uid!==user.uid)exit();}catch{/* Connection failures are not sign-outs. */}
+          },1500);
+        });
       }
     } catch {
       $("screenTitleText").textContent = "Could not load your bot game. Return to the ladder and retry.";

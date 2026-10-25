@@ -13,5 +13,5 @@ test("every Nick number has a verified asset, with safe peaks and unchanged timi
 });
 test("only Nick callouts use the boosted assets",()=>{
   const source=fs.readFileSync(path.join(root,"scripts/dart-scorer.js"),"utf8"),ctx={window:{ONMNickAudio:require("../scripts/dart-nick-clips")},DART_VOICE_CREDITS:{"score-100.mp3":"Nick 🔊","score-45.mp3":"Ricky 🔊"}};vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf("function dartCalloutSource("),source.indexOf("function playDartCallout(")),ctx);
-  assert.match(ctx.dartCalloutSource("score-100.mp3"),/nick-boosted\/score-100.m4a/);assert.equal(ctx.dartCalloutSource("score-45.mp3"),"audio/darts/score-45.mp3");assert.match(ctx.dartCalloutSource("game-on.mp3"),/nick-boosted\/game-on.m4a/);assert.match(ctx.dartCalloutSource("game-shot.mp3"),/nick-boosted\/game-shot.m4a/);
+  assert.match(ctx.dartCalloutSource("score-100.mp3"),/flow\/score-100.m4a/);assert.match(ctx.dartCalloutSource("score-45.mp3"),/flow\/score-45.m4a/);assert.equal(ctx.window.ONMNickAudio.baseSource("score-45.mp3","Ricky 🔊"),"audio/darts/score-45.mp3");assert.match(ctx.dartCalloutSource("game-on.mp3"),/nick-boosted\/game-on.m4a/);assert.match(ctx.dartCalloutSource("game-shot.mp3"),/nick-boosted\/game-shot.m4a/);
 });

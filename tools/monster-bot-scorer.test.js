@@ -297,7 +297,27 @@ test("Restart keeps the authenticated scorer and cancels the previous bot throw"
   assert.notEqual(g.ctx.reloaded,true);assert.equal(g.ctx.window.location.href,"");assert.equal(g.state.players[1].score,501);
   assert.equal(g.state.players[0].score,501);assert.equal(g.api.canPlay(),true);assert.equal(g.state.visitHistory.length,0);
 });
-test("ladder starts and Restarts count once; loss shows only this account's challenge attempts",async()=>{
+test("Restart waits for loss speech ducking to release before announcing Game on",async()=>{
+  const g=await harness({format:9});let cancelled=0;
+  g.ctx.window.SpeechSynthesisUtterance=function(text){this.text=text;};
+  g.ctx.window.speechSynthesis={speak(){},cancel(){cancelled++;}};
+  g.state.players[0].score=50;g.score(0);
+  const before=g.ctx.callouts.length,restart=g.api.rematch();
+  assert.equal(cancelled,1);assert.equal(g.ctx.callouts.length,before);
+  assert.equal(g.ctx.document.getElementById("monsterBotSplash").hidden,false);
+  const recovery=[...g.timers.values()].find(t=>t.delay===400);
+  assert.ok(recovery);recovery.fn();await restart;
+  assert.equal(g.ctx.callouts.length,before+1);
+  assert.equal(g.ctx.callouts.at(-1).file,"game-on.mp3");
+  assert.equal(g.ctx.document.getElementById("monsterBotSplash").hidden,true);
+});
+test("first-leg restarts reuse an attempt; completed legs and losses start another",async()=>{
+  const early=await harness({format:3});early.score(60);await early.api.rematch();
+  assert.equal(early.ctx.window.ONMBotAttempts.counts("member")["1-3"],1);
+  early.state.players[1].legs=1;await early.api.rematch();
+  assert.equal(early.ctx.window.ONMBotAttempts.counts("member")["1-3"],2);
+});
+test("ladder starts and loss Restarts count once; attempts remain private",async()=>{
   const g=await harness({format:9});
   assert.equal(g.ctx.window.ONMBotAttempts.counts("member")["1-9"],1);
   g.score(180);g.bot();g.score(100);
@@ -319,8 +339,13 @@ test("Venton can be retried repeatedly without navigation or another sign-in che
   }
   assert.equal(announcements,2);
 });
-test("sign-out and quitting cancel a pending bot throw; guests must log in with a return URL",async()=>{
-  const g=await harness();g.score(60);g.signOut();g.bot();assert.equal(g.state.players[1].score,501);assert.equal(g.ctx.window.location.href,"monster-bot.html");
+test("a confirmed sign-out exits, but a transient empty auth event keeps the game",async()=>{
+  const g=await harness();g.signOut();
+  const recovery=[...g.timers.values()].find(t=>t.delay===1500);assert.ok(recovery);
+  await recovery.fn();assert.equal(g.ctx.window.location.href,"");
+  g.ctx.window.ONMFirebase.currentFirebaseUser=async()=>null;
+  g.signOut();await [...g.timers.values()].filter(t=>t.delay===1500).at(-1).fn();
+  assert.equal(g.ctx.window.location.href,"monster-bot.html");
   const guest=await harness({account:null});assert.match(guest.ctx.window.location.href,/auth.html\?mode=login&redirect=dart-scorer.html%3Fmode%3Dbot/);
 });
 test("a direct Bull or Bust scorer URL requires all four standard wins",async()=>{

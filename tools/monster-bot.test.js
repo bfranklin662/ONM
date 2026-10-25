@@ -327,15 +327,15 @@ test("mode completion ticks distinguish wins from flawless wins, never selection
   assert.doesNotMatch(picker,/<span|<div/);
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:"3"}}:null}});
   assert.match(g.element("botLevels").innerHTML,/id="bot-mode-1" type="hidden" value="3"/);
-  assert.match(g.element("botLevels").innerHTML,/class="primary "[^>]*>Replay Billy Bot · BO3<\/button>/);
+  assert.match(g.element("botLevels").innerHTML,/class="primary"[^>]*>Replay Billy Bot · BO3<\/button>/);
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:"1"}}:null}});
-  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame"[^>]*disabled>Completed this game mode<\/button>/);
+  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame" data-casual-level="1">Play in casual mode<\/button>/);
   assert.equal(g.playButton(1,1),"");
 });
 test("fully completed bots offer a grey replay button without adding duplicate awards",async()=>{
   const wins=E.MODES.map(mode=>`1-${mode}`),scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
   const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(scores)]]));
-  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame"[^>]*disabled>Completed this game mode<\/button>/);
+  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame" data-casual-level="1">Play in casual mode<\/button>/);
   const set=new Set(wins);set.add("1-1");scores["1-1"]=E.bestScore(scores["1-1"],{won:1,lost:0});
   assert.equal(set.size,5);assert.equal(E.goldStars(set,scores),5);
 });
@@ -373,11 +373,11 @@ test("visitors see only the first two levels and all modes but cannot play", asy
   const stored = new Map([["onm-monster-bot-guest",JSON.stringify(["1-1","1-3"])]]);
   const g = await gameHarness(stored,null);
   const html = g.element("botLevels").innerHTML;
-  assert.equal((html.match(/Sign up to play/g)||[]).length,1);
+  assert.equal((html.match(/Sign up to play/g)||[]).length,0);
+  assert.equal(g.element("guestLanding").hidden,false);
+  assert.equal(g.element("botLevels").hidden,true);
   assert.equal((html.match(/Requirements to play/g)||[]).length,1);
   assert.doesNotMatch(html,/Filip Bot/); assert.match(html,/Bull or Bust/);
-  assert.match(html,/auth.html\?mode=register/);
-  assert.match(html,/redirect=monster-bot.html/);
   assert.match(g.element("saveStatus").innerHTML,/mode=login&redirect=monster-bot.html/);
   assert.equal(g.element("bot-level-1").scrolledIntoView.block,"start");
   assert.match(g.element("progressSummary").textContent,/0 \/ 50/);
@@ -403,7 +403,7 @@ test("outstanding requirements stay visible and signing out stops play", async (
   await g.signOut(); g.bot(); g.score(180); g.start();
   assert.equal(g.element("matchPanel").hidden,true);
   assert.equal(g.element("challengeSetup").hidden,false);
-  assert.equal((g.element("botLevels").innerHTML.match(/Sign up to play/g)||[]).length,1);
+  assert.equal((g.element("botLevels").innerHTML.match(/Sign up to play/g)||[]).length,0);
   assert.equal(g.writes.filter(w => w.data.monsterBotWins).length,0);
 });
 
