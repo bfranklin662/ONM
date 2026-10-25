@@ -1,6 +1,7 @@
 (function(root){
   "use strict";
-  const audio=typeof Audio==="function"?new Audio("audio/darts/game-on.mp3"):null;
+  const GAME_ON=root.ONMNickAudio?.source("game-on.mp3")||"audio/darts/nick-boosted/game-on.m4a?v=20261025-all-nick-v2";
+  const audio=typeof Audio==="function"?new Audio(GAME_ON):null;
   if(audio){audio.preload="auto";audio.playsInline=true;}
   let busy=false;
   let frame=null, context=null;
@@ -45,7 +46,7 @@
     announcedSource=source;opening=false;
     const splash=document.getElementById("botLaunchSplash");if(splash)splash.hidden=true;
     if(context)tone(880,context.currentTime,.12);
-    if(audio){audio.loop=false;audio.pause();audio.src="audio/darts/game-on.mp3";audio.currentTime=0;audio.volume=1;
+    if(audio){audio.loop=false;audio.pause();audio.src=GAME_ON;audio.currentTime=0;audio.volume=1;
       try{audio.play()?.catch(()=>{});}catch{}
     }
     return true;
@@ -77,9 +78,9 @@
     };
     const watchdog=setTimeout(()=>finish(false),6000);
     audio.onended=()=>finish(true);audio.onerror=()=>finish(false);
-    audio.loop=false;audio.src="audio/darts/game-on.mp3";audio.currentTime=0;audio.volume=1;
+    audio.loop=false;audio.src=GAME_ON;audio.currentTime=0;audio.volume=1;
     // This call must stay synchronous inside the user's Play/Restart click.
     try{audio.play()?.catch(()=>finish(false));}catch{finish(false);}
   }
-  root.ONMBotLaunch={start,open,ready,celebrate,stop,close,resetAnnouncement,isPlaying:()=>Boolean(audio&&!audio.paused&&audio.src.endsWith("game-on.mp3"))};
+  root.ONMBotLaunch={start,open,ready,celebrate,stop,close,resetAnnouncement,isPlaying:()=>Boolean(audio&&!audio.paused&&audio.src.includes("/game-on.m4a"))};
 })(typeof window!=="undefined"?window:globalThis);

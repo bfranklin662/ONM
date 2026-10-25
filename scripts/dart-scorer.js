@@ -925,9 +925,7 @@ function fullyStopDartAudio() {
 function dartCalloutSource(fileName) {
   // Boost the recordings themselves: media volume is already at its maximum,
   // and relying on per-element volume changes is inconsistent on phones.
-  return DART_VOICE_CREDITS[fileName]?.startsWith("Nick ")
-    ? `audio/darts/nick-boosted/${fileName.replace(/\.mp3$/,".m4a")}?v=20261025`
-    : `audio/darts/${fileName}`;
+  return window.ONMNickAudio?.source(fileName,DART_VOICE_CREDITS[fileName])||`audio/darts/${fileName}`;
 }
 
 function playDartCallout(fileName, fallbackFileName = null, onAutoplayBlocked = null, onPlaybackReady = null) {
@@ -936,7 +934,7 @@ function playDartCallout(fileName, fallbackFileName = null, onAutoplayBlocked = 
 
   dartAudioQueue.push({
     src: dartCalloutSource(fileName),
-    fallbackSrc: fallbackFileName ? dartCalloutSource(fallbackFileName) : DART_VOICE_CREDITS[fileName]?.startsWith("Nick ") ? `audio/darts/${fileName}` : null,
+    fallbackSrc: fallbackFileName ? dartCalloutSource(fallbackFileName) : window.ONMNickAudio?.isNick(fileName,DART_VOICE_CREDITS[fileName]) ? `audio/darts/${fileName}` : null,
     onAutoplayBlocked,
     onPlaybackReady
   });
@@ -949,7 +947,7 @@ function playLayeredDartAudio(fileName, volume = 1) {
 
   if (isDartAudioSuppressed()) return;
 
-  const audio = new Audio(`audio/darts/${fileName}`);
+  const audio = new Audio(dartCalloutSource(fileName));
   audio.preload = "auto";
   audio.playsInline = true;
   audio.setAttribute("playsinline", "");
@@ -980,7 +978,7 @@ function playInstantDartSfx(fileName, volume = 1) {
 
   dartSfxPlayer.pause();
   dartSfxPlayer.currentTime = 0;
-  dartSfxPlayer.src = `audio/darts/${fileName}`;
+  dartSfxPlayer.src = dartCalloutSource(fileName);
   dartSfxPlayer.volume = volume;
 
   dartSfxPlayer.play().catch(err => {

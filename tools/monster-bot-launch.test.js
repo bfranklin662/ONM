@@ -23,13 +23,15 @@ test("embedded scorer reveals and announces only when its own ready signal arriv
   vm.runInNewContext(source,ctx);
   ctx.window.ONMBotLaunch.open("dart-scorer.html?mode=bot&level=1&format=3");
   assert.equal(calls.length,1);assert.match(calls[0],/^data:audio\/wav;base64,/);assert.equal(splash.hidden,false);
+  assert.equal(ctx.window.ONMBotLaunch.isPlaying(),false);
   const silent=Buffer.from(calls[0].split(",")[1],"base64");assert.equal(silent.length,204);assert.ok(silent.subarray(44).every(byte=>byte===0));
   ctx.window.ONMBotLaunch.open("dart-scorer.html?mode=bot&level=1&format=3");assert.equal(calls.length,1);
   assert.equal(ctx.window.ONMBotLaunch.ready({}),false);assert.equal(calls.length,1);
   assert.equal(ctx.window.ONMBotLaunch.ready(frame.contentWindow),true);
-  assert.equal(splash.hidden,true);assert.equal(calls[1],"audio/darts/game-on.mp3");assert.equal(audio.loop,false);assert.equal(audio.currentTime,0);
+  assert.equal(splash.hidden,true);assert.equal(calls[1],"audio/darts/nick-boosted/game-on.m4a?v=20261025-all-nick-v2");assert.equal(audio.loop,false);assert.equal(audio.currentTime,0);
+  assert.equal(ctx.window.ONMBotLaunch.isPlaying(),true);
   ctx.window.ONMBotLaunch.ready(frame.contentWindow);ctx.window.ONMBotLaunch.ready(frame.contentWindow);
-  assert.equal(calls.filter(src=>src==="audio/darts/game-on.mp3").length,1);
+  assert.equal(calls.filter(src=>src==="audio/darts/nick-boosted/game-on.m4a?v=20261025-all-nick-v2").length,1);
   ctx.window.ONMBotLaunch.close();ctx.window.ONMBotLaunch.open("dart-scorer.html?mode=bot&level=1&format=3");ctx.window.ONMBotLaunch.ready(frame.contentWindow);
-  assert.equal(calls.filter(src=>src==="audio/darts/game-on.mp3").length,2);
+  assert.equal(calls.filter(src=>src==="audio/darts/nick-boosted/game-on.m4a?v=20261025-all-nick-v2").length,2);
 });
