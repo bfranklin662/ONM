@@ -922,13 +922,21 @@ function fullyStopDartAudio() {
   dartAudioUnlocked = false;
 }
 
+function dartCalloutSource(fileName) {
+  // Boost the recordings themselves: media volume is already at its maximum,
+  // and relying on per-element volume changes is inconsistent on phones.
+  return DART_VOICE_CREDITS[fileName]?.startsWith("Nick ")
+    ? `audio/darts/nick-boosted/${fileName.replace(/\.mp3$/,".m4a")}?v=20261025`
+    : `audio/darts/${fileName}`;
+}
+
 function playDartCallout(fileName, fallbackFileName = null, onAutoplayBlocked = null, onPlaybackReady = null) {
   const credit = DART_VOICE_CREDITS[fileName];
   if (credit) showDartVoiceToast(credit);
 
   dartAudioQueue.push({
-    src: `audio/darts/${fileName}`,
-    fallbackSrc: fallbackFileName ? `audio/darts/${fallbackFileName}` : null,
+    src: dartCalloutSource(fileName),
+    fallbackSrc: fallbackFileName ? dartCalloutSource(fallbackFileName) : DART_VOICE_CREDITS[fileName]?.startsWith("Nick ") ? `audio/darts/${fileName}` : null,
     onAutoplayBlocked,
     onPlaybackReady
   });
