@@ -138,8 +138,11 @@
     let status = $("monsterBotResultStatus");
     if (!status) { status = document.createElement("p"); status.id = "monsterBotResultStatus"; els.molVictoryTitle.after(status); }
     const won = state.winnerIndex === 0;
-    status.textContent = casual ? `${won?"You win!":"You lose."} Casual game — no stats or progress saved.` : `${won ? (state.players[1].legs === 0 ? "★ Flawless victory · Gold star! " : "✓ Challenge beaten. ") : "You lose. "}${resultMessage}`;
-    if(!casual&&window.ONMBotAttempts)status.textContent+=` · Your attempts: ${window.ONMBotAttempts.counts(user.uid)[key]||0}`;
+    status.textContent = casual ? `${won?"You win!":"You lose."} Casual game — no stats or progress saved.` : won ? (state.players[1].legs === 0 ? "Flawless Victory – Gold Star earned" : "Challenge beaten") : `You lose. ${resultMessage}`;
+    status.classList.toggle("flawlessResult",!casual&&won&&state.players[1].legs===0);
+    const attempts=$("monsterBotResultAttempts");
+    attempts.hidden=casual||!window.ONMBotAttempts;
+    attempts.textContent=attempts.hidden?"":`Your attempts: ${window.ONMBotAttempts.counts(user.uid)[key]||0}`;
   }
   function lose(reason) {
     clearTimeout(timer); timer = null;

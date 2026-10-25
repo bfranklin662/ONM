@@ -213,6 +213,13 @@ test("highest visit is retained across legs and reported in final stats",async()
   assert.equal(stats.highScore,180);assert.equal(stats.highestOut,141);
   assert.equal(g.ctx.getPlayerStats(g.state.players[1]).highScore,30);
 });
+test("flawless result uses a short gold-star headline and a separate attempts pill",async()=>{
+  const g=await harness();g.score(180);g.bot();g.score(180);g.bot();g.score(141);
+  await new Promise(done=>setImmediate(done));g.api.showResult();
+  assert.equal(g.ctx.document.getElementById("monsterBotResultStatus").textContent,"Flawless Victory – Gold Star earned");
+  assert.equal(g.ctx.document.getElementById("monsterBotResultAttempts").textContent,"Your attempts: 1");
+  assert.doesNotMatch(g.ctx.document.getElementById("monsterBotResultStatus").textContent,/device|sync|account|attempt/i);
+});
 test("bot matches cannot upload detailed statistics through the league save route",async()=>{
   const source=fs.readFileSync(require.resolve("../scripts/dart-scorer.js"),"utf8");
   let uploads=0;
@@ -294,7 +301,8 @@ test("ladder starts and Restarts count once; loss shows only this account's chal
   const g=await harness({format:9});
   assert.equal(g.ctx.window.ONMBotAttempts.counts("member")["1-9"],1);
   g.score(180);g.bot();g.score(100);
-  assert.match(g.ctx.document.getElementById("monsterBotResultStatus").textContent,/Your attempts: 1/);
+  assert.equal(g.ctx.document.getElementById("monsterBotResultAttempts").textContent,"Your attempts: 1");
+  assert.equal(g.ctx.document.getElementById("monsterBotResultAttempts").hidden,false);
   await g.api.rematch();
   assert.equal(g.ctx.window.ONMBotAttempts.counts("member")["1-9"],2);
   g.score(180);g.api.undo();assert.equal(g.ctx.window.ONMBotAttempts.counts("member")["1-9"],2);
@@ -334,6 +342,7 @@ test("casual games allow custom leg targets and completed bots without storing r
   assert.equal(g.writes.length,0);assert.equal(g.stored.size,0);
   g.api.showResult();
   assert.match(g.ctx.document.getElementById("monsterBotResultStatus").textContent,/no stats or progress saved/);
+  assert.equal(g.ctx.document.getElementById("monsterBotResultAttempts").hidden,true);
   assert.equal(g.els.molVictoryRematchBtn.textContent,"Restart");
   const long=await harness({casual:true,legs:23});assert.equal(long.ctx.LEGS_TO_WIN,12);assert.equal(long.api.canPlay(),true);
   const nine=await harness({casual:true,legs:9});assert.equal(nine.ctx.LEGS_TO_WIN,5);
