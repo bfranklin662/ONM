@@ -257,6 +257,11 @@ test("completion modal is read-only; playing and Bull confirmation stay on the l
   assert.equal(unlocked.location.href,"dart-scorer.html?mode=bot&level=1&format=9");
   assert.equal(unlocked.element("bullStartDialog").open,false);
 });
+test("Bull or Bust card has three concise rules and no outer yellow confirm outline",()=>{
+  const html=fs.readFileSync(require.resolve("../monster-bot.html"),"utf8"),css=fs.readFileSync(require.resolve("../styles/monster-bot-bull-card.css"),"utf8");
+  assert.match(html,/ONE-SHOT CHALLENGE/);assert.match(html,/bullChallengeTarget/);assert.equal((html.match(/class="bullRuleNumber"/g)||[]).length,3);
+  assert.match(css,/#confirmBullStart:focus-visible\{outline:none;box-shadow:inset/);
+});
 test("any two distinct formats unlock Croft and cards show completed counts",async()=>{
   for(const first of E.MODES) for(const second of E.MODES) {
     assert.equal(E.isUnlocked(2,new Set([`1-${first}`,`1-${second}`])),first!==second);
