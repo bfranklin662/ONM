@@ -1287,6 +1287,7 @@ function announceRequiredScore(requiredScore) {
 
 
 function announceLegWon(isMatchShot = false, isBullOut = false) {
+  if(BOT_MODE&&params.get("survival")==="1"&&Number(params.get("level"))%10!==0)isMatchShot=false;
   clearDartAudioQueue();
   playDartCallout(isMatchShot ? "match-shot.mp3" : "game-shot.mp3");
 

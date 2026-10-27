@@ -13,6 +13,9 @@
   let user=null,run=null,transitionTimer=null,champion=false,loading=false,best=0,boardLoading=false,stopAccountWatch=null;
   const cap=value=>Number.isInteger(value)?Math.max(0,Math.min(10,value)):0;
   const escape=value=>String(value||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  let playerPhotos={};
+  const photoKey=value=>String(value||"").toLowerCase().replace(/\.[^/.]+$/,"").replace(/[^a-z0-9]/g,"");
+  function boardPhoto(row){const stored=row.photoUrl||"";return stored&&!/^\/?images\/players\//i.test(stored)?stored:playerPhotos[photoKey(stored.split("/").pop())]||playerPhotos[photoKey(row.name)]||"graphics/logoWoText.png";}
   const fresh=()=>S.fresh(crypto.randomUUID());
   const trophyKey=()=>`onm-survival-complete-${tier===2?"tier2-":""}${user.uid}`;
   function render(){
@@ -29,7 +32,7 @@
     $("botProfileLink").href=user?"account.html":"auth.html?mode=register&redirect=monster-survival.html";
     $("botProfileLink").setAttribute("aria-label",user?"My account":"Sign up or sign in");
     const revealed=Math.min(10,Math.max(run?.level||1,best+1));
-    $("survivalRoute").innerHTML=bots().map((profile,index)=>{const bot={...profile,level:index+1};return bot.level>revealed?`<li class="survivalMystery"><span>ROUND ${bot.level}</span><span class="survivalMysteryLock" aria-hidden="true">🔒</span><strong>Mystery Monster</strong><span>Survive to reveal</span></li>`:`<li class="${run?.beaten>=bot.level?"defeated":run?.level===bot.level?"current":""}"><span>${run?.beaten>=bot.level?"✓ DEFEATED":`ROUND ${bot.level}`}</span><img src="${avatar(bot.level)}" alt=""><strong>${bot.name}</strong><span>${bot.average}–${bot.average+5} avg</span></li>`}).join("");
+    $("survivalRoute").innerHTML=bots().map((profile,index)=>{const bot={...profile,level:index+1};return bot.level>revealed?`<li class="survivalMystery"><span>ROUND ${bot.level}</span><span class="survivalMysteryLock" aria-hidden="true">🔒</span><strong>Mystery Monster</strong><span>Survive to reveal</span></li>`:`<li class="${run?.beaten>=bot.level?"defeated":run?.level===bot.level?"current":""}"><span>${run?.beaten>=bot.level?"✓ DEFEATED":`ROUND ${bot.level}${best===bot.level?" <small class=\"survivalBestBadge\">BEST</small>":""}`}${best===bot.level?' <small class="survivalBestBadge">BEST</small>':""}</span><img src="${avatar(bot.level)}" alt=""><strong>${bot.name}</strong><span>${bot.average}–${bot.average+5} avg</span></li>`}).join("");
   }
   async function persistBest(value){
     best=Math.max(best,cap(value));accountData[field("Best")]=best;if(best===10)accountData[field("Completed")]=true;const uid=user.uid,saved=best,startedField=field("Started"),bestField=field("Best"),completeField=field("Completed");
@@ -60,10 +63,11 @@
     if(restart){endRun(`New run. ${firstBot()} is waiting.`);launchLeg();return;}
     if(run?.status==="between"){
       render();const beaten=run.beaten,next=bots()[run.level-1];
-      $("survivalTransitionTitle").textContent=`${bots()[beaten-1].name} beaten. Next: ${next.name}`;
+      $("survivalTransitionTitle").textContent=`${bots()[beaten-1].name} eliminated!`;
+      $("survivalNextDetail").textContent=`Up next · Level ${run.level} · ${next.name} · ${next.average}–${next.average+5} average`;
       $("survivalDefeatedAvatar").src=avatar(beaten);$("survivalNextAvatar").src=avatar(run.level);
       const overlay=$("survivalTransition");overlay.hidden=false;overlay.focus();
-      transitionTimer=setTimeout(()=>{overlay.hidden=true;launchLeg();},window.matchMedia?.("(prefers-reduced-motion: reduce)").matches?800:2400);
+      $("continueSurvivalTransition").focus();
     }else if(run?.status==="complete"){
       render();$("survivalStatus").textContent="Ten wins. Zero losses. Survival complete!";
       $("survivalChampionDialog").showModal();window.ONMBotLaunch.celebrate($("survivalChampionDialog"));
@@ -95,9 +99,10 @@
     if(boardLoading)return;boardLoading=true;$("survivalBoardStatus").setAttribute("aria-busy","true");$("refreshSurvivalBoard").disabled=true;$("survivalBoardStatus").textContent="Loading Survival leaderboard…";
     try{
       const data=await window.ONMBotData.fetchCommunity({projectId:window.ONMFirebase.config.projectId,refresh,getToken:user?.getIdToken?()=>user.getIdToken():null});
+      if(typeof fetch==="function")try{const response=await fetch("data/player-photo-map.json");if(response.ok)playerPhotos=await response.json();}catch{}
       const rows=tier===2?data.survivalTier2Leaderboard:data.survivalLeaderboard;
       if(!Array.isArray(rows))throw Error("Leaderboard service needs its Survival update.");
-      $("survivalBoardRows").innerHTML=rows.map((row,index)=>`<tr><td>${index+1}</td><th scope="row"><span class="survivalBoardIdentity"><img src="${escape(row.photoUrl||"graphics/logoWoText.png")}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${escape(row.name)}</span><span aria-label="${escape(row.nationality)}">${escape(row.flag)}</span></span></th><td>${cap(row.best)}/10</td><td>${row.complete?"✓":"—"}</td></tr>`).join("");
+      $("survivalBoardRows").innerHTML=rows.map((row,index)=>`<tr><td>${index+1}</td><th scope="row"><span class="survivalBoardIdentity"><img src="${escape(boardPhoto(row))}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${escape(row.name)}</span><span aria-label="${escape(row.nationality)}">${escape(row.flag)}</span></span></th><td>${cap(row.best)}/10</td><td>${row.complete?"✓":"—"}</td></tr>`).join("");
       $("survivalBoardStatus").textContent=rows.length?"Ranked by most Monsters beaten in one run.":"No runs yet. Be the first to enter Survival.";
     }catch{$("survivalBoardStatus").textContent="Survival leaderboard couldn't load. Please refresh to retry.";}
     finally{boardLoading=false;$("survivalBoardStatus").setAttribute("aria-busy","false");$("refreshSurvivalBoard").disabled=false;}
@@ -110,10 +115,12 @@
   }
   $("survivalPlayTab").addEventListener("click",()=>showView(false));$("survivalBoardTab").addEventListener("click",()=>showView(true));
   $("refreshSurvivalBoard").addEventListener("click",()=>loadBoard(true));
+  $("survivalBoardRows").addEventListener("error",event=>{if(event.target?.tagName==="IMG"&&!event.target.src.endsWith("graphics/logoWoText.png"))event.target.src="graphics/logoWoText.png";},true);
   window.addEventListener("hashchange",()=>showView(window.location?.hash==="#leaderboard"));
   $("retrySurvivalAccount").addEventListener("click",load);
   $("cancelSurvivalTransition").addEventListener("click",()=>endRun(`Run ended. Start again with ${firstBot()}.`));
-  $("survivalTransition").addEventListener("keydown",event=>{if(event.key==="Escape")endRun(`Run ended. Start again with ${firstBot()}.`);if(event.key==="Tab"){event.preventDefault();$("cancelSurvivalTransition").focus();}});
+  $("continueSurvivalTransition").addEventListener("click",()=>{$("survivalTransition").hidden=true;launchLeg();});
+  $("survivalTransition").addEventListener("keydown",event=>{if(event.key==="Escape")endRun(`Run ended. Start again with ${firstBot()}.`);if(event.key==="Tab"){event.preventDefault();$("continueSurvivalTransition").focus();}});
   $("closeSurvivalChampion").addEventListener("click",()=>{$("survivalChampionDialog").close();$("startSurvival").focus();});
   window.addEventListener("pagehide",()=>clearTimeout(transitionTimer));
   let refreshingAccess=false;

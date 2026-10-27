@@ -84,7 +84,7 @@ test("switching tabs updates the URL so reload restores the last viewed tab",asy
   assert.equal(g.element("botPageTitle").textContent,"Leaderboard");
   g.click("ladderTab");assert.equal(g.location.hash,"#game");
   const reloaded=await gameHarness(new Map(),{uid:"member",initialHash:g.location.hash});
-  assert.equal(reloaded.element("botPageTitle").textContent,"Monster Bot Game");
+  assert.equal(reloaded.element("botPageTitle").textContent,"Monster Bot Ladder");
   reloaded.click("leaderboardTab");assert.equal(reloaded.location.hash,"#leaderboard");
   const board=await gameHarness(new Map(),{uid:"member",initialHash:reloaded.location.hash});
   assert.equal(board.element("botPageTitle").textContent,"Leaderboard");
@@ -450,7 +450,7 @@ test("unlocking the next bot reveals exactly one more locked preview", async () 
   assert.equal(g.element("leaderboardPanel").hidden,false);
   assert.equal(g.element("leaderboardTab")["aria-selected"],"true");
   g.click("ladderTab");assert.equal(g.element("ladderPanel").hidden,false);
-  assert.equal(g.element("botPageTitle").textContent,"Monster Bot Game");
+  assert.equal(g.element("botPageTitle").textContent,"Monster Bot Ladder");
 });
 
 test("available avatars appear in the ladder and scorer without leaking into other levels", async () => {
@@ -504,7 +504,7 @@ test("auth failures offer retry, never an incorrect sign-up prompt", async () =>
 });
 test("help links to a separate rules page and obsolete introductory controls are removed", async () => {
   const html=fs.readFileSync(require.resolve("../monster-bot.html"),"utf8");
-  assert.match(html,/Monster Bot Game/);assert.match(html,/Bull or Bust/);
+  assert.match(html,/Monster Bot Ladder/);assert.match(html,/Bull or Bust/);
   const card=fs.readFileSync(require.resolve("../games.html"),"utf8");
   assert.match(card,/<h2>Monster Bot Game<\/h2>/);
   assert.doesNotMatch(card,/Monster Bot Ladder/);

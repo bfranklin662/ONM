@@ -33,7 +33,7 @@
     frame=document.createElement("iframe");frame.title="Monster Bot Game";
     frame.allow="autoplay; fullscreen; screen-wake-lock";frame.allowFullscreen=true;
     frame.style.cssText="position:fixed;inset:0;width:100%;height:100%;border:0;z-index:19000;background:#080f17";
-    frame.onload=()=>{const splash=document.getElementById("botLaunchSplash");if(splash)splash.hidden=true;};
+    // Keep the branded splash until the scorer explicitly reports readiness.
     frame.src=target.href;document.body.appendChild(frame);
     document.body.style.overflow="hidden";
     };

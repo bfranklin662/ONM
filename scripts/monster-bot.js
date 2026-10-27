@@ -76,7 +76,7 @@
       if(window.matchMedia?.("(max-width: 600px)").matches&&list.getBoundingClientRect){
         const viewport=window.visualViewport;
         const bottom=(viewport?.height||window.innerHeight)+(viewport?.offsetTop||0);
-        list.style.maxHeight=`${Math.max(160,bottom-list.getBoundingClientRect().top-72)}px`;
+        list.style.maxHeight=`${Math.max(160,bottom-list.getBoundingClientRect().top-24)}px`;
       }
       if(current.getBoundingClientRect&&list.getBoundingClientRect){
         list.scrollTop+=current.getBoundingClientRect().top-list.getBoundingClientRect().top;
@@ -167,8 +167,8 @@
     $("casualPanel").hidden=true;$("casualTab").setAttribute("aria-selected","false");
     const hash = board ? "#leaderboard" : "#game";
     if (window.location.hash !== hash) window.history?.replaceState(null,"",hash);
-    $("botPageTitle").textContent = board ? "Leaderboard" : "Monster Bot Game";
-    document.title = `${board ? "Leaderboard" : "Monster Bot Game"} | Oche Ness Monsters`;
+    $("botPageTitle").textContent = board ? "Leaderboard" : "Monster Bot Ladder";
+    document.title = `${board ? "Leaderboard" : "Monster Bot Ladder"} | Oche Ness Monsters`;
     $("ladderPanel").hidden = board; $("leaderboardPanel").hidden = !board;
     $("ladderTab").setAttribute("aria-selected", String(!board));
     window.dispatchEvent?.(new Event("onm-mode-change"));
