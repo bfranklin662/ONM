@@ -88,7 +88,7 @@ test("leaderboard includes starters, merges linked accounts, and publishes no pr
     {id:"d",monsterBotStarted:true},
     {id:"e",monsterBotWins:["fake"]}
   ],new Map([["nick",{publicName:"Nick"}],["rob",{publicName:"Rob"}]]));
-  assert.deepEqual(result[0],{name:"Nick",level:2,completed:2,flawless:1,trophies:0});
+  assert.deepEqual(result[0],{name:"Nick",level:2,unlocked:2,completed:2,flawless:1,trophies:0});
   assert.equal(result.length,3);
   assert.ok(result.some(row=>row.name==="Rob"&&row.completed===0&&row.level===1));
   assert.equal(JSON.stringify(result).includes("secret@example.test"),false);

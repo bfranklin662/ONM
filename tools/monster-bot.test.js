@@ -76,8 +76,8 @@ test("player summary switches between separate Tier 1 and Tier 2 progress",async
   g.click("ladderTierOne");assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Beaten 25");
 });
 test("leaderboard shows trophy totals and raw challenge counts without a fixed denominator",async()=>{
-  const g=await gameHarness(new Map(),null,async()=>({completions:{},leaderboard:[{name:"Alex",level:11,completed:22,flawless:20,trophies:4}]}));
-  const html=g.element("leaderboardRows").innerHTML;assert.match(html,/challengesTotal">22<\/td>/);assert.match(html,/trophiesTotal">.*platinumTrophy.*<span>4</);assert.match(html,/T2 · 1/);assert.doesNotMatch(html,/\/ 50/);
+  const g=await gameHarness(new Map(),null,async()=>({completions:{},leaderboard:[{name:"Alex",level:11,unlocked:8,completed:22,flawless:20,trophies:4}]}));
+  const html=g.element("leaderboardRows").innerHTML;assert.match(html,/challengesTotal">22<\/td>/);assert.match(html,/trophiesTotal">.*platinumTrophy.*<span>4</);assert.match(html,/<td>8<\/td>/);assert.doesNotMatch(html,/\/ 50/);
 });
 test("switching tabs updates the URL so reload restores the last viewed tab",async()=>{
   const g=await gameHarness(new Map(),{uid:"member",initialHash:"#leaderboard"});

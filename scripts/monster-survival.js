@@ -10,18 +10,21 @@
   const canSurvive=()=>Boolean(user&&(tier===1||tier2Unlocked)&&E.highestUnlocked(new Set(accountData.monsterBotWins||[]),accountData.monsterBotBestScores||{},tier)>=(tier===2?13:3));
   const field=name=>`monsterSurvival${tier===2?"Tier2":""}${name}`;
   const bestKey=()=>`onm-survival-best-${tier===2?"tier2-":""}${user.uid}`;
-  let user=null,run=null,transitionTimer=null,champion=false,loading=false,best=0,boardLoading=false;
+  let user=null,run=null,transitionTimer=null,champion=false,loading=false,best=0,boardLoading=false,stopAccountWatch=null;
   const cap=value=>Number.isInteger(value)?Math.max(0,Math.min(10,value)):0;
   const escape=value=>String(value||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const fresh=()=>S.fresh(crypto.randomUUID());
   const trophyKey=()=>`onm-survival-complete-${tier===2?"tier2-":""}${user.uid}`;
   function render(){
+    const accessible=canSurvive()&&!loading;
+    $("survivalRoute").hidden=!accessible;$("survivalRouteTitle").hidden=!accessible;
+    $("survivalPersonalBest").hidden=!accessible;$("survivalTrophy").hidden=!accessible||!champion;
     $("startSurvival").textContent=canSurvive()?"Play Survival":`🔒 Reach Level 3 · Tier ${tier} Ladder`;
     $("survivalTierTabs").hidden=!tier2Unlocked;$("survivalTierTwo").hidden=!tier2Unlocked;
     $("survivalTierOne").setAttribute("aria-selected",String(tier===1));$("survivalTierTwo").setAttribute("aria-selected",String(tier===2));
     $("startSurvival").disabled=!canSurvive()||loading||run?.status==="playing";
     $("startSurvival").hidden=!user;$("survivalSignUp").hidden=Boolean(user)||loading;
-    $("survivalTrophy").hidden=!champion;
+    $("survivalTrophy").hidden=!accessible||!champion;
     $("survivalPersonalBest").textContent=user?`Your best run: ${best}/10 Monsters beaten`:"";
     $("botProfileLink").href=user?"account.html":"auth.html?mode=register&redirect=monster-survival.html";
     $("botProfileLink").setAttribute("aria-label",user?"My account":"Sign up or sign in");
@@ -81,7 +84,11 @@
       try{champion=localStorage.getItem(trophyKey())==="earned";best=cap(Number(localStorage.getItem(bestKey())));}catch{}
       try{const {db,firestoreSdk:sdk}=await window.ONMBotData.withTimeout(window.ONMFirebase.ready);const snap=await window.ONMBotData.withTimeout(sdk.getDoc(sdk.doc(db,"users",user.uid))),data=snap.data()||{};accountData=data;tier2Unlocked=E.tier2EntryUnlocked(new Set(data.monsterBotWins||[]),data.monsterBotBestScores||{});champion=champion||data[field("Completed")]===true;best=Math.max(best,cap(data[field("Best")]),champion?10:0);if(champion)saveCompletion();else if(best>cap(data[field("Best")]))persistBest(best).catch(()=>{});}catch{/* A restored signed-in session may play while offline. */}
     }catch{$("survivalStatus").textContent="Couldn't check your account. Please retry.";$("retrySurvivalAccount").hidden=false;}
-    finally{loading=false;$("survivalStatus").setAttribute("aria-busy","false");render();}
+    finally{loading=false;$("survivalStatus").setAttribute("aria-busy","false");render();
+      if(user&&!stopAccountWatch)window.ONMFirebase.ready.then(({db,firestoreSdk:sdk})=>{
+        if(sdk.onSnapshot)stopAccountWatch=sdk.onSnapshot(sdk.doc(db,"users",user.uid),snap=>{accountData=snap.data()||{};tier2Unlocked=E.tier2EntryUnlocked(new Set(accountData.monsterBotWins||[]),accountData.monsterBotBestScores||{});render();},()=>{});
+      }).catch(()=>{});
+    }
   }
   $("startSurvival").addEventListener("click",()=>{if(!canSurvive())return;persistBest(0).catch(()=>{});run=fresh();launchLeg();});
   async function loadBoard(refresh=false){
@@ -109,6 +116,14 @@
   $("survivalTransition").addEventListener("keydown",event=>{if(event.key==="Escape")endRun(`Run ended. Start again with ${firstBot()}.`);if(event.key==="Tab"){event.preventDefault();$("cancelSurvivalTransition").focus();}});
   $("closeSurvivalChampion").addEventListener("click",()=>{$("survivalChampionDialog").close();$("startSurvival").focus();});
   window.addEventListener("pagehide",()=>clearTimeout(transitionTimer));
+  let refreshingAccess=false;
+  async function refreshAccess(){
+    if(!user||loading||refreshingAccess)return;refreshingAccess=true;
+    try{const {db,firestoreSdk:sdk}=await window.ONMBotData.withTimeout(window.ONMFirebase.ready);const snap=await window.ONMBotData.withTimeout(sdk.getDoc(sdk.doc(db,"users",user.uid)));accountData=snap.data()||{};tier2Unlocked=E.tier2EntryUnlocked(new Set(accountData.monsterBotWins||[]),accountData.monsterBotBestScores||{});render();}catch{}finally{refreshingAccess=false;}
+  }
+  window.addEventListener("pageshow",refreshAccess);window.addEventListener("focus",refreshAccess);
+  if(document.addEventListener)document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshAccess();});
+  window.addEventListener("storage",refreshAccess);
   async function selectTier(next){
     if(loading||run?.status==="playing"||run?.status==="between"||next===2&&!tier2Unlocked)return;
     tier=next;run=fresh();best=cap(accountData[field("Best")]);champion=accountData[field("Completed")]===true;

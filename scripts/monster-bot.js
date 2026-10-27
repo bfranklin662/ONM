@@ -73,6 +73,11 @@
       const current = $("bot-level-" + (E.highestUnlocked(progress,bestScores,selectedTier,survivalBest())||(selectedTier===2?11:1)));
       if (!ready || !current || $("challengeSetup").hidden || $("ladderPanel").hidden) return;
       const list=$("botLevels");
+      if(window.matchMedia?.("(max-width: 600px)").matches&&list.getBoundingClientRect){
+        const viewport=window.visualViewport;
+        const bottom=(viewport?.height||window.innerHeight)+(viewport?.offsetTop||0);
+        list.style.maxHeight=`${Math.max(160,bottom-list.getBoundingClientRect().top-72)}px`;
+      }
       if(current.getBoundingClientRect&&list.getBoundingClientRect){
         list.scrollTop+=current.getBoundingClientRect().top-list.getBoundingClientRect().top;
       }else current.scrollIntoView({block:"start",inline:"nearest",behavior:"instant"});
@@ -151,8 +156,8 @@
   }
   function renderLeaderboard() {
     $("leaderboardStatus").setAttribute("aria-busy",String(Boolean(communityLoading)));
-    $("leaderboardStatus").textContent = leaderboard ? (leaderboard.length ? `${leaderboard.length} players · Ranked by challenges completed, then level unlocked.` : "No players yet. Start your first match to join the leaderboard.") : communityError ? "Leaderboard could not be loaded. Please retry." : "Loading leaderboard…";
-    $("leaderboardRows").innerHTML = (leaderboard || []).map((row,i) => `<tr><td>${i+1}</td><th scope="row"><span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(leaderboardPhoto(row))}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${escape(row.name)}</span>${row.flag ? `<span class="botLeaderboardFlag" role="img" aria-label="${escape(row.nationality || "Nationality")}" title="${escape(row.nationality || "Nationality")}">${escape(row.flag)}</span>` : ""}</span></th><td>${row.level>10?`T2 · ${E.localLevel(row.level)}`:row.level}</td><td class="challengesTotal">${row.completed}</td><td class="flawlessTotal">★ ${row.flawless ?? 0}</td><td class="trophiesTotal">${trophyIcon}<span>${row.trophies??0}</span></td></tr>`).join("");
+    $("leaderboardStatus").textContent = leaderboard ? (leaderboard.length ? `${leaderboard.length} players · Ranked by modes won, then Monsters unlocked.` : "No players yet. Start your first match to join the leaderboard.") : communityError ? "Leaderboard could not be loaded. Please retry." : "Loading leaderboard…";
+    $("leaderboardRows").innerHTML = (leaderboard || []).map((row,i) => `<tr><td>${i+1}</td><th scope="row"><span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(leaderboardPhoto(row))}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${escape(row.name)}</span>${row.flag ? `<span class="botLeaderboardFlag" role="img" aria-label="${escape(row.nationality || "Nationality")}" title="${escape(row.nationality || "Nationality")}">${escape(row.flag)}</span>` : ""}</span></th><td>${row.unlocked??row.level}</td><td class="challengesTotal">${row.completed}</td><td class="flawlessTotal">★ ${row.flawless ?? 0}</td><td class="trophiesTotal">${trophyIcon}<span>${row.trophies??0}</span></td></tr>`).join("");
     $("retryLeaderboard").hidden = !communityError;
     $("refreshLeaderboard").disabled = Boolean(communityLoading);
     $("refreshLeaderboard").setAttribute("aria-busy",String(Boolean(communityLoading)));

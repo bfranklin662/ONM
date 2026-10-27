@@ -81,7 +81,8 @@ function buildLeaderboard(users, profiles) {
     }
     const entry=tierStars(1)>=20&&Array.from({length:10},(_,i)=>i+1).filter(mastered).length>=3;
     const level=entry?highest(2):highest(1);
-    return {name:row.name,level,completed:row.wins.size,flawless,trophies,...(row.photoUrl?{photoUrl:row.photoUrl}:{}),...(row.nationality?{nationality:row.nationality,flag:row.flag}:{})};
+    const unlocked=highest(1)+(entry?highest(2)-10:0);
+    return {name:row.name,level,unlocked,completed:row.wins.size,flawless,trophies,...(row.photoUrl?{photoUrl:row.photoUrl}:{}),...(row.nationality?{nationality:row.nationality,flag:row.flag}:{})};
   }).sort((a,b) => b.completed-a.completed || b.level-a.level || a.name.localeCompare(b.name));
 }
 function buildSurvivalLeaderboard(users,profiles,tier=1){

@@ -17,12 +17,12 @@ test("a loss at any opponent ends the run and a fresh run always starts at Billy
   }
 });
 async function page(account={uid:"member"},community=[],profile={monsterBotWins:["1-1","1-3","1-5","1-7","1-9","2-1","2-3"],monsterBotBestScores:Object.fromEntries(E.MODES.map(mode=>[`1-${mode}`,{won:E.legsNeeded(mode),lost:0}]))}){
-  const nodes=new Map(),timers=new Map(),urls=[],writes=[],stored=new Map();let timer=0,id=0;
+  const nodes=new Map(),timers=new Map(),urls=[],writes=[],stored=new Map();let timer=0,id=0,accountChanged;
   const node=key=>{if(!nodes.has(key))nodes.set(key,{hidden:false,disabled:false,listeners:{},setAttribute(){},focus(){},showModal(){this.open=true;},close(){this.open=false;},addEventListener(type,fn){this.listeners[type]=fn;}});return nodes.get(key);};
-  const sdk={doc:(_db,c,id)=>`${c}/${id}`,getDoc:async()=>({data:()=>profile}),updateDoc:async(ref,data)=>writes.push({ref,data}),runTransaction:async(_db,fn)=>fn({get:async()=>({data:()=>({})}),update:(ref,data)=>writes.push({ref,data})})};
+  const sdk={onSnapshot:(_ref,fn)=>{accountChanged=fn;return ()=>{};},doc:(_db,c,id)=>`${c}/${id}`,getDoc:async()=>({data:()=>profile}),updateDoc:async(ref,data)=>writes.push({ref,data}),runTransaction:async(_db,fn)=>fn({get:async()=>({data:()=>({})}),update:(ref,data)=>writes.push({ref,data})})};
   const ctx={document:{getElementById:node},crypto:{randomUUID:()=>`run-${++id}`},localStorage:{getItem:key=>stored.get(key),setItem:(k,v)=>stored.set(k,v)},setTimeout:(fn,ms)=>{timers.set(++timer,{fn,ms});return timer;},clearTimeout:id=>timers.delete(id),window:{MonsterBotEngine:E,ONMSurvivalState:S,ONMBotData:{withTimeout:promise=>promise,fetchCommunity:async()=>({survivalLeaderboard:community})},ONMFirebase:{config:{projectId:"test-project"},currentFirebaseUser:async()=>account,ready:Promise.resolve({db:{},firestoreSdk:sdk})},ONMBotLaunch:{open:url=>urls.push(url),close(){},celebrate(){}},addEventListener(){},matchMedia:()=>({matches:false})}};
   vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/monster-survival.js"),"utf8"),ctx);await new Promise(r=>setImmediate(r));
-  return{api:ctx.window.ONMMonsterSurvival,node,urls,writes,stored,start:()=>node("startSurvival").listeners.click(),next:()=>{const [key,t]=[...timers].find(([,t])=>t.ms===2400)||[];assert.ok(t);timers.delete(key);t.fn();},current:()=>new URL(urls.at(-1),"https://example.test").searchParams};
+  return{updateAccount:data=>accountChanged({data:()=>data}),api:ctx.window.ONMMonsterSurvival,node,urls,writes,stored,start:()=>node("startSurvival").listeners.click(),next:()=>{const [key,t]=[...timers].find(([,t])=>t.ms===2400)||[];assert.ok(t);timers.delete(key);t.fn();},current:()=>new URL(urls.at(-1),"https://example.test").searchParams};
 }
 test("Survival animates between rounds, reaches Filip and saves only best progress and trophy",async()=>{
   const g=await page();g.start();
@@ -59,6 +59,11 @@ test("each Survival tier requires level three on its own ladder",async()=>{
   const fresh=await page({uid:"member"},[],{});fresh.start();assert.equal(fresh.urls.length,0);assert.match(fresh.node("startSurvival").textContent,/Reach Level 3 · Tier 1/);
   const wins=[1,2,3,4].flatMap(level=>E.MODES.map(mode=>`${level}-${mode}`)),scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
   const second=await page({uid:"member"},[],{monsterBotWins:wins,monsterBotBestScores:scores});assert.equal(second.node("survivalTierTwo").hidden,false);second.node("survivalTierTwo").listeners.click();second.start();assert.equal(second.urls.length,0);assert.match(second.node("startSurvival").textContent,/Reach Level 3 · Tier 2/);
+});
+test("Survival unlock updates without refresh and locked players cannot see the route",async()=>{
+  const g=await page({uid:"member"},[],{});assert.equal(g.node("survivalRoute").hidden,true);assert.equal(g.node("startSurvival").disabled,true);
+  const wins=["1-1","1-3","1-5","1-7","1-9","2-1","2-3"],scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  g.updateAccount({monsterBotWins:wins,monsterBotBestScores:scores});assert.equal(g.node("survivalRoute").hidden,false);assert.equal(g.node("startSurvival").disabled,false);g.start();assert.equal(g.current().get("level"),"1");
 });
 test("guests see signup and cannot begin a Survival run",async()=>{
   const g=await page(null);assert.equal(g.node("survivalSignUp").hidden,false);g.start();assert.equal(g.urls.length,0);
