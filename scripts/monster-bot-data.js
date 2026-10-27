@@ -15,7 +15,7 @@
           if(!response.ok)throw new Error("Leaderboard service is temporarily unavailable.");
           const payload=await response.json(),data=payload.result||payload.data;
           if(payload.error||!data||!Array.isArray(data.leaderboard)||!data.completions||typeof data.completions!=="object"||Array.isArray(data.completions))throw new Error("Leaderboard response is unavailable.");
-          return data;
+          return {...data,leaderboard:backfillTrophies(data.leaderboard,data.completions)};
         })(),timeoutMs,"Leaderboard connection timed out. Please retry.");
       }catch(error){
         controller.abort();
@@ -24,5 +24,19 @@
       }
     }
   }
-  return {withTimeout,fetchCommunity};
+  // Older deployed responses have no trophy field. Derive it from their public
+  // per-bot results without guessing from star totals or exposing account IDs.
+  function backfillTrophies(rows,completions={}) {
+    return rows.map(row=>{
+      if(Number.isInteger(row.trophies)&&row.trophies>=0)return row;
+      let trophies=0;
+      for(let level=1;level<=20;level++){
+        const matches=(completions[`level-${level}`]||[]).filter(p=>p.name===row.name&&(p.photoUrl||"")===(row.photoUrl||"")&&(p.nationality||"")===(row.nationality||""));
+        if(matches.length!==1)continue;
+        if([1,3,5,7,9].every(mode=>matches[0].results?.some(r=>r.mode===mode&&r.flawless===true&&r.won===(mode===9?1:(mode+1)/2)&&r.lost===0)))trophies++;
+      }
+      return {...row,trophies};
+    });
+  }
+  return {withTimeout,fetchCommunity,backfillTrophies};
 });

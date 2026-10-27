@@ -2,6 +2,16 @@ const test=require("node:test"),assert=require("node:assert/strict");
 const {withTimeout,fetchCommunity}=require("../scripts/monster-bot-data");
 const result={completions:{"1-1":[]},leaderboard:[]};
 const ok=()=>({ok:true,json:async()=>({result})});
+test("legacy leaderboard backfills mastery trophies from all five existing flawless results",()=>{
+  const {backfillTrophies}=require("../scripts/monster-bot-data");
+  const full=[1,3,5,7,9].map(mode=>({mode,won:mode===9?1:(mode+1)/2,lost:0,flawless:true}));
+  const completions={"level-1":[{name:"Nick",results:full}],"level-2":[{name:"Nick",results:full.slice(0,4)}]};
+  assert.equal(backfillTrophies([{name:"Nick"}],completions)[0].trophies,1);
+  assert.equal(backfillTrophies([{name:"Other"}],completions)[0].trophies,0);
+  assert.equal(backfillTrophies([{name:"Nick",trophies:3}],completions)[0].trophies,3);
+  completions["level-1"].push({name:"Nick",results:full});
+  assert.equal(backfillTrophies([{name:"Nick"}],completions)[0].trophies,0);
+});
 test("public leaderboard loads without waiting for account or Firebase SDK readiness",async()=>{
   let request;
   const data=await fetchCommunity({projectId:"oche-ness-monsters",fetchImpl:async(url,options)=>{request={url,options};return ok();}});

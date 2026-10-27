@@ -4,11 +4,15 @@
   const E = window.MonsterBotEngine;
   const level = Number(params.get("level")), format = Number(params.get("format"));
   const casual = params.get("casual")==="1";
+  const survival=params.get("survival")==="1",survivalRun=params.get("run");
+  const survivalTier=Number(params.get("tier")||1),survivalRound=E.localLevel(level),survivalBots=survivalTier===2?E.TIER2_LEVELS:E.LEVELS,survivalFirst=survivalBots[0].name;
+  let survivalReported=false;
   const casualLegs = Number(params.get("legs"));
   const casualStart=Number(params.get("start")||501);
-  const formatLabel = casual ? `Casual · BO${casualLegs}` : E.modeLabel(format);
-  const gameUrl = `dart-scorer.html?mode=bot&level=${level}&format=${format}${casual?`&casual=1&legs=${casualLegs}&start=${casualStart}`:""}`;
-  const profile = E.LEVELS.find(p => p.level === level);
+  const formatLabel = survival ? `Survival · Round ${survivalRound}/10` : casual ? `Casual · BO${casualLegs}` : E.modeLabel(format);
+  const gameUrl = survival?"monster-survival.html":`dart-scorer.html?mode=bot&level=${level}&format=${format}${casual?`&casual=1&legs=${casualLegs}&start=${casualStart}`:""}`;
+  const profile = E.ALL_LEVELS.find(p => p.level === level);
+  let ladderSurvivalBest=0;
   const avatars = ["billy","croft","venton","istan","nick","ricky","aussie","andre","bailey","filip"];
   let user = null, active = false, timer = null, recorded = false, resultMessage = "", saving = null;
   let playerPhoto = "graphics/logoWoText.png";
@@ -29,7 +33,7 @@
   }
   function startWithAudio(countAttempt=true) {
     if (!initialized || active || exited) return;
-    if(countAttempt&&!casual&&user&&window.ONMBotAttempts){
+    if(countAttempt&&!casual&&!survival&&user&&window.ONMBotAttempts){
       window.ONMBotAttempts.start(user.uid,key);
       window.ONMFirebase.ready.then(({db,firestoreSdk:sdk})=>window.ONMBotAttempts.sync(user.uid,db,sdk)).then(()=>{if(state.winnerIndex!==null)showResult();}).catch(()=>{});
     }
@@ -96,24 +100,26 @@
     else if (playable && els.names[0].value === "You") els.turnMessage.textContent = "Your turn!";
   }
   async function saveVictory() {
-    if (casual || recorded || !user || state.winnerIndex !== 0) return;
+    if (survival || casual || recorded || !user || state.winnerIndex !== 0) return;
     recorded = true;
     const score = {won:state.players[0].legs,lost:state.players[1].legs};
-    const previouslyUnlocked = E.highestUnlocked(knownWins,knownScores);
+    const tier=E.tierOf(level),previouslyUnlocked = E.highestUnlocked(knownWins,knownScores,tier,ladderSurvivalBest);
+    const tier2WasUnlocked=E.tier2EntryUnlocked(knownWins,knownScores,ladderSurvivalBest);
     knownWins.add(key);
     knownScores[key] = E.bestScore(E.validWinningScore(key,knownScores[key]) ? knownScores[key] : null,score);
-    const nowUnlocked = E.highestUnlocked(knownWins,knownScores);
+    const nowUnlocked = E.highestUnlocked(knownWins,knownScores,tier,ladderSurvivalBest);
     const local = localProgress(user.uid);
     local.wins = [...new Set([...local.wins,key])];
     local.scores[key] = E.bestScore(E.validWinningScore(key,local.scores[key]) ? local.scores[key] : null,score);
     try {
       localStorage.setItem(storageKey(user.uid),JSON.stringify(local.wins));
       localStorage.setItem(storageKey(user.uid)+"-scores",JSON.stringify(local.scores));
-      if(nowUnlocked>previouslyUnlocked){
+      if(nowUnlocked>previouslyUnlocked||!tier2WasUnlocked&&E.tier2EntryUnlocked(knownWins,knownScores,ladderSurvivalBest)){
         const noticeKey=storageKey(user.uid)+"-unlocks";
         let queue=[];try{queue=JSON.parse(localStorage.getItem(noticeKey)||"[]");}catch{}
         if(!Array.isArray(queue))queue=[];
         for(let next=previouslyUnlocked+1;next<=nowUnlocked;next++)if(!queue.includes(next))queue.push(next);
+        if(!tier2WasUnlocked&&E.tier2EntryUnlocked(knownWins,knownScores,ladderSurvivalBest)&&!queue.includes(11))queue.push(11);
         localStorage.setItem(noticeKey,JSON.stringify(queue));
       }
     } catch { /* Account save below still runs when browser storage is blocked. */ }
@@ -129,20 +135,28 @@
     if (state.winnerIndex !== null) showResult();
   }
   function showResult() {
+    reportSurvivalResult();
     const kicker = els.molVictoryOverlay?.querySelector(".readyLeagueKicker");
-    if (kicker) kicker.textContent = casual?"Casual Bot Game":"Monster Bot Game";
+    if (kicker) kicker.textContent = survival?"Monster Survival":casual?"Casual Bot Game":"Monster Bot Game";
     els.molVictoryTitle.textContent = `${startingScore} · ${formatLabel}`;
     els.molVictoryCloseBtn.textContent = casual?"Back to casual":"Back to ladder";
     els.molVictoryRematchBtn.textContent = "Restart";
     els.molVictoryRematchBtn.hidden=!casual&&state.winnerIndex===0&&state.players[1].legs===0;
+    if(survival){els.molVictoryCloseBtn.textContent=state.winnerIndex===0?(survivalRound===10?"Survival complete":`Next: ${survivalBots[survivalRound].name}`):"Back to Survival";els.molVictoryRematchBtn.textContent=`Restart from ${survivalFirst}`;}
     let status = $("monsterBotResultStatus");
     if (!status) { status = document.createElement("p"); status.id = "monsterBotResultStatus"; els.molVictoryTitle.after(status); }
     const won = state.winnerIndex === 0;
     status.textContent = casual ? `${won?"You win!":"You lose."} Casual game — no stats or progress saved.` : won ? (state.players[1].legs === 0 ? "Flawless Victory – Gold Star earned" : "Challenge beaten") : `You lose. ${resultMessage}`;
-    status.classList.toggle("flawlessResult",!casual&&won&&state.players[1].legs===0);
+    if(survival)status.textContent=won?(survivalRound===10?"All ten Monsters defeated. Survival complete!":`${profile.name} defeated · ${survivalRound}/10 Monsters beaten`):`Run over. Your next attempt starts with ${survivalFirst}.`;
+    status.classList.toggle("flawlessResult",!survival&&!casual&&won&&state.players[1].legs===0);
     const attempts=$("monsterBotResultAttempts");
-    attempts.hidden=casual||!window.ONMBotAttempts;
+    attempts.hidden=survival||casual||!window.ONMBotAttempts;
     attempts.textContent=attempts.hidden?"":`Your attempts: ${window.ONMBotAttempts.counts(user.uid)[key]||0}`;
+  }
+  function reportSurvivalResult(){
+    if(!survival||survivalReported||state.winnerIndex===null)return;
+    survivalReported=true;
+    window.parent?.ONMMonsterSurvival?.recordResult({id:survivalRun,level,won:state.winnerIndex===0});
   }
   function lose(reason) {
     clearTimeout(timer); timer = null;
@@ -191,6 +205,7 @@
   function afterVisit({legWon} = {}) {
     if (legWon) { undoFrame = null; replayVisit = null; onRender(); }
     if (state.winnerIndex !== null) {
+      reportSurvivalResult();
       clearTimeout(timer); timer = null;
       if (state.winnerIndex === 0) saving = saveVictory();
       else announceLoss();
@@ -223,11 +238,13 @@
     clearTimeout(lossVoiceTimer); window.speechSynthesis?.cancel();
     const destination=casual?"monster-bot.html#casual":"monster-bot.html";
     window.parent?.ONMBotLaunch?.stop?.();
+    if(survival){if(window.parent?.ONMMonsterSurvival)window.parent.ONMMonsterSurvival.returnFromGame();else window.location.href="monster-survival.html";return;}
     if(window.parent!==window&&window.parent?.ONMMonsterLadder?.returnToLadder)window.parent.ONMMonsterLadder.returnToLadder(casual);
     else if(window.parent!==window&&window.parent?.ONMBotLaunch?.open)window.parent.location.href=destination;
     else window.location.href=destination;
   }
   async function rematch() {
+    if(survival){clearTimeout(timer);clearTimeout(lossVoiceTimer);active=false;exited=true;window.speechSynthesis?.cancel();if(typeof clearDartAudioQueue==="function")clearDartAudioQueue();if(window.parent?.ONMMonsterSurvival)window.parent.ONMMonsterSurvival.returnFromGame(true);else window.location.href="monster-survival.html";return;}
     if(!casual&&knownWins.has(key)&&E.validWinningScore(key,knownScores[key])&&knownScores[key].lost===0)return;
     if(!initialized||exited||restarting)return;
     const countAttempt=state.winnerIndex!==null||state.players.some(player=>player.legs>0);
@@ -260,16 +277,17 @@
     syncMainViews("none");
     $("screenTitleText").classList.remove("hidden");
     $("screenTitleText").textContent = "Loading Monster Bot…";
-    if (!profile || !E.MODES.includes(format) || casual&&(!Number.isSafeInteger(casualLegs)||casualLegs<1||casualLegs%2!==1||![301,501,701].includes(casualStart))) { exit(); return; }
+    if (!profile || !E.MODES.includes(format) || survival&&(casual||format!==1||![1,2].includes(survivalTier)||E.tierOf(level)!==survivalTier) || casual&&(!Number.isSafeInteger(casualLegs)||casualLegs<1||casualLegs%2!==1||![301,501,701].includes(casualStart))) { exit(); return; }
     try {
       user = await window.ONMBotData.withTimeout(window.ONMFirebase.currentFirebaseUser());
       if (!user) {
         const url=`auth.html?mode=login&redirect=${encodeURIComponent(gameUrl)}`;
-        if(window.parent!==window&&window.parent?.ONMMonsterLadder)window.parent.location.href=url;
+        if(window.parent!==window&&(window.parent?.ONMMonsterLadder||window.parent?.ONMMonsterSurvival))window.parent.location.href=url;
         else window.location.href=url;
         return;
       }
       const {db,firestoreSdk:sdk} = await window.ONMBotData.withTimeout(window.ONMFirebase.ready);
+      if(survival&&!window.parent?.ONMMonsterSurvival?.authorize(survivalRun,level,user.uid)){exit();return;}
       const local = localProgress(user.uid), scores = {...local.scores}, wins = new Set(local.wins);
       let firstName = "";
       let accountProfile = {uid:user.uid,userId:user.uid};
@@ -281,10 +299,12 @@
         (data.monsterBotWins || []).forEach(win => wins.add(win));
         for (const [key,score] of Object.entries(data.monsterBotBestScores || {})) if (E.validWinningScore(key,score)) scores[key] = E.bestScore(E.validWinningScore(key,scores[key]) ? scores[key] : null,score);
       } catch { /* Retain this account's locally saved progress while offline. */ }
-      const highest=E.highestUnlocked(wins,scores);
-      if (level>highest || casual&&highest<3 || !casual&&(!E.isFormatUnlocked(level,format,wins)||wins.has(key)&&E.validWinningScore(key,scores[key])&&scores[key].lost===0)) { exit(); return; }
+      let deviceSurvivalBest=0;try{deviceSurvivalBest=Number(localStorage.getItem(`onm-survival-best-${user.uid}`))||0;}catch{}
+      ladderSurvivalBest=Math.max(accountProfile.monsterSurvivalCompleted?10:Number(accountProfile.monsterSurvivalBest)||0,deviceSurvivalBest);
+      if(survival&&E.highestUnlocked(wins,scores,survivalTier)<(survivalTier===2?13:3)){exit();return;}
+      if (!survival&&(!E.isUnlocked(level,wins,scores,ladderSurvivalBest) || !casual&&(!E.isFormatUnlocked(level,format,wins)||wins.has(key)&&E.validWinningScore(key,scores[key])&&scores[key].lost===0))) { exit(); return; }
       knownWins = wins; knownScores = scores;
-      if(!casual)window.ONMBotAttempts?.load(user.uid,accountProfile);
+      if(!casual&&!survival)window.ONMBotAttempts?.load(user.uid,accountProfile);
       loadPlayerPhoto(accountProfile);
       MATCH_MODE = "local"; STATS_MODE = "casual"; window.STATS_MODE = STATS_MODE;
       applyMatchSettings({startScore:startingScore,gameType:"bestOf",legsCount:casual?casualLegs:bullMode ? 1 : format,inMode:"straight"});
@@ -298,8 +318,11 @@
       $("screenTitleText").textContent = "Monster Bot Game";
       els.gameTitleText.textContent = `${startingScore} · ${formatLabel} · ${profile.name}`;
       if(casual)$("screenTitleText").textContent="Casual Bot Game";
+      if(survival)$("screenTitleText").textContent="Monster Survival";
       $("monsterBotNotice").textContent = bullMode ? "301 · One-shot Bull or Bust: finish on Bull and confirm it. Below 50, a bust or a zero visit when on a finish loses. You can't intentionally bust to return to 50 or more." : "You throw first in leg one; the starting player alternates each leg. The bot throws one second after the announcement finishes.";
+      if(survival)$("monsterBotNotice").textContent=`Survival · Round ${survivalRound}/10 · One 501 leg. Lose, quit or restart and your run begins again with ${survivalFirst}.`;
       $("botRestartGame").hidden = false;
+      if(survival)$("botRestartGame").textContent=`Restart run from ${survivalFirst}`;
       $("monsterBotNotice").classList.remove("hidden");
       state.currentPlayer = 0; syncMainViews("game"); render();
       enterScorerFullscreen();
@@ -309,7 +332,7 @@
         if (!active || document.fullscreenElement) return;
         document.documentElement?.requestFullscreen?.()?.catch?.(() => {});
       }, {once:true});
-      if(!casual)sdk.updateDoc(sdk.doc(db,"users",user.uid),{monsterBotStarted:true}).catch(()=>{});
+      if(!casual&&!survival)sdk.updateDoc(sdk.doc(db,"users",user.uid),{monsterBotStarted:true}).catch(()=>{});
       if (sdk && (await window.ONMFirebase.ready).authSdk?.onAuthStateChanged) {
         const {auth,authSdk} = await window.ONMFirebase.ready;
         let authLossTimer=null;
@@ -329,7 +352,7 @@
       document.body.classList.add("monsterBotLoadFailed");
     }
   }
-  function photo(index) { return index === 1 ? `graphics/bots/${avatars[level-1]}-bot.png` : playerPhoto; }
+  function photo(index) { return index === 1 ? level===20?"graphics/bots/cod-bot.png":level===19?"graphics/bots/gary-bot.png":level===18?"graphics/bots/seb-bot.png":level===17?"graphics/bots/piesse-bot.png":level===16?"graphics/bots/russ-bot.png?v=20261027-fixed":level===15?"graphics/bots/bobby-bot.png":level===14?"graphics/bots/scottsman-bot.png":level===13?"graphics/bots/phil-bot.png":level===12?"graphics/bots/paddy-bot.png":level===11?"graphics/bots/george-bot.png":level<=10?`graphics/bots/${avatars[level-1]}-bot.png`:"graphics/logoWoText.png" : playerPhoto; }
   $("closeBotUnlocked").addEventListener("click",()=>$("botUnlockedDialog").close());
   $("botRestartGame").addEventListener("click",rematch);
   window.ONMMonsterScorer = {init,submit,undo,confirmCheckout,afterVisit,onRender,showResult,showUnlock,exit,rematch,photo,tracksCheckouts:()=>casual,cancelCheckout:()=>{if(bullMode && pendingCheckoutPrompt?.legWon){lose("Bull checkout was not confirmed.");return true;}return false;},canPlay:()=>active && state.currentPlayer === 0 && state.winnerIndex === null};

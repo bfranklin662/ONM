@@ -7797,6 +7797,7 @@ function showLeaderboardTab() {
 }
 
 els.molVictoryCloseBtn?.addEventListener("click", () => {
+  if(BOT_MODE)return;
   if (els.molVictoryOverlay?.dataset.resultMode === "casual") return;
 
   els.molVictoryOverlay?.classList.add("hidden");

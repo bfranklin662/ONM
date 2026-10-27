@@ -1,18 +1,23 @@
 (function () {
   "use strict";
   const E = window.MonsterBotEngine, $ = id => document.getElementById(id);
+  const trophyIcon='<svg class="platinumTrophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8v5a4 4 0 0 1-8 0V3Zm0 2H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 1v5m-4 4h8m-7 0v-4h6v4"/></svg>';
   let match = null, undo = null, timer = null, user = null, progress = new Set(), storageKey = "", busy = false, ready = false;
-  const validKeys = new Set(E.LEVELS.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)));
+  const allBots=E.ALL_LEVELS;
+  let selectedTier=1;
+  const survivalBest=()=>{let deviceBest=0;try{deviceBest=Number(user&&localStorage.getItem(`onm-survival-best-${user.uid}`))||0;}catch{}return Math.max(playerProfile.monsterSurvivalCompleted?10:Number(playerProfile.monsterSurvivalBest)||0,deviceBest);};
+  const validKeys = new Set(allBots.flatMap(p => E.MODES.map(mode => `${p.level}-${mode}`)));
   const modes = new Map();
   let pendingBullGame=null;
   const authUrl = mode => `auth.html?mode=${mode}&redirect=monster-bot.html`;
   const isFlawless = (level,format) => {const key=`${level}-${format}`;return progress.has(key)&&E.validWinningScore(key,bestScores[key])&&bestScores[key].lost===0;};
-  const canPlay = (level,format) => ready && user && E.LEVELS.some(p=>p.level===level) && level <= E.highestUnlocked(progress,bestScores) && E.isFormatUnlocked(level,format,progress) && !isFlawless(level,format);
-  const casualUnlocked = () => ready && user && E.highestUnlocked(progress,bestScores)>=3;
+  const canPlay = (level,format) => ready && user && allBots.some(p=>p.level===level) && E.isUnlocked(level,progress,bestScores,survivalBest()) && E.isFormatUnlocked(level,format,progress) && !isFlawless(level,format);
+  const casualUnlocked = () => ready && Boolean(user);
   function renderCasual() {
     $("casualTab").hidden=!casualUnlocked();
-    const bots=casualUnlocked()?E.LEVELS.filter(p=>p.level<=E.highestUnlocked(progress,bestScores)):[];
-    const selected=bots.find(p=>p.level===Number($("casualBot").value));
+    const bots=casualUnlocked()?allBots.filter(p=>E.isUnlocked(p.level,progress,bestScores,survivalBest())):[];
+    const selected=bots.find(p=>p.level===Number($("casualBot").value))||bots[0];
+    if(selected)$("casualBot").value=String(selected.level);
     $("casualBotCount").textContent=`Bots unlocked: ${bots.length}`;
     $("casualBots").innerHTML=bots.map(p=>`<button type="button" class="casualBotChoice" data-casual-bot="${p.level}" aria-pressed="${selected?.level===p.level}"><img src="${botAvatar(p.level)}" alt="" width="100" height="110"><span>${p.name}</span></button>`).join("");
     $("casualSelectedName").textContent=selected?`${selected.name} · ${selected.average}–${selected.average+5} average`:"";
@@ -22,22 +27,31 @@
   const unlockQueueKey=()=>`onm-monster-bot-${user.uid}-unlocks`;
   function showUnlockNotices(){
     if(!ready||!user)return;
-    let queue=[];try{queue=JSON.parse(localStorage.getItem(unlockQueueKey())||"[]");}catch{}
-    const next=Array.isArray(queue)?queue.find(level=>Number.isInteger(level)&&level>1&&level<=E.highestUnlocked(progress,bestScores)):null;
+    try{
+      for(const intro of ["survival","tiers"]){
+        if(localStorage.getItem(`onm-intro-${intro}-v1-${user.uid}`))continue;
+        unlockNoticeLevel=intro;
+        $("ladderUnlockedTitle").textContent=intro==="survival"?"New: Monster Survival!":"New Monsters. New Tiers!";
+        $("ladderUnlockedAvatar").src=botAvatar(intro==="survival"?1:11);
+        $("ladderUnlockedDetail").textContent=intro==="survival"?"One 501 leg against each of ten Monsters. Lose once and start again! Reach Level 3 on the Tier 1 Ladder to unlock Survival. Each tier has a separate best run and leaderboard.":"Unlock Tier 2 Ladder with 3 Tier 1 trophies and 20 Tier 1 gold stars. Earn a trophy by completing all five modes flawlessly against one Monster. Tier 2 brings ten new opponents and its own Survival tab—reach Level 3 on Tier 2 Ladder to play that Survival run.";
+        $("ladderUnlockedDialog").showModal();return;
+      }
+    }catch{}
+    let queue=[];try{queue=JSON.parse(localStorage.getItem(unlockQueueKey())||"[]");if(E.tier2EntryUnlocked(progress,bestScores)&&!localStorage.getItem(`onm-tier2-announced-${user.uid}`)&&!queue.includes(11))queue.unshift(11);}catch{}
+    const next=Array.isArray(queue)?queue.find(level=>Number.isInteger(level)&&level>1&&E.isUnlocked(level,progress,bestScores,survivalBest())):null;
     if(next){
-      unlockNoticeLevel=next;const bot=E.LEVELS[next-1];
-      $("ladderUnlockedTitle").textContent=`You've unlocked ${bot.name}!`;
+      unlockNoticeLevel=next;const bot=allBots[next-1];
+      $("ladderUnlockedTitle").textContent=next===11?"You've unlocked Tier 2 Ladder!":`You've unlocked ${bot.name}!`;
       $("ladderUnlockedAvatar").src=botAvatar(next);
-      $("ladderUnlockedDetail").textContent=`Level ${next} · ${bot.average}–${bot.average+5} average. Your next Monster is ready.`;
+      $("ladderUnlockedDetail").textContent=next===11?"Tier 2 has also been added to Survival. Reach Level 3 on the Tier 2 Ladder to unlock its Survival run.":`Tier ${E.tierOf(next)} · Level ${E.localLevel(next)} · ${bot.average}–${bot.average+5} average. Your next Monster is ready.`;
       $("ladderUnlockedDialog").showModal();window.ONMBotLaunch?.celebrate?.($("ladderUnlockedDialog"));return;
     }
-    if(casualUnlocked()&&!playerProfile.monsterBotCasualNoticeSeen)$("casualUnlockDialog").showModal();
   }
   function openCasual() {
     $("ladderPanel").hidden=true;$("leaderboardPanel").hidden=true;$("casualPanel").hidden=false;
     $("botPageTitle").textContent="Casual Bot Game";document.title="Casual Bot Game | Oche Ness Monsters";
-    $("ladderTab").setAttribute("aria-selected","false");$("leaderboardTab").setAttribute("aria-selected","false");$("casualTab").setAttribute("aria-selected","true");
-    window.history?.replaceState(null,"","#casual");renderCasual();
+    $("ladderTab").setAttribute("aria-selected","true");$("ladderTab").setAttribute("aria-label","Play casual");$("leaderboardTab").setAttribute("aria-selected","false");$("casualTab").setAttribute("aria-selected","true");
+    window.history?.replaceState(null,"","#casual");renderCasual();window.dispatchEvent?.(new Event("onm-mode-change"));
   }
   function launch(url,label) {
     if(!window.ONMBotLaunch){window.location.href=url;return;}
@@ -56,9 +70,12 @@
   }
   function focusUnlocked() {
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      const current = $("bot-level-" + E.highestUnlocked(progress,bestScores));
+      const current = $("bot-level-" + (E.highestUnlocked(progress,bestScores,selectedTier,survivalBest())||(selectedTier===2?11:1)));
       if (!ready || !current || $("challengeSetup").hidden || $("ladderPanel").hidden) return;
-      current.scrollIntoView({block:"start",inline:"nearest",behavior:"instant"});
+      const list=$("botLevels");
+      if(current.getBoundingClientRect&&list.getBoundingClientRect){
+        list.scrollTop+=current.getBoundingClientRect().top-list.getBoundingClientRect().top;
+      }else current.scrollIntoView({block:"start",inline:"nearest",behavior:"instant"});
     }));
   }
   let bestScores = {};
@@ -68,42 +85,46 @@
     if (!ready || !user) return;
     const firstName = playerProfile.firstName || user.displayName?.split(" ")[0] || "Player";
     $("playerSummaryName").textContent = firstName;
-    $("playerSummaryLevel").textContent=`Level ${E.highestUnlocked(progress,bestScores)} unlocked`;
+    const tierProgress=new Set([...progress].filter(key=>E.tierOf(Number(key.split("-")[0]))===selectedTier));
+    const highest=E.highestUnlocked(progress,bestScores,selectedTier,survivalBest());
+    $("playerSummaryLevel").textContent=highest?`Tier ${selectedTier} · Level ${E.localLevel(highest)} unlocked`:`Tier ${selectedTier} · Locked`;
     $("playerSummaryPhoto").src = leaderboardPhoto({photoUrl:playerProfile.photoUrl,name:playerProfile.linkedPlayerName || firstName});
-    $("playerSummaryBeaten").textContent = `✓ Beaten ${progress.size}/50`;
-    $("playerSummaryFlawless").textContent = `★ Flawless ${E.goldStars(progress,bestScores)}/50`;
-    $("playerSummaryPercent").textContent = `${Math.round(progress.size/50*100)}% complete`;
-    $("playerSummaryBar").value = progress.size;
+    $("playerSummaryBeaten").textContent = `✓ Beaten ${tierProgress.size}`;
+    $("playerSummaryFlawless").textContent = `★ Flawless ${E.goldStars(tierProgress,bestScores)}`;
+    $("playerSummaryTrophies").innerHTML = `${trophyIcon}<span>Trophy ${E.trophies(progress,bestScores,selectedTier)}</span>`;
+    $("playerSummaryPercent").textContent = `${Math.round(tierProgress.size/50*100)}% complete`;
+    $("playerSummaryBar").max=50;
+    $("playerSummaryBar").value = tierProgress.size;
   }
-  const botName = level => E.LEVELS[level - 1].name;
-  const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick", 6: "ricky", 7: "aussie", 8: "andre", 9: "bailey", 10: "filip" };
-  const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png?v=20261022-avatar` : "";
+  const botName = level => allBots[level - 1].name;
+  const avatarNames = { 1: "billy", 2: "croft", 3: "venton", 4: "istan", 5: "nick", 6: "ricky", 7: "aussie", 8: "andre", 9: "bailey", 10: "filip", 11: "george", 12: "paddy", 13: "phil", 14: "scottsman", 15: "bobby", 16: "russ", 17: "piesse", 18: "seb", 19: "gary", 20: "cod" };
+  const botAvatar = level => avatarNames[level] ? `graphics/bots/${avatarNames[level]}-bot.png?v=20261027-russ-fixed` : "graphics/logoWoText.png";
   function requirements(level) {
     const rows = [];
-    if (level >= 3) {
-      const required = 5 + (level - 3) * 4;
-      rows.push({ label: `Collect ${required} gold stars (${E.goldStars(progress,bestScores)}/${required})`, met: E.goldStars(progress,bestScores) >= required });
+    if(level===11&&!E.isUnlocked(level,progress,bestScores,survivalBest())){
+      const trophies=E.trophies(progress,bestScores,1),stars=E.tierStars(progress,bestScores,1);
+      return `<div class="unlockRequirements"><h4>Unlock Tier 2</h4><ul><li class="${trophies>=3?"met":""}">${trophies>=3?"✓":"○"} Earn 3 Tier 1 mastery trophies (${trophies}/3)</li><li class="${stars>=20?"met":""}">${stars>=20?"✓":"○"} Collect 20 Tier 1 gold stars (${stars}/20)</li></ul></div>`;
+    }
+    const local=E.localLevel(level),tier=E.tierOf(level),stars=E.tierStars(progress,bestScores,tier);
+    if (local >= 3) {
+      const required = 5 + (local - 3) * 4;
+      rows.push({ label: `Collect ${required} gold stars (${stars}/${required})`, met: stars >= required });
     }
     const won = (bot, modes) => modes.every(mode => progress.has(`${bot}-${mode}`));
-    if (level >= 2) rows.push({ label: `Beat ${botName(level - 1)} in 2 modes`, met: E.MODES.filter(mode => progress.has(`${level - 1}-${mode}`)).length >= 2 });
-    if (level >= 3) rows.push({ label: `Beat ${botName(level - 2)} in BO1, BO3, BO5 and BO7`, met: won(level - 2, E.STANDARD_MODES) });
-    if (level >= 4) rows.push({ label: level===4 ? "Beat Billy Bot in Bull or Bust format" : `Beat ${botName(level - 3)} in all five formats, including Bull or Bust`, met: won(level - 3, E.MODES) });
-    if (level >= 5) rows.push({ label: `Earn flawless wins in all five ${botName(level - 4)} formats (gold ticks)`, met: E.MODES.every(mode => {
+    if (local >= 2) rows.push({ label: `Beat ${botName(level - 1)} in 2 modes`, met: E.MODES.filter(mode => progress.has(`${level - 1}-${mode}`)).length >= 2 });
+    if (local >= 3) rows.push({ label: `Beat ${botName(level - 2)} in BO1, BO3, BO5 and BO7`, met: won(level - 2, E.STANDARD_MODES) });
+    if (local >= 4) rows.push({ label: local===4 ? `Beat ${botName(level-3)} in Bull or Bust format` : `Beat ${botName(level - 3)} in all five formats, including Bull or Bust`, met: won(level - 3, E.MODES) });
+    if (local >= 5) rows.push({ label: `Earn flawless wins in all five ${botName(level - 4)} formats (gold ticks)`, met: E.MODES.every(mode => {
       const key = `${level - 4}-${mode}`;
       return progress.has(key) && E.validWinningScore(key, bestScores[key]) && bestScores[key].lost === 0;
     }) });
-    if (E.isUnlocked(level,progress,bestScores)) return "";
+    if (E.isUnlocked(level,progress,bestScores,survivalBest())) return "";
     return rows.length ? `<div class="unlockRequirements"><h4>Requirements to play</h4><ul>${rows.map(row => `<li class="${row.met ? "met" : ""}"><span aria-label="${row.met ? "Met" : "Not met"}">${row.met ? "✓" : "○"}</span> ${row.label}</li>`).join("")}</ul></div>` : "";
   }
   function modeChip(level, mode, selectedMode) {
     const key = `${level}-${mode}`, won = progress.has(key), score = bestScores[key];
     const flawless = won && E.validWinningScore(key,score) && score.lost === 0;
-    return `<button type="button" class="modePill ${flawless ? "gold" : won ? "won" : ""}" data-choose-level="${level}" data-choose-mode="${mode}" aria-pressed="${mode===selectedMode}" aria-label="${E.modeLabel(mode)}, ${flawless ? "flawless win" : won ? "beaten" : "not beaten"}">${E.modeLabel(mode)} ${flawless ? "★" : won ? "✓" : "○"}</button>`;
-  }
-  function modeResults(level,mode) {
-    const key = `${level}-${mode}`, count = community ? (community[key] || []).length : null;
-    const label = count === null ? (communityError ? "Results unavailable" : "Loading results…") : `${count} ${count === 1 ? "player has" : "players have"} beaten ${botName(level)} ${E.modeLabel(mode)}`;
-    return `<div class="selectedModeResults"><span>${label}</span><button type="button" class="modeResultsLink" data-community-key="${key}" aria-label="View players and scores for ${botName(level)} ${E.modeLabel(mode)}" title="View players and scores">👤</button></div>`;
+    return `<button type="button" class="modePill ${flawless ? "gold" : won ? "won" : ""}" data-choose-level="${level}" data-choose-mode="${mode}" aria-pressed="${!flawless&&mode===selectedMode}" ${flawless?'aria-haspopup="dialog" ':""}aria-label="${E.modeLabel(mode)}, ${flawless ? "flawless win. View completions" : won ? "beaten" : "not beaten"}">${E.modeLabel(mode)} ${flawless ? "★" : won ? "✓" : "○"}</button>`;
   }
   function readScores(key) {
     try { return Object.fromEntries(Object.entries(JSON.parse(localStorage.getItem(key) || "{}")).filter(([k,v]) => E.validWinningScore(k,v))); } catch { return {}; }
@@ -129,13 +150,15 @@
     return leaderboardPhotos[photoKey(stored.split("/").pop())] || leaderboardPhotos[photoKey(row.name)] || "graphics/logoWoText.png";
   }
   function renderLeaderboard() {
+    $("leaderboardStatus").setAttribute("aria-busy",String(Boolean(communityLoading)));
     $("leaderboardStatus").textContent = leaderboard ? (leaderboard.length ? `${leaderboard.length} players · Ranked by challenges completed, then level unlocked.` : "No players yet. Start your first match to join the leaderboard.") : communityError ? "Leaderboard could not be loaded. Please retry." : "Loading leaderboard…";
-    $("leaderboardRows").innerHTML = (leaderboard || []).map((row,i) => `<tr><td>${i+1}</td><th scope="row"><span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(leaderboardPhoto(row))}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${escape(row.name)}</span>${row.flag ? `<span class="botLeaderboardFlag" role="img" aria-label="${escape(row.nationality || "Nationality")}" title="${escape(row.nationality || "Nationality")}">${escape(row.flag)}</span>` : ""}</span></th><td>${row.level}</td><td class="challengesTotal">${row.completed} / 50</td><td class="flawlessTotal">★ ${row.flawless ?? 0}</td></tr>`).join("");
+    $("leaderboardRows").innerHTML = (leaderboard || []).map((row,i) => `<tr><td>${i+1}</td><th scope="row"><span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(leaderboardPhoto(row))}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${escape(row.name)}</span>${row.flag ? `<span class="botLeaderboardFlag" role="img" aria-label="${escape(row.nationality || "Nationality")}" title="${escape(row.nationality || "Nationality")}">${escape(row.flag)}</span>` : ""}</span></th><td>${row.level>10?`T2 · ${E.localLevel(row.level)}`:row.level}</td><td class="challengesTotal">${row.completed}</td><td class="flawlessTotal">★ ${row.flawless ?? 0}</td><td class="trophiesTotal">${trophyIcon}<span>${row.trophies??0}</span></td></tr>`).join("");
     $("retryLeaderboard").hidden = !communityError;
     $("refreshLeaderboard").disabled = Boolean(communityLoading);
     $("refreshLeaderboard").setAttribute("aria-busy",String(Boolean(communityLoading)));
   }
   function showTab(board) {
+    $("ladderTab").setAttribute("aria-label","Play ladder");
     $("casualPanel").hidden=true;$("casualTab").setAttribute("aria-selected","false");
     const hash = board ? "#leaderboard" : "#game";
     if (window.location.hash !== hash) window.history?.replaceState(null,"",hash);
@@ -143,14 +166,10 @@
     document.title = `${board ? "Leaderboard" : "Monster Bot Game"} | Oche Ness Monsters`;
     $("ladderPanel").hidden = board; $("leaderboardPanel").hidden = !board;
     $("ladderTab").setAttribute("aria-selected", String(!board));
+    window.dispatchEvent?.(new Event("onm-mode-change"));
     $("leaderboardTab").setAttribute("aria-selected", String(board));
     if (board) { renderLeaderboard(); loadCommunity(Boolean(user)); }
     else focusUnlocked();
-  }
-  function communityButton(key, label, classes = "") {
-    const count = community ? (community[key] || []).length : communityError ? "—" : "…";
-    const visibleLabel = label.replace(/^([✓○]) /, '<span class="completionMark" aria-hidden="true">$1</span> ');
-    return `<button type="button" class="completionCount ${classes}" data-community-key="${key}" aria-label="${label}, ${count} players completed. View players."><span class="completionLabel">${visibleLabel}</span><b>${count}</b></button>`;
   }
   function showCompletionList() {
     if (!completionKey) return;
@@ -183,6 +202,7 @@
     renderLeaderboard(); showCompletionList();
     $("refreshLeaderboard").disabled = true;
     $("refreshLeaderboard").setAttribute("aria-busy","true");
+    $("leaderboardStatus").setAttribute("aria-busy","true");
     communityLoading = Promise.resolve().then(async () => {
       try {
         const response = await window.ONMBotData.fetchCommunity({projectId:window.ONMFirebase.config.projectId,refresh,getToken:user?.getIdToken ? ()=>user.getIdToken() : null});
@@ -199,8 +219,12 @@
     $("botProfileLink").href=ready&&user?"account.html":authUrl("register");
     $("botProfileLink").setAttribute("aria-label",ready&&user?"My account":"Sign up or sign in");
     if(!ready||!user){$("completionYourAttempts").hidden=true;$("completionYourResult").hidden=true;}
-    renderPlayerSummary();
     renderCasual();
+    const tier2Visible=ready&&user&&E.tier2EntryUnlocked(progress,bestScores);
+    $("ladderTierTabs").hidden=!tier2Visible;$("ladderTierTwo").hidden=!tier2Visible;
+    if(!tier2Visible)selectedTier=1;
+    renderPlayerSummary();
+    $("ladderTierOne").setAttribute("aria-selected",String(selectedTier===1));$("ladderTierTwo").setAttribute("aria-selected",String(selectedTier===2));
     $("accountLoading").hidden = ready;
     $("guestLanding").hidden = !ready || Boolean(user);
     $("botLevels").hidden = !ready || !user;
@@ -208,39 +232,38 @@
     if (!ready) { $("botLevels").innerHTML = ""; return; }
     let complete = 0;
     const scrollTop = $("botLevels").scrollTop;
-    const visibleThrough = Math.min(10, E.highestUnlocked(progress, bestScores) + 1);
-    $("botLevels").innerHTML = E.LEVELS.filter(p => p.level <= visibleThrough).reverse().map(p => {
+    const highest=E.highestUnlocked(progress,bestScores,selectedTier,survivalBest());
+    const visibleThrough = selectedTier===2?Math.min(20,(highest||10)+1):Math.min(10,highest+1);
+    $("botLevels").innerHTML = allBots.filter(p => E.tierOf(p.level)===selectedTier&&p.level <= visibleThrough).reverse().map(p => {
       const wins = E.MODES.filter(mode => progress.has(`${p.level}-${mode}`));
       const flawless = wins.filter(mode => {
         const key = `${p.level}-${mode}`;
         return E.validWinningScore(key,bestScores[key]) && bestScores[key].lost === 0;
       }).length;
-      const selectedMode = modes.get(p.level) || E.MODES.find(mode => !progress.has(`${p.level}-${mode}`)) || E.MODES[0];
+      const previous=modes.get(p.level);
+      const selectedMode = previous&&!isFlawless(p.level,previous)?previous:E.MODES.find(mode=>!progress.has(`${p.level}-${mode}`))||E.MODES.find(mode=>!isFlawless(p.level,mode))||null;
       const replay = progress.has(`${p.level}-${selectedMode}`);
-      const selectedKey = `${p.level}-${selectedMode}`;
-      const flawlessReplay = replay && E.validWinningScore(selectedKey,bestScores[selectedKey]) && bestScores[selectedKey].lost === 0;
       const beaten = wins.length === E.MODES.length;
       const gold = flawless === E.MODES.length;
-      const unlocked = E.isUnlocked(p.level, progress, bestScores);
-      if (!unlocked) return `<article class="botLevel locked mysteryBot" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}"><div class="mysteryPreview" aria-hidden="true"><img src="${botAvatar(p.level)}" alt=""><div>?????<br>Monster Bot</div></div><div class="mysteryLock"><span aria-hidden="true">🔒</span><h3 id="bot-title-${p.level}">Level ${p.level} · Mystery Bot</h3><p>Unlock this level to reveal your opponent.</p></div>${requirements(p.level)}</article>`;
+      const unlocked = E.isUnlocked(p.level, progress, bestScores,survivalBest());
+      if (!unlocked) return `<article class="botLevel locked mysteryBot" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}"><div class="mysteryPreview" aria-hidden="true"><img src="${botAvatar(p.level)}" alt=""><div>?????<br>Monster Bot</div></div><div class="mysteryLock"><span aria-hidden="true">🔒</span><h3 id="bot-title-${p.level}">Level ${E.localLevel(p.level)} · ${p.level===11?"George Bot":"Mystery Bot"}</h3><p>${p.level===11?"37.5–42.5 average · Earn three trophies and 20 gold stars to enter.":"Unlock this level to reveal your opponent."}</p></div>${requirements(p.level)}</article>`;
       if (gold) complete++;
-      const avatar = botAvatar(p.level) ? `<img class="botAvatar" src="${botAvatar(p.level)}" alt="${p.name} cartoon avatar">` : "";
+      const avatar = botAvatar(p.level) ? `<img class="botAvatar" src="${botAvatar(p.level)}" alt="${p.name} ${p.level>20?"avatar coming soon":"cartoon avatar"}">` : "";
       return `<article class="botLevel ${gold ? "complete flawlessComplete" : beaten ? "beatenComplete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}">
-        <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${p.level}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><div class="completionMedals"><span class="${wins.length ? "won beatenCount" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span>${wins.length ? `<span class="gold flawlessCount">★ Flawless ${flawless}/${E.MODES.length}</span>` : ""}</div></div><span class="levelStats">${p.average}–${p.average + 5} average</span></div></div>
+        <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${E.localLevel(p.level)}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><div class="completionMedals"><span class="${wins.length ? "won beatenCount" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span>${wins.length ? `<span class="gold flawlessCount">★ Flawless ${flawless}/${E.MODES.length}</span>` : ""}${gold?`<span class="monsterComplete"><span class="monsterMasterTrophy" role="img" aria-label="${p.name} mastery trophy: all five modes flawless" title="Monster Mastery · All five modes flawless">${trophyIcon}</span> Trophy 1</span>`:""}</div></div><span class="levelStats">${p.average}–${p.average + 5} average</span></div></div>
         <div class="modeMarks" role="group" aria-label="Match formats for ${p.name}">${E.MODES.map(mode => modeChip(p.level, mode, selectedMode)).join("")}</div>
-        ${modeResults(p.level,selectedMode)}
-        <div class="botCardControls pillPlayControls"><input id="bot-mode-${p.level}" type="hidden" value="${selectedMode}">${!user ? "" : flawlessReplay ? `<button type="button" class="primary replayGame" data-casual-level="${p.level}">Play in casual mode</button>` : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${canPlay(p.level,selectedMode) ? "" : "disabled"}>${replay ? `Replay ${p.name} · ${E.modeLabel(selectedMode)}` : `Play ${p.name} · ${selectedMode===E.BULL_MODE ? "Bull or Bust" : `Best of ${selectedMode}`}`}</button>`}</div>
+        ${selectedMode!==null?`<div class="botCardControls pillPlayControls"><input id="bot-mode-${p.level}" type="hidden" value="${selectedMode}">${!user ? "" : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${canPlay(p.level,selectedMode) ? "" : "disabled"}>${replay ? `Replay ${p.name} · ${E.modeLabel(selectedMode)}` : `Play ${p.name} · ${selectedMode===E.BULL_MODE ? "Bull or Bust" : `Best of ${selectedMode}`}`}</button>`}</div>`:""}
         ${selectedMode===E.BULL_MODE && !E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? '<p class="lockedHint">🔒 Beat BO1, BO3, BO5 and BO7 on this bot first to unlock Bull or Bust.</p>' : ""}
         ${requirements(p.level)}</article>`;
     }).join("");
     complete = E.LEVELS.filter(p => E.MODES.every(mode => progress.has(`${p.level}-${mode}`))).length;
-    $("progressSummary").textContent = `${progress.size} / 50 formats won · ★ ${E.goldStars(progress,bestScores)} gold stars`;
+    $("progressSummary").textContent = `${progress.size} formats won · ★ ${E.goldStars(progress,bestScores)} gold stars · ${E.trophies(progress,bestScores)} trophies`;
     $("botLevels").scrollTop = scrollTop;
   }
   async function loadProgress() {
     ready = false;
     $("botLaunchText").textContent="Loading your Monster Bot ladder…";
-    $("botLaunchSplash").hidden=false;
+    $("botLaunchSplash").hidden=true;
     $("accountLoadingText").textContent = "Loading your Monster Bot progress…";
     $("accountSpinner").hidden = false;
     $("saveStatus").hidden = true;
@@ -257,6 +280,7 @@
       renderLevels(); $("botLaunchSplash").hidden=true; loadCommunity(); return;
     }
     storageKey = user ? `onm-monster-bot-${user.uid}` : "onm-monster-bot-guest";
+    playerProfile={};try{const cached=JSON.parse(localStorage.getItem("onmUser")||"null");if(user&&cached?.uid===user.uid)playerProfile=cached;}catch{}
     progress = new Set(user ? safeLoad(storageKey) : []);
     bestScores = user ? readScores(storageKey + "-scores") : {};
     if (user) {
@@ -423,14 +447,13 @@
     if (choice) {
       const level = Number(choice.dataset.chooseLevel), mode = Number(choice.dataset.chooseMode);
       if (!E.MODES.includes(mode)) return;
+      if(isFlawless(level,mode)){completionKey=`${level}-${mode}`;showCompletionList();$("completionDialog").showModal();return;}
       modes.set(level,mode); renderLevels();
       $("bot-level-"+level)?.querySelector?.(`[data-choose-mode="${mode}"]`)?.focus();
       return;
     }
     const completion = event.target.closest("[data-community-key]");
-    if (completion) { completionKey = completion.dataset.communityKey; showCompletionList(); $("completionDialog").showModal(); return; }
-    const casualButton=event.target.closest("[data-casual-level]");
-    if(casualButton){$("casualBot").value=casualButton.dataset.casualLevel;openCasual();return;}
+    if (completion) { const key=completion.dataset.communityKey,[level,mode]=key.split("-").map(Number);if(!isFlawless(level,mode))return;completionKey=key;showCompletionList();$("completionDialog").showModal();return; }
     const button = event.target.closest("[data-play-level]");
     if (button) {
       const level = Number(button.dataset.playLevel), format = Number($("bot-mode-" + level).value);
@@ -453,20 +476,13 @@
   $("cancelBullStart").addEventListener("click",()=>{pendingBullGame=null;$("bullStartDialog").close();});
   $("bullStartDialog").addEventListener("cancel",()=>{pendingBullGame=null;});
   $("closeLadderUnlocked").addEventListener("click",()=>{
+    if(typeof unlockNoticeLevel==="string")try{localStorage.setItem(`onm-intro-${unlockNoticeLevel}-v1-${user.uid}`,"1");}catch{}
+    if(unlockNoticeLevel===11)try{localStorage.setItem(`onm-tier2-announced-${user.uid}`,"1");}catch{}
     let queue=[];try{queue=JSON.parse(localStorage.getItem(unlockQueueKey())||"[]");}catch{}
     try{localStorage.setItem(unlockQueueKey(),JSON.stringify(Array.isArray(queue)?queue.filter(level=>level!==unlockNoticeLevel):[]));}catch{}
     $("ladderUnlockedDialog").close();unlockNoticeLevel=null;showUnlockNotices();
   });
   $("ladderUnlockedDialog").addEventListener("cancel",event=>{event.preventDefault();$("closeLadderUnlocked").click();});
-  $("closeCasualUnlock").addEventListener("click", async () => {
-    $("casualUnlockDialog").close();
-    playerProfile.monsterBotCasualNoticeSeen = true;
-    if (!user) return;
-    try {
-      const {db,firestoreSdk:sdk}=await window.ONMFirebase.ready;
-      await sdk.updateDoc(sdk.doc(db,"users",user.uid),{monsterBotCasualNoticeSeen:true});
-    } catch { /* Keep the announcement eligible on the next visit if saving failed. */ }
-  });
   $("completionDialog").addEventListener("click", event => {
     if (event.target === $("completionDialog")) { $("completionDialog").close(); return; }
   });
@@ -482,9 +498,11 @@
     renderMatch(); scheduleBot();
   });
   $("leaveMatch").addEventListener("click", levels); $("backToLevels").addEventListener("click", levels);
-  $("ladderTab").addEventListener("click", () => showTab(false));
+  $("ladderTab").addEventListener("click", () => window.location.hash==="#casual"?openCasual():showTab(false));
   $("leaderboardTab").addEventListener("click", () => showTab(true));
   $("casualTab").addEventListener("click",openCasual);
+  $("ladderTierOne").addEventListener("click",()=>{selectedTier=1;renderLevels();focusUnlocked();});
+  $("ladderTierTwo").addEventListener("click",()=>{if(!ready||!user||!E.tier2EntryUnlocked(progress,bestScores))return;selectedTier=2;renderLevels();focusUnlocked();});
   $("casualBots").addEventListener("click",event=>{
     const button=event.target.closest("[data-casual-bot]");if(!button)return;
     $("casualBot").value=button.dataset.casualBot;renderCasual();
@@ -494,7 +512,7 @@
   $("casualLegsUp").addEventListener("click",()=>adjustLegs(2));
   $("casualForm").addEventListener("submit",event=>{
     event.preventDefault();const level=Number($("casualBot").value),legs=Number($("casualLegs").value),start=Number($("casualStart").value)||501;
-    if(!casualUnlocked()||!Number.isSafeInteger(legs)||legs<1||legs%2!==1||![301,501,701].includes(start)||!E.LEVELS.some(p=>p.level===level&&level<=E.highestUnlocked(progress,bestScores))){$("casualError").textContent="Choose an unlocked bot and an odd best-of length: 1, 3, 5, 7…";return;}
+    if(!casualUnlocked()||!Number.isSafeInteger(legs)||legs<1||legs%2!==1||![301,501,701].includes(start)||!allBots.some(p=>p.level===level&&E.isUnlocked(level,progress,bestScores,survivalBest()))){$("casualError").textContent="Choose an unlocked bot and an odd best-of length: 1, 3, 5, 7…";return;}
     launch(`dart-scorer.html?mode=bot&casual=1&level=${level}&format=1&legs=${legs}&start=${start}`,`Loading casual ${botName(level)} · BO${legs}`);
   });
   window.ONMMonsterLadder={returnToLadder:async(casual)=>{

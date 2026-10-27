@@ -14,6 +14,24 @@
     // targetAverage remains the observed whole-leg average, not a hard bound.
     paceCalibration: [1.1, 1, 1.1, .3, .4, .5, .7, 1, 1.2, 1.5][i]
   }));
+  const TIER2_NAMES=["George Bot","Paddy Bot","Phil Bot","Scottsman Bot","Bobby Bot","Russ Bot","Piesse Bot","Seb Bot","Gary Bot","Cod Bot"];
+  const TIER2_LEVELS=TIER2_NAMES.map((name,i)=>({...LEVELS[Math.min(i+1,9)],level:i+11,difficulty:i+2,tier:2,name,average:40+i*5,targetAverage:42.5+i*5,firstNine:[45+i*5,50+i*5],checkout:[8+i,16+i]}));
+  Object.assign(TIER2_LEVELS[0],{average:37.5,targetAverage:40,firstNine:[42.5,47.5],paceCalibration:0});
+  Object.assign(TIER2_LEVELS[1],{average:42.5,targetAverage:45,firstNine:[47.5,52.5],paceCalibration:0});
+  Object.assign(TIER2_LEVELS[2],{average:47.5,targetAverage:50,firstNine:[52.5,57.5],paceCalibration:0});
+  Object.assign(TIER2_LEVELS[3],{average:52.5,targetAverage:55,firstNine:[57.5,62.5],paceCalibration:0});
+  Object.assign(TIER2_LEVELS[4],{average:57.5,targetAverage:60,firstNine:[62.5,67.5],paceCalibration:0});
+  Object.assign(TIER2_LEVELS[5],{average:62.5,targetAverage:65,firstNine:[67.5,72.5],paceCalibration:0});
+  Object.assign(TIER2_LEVELS[6],{average:67.5,targetAverage:70,firstNine:[72.5,77.5],paceCalibration:0});
+  Object.assign(TIER2_LEVELS[7],{average:72.5,targetAverage:75,firstNine:[77.5,82.5],paceCalibration:0});
+  Object.assign(TIER2_LEVELS[8],{average:77.5,targetAverage:80,firstNine:[82.5,87.5],paceCalibration:0});
+  Object.assign(TIER2_LEVELS[9],{average:82.5,targetAverage:85,firstNine:[87.5,92.5],paceCalibration:2});
+  const ALL_LEVELS=[...LEVELS,...TIER2_LEVELS];
+  const tierOf=level=>level>10?2:1;
+  const localLevel=level=>(level-1)%10+1;
+  function trophies(wins,scores={},tier=0){return ALL_LEVELS.filter(bot=>(!tier||tierOf(bot.level)===tier)&&MODES.every(mode=>{const key=`${bot.level}-${mode}`;return wins.has(key)&&validWinningScore(key,scores[key])&&scores[key].lost===0;})).length;}
+  function tierStars(wins,scores,tier){return goldStars(new Set([...wins].filter(key=>tierOf(Number(key.split("-")[0]))===tier)),scores);}
+  function tier2EntryUnlocked(wins,scores={}){return trophies(wins,scores,1)>=3&&tierStars(wins,scores,1)>=20;}
   const singles = Array.from({ length: 20 }, (_, i) => i + 1);
   const scores = [...new Set([0, ...singles, ...singles.map(n => n * 2), ...singles.map(n => n * 3), 25, 50])];
   const doubles = new Set([...singles.map(n => n * 2), 50]);
@@ -74,6 +92,7 @@
     return {score:total,remaining:remaining-total,darts:3,bust:false,attempts:0,hits:[...visitHits.get(total)]};
   }
   function botVisit(remaining, dartsThrown, profile, random = Math.random, startingScore = 501) {
+    if(profile.difficulty)profile={...profile,level:profile.difficulty};
     if (remaining>180) return scoringVisit(remaining,dartsThrown,profile,random);
     const before = remaining, hits = [];
     const singleAccuracy=0.70+profile.level*0.022;
@@ -142,14 +161,21 @@
     }
     return { average: legs * 501 * 3 / darts, firstNine: firstNine / legs / 3, checkout: legs / attempts * 100 };
   }
-  function isUnlocked(level, wins, bestScores = {}) {
+  function isUnlocked(level, wins, bestScores = {}, survivalBest=0) {
+    if(!Number.isInteger(level)||level<1||level>20)return false;
+    if(level>10){
+      if(!tier2EntryUnlocked(wins,bestScores,survivalBest))return false;
+      const localWins=new Set([...wins].filter(key=>Number(key.split("-")[0])>10).map(key=>{const [bot,mode]=key.split("-").map(Number);return`${bot-10}-${mode}`;}));
+      const localScores=Object.fromEntries(Object.entries(bestScores).filter(([key])=>Number(key.split("-")[0])>10).map(([key,score])=>{const [bot,mode]=key.split("-").map(Number);return[`${bot-10}-${mode}`,score];}));
+      return isUnlocked(level-10,localWins,localScores);
+    }
     return level === 1 || MODES.filter(mode => wins.has(`${level - 1}-${mode}`)).length >= 2
       && (level === 2 || STANDARD_MODES.every(mode => wins.has(`${level - 2}-${mode}`)))
       && (level < 4 || MODES.every(mode => wins.has(`${level - 3}-${mode}`)))
       && (level < 5 || MODES.every(mode => {
         const key = `${level - 4}-${mode}`, score = bestScores[key];
         return wins.has(key) && validWinningScore(key, score) && score.lost === 0;
-      })) && (level < 3 || goldStars(wins, bestScores) >= 5 + (level - 3) * 4);
+      })) && (level < 3 || tierStars(wins, bestScores,1) >= 5 + (level - 3) * 4);
   }
   function goldStars(wins, scores = {}) {
     return [...wins].filter(key => validWinningScore(key, scores[key]) && scores[key].lost === 0).length;
@@ -158,17 +184,20 @@
     return MODES.includes(mode) && (mode !== BULL_MODE || STANDARD_MODES.every(format => wins.has(`${level}-${format}`)));
   }
   function validWinningScore(key, score) {
+    if(typeof key!=="string"||!/^([1-9]|1[0-9]|20)-(1|3|5|7|9)$/.test(key))return false;
     const [level, mode] = key.split("-").map(Number), needed = legsNeeded(mode);
-    return level >= 1 && level <= 10 && MODES.includes(mode) && score && score.won === needed && Number.isInteger(score.lost) && score.lost >= 0 && score.lost < needed;
+    return Number.isInteger(level) && level >= 1 && level <= 20 && MODES.includes(mode) && score && score.won === needed && Number.isInteger(score.lost) && score.lost >= 0 && score.lost < needed;
   }
-  function highestUnlocked(wins, scores = {}) {
-    let level = 1;
-    while (level < 10 && isUnlocked(level + 1, wins, scores)) level++;
+  function highestUnlocked(wins, scores = {}, tier=1,survivalBest=0) {
+    let level = tier===2?11:1;
+    if(!isUnlocked(level,wins,scores,survivalBest))return 0;
+    while (level < (tier===2?20:10) && isUnlocked(level + 1, wins, scores,survivalBest)) level++;
     return level;
   }
   const bestScore = (current, next) => !current || next.lost < current.lost ? next : current;
   const api = { MODES, STANDARD_MODES, BULL_MODE, modeLabel, legsNeeded, bullCheckoutPossible, possibleScore, COMMON_SCORES, BOT_EXCLUDED_SCORES, scoringDistribution, LEVELS, isUnlocked, isFormatUnlocked, highestUnlocked, goldStars, validWinningScore, bestScore, checkoutPossible, validateVisit, botVisit, simulate };
   api.startScore = startScore;
+  Object.assign(api,{TIER2_LEVELS,ALL_LEVELS,tierOf,localLevel,trophies,tierStars,tier2EntryUnlocked});
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.MonsterBotEngine = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

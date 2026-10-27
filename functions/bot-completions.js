@@ -1,5 +1,5 @@
 "use strict";
-const validWins = new Set(Array.from({ length: 10 }, (_, i) => [1, 3, 5, 7, 9].map(mode => `${i + 1}-${mode}`)).flat());
+const validWins = new Set(Array.from({ length: 20 }, (_, i) => [1, 3, 5, 7, 9].map(mode => `${i + 1}-${mode}`)).flat());
 const regionNames = new Intl.DisplayNames(["en"],{type:"region"});
 const countryCodes = new Map();
 for(let a=65;a<=90;a++) for(let b=65;b<=90;b++) {
@@ -25,7 +25,7 @@ function displayName(user,profile) {
 }
 function buildCompletions(users, profiles) {
   const groups = new Map([...validWins].map(key => [key, new Map()]));
-  for (let level = 1; level <= 10; level++) groups.set(`level-${level}`, new Map());
+  for (let level = 1; level <= 20; level++) groups.set(`level-${level}`, new Map());
   for (const user of users) {
     const profile = profiles.get(user.linkedPlayerKey);
     const name = displayName(user,profile);
@@ -58,6 +58,7 @@ function buildLeaderboard(users, profiles) {
     const identity = profile ? `player:${user.linkedPlayerKey}` : `account:${user.id}`;
     const name = displayName(user,profile);
     const row = players.get(identity) || { name, ...publicIdentity(user,profile), wins:new Set(), scores:{} };
+    row.survivalBest=Math.max(row.survivalBest||0,user.monsterSurvivalCompleted===true?10:Number.isInteger(user.monsterSurvivalBest)?Math.max(0,Math.min(10,user.monsterSurvivalBest)):0);
     for (const key of wins) {
       row.wins.add(key);
       const mode = Number(key.split("-")[1]), needed = mode === 9 ? 1 : (mode+1)/2, score = user.monsterBotBestScores?.[key];
@@ -66,15 +67,33 @@ function buildLeaderboard(users, profiles) {
     players.set(identity,row);
   }
   return [...players.values()].map(row => {
-    const won = (level, formats) => formats.every(mode => row.wins.has(`${level}-${mode}`));
     const flawless = Object.values(row.scores).filter(score => score.lost === 0).length;
-    let level=1;
-    for (let next=2;next<=10;next++) {
-      if (modes.filter(mode => row.wins.has(`${next-1}-${mode}`)).length < 2 || next>=3 && !won(next-2,[1,3,5,7]) || next>=4 && !won(next-3,modes) || next>=5 && !modes.every(mode => row.wins.has(`${next-4}-${mode}`) && row.scores[`${next-4}-${mode}`]?.lost === 0)) break;
-      if (next >= 3 && flawless < 5 + (next - 3) * 4) break;
-      level=next;
+    const mastered=level=>modes.every(mode=>row.wins.has(`${level}-${mode}`)&&row.scores[`${level}-${mode}`]?.lost===0);
+    const trophies=Array.from({length:20},(_,i)=>i+1).filter(mastered).length;
+    const tierStars=tier=>Object.entries(row.scores).filter(([key,score])=>(Number(key.split("-")[0])>10?2:1)===tier&&score.lost===0).length;
+    function highest(tier){
+      const offset=tier===2?10:0,won=(level,formats)=>formats.every(mode=>row.wins.has(`${offset+level}-${mode}`));let level=1;
+      for(let next=2;next<=10;next++){
+        if(modes.filter(mode=>row.wins.has(`${offset+next-1}-${mode}`)).length<2||next>=3&&!won(next-2,[1,3,5,7])||next>=4&&!won(next-3,modes)||next>=5&&!mastered(offset+next-4)||next>=3&&tierStars(tier)<5+(next-3)*4)break;
+        level=next;
+      }
+      return offset+level;
     }
-    return {name:row.name,level,completed:row.wins.size,flawless,...(row.photoUrl?{photoUrl:row.photoUrl}:{}),...(row.nationality?{nationality:row.nationality,flag:row.flag}:{})};
+    const entry=tierStars(1)>=20&&Array.from({length:10},(_,i)=>i+1).filter(mastered).length>=3;
+    const level=entry?highest(2):highest(1);
+    return {name:row.name,level,completed:row.wins.size,flawless,trophies,...(row.photoUrl?{photoUrl:row.photoUrl}:{}),...(row.nationality?{nationality:row.nationality,flag:row.flag}:{})};
   }).sort((a,b) => b.completed-a.completed || b.level-a.level || a.name.localeCompare(b.name));
 }
-module.exports = { buildCompletions, buildLeaderboard };
+function buildSurvivalLeaderboard(users,profiles,tier=1){
+  const field=name=>`monsterSurvival${tier===2?"Tier2":""}${name}`;
+  const players=new Map();
+  for(const user of users){
+    const best=user[field("Completed")]===true?10:Number.isInteger(user[field("Best")])?Math.max(0,Math.min(10,user[field("Best")])):0;
+    if(!user[field("Started")]&&!best)continue;
+    const profile=profiles.get(user.linkedPlayerKey),identity=profile?`player:${user.linkedPlayerKey}`:`account:${user.id}`;
+    const previous=players.get(identity);
+    if(!previous||best>previous.best)players.set(identity,{name:displayName(user,profile),...publicIdentity(user,profile),best,complete:best===10});
+  }
+  return [...players.values()].sort((a,b)=>b.best-a.best||a.name.localeCompare(b.name));
+}
+module.exports = { buildCompletions, buildLeaderboard, buildSurvivalLeaderboard };

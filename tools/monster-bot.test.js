@@ -60,6 +60,25 @@ async function gameHarness(stored = new Map(), account = { uid: "test-member" },
   const playButton = (level=1,mode=1) => {element(`bot-mode-${level}`).value=String(mode);element("botLevels").listeners.click({target:{closest:selector=>selector==="[data-play-level]"?{dataset:{playLevel:String(level)}}:null}});return context.window.location.href;};
   return { element, click, bot, score, stored, writes, start, signOut, playButton, location:context.window.location };
 }
+test("tier selector is hidden until both tiers are unlocked",async()=>{
+  const wins=E.LEVELS.slice(0,4).flatMap(p=>E.MODES.map(m=>`${p.level}-${m}`)),scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const locked=await gameHarness(new Map(),{uid:"member",seedWins:wins.filter(key=>!key.startsWith("4-")),seedScores:scores});
+  assert.equal(locked.element("ladderTierTabs").hidden,true);locked.click("ladderTierTwo");assert.doesNotMatch(locked.element("botLevels").innerHTML,/data-play-level="11"/);
+  for(const mode of [1,3,5,7]){const key=`5-${mode}`;wins.push(key);scores[key]={won:E.legsNeeded(mode),lost:0};}
+  const unlocked=await gameHarness(new Map(),{uid:"member",seedWins:wins,seedScores:scores});assert.equal(unlocked.element("ladderTierTabs").hidden,false);unlocked.click("ladderTierTwo");
+  assert.match(unlocked.element("botLevels").innerHTML,/data-play-level="11"/);
+});
+test("player summary switches between separate Tier 1 and Tier 2 progress",async()=>{
+  const wins=[1,2,3,4,5,11].flatMap(level=>E.MODES.map(mode=>`${level}-${mode}`)),scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const g=await gameHarness(new Map(),{uid:"member",seedWins:wins,seedScores:scores});
+  assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Beaten 25");assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 5</);assert.equal(g.element("playerSummaryPercent").textContent,"50% complete");
+  g.click("ladderTierTwo");assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Beaten 5");assert.equal(g.element("playerSummaryFlawless").textContent,"★ Flawless 5");assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 1</);assert.equal(g.element("playerSummaryPercent").textContent,"10% complete");assert.match(g.element("playerSummaryLevel").textContent,/Tier 2/);
+  g.click("ladderTierOne");assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Beaten 25");
+});
+test("leaderboard shows trophy totals and raw challenge counts without a fixed denominator",async()=>{
+  const g=await gameHarness(new Map(),null,async()=>({completions:{},leaderboard:[{name:"Alex",level:11,completed:22,flawless:20,trophies:4}]}));
+  const html=g.element("leaderboardRows").innerHTML;assert.match(html,/challengesTotal">22<\/td>/);assert.match(html,/trophiesTotal">.*platinumTrophy.*<span>4</);assert.match(html,/T2 · 1/);assert.doesNotMatch(html,/\/ 50/);
+});
 test("switching tabs updates the URL so reload restores the last viewed tab",async()=>{
   const g=await gameHarness(new Map(),{uid:"member",initialHash:"#leaderboard"});
   assert.equal(g.element("botPageTitle").textContent,"Leaderboard");
@@ -70,30 +89,28 @@ test("switching tabs updates the URL so reload restores the last viewed tab",asy
   const board=await gameHarness(new Map(),{uid:"member",initialHash:reloaded.location.hash});
   assert.equal(board.element("botPageTitle").textContent,"Leaderboard");
 });
-test("existing level-three players see the casual announcement until acknowledged",async()=>{
-  const wins=[...E.MODES.map(m=>`1-${m}`),...E.MODES.map(m=>`2-${m}`)];
-  const scores=Object.fromEntries(wins.map(k=>[k,{won:(Number(k.split("-")[1])===9?1:Math.ceil(Number(k.split("-")[1])/2)),lost:0}]));
-  const account={uid:"member",seedWins:wins,seedScores:scores};
-  const g=await gameHarness(new Map(),account);
-  assert.equal(g.element("casualUnlockDialog").open,true);
-  await g.click("closeCasualUnlock");
-  assert.equal(g.element("casualUnlockDialog").open,false);
-  assert.ok(g.writes.some(w=>w.data.monsterBotCasualNoticeSeen===true));
-  const seen=await gameHarness(new Map(),{...account,profile:{monsterBotCasualNoticeSeen:true}});
-  assert.notEqual(seen.element("casualUnlockDialog").open,true);
-  const locked=await gameHarness();assert.notEqual(locked.element("casualUnlockDialog").open,true);
+test("Casual starts with Billy immediately and Survival trophies unlock no extra opponents",async()=>{
+  const g=await gameHarness(new Map(),{uid:"member",profile:{monsterSurvivalBest:10,monsterSurvivalCompleted:true}});
+  assert.equal(g.element("casualTab").hidden,false);g.click("casualTab");
+  assert.match(g.element("casualBots").innerHTML,/Billy Bot/);assert.doesNotMatch(g.element("casualBots").innerHTML,/Croft Bot|Filip Bot/);
+  assert.equal(g.element("casualBot").value,"1");assert.equal(g.element("casualForm").hidden,false);
+  assert.equal(g.element("casualBotCount").textContent,"Bots unlocked: 1");assert.notEqual(g.element("casualUnlockDialog").open,true);
 });
-test("returning to ladder announces the bot first, then Casual separately",async()=>{
+test("returning to ladder announces new bots without an obsolete Casual milestone",async()=>{
   const wins=[...E.MODES.map(m=>`1-${m}`),"2-1","2-3"];
   const scores=Object.fromEntries(wins.map(k=>[k,{won:E.legsNeeded(Number(k.split("-")[1])),lost:0}]));
   const stored=new Map([["onm-monster-bot-member-unlocks","[3]"]]);
   const g=await gameHarness(stored,{uid:"member",seedWins:wins,seedScores:scores});
   assert.equal(g.element("ladderUnlockedDialog").open,true);
+  assert.equal(g.element("ladderUnlockedTitle").textContent,"New: Monster Survival!");
+  assert.match(g.element("ladderUnlockedDetail").textContent,/Reach Level 3/);g.click("closeLadderUnlocked");
+  assert.equal(g.element("ladderUnlockedTitle").textContent,"New Monsters. New Tiers!");
+  assert.match(g.element("ladderUnlockedDetail").textContent,/3 Tier 1 trophies and 20 Tier 1 gold stars/);g.click("closeLadderUnlocked");
   assert.equal(g.element("ladderUnlockedTitle").textContent,"You've unlocked Venton Bot!");
   assert.notEqual(g.element("casualUnlockDialog").open,true);
   g.click("closeLadderUnlocked");
   assert.equal(g.element("ladderUnlockedDialog").open,false);
-  assert.equal(g.element("casualUnlockDialog").open,true);
+  assert.notEqual(g.element("casualUnlockDialog").open,true);
   assert.deepEqual(JSON.parse(stored.get("onm-monster-bot-member-unlocks")),[]);
 });
 test("leaderboard refresh icon fetches fresh results and resets its loading state",async()=>{
@@ -115,15 +132,15 @@ test("leaderboard displays photo, player name and nationality flag in order",asy
   assert.match(html,/aria-label="Australia"/);
 });
 test("completion modal shows photo, name, flag and right-aligned award without others' scores",async()=>{
-  const g=await gameHarness(new Map(),null,async()=>({completions:{"1-3":[{name:"Nick",photoUrl:"https://example.test/nick.jpg",flag:"🇦🇺",nationality:"Australia",results:[{mode:3,won:2,lost:0,flawless:true}]},{name:"Alex",results:[{mode:3,won:2,lost:1,flawless:false}]}]},leaderboard:[]}));
+  const g=await gameHarness(new Map(),{uid:"member",seedWins:["1-3"],seedScores:{"1-3":{won:2,lost:0}}},async()=>({completions:{"1-3":[{name:"Nick",photoUrl:"https://example.test/nick.jpg",flag:"🇦🇺",nationality:"Australia",results:[{mode:3,won:2,lost:0,flawless:true}]},{name:"Alex",results:[{mode:3,won:2,lost:1,flawless:false}]}]},leaderboard:[]}));
   g.element("botLevels").listeners.click({target:{closest:selector=>selector==="[data-community-key]"?{dataset:{communityKey:"1-3"}}:null}});
   const html=g.element("completionNames").innerHTML;
   assert.ok(html.indexOf("nick.jpg")<html.indexOf("<strong>Nick</strong>"));assert.ok(html.indexOf("<strong>Nick</strong>")<html.indexOf("🇦🇺"));
   assert.match(html,/completionAward gold/);assert.match(html,/completionAward won/);assert.doesNotMatch(html,/2–0|2–1|Score not recorded/);
 });
-test("completion modal displays your private attempts even before a first win",async()=>{
+test("completion modal displays private attempts after a flawless win, but guests cannot open it",async()=>{
   const stored=new Map([["onm-bot-attempt-device",JSON.stringify("test-device-123")],["onm-bot-attempts-member",JSON.stringify({"1-9":4})]]);
-  const g=await gameHarness(stored,{uid:"member"});
+  const g=await gameHarness(stored,{uid:"member",seedWins:["1-9"],seedScores:{"1-9":{won:1,lost:0}}});
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-community-key]"?{dataset:{communityKey:"1-9"}}:null}});
   assert.equal(g.element("completionYourAttempts").hidden,false);assert.equal(g.element("completionYourAttempts").textContent,"Your attempts: 4");
   const visitor=await gameHarness(stored,null);
@@ -136,10 +153,11 @@ test("player summary shows identity, beaten and flawless totals and completion p
   const g=await gameHarness(new Map(),{uid:"member",seedWins:wins,seedScores:scores,profile:{firstName:"Nick",photoUrl:"https://example.test/nick.jpg"}});
   assert.equal(g.element("playerSummary").hidden,false);
   assert.equal(g.element("playerSummaryName").textContent,"Nick");
-  assert.equal(g.element("playerSummaryLevel").textContent,`Level ${E.highestUnlocked(new Set(wins),scores)} unlocked`);
+  assert.equal(g.element("playerSummaryLevel").textContent,`Tier 1 · Level ${E.highestUnlocked(new Set(wins),scores)} unlocked`);
   assert.equal(g.element("playerSummaryPhoto").src,"https://example.test/nick.jpg");
-  assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Beaten 7/50");
-  assert.equal(g.element("playerSummaryFlawless").textContent,"★ Flawless 3/50");
+  assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Beaten 7");
+  assert.equal(g.element("playerSummaryFlawless").textContent,"★ Flawless 3");
+  assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 0</);
   assert.equal(g.element("playerSummaryPercent").textContent,"14% complete");
   assert.equal(g.element("playerSummaryBar").value,7);
   const guest=await gameHarness(new Map(),null);assert.equal(guest.element("playerSummary").hidden,true);
@@ -149,7 +167,7 @@ test("real play buttons open the league scorer in bot mode and respect locks",as
   assert.equal(g.playButton(1,7),"dart-scorer.html?mode=bot&level=1&format=7");
   const visitor=await gameHarness(new Map(),null);assert.equal(visitor.playButton(),"");
 });
-test("casual menu unlocks at level three and only launches unlocked opponents",async()=>{
+test("casual menu only launches ladder-unlocked opponents",async()=>{
   const wins=E.LEVELS.slice(0,2).flatMap(p=>E.MODES.map(mode=>`${p.level}-${mode}`));
   const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
   const g=await gameHarness(new Map(),{uid:"member",seedWins:wins,seedScores:scores});
@@ -163,7 +181,7 @@ test("casual menu unlocks at level three and only launches unlocked opponents",a
   g.element("casualBot").value="4";g.element("casualLegs").value="11";g.element("casualForm").listeners.submit({preventDefault(){}});assert.equal(g.location.href,"");
   g.element("casualBot").value="2";g.element("casualForm").listeners.submit({preventDefault(){}});
   assert.equal(g.location.href,"dart-scorer.html?mode=bot&casual=1&level=2&format=1&legs=11&start=501");
-  const locked=await gameHarness();assert.equal(locked.element("casualTab").hidden,true);
+  const fresh=await gameHarness();assert.equal(fresh.element("casualTab").hidden,false);assert.equal(fresh.element("casualBotCount").textContent,"Bots unlocked: 1");
 });
 test("Play uses the gesture-bound launch audio before navigating to the scorer",async()=>{
   let finish;
@@ -195,14 +213,14 @@ test("a failed leaderboard request can be retried successfully",async()=>{
   assert.match(g.element("leaderboardRows").innerHTML,/Recovered player/);
   assert.equal(g.element("retryLeaderboard").hidden,true);
 });
-test("ladder waits for Firebase progress then focuses the highest unlocked bot",async()=>{
+test("ladder uses inline loading, waits for Firebase progress then focuses the highest unlocked bot",async()=>{
   let resolve;
   const docPromise = new Promise(done=>{resolve=done;});
   const g = await gameHarness(new Map(),{uid:"test-member",docPromise});
   assert.equal(g.element("botLevels").hidden,true);
   assert.equal(g.element("botLevels").innerHTML,"");
   assert.equal(g.element("accountLoading").hidden,false);
-  assert.equal(g.element("botLaunchSplash").hidden,false);
+  assert.equal(g.element("botLaunchSplash").hidden,true);
   assert.equal(g.element("botLaunchText").textContent,"Loading your Monster Bot ladder…");
   resolve({data:()=>({monsterBotWins:["1-1","1-3"]})});
   await new Promise(done=>setImmediate(done));
@@ -290,15 +308,15 @@ test("cards show flawless format counts beside wins, excluding missing and inval
   const noScores=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(["1-3"])]]));
   assert.match(noScores.element("botLevels").innerHTML,/✓ Beaten 1\/5<\/span><span class="gold flawlessCount">★ Flawless 0\/5/);
 });
-test("completion modal highlights the player's own result independently of community loading",async()=>{
+test("only flawless modes expose the completion modal, independently of community loading",async()=>{
   for(const lost of [0,1]){
     const stored=new Map([["onm-monster-bot-test-member",JSON.stringify(["1-3"])],["onm-monster-bot-test-member-scores",JSON.stringify({"1-3":{won:2,lost}})]]);
     const g=await gameHarness(stored);
     const open=key=>g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-community-key]"?{dataset:{communityKey:key}}:null}});
-    open("1-3");assert.equal(g.element("completionYourResult").hidden,false);
+    open("1-3");if(lost!==0){assert.notEqual(g.element("completionDialog").open,true);continue;}assert.equal(g.element("completionYourResult").hidden,false);
     assert.match(g.element("completionYourResult").textContent,lost===0 ? /Flawless win · 2–0/ : /You've beaten this challenge · 2–1/);
     assert.match(g.element("completionYourResult").className,lost===0 ? /gold/ : /won/);
-    open("1-5");assert.equal(g.element("completionYourResult").hidden,true);
+    g.element("completionDialog").open=false;open("1-5");assert.notEqual(g.element("completionDialog").open,true);
     assert.equal(g.element("saveStatus").hidden,true);
   }
 });
@@ -328,14 +346,16 @@ test("mode completion ticks distinguish wins from flawless wins, never selection
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:"3"}}:null}});
   assert.match(g.element("botLevels").innerHTML,/id="bot-mode-1" type="hidden" value="3"/);
   assert.match(g.element("botLevels").innerHTML,/class="primary"[^>]*>Replay Billy Bot · BO3<\/button>/);
+  assert.notEqual(g.element("completionDialog").open,true);
   g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:"1"}}:null}});
-  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame" data-casual-level="1">Play in casual mode<\/button>/);
+  assert.equal(g.element("completionDialog").open,true);assert.match(g.element("botLevels").innerHTML,/id="bot-mode-1" type="hidden" value="3"/);
   assert.equal(g.playButton(1,1),"");
 });
-test("fully completed bots offer a grey replay button without adding duplicate awards",async()=>{
+test("all five flawless formats award a mastery trophy and remove the play button",async()=>{
   const wins=E.MODES.map(mode=>`1-${mode}`),scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
   const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(scores)]]));
-  assert.match(g.element("botLevels").innerHTML,/class="primary replayGame" data-casual-level="1">Play in casual mode<\/button>/);
+  const card=g.element("botLevels").innerHTML.split('id="bot-level-1"')[1].split("</article>")[0];
+  assert.match(card,/class="monsterMasterTrophy"/);assert.doesNotMatch(card,/data-play-level|data-casual-level|aria-pressed="true"/);
   const set=new Set(wins);set.add("1-1");scores["1-1"]=E.bestScore(scores["1-1"],{won:1,lost:0});
   assert.equal(set.size,5);assert.equal(E.goldStars(set,scores),5);
 });
@@ -347,20 +367,20 @@ test("bot cards stay neutral until all modes are beaten and gold requires all fl
       const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(scores)]]));
       const classes=g.element("botLevels").innerHTML.match(/<article class="([^"]*)" id="bot-level-1"/)[1];
       assert.equal(classes.includes("flawlessComplete"),count===5&&flawless);
+      const card=g.element("botLevels").innerHTML.split('id="bot-level-1"')[1].split("</article>")[0];
+      assert.equal(card.includes("monsterMasterTrophy"),count===5&&flawless);
       assert.equal(classes.includes("beatenComplete"),count===5&&!flawless);
     }
   }
 });
-test("selecting a pill updates Play, selected-mode results and contextual Bull rules",async()=>{
+test("selecting an unfinished pill updates Play without completion counts or links",async()=>{
   const g=await gameHarness(new Map(),{uid:"test-member"},async()=>({completions:{"1-1":[{},{},{},{}],"1-3":[{}]},leaderboard:[]}));
   const choose=mode=>g.element("botLevels").listeners.click({target:{closest:s=>s==="[data-choose-mode]"?{dataset:{chooseLevel:"1",chooseMode:String(mode)}}:null}});
   assert.match(g.element("botLevels").innerHTML,/Play Billy Bot · Best of 1/);
-  assert.match(g.element("botLevels").innerHTML,/4 players have beaten Billy Bot BO1/);
+  assert.doesNotMatch(g.element("botLevels").innerHTML,/players have beaten|selectedModeResults|modeResultsLink/);
   choose(3);
   assert.match(g.element("botLevels").innerHTML,/Play Billy Bot · Best of 3/);
-  assert.match(g.element("botLevels").innerHTML,/1 player has beaten Billy Bot BO3/);
-  assert.match(g.element("botLevels").innerHTML,/title="View players and scores">👤<\/button>/);
-  assert.match(g.element("botLevels").innerHTML,/data-community-key="1-3"/);
+  assert.doesNotMatch(g.element("botLevels").innerHTML,/player has beaten|data-community-key/);
   choose(9);
   assert.match(g.element("botLevels").innerHTML,/disabled>Play Billy Bot · Bull or Bust/);
   assert.doesNotMatch(g.element("botLevels").innerHTML,/bot-mode-rules/);
@@ -380,7 +400,7 @@ test("visitors see only the first two levels and all modes but cannot play", asy
   assert.doesNotMatch(html,/Filip Bot/); assert.match(html,/Bull or Bust/);
   assert.match(g.element("saveStatus").innerHTML,/mode=login&redirect=monster-bot.html/);
   assert.equal(g.element("bot-level-1").scrolledIntoView.block,"start");
-  assert.match(g.element("progressSummary").textContent,/0 \/ 50/);
+  assert.match(g.element("progressSummary").textContent,/0 formats won/);
   g.start(); g.score(180); g.bot();
   assert.equal(g.element("matchTitle").textContent,"");
   assert.equal(g.writes.length,0);
@@ -441,7 +461,7 @@ test("available avatars appear in the ladder and scorer without leaking into oth
     const playableScores={...scores};delete playableScores[`${level}-1`];
     const game=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(playableScores)]]));
     game.start(level);
-    assert.equal(game.element("scorerBotAvatar").src, `graphics/bots/${name}-bot.png?v=20261022-avatar`);
+    assert.equal(game.element("scorerBotAvatar").src, `graphics/bots/${name}-bot.png?v=20261027-russ-fixed`);
     assert.equal(game.element("scorerBotAvatar").hidden, false);
   }
   assert.match(g.element("botLevels").innerHTML,/filip-bot.png/);
@@ -465,9 +485,9 @@ test("match lengths, alternating starters, wins and gold progress survive reload
   }
   assert.deepEqual(JSON.parse(g.stored.get("onm-monster-bot-test-member")).sort(), ["1-1", "1-3", "1-5", "1-7"]);
   assert.doesNotMatch(g.element("botLevels").innerHTML, /☑ Complete/);
-  assert.match(g.element("progressSummary").textContent, /4 \/ 50 formats won · ★ 4 gold stars/);
+  assert.match(g.element("progressSummary").textContent, /4 formats won · ★ 4 gold stars/);
   const reloaded = await gameHarness(g.stored);
-  assert.match(reloaded.element("progressSummary").textContent, /4 \/ 50 formats won · ★ 4 gold stars/);
+  assert.match(reloaded.element("progressSummary").textContent, /4 formats won · ★ 4 gold stars/);
 });
 test("a profile loading failure does not hide a verified signed-in account", async () => {
   const g=await gameHarness();
@@ -501,7 +521,7 @@ test("help links to a separate rules page and obsolete introductory controls are
 
 test("signed-in progress loads and saves only on that user's account", async () => {
   const g = await gameHarness(new Map(), { uid: "test-member", seedWins: ["2-3"] });
-  assert.match(g.element("progressSummary").textContent, /1 \/ 50/);
+  assert.match(g.element("progressSummary").textContent, /1 formats won/);
   g.start(); g.score(180); g.bot(); g.score(180); g.bot(); g.score(141);
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(g.writes.at(-1).path, "users/test-member");
@@ -617,10 +637,10 @@ test("levels three to ten enforce their gold-star threshold on game and leaderbo
     const scores = Object.fromEntries(keys.slice(0,required-1).map(key => [key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
     const account = {id:"stars",monsterBotWins:keys,monsterBotBestScores:scores};
     assert.equal(E.isUnlocked(level,wins,scores),false);
-    assert.equal(buildLeaderboard([account],new Map())[0].level,level-1);
+    assert.equal(buildLeaderboard([account],new Map())[0].level,E.highestUnlocked(wins,scores,2)||level-1);
     const key = keys[required-1]; scores[key] = {won:E.legsNeeded(Number(key.split("-")[1])),lost:0};
     assert.equal(E.isUnlocked(level,wins,scores),true);
-    assert.equal(buildLeaderboard([account],new Map())[0].level,level);
+    assert.equal(buildLeaderboard([account],new Map())[0].level,E.highestUnlocked(wins,scores,2)||level);
   }
 });
 test("Bull or Bust requires a possible Bull finish and explicit confirmation", async () => {

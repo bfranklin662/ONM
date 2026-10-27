@@ -4,7 +4,7 @@
   root.ONMBotAttempts=factory(root.localStorage,()=>root.crypto.randomUUID());
 })(typeof window!=="undefined"?window:globalThis,function(storage,newId){
   "use strict";
-  const valid=key=>/^(10|[1-9])-(1|3|5|7|9)$/.test(key);
+  const valid=key=>/^([1-9]|1[0-9]|20)-(1|3|5|7|9)$/.test(key);
   const clean=counts=>Object.fromEntries(Object.entries(counts||{}).filter(([key,n])=>valid(key)&&Number.isSafeInteger(n)&&n>=0));
   const read=key=>{try{return JSON.parse(storage.getItem(key)||"null");}catch{return null;}};
   const write=(key,value)=>{try{storage.setItem(key,JSON.stringify(value));}catch{}};

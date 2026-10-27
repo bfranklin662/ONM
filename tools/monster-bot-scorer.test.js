@@ -1,15 +1,15 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const E=require("../scripts/monster-bot-engine");
-async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,profilePhoto=null,audioBlocked=false,introPlayed=false,casual=false,legs=3,start=501,completed=false}={}){
+async function harness({format=1,level=1,account={uid:"member"},botFinish=false,seedWins=null,seedScores=null,profilePhoto=null,audioBlocked=false,introPlayed=false,casual=false,legs=3,start=501,completed=false,survival=false,authorized=true,survivalBest=0}={}){
   const nodes=new Map(),timers=new Map(),writes=[],stored=new Map();let nextTimer=0,bullSelected=false,authChanged;
   const element=id=>{if(!nodes.has(id))nodes.set(id,{id,value:"",textContent:"",hidden:false,disabled:false,dataset:{},children:[],style:{setProperty(){}},setAttribute(){},appendChild(child){this.children.push(child);},remove(){},classList:{add(){},remove(){},toggle(){}},querySelector(){return element("kicker");},querySelectorAll(){return [];},before(){},after(){},blur(){},showModal(){this.open=true;},close(){this.open=false;},addEventListener(event,fn){(this.listeners ||= {})[event]=fn;}});return nodes.get(id);};
   const player=()=>({score:501,legs:0,totalScored:0,dartsThrown:0,currentLegDarts:0,firstNineScored:0,firstNineDarts:0,currentLegFirstNineScored:0,currentLegFirstNineDarts:0,highScore:0,checkoutHits:0,checkoutAttempts:0,highestOut:0,oneEightys:0,bullOuts:0,legDarts:[],lastScore:null});
   const state={players:[player(),player()],currentPlayer:0,winnerIndex:null,visitHistory:[],legJustWon:false};
   const els=new Proxy({names:[element("name0"),element("name1")]},{get:(o,k)=>o[k]||element(k)});
   const wins=seedWins || E.LEVELS.flatMap(p=>E.MODES.map(m=>`${p.level}-${m}`));
-  const scores=Object.fromEntries(E.LEVELS.flatMap(p=>E.MODES.map(m=>[`${p.level}-${m}`,{won:E.legsNeeded(m),lost:0}])));
+  const scores=seedScores || Object.fromEntries(E.LEVELS.flatMap(p=>E.MODES.map(m=>[`${p.level}-${m}`,{won:E.legsNeeded(m),lost:0}])));
   if(!completed&&!casual)delete scores[`${level}-${format}`];
-  const sdk={doc:(_db,c,id)=>`${c}/${id}`,getDoc:async()=>({data:()=>({firstName:"Nick",nickname:"Nickname",monsterBotWins:wins,monsterBotBestScores:scores})}),updateDoc:async(path,data)=>writes.push({path,data}),arrayUnion:(...a)=>a,runTransaction:async(_db,fn)=>fn({get:async()=>({data:()=>({})}),update:(path,data)=>writes.push({path,data})})};
+  const sdk={doc:(_db,c,id)=>`${c}/${id}`,getDoc:async()=>({data:()=>({firstName:"Nick",nickname:"Nickname",monsterBotWins:wins,monsterBotBestScores:scores,monsterSurvivalBest:survivalBest})}),updateDoc:async(path,data)=>writes.push({path,data}),arrayUnion:(...a)=>a,runTransaction:async(_db,fn)=>fn({get:async()=>({data:()=>({})}),update:(path,data)=>writes.push({path,data})})};
   const ctx={BOT_MODE:true,params:new URLSearchParams(`level=${level}&format=${format}${casual?`&casual=1&legs=${legs}&start=${start}`:""}`),state,els,STARTING_SCORE:501,LEGS_TO_WIN:E.legsNeeded(format),MATCH_MODE:"local",STATS_MODE:"casual",pendingCheckoutPrompt:null,
     window:{MonsterBotEngine:{...E,botVisit:(remaining,darts,profile)=>{ctx.lastBotProfile=profile.level;return botFinish?{score:remaining,remaining:0,darts:3,attempts:1,hits:[remaining]}:{score:30,remaining:remaining-30,darts:3,attempts:0,hits:[10,10,10]};}},ONMFirebase:{currentFirebaseUser:async()=>account,ready:Promise.resolve({db:{},firestoreSdk:sdk,auth:{},authSdk:{onAuthStateChanged:(_auth,fn)=>{authChanged=fn;}}})},location:{href:"",reload(){ctx.reloaded=true;}},eventHandlers:{},addEventListener(type,fn){(this.eventHandlers[type] ||= []).push(fn);}},
     document:{body:{classList:{add(){},remove(){}}},getElementById:element,createElement:()=>element(`created${nodes.size}`),querySelector:()=>bullSelected?{dataset:{value:"Yes"}}:null},
@@ -23,6 +23,7 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
     openCheckoutPrompt:config=>{ctx.pendingCheckoutPrompt=config;},closeCheckoutPrompt:()=>{ctx.pendingCheckoutPrompt=null;},getSelectedPromptValue:()=>3,
     buildLocalMatchStatsData:()=>({}),openMolVictoryScreen:()=>{ctx.resultOpened=true;ctx.window.ONMMonsterScorer.showResult();ctx.window.ONMMonsterScorer.showUnlock();}
   };
+  if(survival){ctx.params.set("survival","1");ctx.params.set("run","test-run");ctx.survivalResults=[];ctx.survivalReturns=[];ctx.window.parent={ONMMonsterSurvival:{authorize:(id,current,uid)=>authorized&&id==="test-run"&&current===level&&uid===account?.uid,recordResult:result=>ctx.survivalResults.push(result),returnFromGame:restart=>ctx.survivalReturns.push(restart)}};}
   if(introPlayed){ctx.params.set("intro","played");ctx.URL=URL;ctx.window.location.href=`https://ochenessmonsters.com/dart-scorer.html?mode=bot&level=${level}&format=${format}&intro=played`;ctx.window.history={replaceState(_state,_title,url){ctx.cleanedUrl=url;}};}
   vm.createContext(ctx);
   ctx.window.ONMBotAttempts=require("../scripts/monster-bot-attempts")(ctx.localStorage,()=>"test-device-123");
@@ -37,6 +38,86 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
   const bot=()=>{const entry=[...timers].find(([,t])=>t.delay===1000);if(entry){timers.delete(entry[0]);entry[1].fn();}};
   return{ctx,state,els,api,writes,stored,timers,score,bot,confirm:(bull=false)=>{bullSelected=bull;api.confirmCheckout();},signOut:()=>authChanged(null)};
 }
+test("Tier 2 scorer enforces entry, uses placeholders and stores separate challenge keys",async()=>{
+  const wins=E.LEVELS.slice(0,5).flatMap(p=>E.MODES.map(m=>`${p.level}-${m}`));
+  const locked=await harness({level:11,seedWins:wins.filter(key=>!["4","5"].includes(key.split("-")[0])),survivalBest:10});assert.equal(locked.api.canPlay(),false);
+  const g=await harness({level:11,seedWins:wins,survivalBest:0});assert.equal(g.api.canPlay(),true);assert.equal(g.els.names[1].value,"George Bot");assert.equal(g.api.photo(1),"graphics/bots/george-bot.png");
+  g.score(180);g.bot();g.score(180);g.bot();g.score(141);await new Promise(r=>setImmediate(r));
+  assert.equal(g.state.winnerIndex,0);assert.ok(g.writes.some(write=>write.data.monsterBotBestScores?.["11-1"]?.won===1));
+  assert.equal(g.ctx.window.ONMBotAttempts.counts("member")["11-1"],1);
+  const survival=await harness({level:11,survival:true,survivalBest:10});assert.equal(survival.api.canPlay(),false);
+});
+test("Tier 2 level two uses Paddy's name and avatar once George is beaten in two modes",async()=>{
+  const wins=E.LEVELS.slice(0,5).flatMap(p=>E.MODES.map(m=>`${p.level}-${m}`)).concat(["11-1","11-3"]);
+  const g=await harness({level:12,seedWins:wins});
+  assert.equal(g.api.canPlay(),true);assert.equal(g.els.names[1].value,"Paddy Bot");assert.equal(g.api.photo(1),"graphics/bots/paddy-bot.png");
+});
+test("Tier 2 level three uses Phil's name and avatar with the existing progression rules",async()=>{
+  const wins=E.LEVELS.slice(0,5).flatMap(p=>E.MODES.map(m=>`${p.level}-${m}`)).concat(E.MODES.map(m=>`11-${m}`),["12-1","12-3"]);
+  const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const g=await harness({level:13,seedWins:wins,seedScores:scores});
+  assert.equal(g.api.canPlay(),true);assert.equal(g.els.names[1].value,"Phil Bot");assert.equal(g.api.photo(1),"graphics/bots/phil-bot.png");
+});
+test("Tier 2 level four uses Scottsman's name and avatar",async()=>{
+  const wins=[1,2,3,4,5,11,12].flatMap(level=>E.MODES.map(mode=>`${level}-${mode}`)).concat(["13-1","13-3"]);
+  const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const g=await harness({level:14,seedWins:wins,seedScores:scores});
+  assert.equal(g.api.canPlay(),true);assert.equal(g.els.names[1].value,"Scottsman Bot");assert.equal(g.api.photo(1),"graphics/bots/scottsman-bot.png");
+});
+test("Tier 2 level five uses Bobby's name and avatar",async()=>{
+  const wins=[1,2,3,4,5,11,12,13].flatMap(level=>E.MODES.map(mode=>`${level}-${mode}`)).concat(["14-1","14-3"]);
+  const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const g=await harness({level:15,seedWins:wins,seedScores:scores});
+  assert.equal(g.api.canPlay(),true);assert.equal(g.els.names[1].value,"Bobby Bot");assert.equal(g.api.photo(1),"graphics/bots/bobby-bot.png");
+});
+test("Tier 2 level six uses Russ's name and avatar",async()=>{
+  const wins=[1,2,3,4,5,11,12,13,14].flatMap(level=>E.MODES.map(mode=>`${level}-${mode}`)).concat(["15-1","15-3"]);
+  const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const g=await harness({level:16,seedWins:wins,seedScores:scores});
+  assert.equal(g.api.canPlay(),true);assert.equal(g.els.names[1].value,"Russ Bot");assert.equal(g.api.photo(1),"graphics/bots/russ-bot.png?v=20261027-fixed");
+});
+test("Tier 2 level seven uses Piesse's name and avatar",async()=>{
+  const wins=[1,2,3,4,5,11,12,13,14,15].flatMap(level=>E.MODES.map(mode=>`${level}-${mode}`)).concat(["16-1","16-3"]);
+  const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const g=await harness({level:17,seedWins:wins,seedScores:scores});
+  assert.equal(g.api.canPlay(),true);assert.equal(g.els.names[1].value,"Piesse Bot");assert.equal(g.api.photo(1),"graphics/bots/piesse-bot.png");
+});
+test("Tier 2 level eight uses Seb's name and avatar",async()=>{
+  const wins=[1,2,3,4,5,11,12,13,14,15,16].flatMap(level=>E.MODES.map(mode=>`${level}-${mode}`)).concat(["17-1","17-3"]);
+  const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const g=await harness({level:18,seedWins:wins,seedScores:scores});
+  assert.equal(g.api.canPlay(),true);assert.equal(g.els.names[1].value,"Seb Bot");assert.equal(g.api.photo(1),"graphics/bots/seb-bot.png");
+});
+test("Tier 2 level nine uses Gary's name and avatar",async()=>{
+  const wins=[1,2,3,4,5,11,12,13,14,15,16,17].flatMap(level=>E.MODES.map(mode=>`${level}-${mode}`)).concat(["18-1","18-3"]);
+  const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const g=await harness({level:19,seedWins:wins,seedScores:scores});
+  assert.equal(g.api.canPlay(),true);assert.equal(g.els.names[1].value,"Gary Bot");assert.equal(g.api.photo(1),"graphics/bots/gary-bot.png");
+});
+test("Tier 2 level ten uses Cod's name and avatar",async()=>{
+  const wins=[1,2,3,4,5,11,12,13,14,15,16,17,18].flatMap(level=>E.MODES.map(mode=>`${level}-${mode}`)).concat(["19-1","19-3"]);
+  const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const g=await harness({level:20,seedWins:wins,seedScores:scores});
+  assert.equal(g.api.canPlay(),true);assert.equal(g.els.names[1].value,"Cod Bot");assert.equal(g.api.photo(1),"graphics/bots/cod-bot.png");
+});
+test("Survival allows all ten opponents without ladder unlocks and awards no ladder progress",async()=>{
+  for(const level of [1,3,10]){
+    const g=await harness({level,survival:true,seedWins:["1-1","1-3","1-5","1-7","1-9","2-1","2-3"]});
+    assert.equal(g.api.canPlay(),true);assert.equal(g.ctx.STARTING_SCORE,501);assert.equal(g.ctx.LEGS_TO_WIN,1);
+    assert.equal(g.ctx.window.ONMBotAttempts.counts("member")[`${level}-1`],undefined);
+    g.state.players[0].score=40;g.score(40);await new Promise(r=>setImmediate(r));g.api.showResult();
+    assert.equal(g.state.winnerIndex,0);assert.equal(g.ctx.survivalResults.length,1);assert.equal(g.ctx.survivalResults[0].won,true);
+    assert.equal(g.writes.length,0);assert.doesNotMatch(g.ctx.document.getElementById("monsterBotResultStatus").textContent,/Gold Star/);
+    assert.equal(g.ctx.document.getElementById("monsterBotResultAttempts").hidden,true);
+    assert.match(g.els.molVictoryCloseBtn.textContent,level===10?/complete/:/Next:/);
+  }
+});
+test("Survival requires an authorized parent run and restarting returns to Billy",async()=>{
+  const rejected=await harness({survival:true,authorized:false});assert.equal(rejected.api.canPlay(),false);
+  const g=await harness({survival:true,level:5});await g.api.rematch();assert.deepEqual(g.ctx.survivalReturns,[true]);
+  const loss=await harness({survival:true,level:2,botFinish:true});loss.score(60);loss.bot();loss.api.showResult();
+  assert.equal(loss.ctx.survivalResults[0].won,false);assert.match(loss.els.molVictoryRematchBtn.textContent,/Billy Bot/);
+});
 test("shared scorer applies the human score, waits exactly one second, then returns control",async()=>{
   const g=await harness({level:6});g.score(60);
   assert.equal(g.state.players[0].score,441);assert.equal(g.state.players[1].score,501);
@@ -372,8 +453,9 @@ test("casual games allow custom leg targets and completed bots without storing r
   const long=await harness({casual:true,legs:23});assert.equal(long.ctx.LEGS_TO_WIN,12);assert.equal(long.api.canPlay(),true);
   const nine=await harness({casual:true,legs:9});assert.equal(nine.ctx.LEGS_TO_WIN,5);
 });
-test("casual mode requires level three and validates the chosen leg target",async()=>{
-  const locked=await harness({casual:true,seedWins:["1-1"]});assert.equal(locked.api.canPlay(),false);assert.equal(locked.writes.length,0);
+test("casual mode permits Billy with no ladder wins but blocks locked bots and invalid leg targets",async()=>{
+  const fresh=await harness({casual:true,seedWins:[]});assert.equal(fresh.api.canPlay(),true);assert.equal(fresh.writes.length,0);
+  const locked=await harness({casual:true,level:2,seedWins:[]});assert.equal(locked.api.canPlay(),false);
   for(const legs of [0,-1,1.5,2,8]){const g=await harness({casual:true,legs});assert.equal(g.api.canPlay(),false);}
 });
 test("casual starting score is selectable and results still earn no ladder awards",async()=>{

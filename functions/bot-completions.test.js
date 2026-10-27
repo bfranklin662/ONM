@@ -1,6 +1,16 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { buildCompletions, buildLeaderboard } = require("./bot-completions");
+const { buildCompletions, buildLeaderboard, buildSurvivalLeaderboard } = require("./bot-completions");
+test("Survival leaderboard ranks best runs, merges linked accounts and excludes private data",()=>{
+  const users=[{id:"a",firstName:"Alex",monsterSurvivalBest:3,email:"private@example.test"},{id:"b",firstName:"Bill",monsterSurvivalStarted:true},{id:"c",firstName:"Champion",monsterSurvivalCompleted:true},{id:"d",firstName:"No run"},{id:"e",linkedPlayerKey:"linked",monsterSurvivalBest:5},{id:"f",linkedPlayerKey:"linked",monsterSurvivalBest:7}];
+  const rows=buildSurvivalLeaderboard(users,new Map([["linked",{publicName:"Linked Player"}]]));
+  assert.deepEqual(rows.map(r=>r.best),[10,7,3,0]);assert.equal(rows[0].complete,true);assert.equal(rows[1].name,"Linked Player");
+  assert.ok(rows.every(r=>!r.email&&!r.id&&!r.monsterBotBestScores));
+});
+test("Survival leaderboard clamps invalid progress and uses first names without linked profiles",()=>{
+  const rows=buildSurvivalLeaderboard([{id:"a",firstName:"Alex",monsterSurvivalBest:99},{id:"b",firstName:"Beta",monsterSurvivalBest:3.5,monsterSurvivalStarted:true}],new Map());
+  assert.deepEqual(rows.map(r=>[r.name,r.best]),[["Alex",10],["Beta",0]]);
+});
 test("private attempt counters never enter public completions or leaderboards",()=>{
   const users=[{id:"private",firstName:"Nick",monsterBotWins:["1-9"],monsterBotAttemptDevices:{"private-device-secret":{"1-9":12345}}}];
   const publicData=JSON.stringify({completions:buildCompletions(users,new Map()),leaderboard:buildLeaderboard(users,new Map())});
@@ -49,7 +59,7 @@ test("counts one completion per player and format without exposing private accou
   assert.deepEqual(result["1-1"].map(r => r.name), ["Nick", "Player", "Rob"]);
   assert.deepEqual(result["1-3"].map(r => r.name), ["Nick"]);
   assert.deepEqual(result["10-7"].map(r => r.name), ["Rob"]);
-  assert.equal(Object.keys(result).length, 60);
+  assert.equal(Object.keys(result).length, 120);
   assert.deepEqual(result["level-1"].map(r => r.name), ["Nick", "Player", "Rob"]);
   assert.equal(result["10-7"][0].results[0].won, null);
   assert.equal(JSON.stringify(result).includes("private@example.test"), false);
@@ -78,7 +88,7 @@ test("leaderboard includes starters, merges linked accounts, and publishes no pr
     {id:"d",monsterBotStarted:true},
     {id:"e",monsterBotWins:["fake"]}
   ],new Map([["nick",{publicName:"Nick"}],["rob",{publicName:"Rob"}]]));
-  assert.deepEqual(result[0],{name:"Nick",level:2,completed:2,flawless:1});
+  assert.deepEqual(result[0],{name:"Nick",level:2,completed:2,flawless:1,trophies:0});
   assert.equal(result.length,3);
   assert.ok(result.some(row=>row.name==="Rob"&&row.completed===0&&row.level===1));
   assert.equal(JSON.stringify(result).includes("secret@example.test"),false);
@@ -90,12 +100,12 @@ test("leaderboard level matches game rules including flawless formats", () => {
   for(const profile of E.LEVELS) for(const mode of E.MODES) {
     const key=`${profile.level}-${mode}`; wins.push(key);scores[key]={won:E.legsNeeded(mode),lost:0};
     const rows=buildLeaderboard([{id:"a",monsterBotWins:wins,monsterBotBestScores:scores}],new Map());
-    assert.equal(rows[0].level,E.highestUnlocked(new Set(wins),scores));
+    assert.equal(rows[0].level,E.highestUnlocked(new Set(wins),scores,2)||E.highestUnlocked(new Set(wins),scores));
     assert.equal(rows[0].completed,wins.length);
     assert.equal(rows[0].flawless,wins.length);
   }
   scores["1-3"]={won:2,lost:1};
-  assert.equal(buildLeaderboard([{id:"a",monsterBotWins:wins,monsterBotBestScores:scores}],new Map())[0].level,4);
+  assert.equal(buildLeaderboard([{id:"a",monsterBotWins:wins,monsterBotBestScores:scores}],new Map())[0].level,11);
   assert.equal(buildLeaderboard([{id:"a",monsterBotWins:wins,monsterBotBestScores:scores}],new Map())[0].flawless,49);
 });
 test("flawless counts unique challenges with valid zero-loss scores only", () => {
