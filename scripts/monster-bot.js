@@ -31,10 +31,10 @@
       for(const intro of ["survival","tiers"]){
         if(localStorage.getItem(`onm-intro-${intro}-v1-${user.uid}`))continue;
         unlockNoticeLevel=intro;
-        $("ladderUnlockedTitle").textContent=intro==="survival"?"New: Monster Survival!":"New Monsters. New Tiers!";
+        $("ladderUnlockedTitle").textContent=intro==="survival"?"New game mode unlocked":"New Monsters. New Tiers!";
         $("ladderUnlockedAvatar").src=botAvatar(intro==="survival"?1:11);
         $("ladderUnlockedDetail").textContent=intro==="survival"?"One 501 leg against each of ten Monsters. Lose once and start again! Reach Level 3 on the Tier 1 Ladder to unlock Survival. Each tier has a separate best run and leaderboard.":"Unlock Tier 2 Ladder with 3 Tier 1 trophies and 20 Tier 1 gold stars. Earn a trophy by completing all five modes flawlessly against one Monster. Tier 2 brings ten new opponents and its own Survival tab—reach Level 3 on Tier 2 Ladder to play that Survival run.";
-        $("ladderUnlockedDialog").showModal();return;
+        $("ladderUnlockedDialog").showModal();localStorage.setItem(`onm-intro-${intro}-v1-${user.uid}`,"1");return;
       }
     }catch{}
     let queue=[];try{queue=JSON.parse(localStorage.getItem(unlockQueueKey())||"[]");if(E.tier2EntryUnlocked(progress,bestScores)&&!localStorage.getItem(`onm-tier2-announced-${user.uid}`)&&!queue.includes(11))queue.unshift(11);}catch{}

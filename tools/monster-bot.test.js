@@ -102,7 +102,8 @@ test("returning to ladder announces new bots without an obsolete Casual mileston
   const stored=new Map([["onm-monster-bot-member-unlocks","[3]"]]);
   const g=await gameHarness(stored,{uid:"member",seedWins:wins,seedScores:scores});
   assert.equal(g.element("ladderUnlockedDialog").open,true);
-  assert.equal(g.element("ladderUnlockedTitle").textContent,"New: Monster Survival!");
+  assert.equal(g.element("ladderUnlockedTitle").textContent,"New game mode unlocked");
+  assert.equal(stored.get("onm-intro-survival-v1-member"),"1");
   assert.match(g.element("ladderUnlockedDetail").textContent,/Reach Level 3/);g.click("closeLadderUnlocked");
   assert.equal(g.element("ladderUnlockedTitle").textContent,"New Monsters. New Tiers!");
   assert.match(g.element("ladderUnlockedDetail").textContent,/3 Tier 1 trophies and 20 Tier 1 gold stars/);g.click("closeLadderUnlocked");
@@ -537,7 +538,7 @@ test("invalid scores, busts, undo and abandoned matches never grant victories", 
   g.click("bustVisit"); g.bot(); assert.equal(g.element("playerRemaining").textContent, 501);
   g.score(180); g.bot(); assert.equal(g.element("playerRemaining").textContent, 321);
   g.click("undoVisit"); assert.equal(g.element("playerRemaining").textContent, 501);
-  g.click("leaveMatch"); assert.equal(g.stored.size, 0);
+  g.click("leaveMatch"); assert.equal([...g.stored.keys()].filter(key=>!key.startsWith("onm-intro-")).length, 0);
 });
 
 test("ladder requires any two previous-bot modes and all four formats two levels below", async () => {
@@ -675,7 +676,7 @@ test("Bull or Bust below 50, bust and non-Bull checkouts lose without saving", a
       else g.click(action === "other" ? "otherCheckout" : "confirmBullCheckout");
     }
     assert.match(g.element("turnStatus").textContent, /wins 1–0/);
-    assert.equal(g.stored.size, 0);
+    assert.equal([...g.stored.keys()].filter(key=>!key.startsWith("onm-intro-")).length, 0);
     assert.equal(g.element("undoVisit").disabled, true);
   }
 });
