@@ -25,3 +25,16 @@ test("allocations reject expired instructions and changed registration",()=>{
  assert.equal(allocation({...intent,expiresAt:"2026-10-27T00:00:00Z"},{},{amountPaidPence:100},now.getTime()),"invalid-or-expired-instructions");
  assert.equal(allocation(intent,{registrationPaidSeasons:["26-27"]},{amountPaidPence:100},now.getTime()),"registration-changed");
 });
+test("separate registration and fines transfers reconcile in either order without overwriting each other",async()=>{
+ for(const order of ["registration-first","fines-first"]){
+  const f=fixture();f.values.delete("finePaymentIntents/nick");
+  f.values.set("finePaymentIntents/nick__fines",{...intent,type:"fines",registrationPence:0,finesPence:500,amountPence:500});
+  f.values.set("finePaymentIntents/nick__registration",{...intent,type:"registration",registrationPence:1500,finesPence:0,amountPence:1500});
+  f.values.set("finePaymentReferences/nick__registration",{playerKey:"nick",reference:"Reg-NH",intentId:"nick__registration"});
+  const registration={...f.item,feedItemUid:"reg1",reference:"Reg-NH",amount:{currency:"GBP",minorUnits:1500}},fines={...f.item,feedItemUid:"fine1",amount:{currency:"GBP",minorUnits:500}};
+  const fetcher=async url=>({ok:true,json:async()=>url.endsWith("/accounts")?{accounts:[{accountUid:"a",defaultCategory:"c",currency:"GBP"}]}:{feedItems:order==="registration-first"?[registration,fines]:[fines,registration]}});
+  assert.equal((await syncStarling({...f,fetcher,token:"test",now})).matched,2);
+  assert.equal(f.values.get("finePayments/26-27__nick").amountPaidPence,600);assert.deepEqual(f.values.get("players/nick").registrationPaidSeasons,["26-27"]);
+  assert.equal((await syncStarling({...f,fetcher,token:"test",now})).matched,0);
+ }
+});

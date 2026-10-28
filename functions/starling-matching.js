@@ -5,13 +5,14 @@ const season="26-27";
 const ledgerId=(account,id)=>createHash("sha256").update(`${account}:${id}`).digest("hex");
 
 function allocation(intent, player, payment, now) {
-  if(intent.status!=="open" || Date.parse(intent.expiresAt)<now ||
+  if(intent.status!=="open" || !Number.isFinite(Date.parse(intent.expiresAt)) || Date.parse(intent.expiresAt)<now ||
      !Number.isSafeInteger(intent.finesPence)||intent.finesPence<0 ||
      ![0,1500].includes(intent.registrationPence)||
      intent.amountPence!==intent.finesPence+intent.registrationPence ||
      !Number.isSafeInteger(intent.amountPence)||intent.amountPence<=0) return "invalid-or-expired-instructions";
-  if((Number(payment.amountPaidPence)||0)!==intent.paidBaselinePence) return "balance-changed";
-  if(Boolean(player.registrationPaidSeasons?.includes(season)) !== (intent.registrationPence===0)) return "registration-changed";
+  if((intent.type==="fines"&&intent.registrationPence!==0)||(intent.type==="registration"&&(intent.finesPence!==0||intent.registrationPence!==1500)))return "invalid-payment-type";
+  if(intent.type!=="registration"&&(Number(payment.amountPaidPence)||0)!==intent.paidBaselinePence) return "balance-changed";
+  if(intent.type!=="fines"&&Boolean(player.registrationPaidSeasons?.includes(season)) !== (intent.registrationPence===0)) return "registration-changed";
   return null;
 }
 
@@ -42,7 +43,9 @@ async function syncStarling({db,token,fetcher=fetch,now=new Date()}) {
     const match=eligiblePayment(item,refs,activatedAt);if(!match)continue;
     const outcome=await db.runTransaction(async tx=>{
       const prior=await tx.get(ledger);if(prior.exists)return "duplicate";
-      const intentRef=db.collection("finePaymentIntents").doc(match.playerKey),intentSnap=await tx.get(intentRef),intent=intentSnap.data();
+      let intentRef=db.collection("finePaymentIntents").doc(match.intentId||`${match.playerKey}__fines`),intentSnap=await tx.get(intentRef),intent=intentSnap.data();
+      // Honour combined instructions already issued before separate payment cards.
+      if(!match.intentId&&(!intent||intent.amountPence!==match.amountPence||Date.parse(intent.createdAt)>Date.parse(item.transactionTime))){intentRef=db.collection("finePaymentIntents").doc(match.playerKey);intentSnap=await tx.get(intentRef);intent=intentSnap.data();}
       const playerRef=db.collection("players").doc(match.playerKey),paymentRef=db.collection("finePayments").doc(`${season}__${match.playerKey}`);
       const player=await tx.get(playerRef),payment=await tx.get(paymentRef);
       let reason=!intent||!player.exists?"missing-instructions":allocation(intent,player.data(),payment.data()||{},now.getTime());
@@ -50,7 +53,7 @@ async function syncStarling({db,token,fetcher=fetch,now=new Date()}) {
       const record={playerKey:match.playerKey,season,amountPence:match.amountPence,receivedAt:item.transactionTime,processedAt:now.toISOString(),status:reason?"review":"matched",reason:reason||null};
       tx.set(ledger,record);
       if(reason)return "review";
-      tx.set(paymentRef,{season,playerKey:match.playerKey,playerName:player.data().fullName||player.data().publicName||"Player",amountPaidPence:intent.paidBaselinePence+intent.finesPence,updatedAt:now,updatedBy:"starling-matching"},{merge:true});
+      if(intent.finesPence)tx.set(paymentRef,{season,playerKey:match.playerKey,playerName:player.data().fullName||player.data().publicName||"Player",amountPaidPence:intent.paidBaselinePence+intent.finesPence,updatedAt:now,updatedBy:"starling-matching"},{merge:true});
       if(intent.registrationPence){
         const seasons=[...new Set([...(player.data().registrationPaidSeasons||[]),season])];
         tx.set(playerRef,{registrationPaidSeasons:seasons},{merge:true});

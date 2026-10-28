@@ -26,6 +26,6 @@ function eligiblePayment(item, references, activatedAt) {
   const reference = String(item.reference || "").trim().toUpperCase();
   const matches = references.filter(r => String(r.reference || "").trim().toUpperCase() === reference && r.playerKey);
   if (!reference || matches.length !== 1) return null;
-  return {transactionId: item.feedItemUid, playerKey: matches[0].playerKey, amountPence: amount};
+  return {transactionId: item.feedItemUid, playerKey: matches[0].playerKey, amountPence: amount,...(matches[0].intentId?{intentId:matches[0].intentId}:{})};
 }
 module.exports = {readStarlingAccounts, eligiblePayment};

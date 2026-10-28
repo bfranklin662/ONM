@@ -71,16 +71,24 @@ exports.getFinesPaymentInstructions=onCall(options,async request=>{
   if(!request.auth)throw new HttpsError("unauthenticated","Sign in to pay.");
   const db=getFirestore(),account=await db.collection("users").doc(request.auth.uid).get(),user=account.data();
   if(!account.exists||user.status!=="Active"||!user.linkedPlayerKey)throw new HttpsError("permission-denied","Link your active account to your player first.");
+  const type=request.data?.type||"combined";
+  if(!["fines","registration","combined"].includes(type))throw new HttpsError("invalid-argument","Choose registration or fines.");
   const key=user.linkedPlayerKey,season="26-27";
   const [p,r,pay,ref]=await Promise.all([db.collection("players").doc(key).get(),db.collection("results").where("season","==",season).get(),db.collection("finePayments").where("season","==",season).get(),db.collection("finePaymentReferences").doc(key).get()]);
   if(!p.exists||!ref.exists)throw new HttpsError("failed-precondition","Refresh your fines page to create payment instructions.");
   const unpack=s=>s.docs.map(d=>({id:d.id,...d.data()})),mine=buildFineBalances([{id:p.id,...p.data()}],unpack(r),unpack(pay),season,true).find(row=>row.playerKey===key);
-  const finesPence=mine?.owedPence||0,registrationPence=p.data().registrationPaidSeasons?.includes(season)?0:1500;
+  const finesPence=type==="registration"?0:mine?.owedPence||0,registrationPence=type==="fines"||p.data().registrationPaidSeasons?.includes(season)?0:1500;
   if(!finesPence&&!registrationPence)throw new HttpsError("failed-precondition","You have nothing to pay.");
   const baseline=pay.docs.find(d=>d.id===`${season}__${key}`)?.data().amountPaidPence||0;
-  const intent={playerKey:key,reference:ref.data().reference,amountPence:finesPence+registrationPence,finesPence,registrationPence,paidBaselinePence:baseline,createdAt:new Date().toISOString(),expiresAt:new Date(Date.now()+7*86400000).toISOString(),status:"open"};
+  const intentId=type==="combined"?key:`${key}__${type}`;
+  let reference=ref.data().reference;
+  if(type==="registration"){
+    reference=reference.replace(/^Fines-/i,"Reg-");
+    await db.runTransaction(async tx=>{const owner=db.collection("fineReferenceOwners").doc(reference),existing=await tx.get(owner);if(existing.exists&&existing.data().playerKey!==key)throw new HttpsError("failed-precondition","Contact an admin to assign your registration reference.");tx.set(owner,{playerKey:key});tx.set(db.collection("finePaymentReferences").doc(intentId),{playerKey:key,reference,intentId});});
+  }
+  const intent={type,playerKey:key,reference,amountPence:finesPence+registrationPence,finesPence,registrationPence,paidBaselinePence:baseline,createdAt:new Date().toISOString(),expiresAt:new Date(Date.now()+7*86400000).toISOString(),status:"open"};
   // Reopening instructions must not move the valid-from date past an incoming transfer.
-  const saved=await db.runTransaction(async tx=>{const doc=db.collection("finePaymentIntents").doc(key),old=await tx.get(doc),v=old.data();if(v?.status==="open"&&v.amountPence===intent.amountPence&&v.paidBaselinePence===baseline&&Date.parse(v.expiresAt)>Date.now())return v;tx.set(doc,intent);return intent;});
+  const saved=await db.runTransaction(async tx=>{const doc=db.collection("finePaymentIntents").doc(intentId),old=await tx.get(doc),v=old.data();if(v?.status==="open"&&v.amountPence===intent.amountPence&&(type==="registration"||v.paidBaselinePence===baseline)&&Date.parse(v.expiresAt)>Date.now())return v;tx.set(doc,intent);return intent;});
   return {amountPence:saved.amountPence,reference:saved.reference,finesPence:saved.finesPence,registrationPence:saved.registrationPence,expiresAt:saved.expiresAt};
 });
 exports.getFinesBalances=onCall(options,async request=>{
@@ -99,8 +107,7 @@ exports.getFinesBalances=onCall(options,async request=>{
       for(let index=0;index<100;index++){const candidate=base+(index?String(index+1):""),claim=db.collection("fineReferenceOwners").doc(candidate),snap=await tx.get(claim);if(snap.exists&&snap.data().playerKey!==mine.playerKey)continue;tx.set(claim,{playerKey:mine.playerKey});tx.set(assigned,{reference:candidate,playerKey:mine.playerKey});return candidate;}throw new HttpsError("resource-exhausted","Could not assign a payment reference. Contact an admin.");});
   }
   const matching=(await db.collection("bankMatching").doc("starling").get()).data(),automaticMatching=Boolean(matching?.healthy&&matching.enabled!==false&&Date.now()-Date.parse(matching.lastSuccessAt)<15*60000);
-  const bankReview=isAdmin?(await db.collection("bankTransferLedger").where("status","==","review").limit(50).get()).docs.map(d=>{const v=d.data();return {name:allRows.find(p=>p.playerKey===v.playerKey)?.name||"Player",amountPence:v.amountPence,reason:v.reason};}):[];
-  return {season,players:rows,bankReview,viewer:{isAdmin,name:data.firstName||"Player",playerKey:mine?.playerKey||null,balance:mine||null,reference,bank:mine?{name:"Nicholas Horne",accountNumber:"78664226",sortCode:"60-83-71"}:null,automaticMatching},updatedAt:new Date().toISOString()};
+  return {season,viewer:{isAdmin,name:data.firstName||"Player",playerKey:mine?.playerKey||null,balance:mine||null,reference,bank:mine?{name:"Nicholas Horne",accountNumber:"78664226",sortCode:"60-83-71"}:null,automaticMatching},updatedAt:new Date().toISOString()};
 });
 
 // Publish linked players' public names or unlinked accounts' first names, never emails or surnames.
