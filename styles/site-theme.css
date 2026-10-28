@@ -6,7 +6,7 @@
 .player-card-stat{background:#1b3b2c}.accountBrand{color:#e6f4eb}
 .results-header-bar,.players-controls,.loadMoreResultsBtn,.adminHeader,.profile-modal-content,.profile-card-content{background:#132e22;border-color:#365d48}
 .site-header .authProfileBtn,.profileHeaderBtn,.botHeader .botProfileLink{border-radius:50%;overflow:hidden}
-.site-header .authProfileBtn,.profileHeaderBtn{display:grid;place-items:center}
+.site-header .authProfileBtn,.profileHeaderBtn,.botHeader .botProfileLink{display:grid;place-items:center;padding:0;box-sizing:border-box;flex-shrink:0;line-height:0;isolation:isolate}
 .authProfileInitial{display:block;width:100%;height:100%;font-size:0;background:center/24px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c3dfcf' stroke-width='1.8'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 22v-3a8 8 0 0 1 16 0v3'/%3E%3C/svg%3E")}
 .site-header .authProfileBtn img,.profileHeaderBtn img,.botHeader .botProfileLink img{display:block;width:100%;height:100%;max-width:none;object-fit:cover;object-position:center;transform:none;border-radius:inherit}
 .home-bot-feature{background:linear-gradient(120deg,#173e2d,#10271b)}

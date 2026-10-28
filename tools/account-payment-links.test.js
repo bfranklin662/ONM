@@ -13,3 +13,6 @@ test("default avatar is shared on desktop and mobile, including bot headers",()=
  assert.match(read("scripts/site-ui.js"),/user\?\.uid!==current.uid/);
  assert.match(read("scripts/site-ui.js"),/botProfile.replaceChildren\(image\)/);
 });
+test("page-wide button padding cannot shrink the header photo",()=>{
+ assert.match(read("styles/site-theme.css"),/authProfileBtn,\.profileHeaderBtn,\.botHeader \.botProfileLink\{[^}]*padding:0;box-sizing:border-box/);
+});
