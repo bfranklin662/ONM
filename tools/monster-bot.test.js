@@ -3,6 +3,11 @@ const assert = require("node:assert/strict");
 const E = require("../scripts/monster-bot-engine.js");
 const fs = require("node:fs");
 const vm = require("node:vm");
+test("every fixed ladder element used by the script exists in the actual page",()=>{
+  const script=fs.readFileSync(require.resolve("../scripts/monster-bot.js"),"utf8"),html=fs.readFileSync(require.resolve("../monster-bot.html"),"utf8");
+  const ids=[...new Set([...script.matchAll(/\$\("([^"\n]+)"\)/g)].map(match=>match[1]))];
+  for(const id of ids)assert.ok(html.includes(`id="${id}"`),`Missing page element: ${id}`);
+});
 function seeded(seed) { return () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; }; }
 test("only possible scores and double-out finishes are accepted", () => {
   assert.equal(E.validateVisit(501, 180), "");
@@ -71,9 +76,9 @@ test("tier selector is hidden until both tiers are unlocked",async()=>{
 test("player summary switches between separate Tier 1 and Tier 2 progress",async()=>{
   const wins=[1,2,3,4,5,11].flatMap(level=>E.MODES.map(mode=>`${level}-${mode}`)),scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
   const g=await gameHarness(new Map(),{uid:"member",seedWins:wins,seedScores:scores});
-  assert.equal(g.element("playerSummaryWins").textContent,"✓ Wins 25/50");assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 5</);assert.equal(g.element("playerSummaryPercent").textContent,"50% complete");
-  g.click("ladderTierTwo");assert.equal(g.element("playerSummaryWins").textContent,"✓ Wins 5/50");assert.equal(g.element("playerSummaryFlawless").textContent,"★ Flawless 5");assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 1</);assert.equal(g.element("playerSummaryPercent").textContent,"10% complete");assert.match(g.element("playerSummaryLevel").textContent,/Tier 2/);
-  g.click("ladderTierOne");assert.equal(g.element("playerSummaryWins").textContent,"✓ Wins 25/50");
+  assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Wins 25/50");assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 5</);assert.equal(g.element("playerSummaryPercent").textContent,"50% complete");
+  g.click("ladderTierTwo");assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Wins 5/50");assert.equal(g.element("playerSummaryFlawless").textContent,"★ Flawless 5");assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 1</);assert.equal(g.element("playerSummaryPercent").textContent,"10% complete");assert.match(g.element("playerSummaryLevel").textContent,/Tier 2/);
+  g.click("ladderTierOne");assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Wins 25/50");
 });
 test("leaderboard shows trophy totals and raw challenge counts without a fixed denominator",async()=>{
   const g=await gameHarness(new Map(),null,async()=>({completions:{},leaderboard:[{name:"Alex",level:11,unlocked:8,completed:22,flawless:20,trophies:4}]}));
@@ -156,7 +161,7 @@ test("player summary shows identity, beaten and flawless totals and completion p
   assert.equal(g.element("playerSummaryName").textContent,"Nick");
   assert.equal(g.element("playerSummaryLevel").textContent,`Tier 1 · Level ${E.highestUnlocked(new Set(wins),scores)} unlocked`);
   assert.equal(g.element("playerSummaryPhoto").src,"https://example.test/nick.jpg");
-  assert.equal(g.element("playerSummaryWins").textContent,"✓ Wins 7/50");
+  assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Wins 7/50");
   assert.equal(g.element("playerSummaryFlawless").textContent,"★ Flawless 3");
   assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 0</);
   assert.equal(g.element("playerSummaryPercent").textContent,"14% complete");

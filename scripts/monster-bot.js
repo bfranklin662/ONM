@@ -94,7 +94,7 @@
     const highest=E.highestUnlocked(progress,bestScores,selectedTier,survivalBest());
     $("playerSummaryLevel").textContent=highest?`Tier ${selectedTier} · Level ${E.localLevel(highest)} unlocked`:`Tier ${selectedTier} · Locked`;
     $("playerSummaryPhoto").src = leaderboardPhoto({photoUrl:playerProfile.photoUrl,name:playerProfile.linkedPlayerName || firstName});
-    $("playerSummaryWins").textContent = `✓ Wins ${tierProgress.size}/50`;
+    $("playerSummaryBeaten").textContent = `✓ Wins ${tierProgress.size}/50`;
     $("playerSummaryFlawless").textContent = `★ Flawless ${E.goldStars(tierProgress,bestScores)}`;
     $("playerSummaryTrophies").innerHTML = `${trophyIcon}<span>Trophy ${E.trophies(progress,bestScores,selectedTier)}</span>`;
     $("playerSummaryPercent").textContent = `${Math.round(tierProgress.size/50*100)}% complete`;
