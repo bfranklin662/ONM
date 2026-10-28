@@ -62,10 +62,11 @@ exports.getPlayerAvailability = callable(uid => service.get(uid));
 exports.setPlayerAvailability = callable((uid, data) => service.set(uid, data));
 
 const {buildFineBalances,buildFineHistory}=require("./fines-balances");
-exports.matchStarlingPayments=onSchedule({...options,secrets:[starlingToken],schedule:"every 5 minutes",timeoutSeconds:120,maxInstances:1,concurrency:1},async()=>{
+exports.matchStarlingPayments=onSchedule({...options,secrets:[starlingToken],schedule:"every 1 minutes",timeoutSeconds:120,maxInstances:1,concurrency:1},async()=>{
   const db=getFirestore();
   try {await require("./starling-matching").syncStarling({db,token:starlingToken.value()});}
   catch (_) {await db.collection("bankMatching").doc("starling").set({healthy:false,lastErrorAt:new Date().toISOString()},{merge:true});throw new Error("Starling matching failed; administrator attention required.");}
+  await require("./fines-sheet").syncFinesSheet({db,write:data=>request(`${base}/values:batchUpdate`,{method:"POST",data:{valueInputOption:"RAW",data}})});
 });
 exports.getFinesPaymentInstructions=onCall(options,async request=>{
   if(!request.auth)throw new HttpsError("unauthenticated","Sign in to pay.");
