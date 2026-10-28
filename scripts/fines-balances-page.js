@@ -3,6 +3,7 @@
   const $=id=>document.getElementById(id),money=p=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(p/100);
   let user=null,viewer={},busy=false,timer=null,revision=0,paying=false,photoMapPromise=null;
   const escape=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const matchDate=value=>`<span class="fullMatchDate">${escape(value)}</span><span class="shortMatchDate" title="${escape(value)}">${escape(String(value||"").replace(/\/(\d{4})$/, ""))}</span>`;
   async function showPhoto(){
     const current=revision,photo=$("myPhoto");photo.src=viewer.photoUrl||"graphics/logoWoText.png";
     if((!viewer.photoUrl||/^\/?images\/players\//i.test(viewer.photoUrl))&&viewer.photoName)try{photoMapPromise ||= fetch("data/player-photo-map.json").then(r=>r.json());const photos=await photoMapPromise,key=String(viewer.photoName).trim().toLowerCase().replace(/\s+/g,"");if(current===revision&&photos[key])photo.src=photos[key];}catch(_){}
@@ -18,7 +19,7 @@
     $("registeredBadge").hidden=!mine?.registrationPaid;$("matchHistory").hidden=!mine;
     if(!mine)return;
     const history=viewer.history||[];
-    $("historyRows").innerHTML=history.map(r=>`<tr><td>${escape(r.date)}</td><td>${escape(r.opponent)}<small>${escape(r.side)} · ${escape(r.competition)}</small></td><td><span class="matchScore ${["win","loss","draw"].includes(r.outcome)?r.outcome:"unknown"}" aria-label="${escape(r.score)} · ${r.outcome==="win"?"Won":r.outcome==="loss"?"Lost":"Result"}">${escape(r.score)}</span></td><td>${escape(r.checkouts)}</td><td>${money(r.finesPence)}</td></tr>`).join("")||'<tr><td colspan="5">No appearances this season yet.</td></tr>';
+    $("historyRows").innerHTML=history.map(r=>`<tr><td>${matchDate(r.date)}</td><td>${escape(r.opponent)}<small>${escape(r.side)} · ${escape(r.competition)}</small></td><td><span class="matchScore ${["win","loss","draw"].includes(r.outcome)?r.outcome:"unknown"}" aria-label="${escape(r.score)} · ${r.outcome==="win"?"Won":r.outcome==="loss"?"Lost":"Result"}">${escape(r.score)}</span></td><td>${escape(r.checkouts)}</td><td>${money(r.finesPence)}</td></tr>`).join("")||'<tr><td colspan="5">No appearances this season yet.</td></tr>';
     $("historyApps").textContent=String(mine.appearances);$("historyCheckouts").textContent=String(history.reduce((n,r)=>n+Number(r.checkouts||0),0));
     $("totalFines").textContent=money(mine.issuedPence);$("finesPaid").textContent=money(mine.paidPence);$("finesOwed").textContent=money(mine.owedPence);
     const registration=mine.registrationPaid?0:1500;
@@ -37,12 +38,13 @@
   }
   async function refresh(){
     if(!user||busy)return;busy=true;const current=revision,who=user;$("loading").hidden=false;$("refresh").disabled=true;$("retry").hidden=true;$("status").textContent="Loading what you owe…";
-    try{const data=await call("getFinesBalances",{},who);if(current!==revision)return;if(!data?.viewer)throw Error("Could not load your account. Please retry.");viewer=data.viewer;render();$("balances").hidden=false;$("status").textContent=`Updated ${new Date(data.updatedAt).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`;}
+    try{const data=await call("getFinesBalances",{},who);if(current!==revision)return;if(!data?.viewer)throw Error("Could not load your account. Please retry.");viewer=data.viewer;render();$("balances").hidden=false;$("status").textContent="";$("updatedAt").textContent=`Updated ${new Date(data.updatedAt).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`;}
     catch(error){if(current===revision){$("status").textContent=error.name==="TimeoutError"?"The connection timed out. Please retry.":error.message;$("retry").hidden=false;}}
     finally{busy=false;if(current===revision){$("loading").hidden=true;$("refresh").disabled=false;}else if(user)refresh();}
   }
   function startTimer(){clearInterval(timer);if(user)timer=setInterval(()=>{if(!document.hidden)refresh();},30000);}
   function clearHistory(){
+    $("updatedAt").textContent="";
     $("myPhoto").src="graphics/logoWoText.png";
     $("registeredBadge").hidden=true;$("matchHistory").hidden=true;$("historyRows").innerHTML="";
     for(const id of ["historyApps","historyCheckouts","totalFines","finesPaid","finesOwed"])$(id).textContent="";
