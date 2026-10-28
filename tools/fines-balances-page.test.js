@@ -17,6 +17,7 @@ test("paid registration hides its payment button; unlinked accounts do not see p
  const unlinked=await harness({linked:false});assert.equal(unlinked.node("paymentCards").hidden,true);assert.equal(unlinked.node("unlinked").hidden,false);
 });
 test("load failure removes spinner and offers retry",async()=>{const g=await harness({fail:true});assert.equal(g.node("loading").hidden,true);assert.equal(g.node("retry").hidden,false);assert.equal(g.node("balances").hidden,true);});
+test("signed-out balance gate has ONM branding without a duplicate sign-in status",async()=>{const g=await harness();g.signOut();assert.equal(g.node("status").textContent,"");assert.equal(g.node("gate").hidden,false);assert.match(fs.readFileSync(require.resolve("../fines.html"),"utf8"),/class="balanceGateLogo"[^>]*alt="Oche Ness Monsters"/);});
 test("payment buttons visibly spin and report busy until the payment prompt is ready",async()=>{
  for(const id of ["payRegistration","payFines"]){const g=await harness();let release;g.ctx.fetch=()=>new Promise(r=>{release=r;});const pending=g.node(id).listeners.click();await new Promise(r=>setImmediate(r));assert.equal(g.node(id).className,"paymentLoading");assert.equal(g.node(id)["aria-busy"],"true");assert.equal(g.node(id).disabled,true);release({ok:true,json:async()=>({result:{amountPence:1500,reference:"Reg-NH",expiresAt:"2026-11-04T00:00:00Z"}})});await pending;assert.equal(g.node(id)["aria-busy"],"false");assert.equal(g.node(id).className,"");assert.equal(g.node(id).disabled,false);}
 });
