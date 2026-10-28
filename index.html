@@ -18,7 +18,7 @@
   <meta property="og:image" content="https://i.ibb.co/FbGDQDjq/ONMmeta.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-<link rel="stylesheet" href="/styles/site-theme.css?v=20261028-brand-mobile"></head>
+<link rel="stylesheet" href="/styles/site-theme.css?v=20261028-brand-mobile"><link rel="stylesheet" href="styles/home-refresh.css?v=20261028-green-fixtures-merch"></head>
 
 <body>
   <header class="site-header">
@@ -115,7 +115,7 @@
               <tbody id="fixtureCalendarGrid"></tbody>
             </table>
             <p id="fixtureCalendarEmpty" class="fixtureCalendarEmpty" hidden>No fixtures or results this month.</p>
-            <p class="fixtureCalendarHint">Select a fixture to view details and amend your availability. Use View result for completed matches.</p>
+            <p class="fixtureCalendarHint">Scroll fixtures, then tap a match for details or to edit your availability.</p>
           </div>
           <div id="fixturesCarousel" class="carouselWrap" hidden>
             <button id="fixturesPrev" class="navArrow" type="button" aria-label="Previous fixture">‹</button>
@@ -136,17 +136,14 @@
           <p>New merch</p>
           <h2>Monster kit</h2>
         </div>
-        <div class="home-merch-tabs" role="tablist" aria-label="Choose merch type">
-          <button type="button" role="tab" id="merch-shirt-tab" aria-selected="true" aria-controls="merch-shirt-panel" data-merch-tab="shirt">Shirt</button>
-          <button type="button" role="tab" id="merch-tshirt-tab" aria-selected="false" aria-controls="merch-tshirt-panel" data-merch-tab="tshirt">T-shirts</button>
-        </div>
       </div>
 
-      <div id="merch-shirt-panel" class="home-merch-card home-merch-panel" role="tabpanel" aria-labelledby="merch-shirt-tab" data-merch-panel="shirt">
+      <div class="home-merch-ranges">
+      <section id="merch-shirt-panel" class="home-merch-card home-merch-panel" aria-labelledby="merch-shirt-heading">
         <div class="home-merch-copy">
           <p class="home-comp-tag">New • custom match shirt</p>
-          <h3>The Monsters match shirt has landed</h3>
-          <p>Our new Oche Ness Monsters darts shirt brings the full green-and-black design to match night, with club details on the front and the Monster across the back.</p>
+          <h3 id="merch-shirt-heading">Match shirt</h3>
+          <p>Our green-and-black match shirt, with the Monster across the back.</p>
           <a class="home-btn primary" href="https://westlondondarts.com/services/custom-darts-shirts/" target="_blank" rel="noopener">View the shirt</a>
         </div>
 
@@ -158,17 +155,17 @@
             <em>View shirt details</em>
           </a>
         </div>
-      </div>
+      </section>
 
-      <div id="merch-tshirt-panel" class="home-merch-card home-merch-panel" role="tabpanel" aria-labelledby="merch-tshirt-tab" data-merch-panel="tshirt" hidden>
+      <section id="merch-tshirt-panel" class="home-merch-card home-merch-panel" aria-labelledby="merch-tshirt-heading">
         <div class="home-merch-copy">
           <p class="home-comp-tag">Three T-shirts • official club shop</p>
-          <h3>Oche Ness Monsters club tees</h3>
+          <h3 id="merch-tshirt-heading">Club T-shirts</h3>
           <p>Browse the new club tees, pick your size, and order directly through the PrintMyKit store.</p>
           <a class="home-btn primary" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">Visit the shop</a>
         </div>
 
-        <div class="home-merch-rail" aria-label="Oche Ness Monsters shirt range">
+        <div class="home-merch-rail" id="merch-tee-rail" tabindex="0" aria-label="Oche Ness Monsters T-shirts — scroll to browse">
           <a class="home-merch-shirt" href="https://ochenessmonstersdarts.printmykit.co.uk/shop/view_product/28230696/Monsters-Club-T-White-Standard-Weight" target="_blank" rel="noopener">
             <img src="images/merch/shirt1.JPG" alt="Monsters Club T - White">
             <span>Monsters Club T - White</span>
@@ -188,6 +185,8 @@
             <em>Shop this shirt</em>
           </a>
         </div>
+        <div class="merchRailControls"><span>Swipe or scroll to browse</span><button type="button" data-merch-scroll="-1" aria-controls="merch-tee-rail" aria-label="Previous T-shirt">‹</button><button type="button" data-merch-scroll="1" aria-controls="merch-tee-rail" aria-label="Next T-shirt">›</button></div>
+      </section>
       </div>
     </section>
 
@@ -351,8 +350,8 @@
 <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
 <script src="scripts/session.js?v=20261025-profile-navigation"></script>
 <script src="scripts/profile.js?v=20261025-profile-navigation"></script>
-<script src="scripts/fixtures.js?v=20261016-calendar-base"></script>
+<script src="scripts/fixtures.js?v=20261028-compact"></script>
 <script src="scripts/comps.js"></script>
-<script src="scripts/merch.js?v=20261005-merch-card"></script>
+<script src="scripts/merch.js?v=20261028-both-ranges"></script>
 
 </html>

@@ -1,0 +1,49 @@
+/* Home surfaces use explicit green tokens; competition colours remain accents. */
+.home-shell .home-section,.home-shell .home-panel-row,.home-footer{background:linear-gradient(145deg,#153629,#0b2419);border-color:#355e47}
+.home-shell .home-section .fixturesGlass,.home-shell .home-merch-card,.home-shell .home-story-grid,.home-shell .home-leaderboard-table,.home-shell .home-comp-card{background:#102b1f;border-color:#365e48}
+.home-shell .home-merch-shirt{background:#0b2218;border-color:#365e48}.home-shell .home-merch-shirt:hover{background:#193c2b}
+#fixtures .fixtureCalendar{background:#0d281c;border-color:#365e48}
+#fixtures .fixtureCalendarEvent{background:#163827;color:#e0f1e7;border-color:color-mix(in srgb,var(--fixture-colour) 60%,#365e48);border-left:3px solid var(--fixture-colour)}
+#fixtures .fixtureCalendarEvent:hover{background:#214d36}
+#fixtures .fxCard,#fixtures .fxCard.upcoming{background:#143324}
+.fixtureDetails{background:#102d20;border-color:#426e52}.fixtureDetails .fxAvailabilityForm select{background:#0b2117;border-color:#416c52}
+#fixtures .fxBottomRow{display:flex;align-items:flex-end;flex-wrap:wrap;gap:8px;margin-top:10px}
+#fixtures .fxBottomRow .fxPersonalBadge{margin:0 0 0 auto;align-self:flex-end;text-align:right;font-size:10px;padding:4px 7px;max-width:100%}
+#fixtures .fxCard:focus-visible{outline:2px solid #8de8b6;outline-offset:3px}
+#fixtures .fixtureCalendarToolbar{padding:12px;gap:8px}
+#fixtures .fixtureCalendarTable td{height:74px;padding:5px}
+#fixtures .fixtureCalendarTable th{padding:7px 6px}
+#fixtures .fixtureCalendarDay>time{margin-bottom:4px}
+#fixtures .fixtureCalendarEvent{gap:4px;padding:6px 7px;flex-direction:column;align-items:stretch;justify-content:start}
+.fixtureEventFooter{display:flex;align-items:flex-end;justify-content:space-between;gap:5px;width:100%}
+#fixtures .fixtureEventFooter .fxPersonalBadge{margin:0 0 0 auto;align-self:flex-end;text-align:right;font-size:9px;padding:2px 4px}
+#fixtures .fixtureCalendarHint{padding:8px 12px;font-size:11px}
+#merch .home-merch-ranges{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+#merch .home-merch-card{display:flex;flex-direction:column;min-width:0;padding:18px;margin:0;gap:16px}
+#merch .home-merch-copy{gap:9px;justify-content:start}
+#merch .home-merch-copy h3{font-size:26px;line-height:1.15}
+#merch .home-merch-copy p{font-size:13px;line-height:1.5}
+#merch .home-merch-rail{display:flex;gap:12px;width:100%;min-width:0;scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:#638f70 #102b1f}
+#merch .home-merch-rail>.home-merch-shirt{flex:0 0 100%;min-width:0;box-sizing:border-box}
+#merch .home-merch-shirt img{height:240px;aspect-ratio:auto;object-fit:contain;background:#102b1f}
+#merch .home-merch-shirt strong{font-size:12px;line-height:1.4}
+.merchRailControls{display:flex;align-items:center;justify-content:flex-end;gap:8px;color:#b6d1bf;font-size:11px}.merchRailControls span{margin-right:auto}
+.merchRailControls button{width:34px;height:34px;border:1px solid #507d5d;border-radius:8px;background:#1b402b;color:#e2f6e8;font-size:24px;cursor:pointer}
+@media(max-width:650px){
+ #fixtures .fixtureViewBar{gap:10px;margin-bottom:10px}
+ #fixtures .fixtureLegend{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:12px;padding-bottom:4px;scrollbar-width:thin;max-width:100%}
+ #fixtures .fixtureLegend li{flex:none;font-size:9px}
+ #fixtures .fixtureCalendarToolbar{padding:10px;gap:5px}
+ #fixtures .fixtureMonthHeading h3{font-size:16px;margin-bottom:2px}
+ #fixtures .fixtureMonthControls{width:auto;margin-left:auto;gap:3px}
+ #fixtures .fixtureMonthControls button{min-height:30px;padding:4px 7px;font-size:10px}
+ #fixtures #fixtureMonthPrev,#fixtures #fixtureMonthNext{width:28px;font-size:20px}
+ #fixtures .fixtureCalendarTable{display:block;max-height:340px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#638f70 #102b1f}
+ #fixtures .fixtureCalendarTable td.hasFixtures{height:auto;padding:7px 8px;grid-template-columns:28px minmax(0,1fr);gap:6px}
+ #fixtures .fixtureCalendarDay>time{margin:0;padding-top:2px;gap:1px}
+ #fixtures .fixtureEventOpponent{font-size:11px}.fixtureEventFooter .fixtureEventSide{font-size:9px}
+ #fixtures .fixtureEventResult{font-size:9px;padding:2px 5px}
+ #merch .home-merch-ranges{grid-template-columns:1fr;gap:14px}
+ #merch .home-merch-card{padding:14px}.merchRailControls button{width:40px;height:40px}
+}
+@media(prefers-reduced-motion:reduce){#merch .home-merch-rail{scroll-behavior:auto}}

@@ -640,7 +640,7 @@
 
 
     return `
-    <div class="fxCard ${fx.leagueClass} ${(fx.completed || fx.pendingResult) ? "" : "upcoming"}${personalClass(fx)}" data-card-fixture-index="${index}">
+    <div class="fxCard ${fx.leagueClass} ${(fx.completed || fx.pendingResult) ? "" : "upcoming"}${personalClass(fx)}" data-card-fixture-index="${index}" tabindex="0" role="group" aria-label="${escapeFixtureText(fx.homeTeam)} vs ${escapeFixtureText(fx.awayTeam)}. Press Enter for match details" aria-haspopup="dialog">
 
       ${seasonDividerHtml}
 
@@ -662,12 +662,11 @@
       </div>
 
       <div class="fxDate">${fx.Date}</div>
-      ${personalBadge(fx)}
-      <button type="button" class="fxPersonalDetails" data-card-fixture-index="${index}" aria-haspopup="dialog">${fx.completed ? "Match details" : "Details & availability"}</button>
 
       <div class="fxBottomRow">
         ${venueHtml}
         ${resultCardHtml}
+        ${personalBadge(fx)}
       </div>
     </div>
   `;
@@ -763,6 +762,10 @@
       if (event.target.closest("a")) return;
       const card = event.target.closest("[data-card-fixture-index]");
       if (card && fixtures[Number(card.dataset.cardFixtureIndex)]) openFixtureDetails(fixtures[Number(card.dataset.cardFixtureIndex)]);
+    });
+    stage.addEventListener("keydown",event=>{
+      if(!["Enter"," "].includes(event.key)||!event.target.matches(".fxCard[data-card-fixture-index]"))return;
+      event.preventDefault();const fixture=fixtures[Number(event.target.dataset.cardFixtureIndex)];if(fixture)openFixtureDetails(fixture);
     });
 
     // Start anchored to next upcoming if possible
@@ -900,10 +903,8 @@
     const content = `<span class="fixtureEventSummary">
       <span class="fixtureEventOpponent">${escape(fixture.Opponent)}</span>
       ${fixture.completed ? `<span class="fixtureEventResult ${fixture.outcome}">${escape(resultText)}</span>` : ""}
-      </span><span class="fixtureEventSide">${escape(fixture.HA === "TBC" ? "H/A TBC" : fixture.HA)}</span>${personalBadge(fixture)}`;
-    return fixture.completed
-      ? `<div ${attrs}><button type="button" class="fixtureEventOpen" aria-label="${label}" data-fixture-index="${index}" aria-haspopup="dialog">${content}</button><a class="fixtureEventResultLink" href="${escape(RESULTS_PAGE_URL(fixture))}">View result →</a></div>`
-      : `<button type="button" ${attrs} aria-label="${label}" data-fixture-index="${index}" aria-haspopup="dialog">${content}</button>`;
+      </span><span class="fixtureEventFooter"><span class="fixtureEventSide">${escape(fixture.HA === "TBC" ? "H/A TBC" : fixture.HA)}</span>${personalBadge(fixture)}</span>`;
+    return `<button type="button" ${attrs} aria-label="${label}" data-fixture-index="${index}" aria-haspopup="dialog">${content}</button>`;
   }
 
   function mountCalendar(initialFixtures, loading = false) {

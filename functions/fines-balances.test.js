@@ -1,7 +1,7 @@
-const test=require("node:test"),assert=require("node:assert/strict"),{buildFineBalances}=require("./fines-balances");
+const test=require("node:test"),assert=require("node:assert/strict"),{buildFineBalances,buildFineHistory}=require("./fines-balances");
 test("private balances reject guests and inactive accounts before financial collections are read",async()=>{
   const fs=require("node:fs"),vm=require("node:vm"),source=fs.readFileSync(require.resolve("./index"),"utf8"),start=source.indexOf("exports.getFinesBalances="),end=source.indexOf("\n});",start)+4;
-  let reads=0;const ctx={exports:{},options:{},onCall:(_options,handler)=>handler,HttpsError:class extends Error{constructor(code,message){super(message);this.code=code;}},getFirestore:()=>({collection:name=>{if(name!=="users")reads++;return {doc:()=>({get:async()=>({exists:true,data:()=>({status:"Inactive"})})})};}}),buildFineBalances};
+  let reads=0;const ctx={exports:{},options:{},onCall:(_options,handler)=>handler,HttpsError:class extends Error{constructor(code,message){super(message);this.code=code;}},getFirestore:()=>({collection:name=>{if(name!=="users")reads++;return {doc:()=>({get:async()=>({exists:true,data:()=>({status:"Inactive"})})})};}}),buildFineBalances,buildFineHistory};
   vm.runInNewContext(source.slice(start,end),ctx);
   await assert.rejects(ctx.exports.getFinesBalances({}),e=>e.code==="unauthenticated");await assert.rejects(ctx.exports.getFinesBalances({auth:{uid:"member"}}),e=>e.code==="permission-denied");assert.equal(reads,0);
 });
@@ -22,6 +22,10 @@ test("personal balances endpoint never returns other players, including to an ad
  const doc=(id,data)=>({id,exists:true,data:()=>data});
  const lists={players:[doc("nick",{fullName:"Nick Horne",publicName:"Nick"}),doc("other",{fullName:"Other Private Player",publicName:"Other"})],results:[doc("match",{season:"26-27",sheetRow:{Player1:"Nick",F1:"2",Player2:"Other",F2:"99"}})],finePayments:[]};
  const db={collection:name=>{const q={select:()=>q,where:()=>q,get:async()=>({docs:lists[name]||[]}),doc:id=>({get:async()=>doc(id,name==="users"?{status:"Active",role:"admin",firstName:"Nick",linkedPlayerKey:"nick"}:name==="finePaymentReferences"?{reference:"Fines-NH"}:{healthy:false})})};return q;},runTransaction:fn=>fn({get:ref=>ref.get()})};
- const ctx={exports:{},options:{},onCall:(_,handler)=>handler,HttpsError:Error,getFirestore:()=>db,buildFineBalances};vm.runInNewContext(source.slice(start,end),ctx);
+ const ctx={exports:{},options:{},onCall:(_,handler)=>handler,HttpsError:Error,getFirestore:()=>db,buildFineBalances,buildFineHistory};vm.runInNewContext(source.slice(start,end),ctx);
  const result=await ctx.exports.getFinesBalances({auth:{uid:"nick"}});assert.equal(result.viewer.balance.owedPence,200);assert.equal(Object.hasOwn(result,"players"),false);assert.equal(Object.hasOwn(result,"bankReview"),false);assert.doesNotMatch(JSON.stringify(result),/Other Private Player|9900/);
+});
+test("match history includes only the linked player, groups slots and sorts UK dates newest first",()=>{
+ const results=[{season:"26-27",sheetRow:{Date:"29/09/2026",HomeTeam:"Oche Ness Monsters",AwayTeam:"BB Kings",HomeScore:4,AwayScore:5,Competition:"Banks",Player1:"Nick",C1:2,F1:"£6.80"}},{season:"26-27",sheetRow:{Date:"08/10/2026",HomeTeam:"Mugs",AwayTeam:"Oche Ness Monsters",HomeScore:5,AwayScore:4,"Player 1":"Nick Horne","C 1":1,"F 1":"2",Player2:"Nick",C2:2,F2:"0.50",Player3:"Other",C3:9,F3:99}},{season:"26-27",sheetRow:{Date:"21/10/2026",Player1:"Other",F1:50}},{season:"25-26",sheetRow:{Player1:"Nick",F1:100}}];
+ const history=buildFineHistory({fullName:"Nick Horne",publicName:"Nick"},results);assert.equal(history.length,2);assert.equal(history[0].date,"08/10/2026");assert.equal(history[0].opponent,"Mugs");assert.equal(history[0].side,"Away");assert.equal(history[0].score,"5–4");assert.equal(history[0].appearances,1);assert.equal(history[0].checkouts,3);assert.equal(history[0].finesPence,250);assert.equal(history[1].finesPence,680);assert.deepEqual(buildFineHistory(null,results),[]);
 });

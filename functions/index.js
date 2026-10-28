@@ -61,7 +61,7 @@ function callable(handler) {
 exports.getPlayerAvailability = callable(uid => service.get(uid));
 exports.setPlayerAvailability = callable((uid, data) => service.set(uid, data));
 
-const {buildFineBalances}=require("./fines-balances");
+const {buildFineBalances,buildFineHistory}=require("./fines-balances");
 exports.matchStarlingPayments=onSchedule({...options,secrets:[starlingToken],schedule:"every 5 minutes",timeoutSeconds:120,maxInstances:1,concurrency:1},async()=>{
   const db=getFirestore();
   try {await require("./starling-matching").syncStarling({db,token:starlingToken.value()});}
@@ -107,7 +107,8 @@ exports.getFinesBalances=onCall(options,async request=>{
       for(let index=0;index<100;index++){const candidate=base+(index?String(index+1):""),claim=db.collection("fineReferenceOwners").doc(candidate),snap=await tx.get(claim);if(snap.exists&&snap.data().playerKey!==mine.playerKey)continue;tx.set(claim,{playerKey:mine.playerKey});tx.set(assigned,{reference:candidate,playerKey:mine.playerKey});return candidate;}throw new HttpsError("resource-exhausted","Could not assign a payment reference. Contact an admin.");});
   }
   const matching=(await db.collection("bankMatching").doc("starling").get()).data(),automaticMatching=Boolean(matching?.healthy&&matching.enabled!==false&&Date.now()-Date.parse(matching.lastSuccessAt)<15*60000);
-  return {season,viewer:{isAdmin,name:data.firstName||"Player",playerKey:mine?.playerKey||null,balance:mine||null,reference,bank:mine?{name:"Nicholas Horne",accountNumber:"78664226",sortCode:"60-83-71"}:null,automaticMatching},updatedAt:new Date().toISOString()};
+  const history=buildFineHistory(unpack(players).find(p=>p.id===data.linkedPlayerKey),unpack(results),season);
+  return {season,viewer:{isAdmin,name:data.firstName||"Player",playerKey:mine?.playerKey||null,balance:mine||null,history,reference,bank:mine?{name:"Nicholas Horne",accountNumber:"78664226",sortCode:"60-83-71"}:null,automaticMatching},updatedAt:new Date().toISOString()};
 });
 
 // Publish linked players' public names or unlinked accounts' first names, never emails or surnames.
