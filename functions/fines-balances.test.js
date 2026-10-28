@@ -7,9 +7,13 @@ test("private balances reject guests and inactive accounts before financial coll
 });
 test("balances use season results, subtract payments and count each appearance once",()=>{
   const rows=buildFineBalances([{id:"nick",publicName:"Nick H",fullName:"Nick Horne",email:"private"}],[{season:"26-27",sheetRow:{Player1:"Nick H",F1:"£3.50",Player2:"Nick Horne",F2:"1"}},{season:"26-27",sheetRow:{Player1:"Nick H",F1:"2"}},{season:"25-26",sheetRow:{Player1:"Nick H",F1:100}}],[{season:"26-27",playerKey:"nick",amountPaidPence:300}]);
-  assert.deepEqual(rows,[{playerKey:"nick",name:"Nick Horne",appearances:2,issuedPence:650,paidPence:300,owedPence:350}]);assert.ok(!JSON.stringify(rows).includes("private"));
+  assert.deepEqual(rows,[{playerKey:"nick",name:"Nick Horne",registrationPaid:false,appearances:2,issuedPence:650,paidPence:300,owedPence:350}]);assert.ok(!JSON.stringify(rows).includes("private"));
 });
 test("unmatched players remain visible, invalid fines are ignored, and overpayments never produce negative debt",()=>{
   const rows=buildFineBalances([{id:"a",publicName:"Alex"}],[{season:"26-27",sheetRow:{"Player 1":"Guest","F 1":"1.25",Player2:"Alex",F2:"bad"}}],[{season:"26-27",playerKey:"a",amountPaidPence:400}]);
   assert.equal(rows[0].name,"Guest");assert.equal(rows[0].owedPence,125);assert.equal(rows[1].owedPence,0);assert.equal(rows[1].paidPence,400);
+});
+test("players without appearances are excluded and registration status follows the selected season",()=>{
+  const rows=buildFineBalances([{id:"played",publicName:"Played",registrationPaidSeasons:["26-27"]},{id:"unused",publicName:"Unused",registrationPaidSeasons:["26-27"]}],[{season:"26-27",sheetRow:{Player1:"Played",F1:"2"}}],[]);
+  assert.equal(rows.length,1);assert.equal(rows[0].playerKey,"played");assert.equal(rows[0].registrationPaid,true);
 });

@@ -50,9 +50,17 @@ exports.getFinesBalances=onCall(options,async request=>{
   const db=getFirestore(),account=await db.collection("users").doc(request.auth.uid).get();
   if(!account.exists||account.data().status!=="Active")throw new HttpsError("permission-denied","An active account is required to view fines.");
   const season="26-27";
-  const [players,results,payments]=await Promise.all([db.collection("players").select("fullName","publicName").get(),db.collection("results").where("season","==",season).select("season","sheetRow").get(),db.collection("finePayments").where("season","==",season).select("season","playerKey","amountPaidPence").get()]);
+  const [players,results,payments]=await Promise.all([db.collection("players").select("fullName","publicName","registrationPaidSeasons").get(),db.collection("results").where("season","==",season).select("season","sheetRow").get(),db.collection("finePayments").where("season","==",season).select("season","playerKey","amountPaidPence").get()]);
   const unpack=snap=>snap.docs.map(doc=>({id:doc.id,...doc.data()}));
-  return {season,players:buildFineBalances(unpack(players),unpack(results),unpack(payments),season),updatedAt:new Date().toISOString()};
+  const rows=buildFineBalances(unpack(players),unpack(results),unpack(payments),season),data=account.data(),isAdmin=["admin","owner"].includes(data.role),mine=rows.find(p=>p.playerKey===data.linkedPlayerKey);
+  let reference=null;
+  if(mine){
+    const initials=mine.name.split(/\s+/).map(word=>word[0]).join("").toUpperCase().replace(/[^A-Z]/g,"").slice(0,4)||"P",base=`Fines-${initials}`;
+    const assigned=db.collection("finePaymentReferences").doc(mine.playerKey);
+    reference=await db.runTransaction(async tx=>{const existing=await tx.get(assigned);if(existing.exists)return existing.data().reference;
+      for(let index=0;index<100;index++){const candidate=base+(index?String(index+1):""),claim=db.collection("fineReferenceOwners").doc(candidate),snap=await tx.get(claim);if(snap.exists&&snap.data().playerKey!==mine.playerKey)continue;tx.set(claim,{playerKey:mine.playerKey});tx.set(assigned,{reference:candidate,playerKey:mine.playerKey});return candidate;}throw new HttpsError("resource-exhausted","Could not assign a payment reference. Contact an admin.");});
+  }
+  return {season,players:rows,viewer:{isAdmin,name:data.firstName||"Player",playerKey:mine?.playerKey||null,reference,bank:mine?{name:"Nicholas Horne",accountNumber:"78664226",sortCode:"60-83-71"}:null,automaticMatching:false},updatedAt:new Date().toISOString()};
 });
 
 // Publish linked players' public names or unlinked accounts' first names, never emails or surnames.
