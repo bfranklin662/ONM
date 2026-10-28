@@ -44,6 +44,17 @@ function callable(handler) {
 exports.getPlayerAvailability = callable(uid => service.get(uid));
 exports.setPlayerAvailability = callable((uid, data) => service.set(uid, data));
 
+const {buildFineBalances}=require("./fines-balances");
+exports.getFinesBalances=onCall(options,async request=>{
+  if(!request.auth)throw new HttpsError("unauthenticated","Sign in to view fines.");
+  const db=getFirestore(),account=await db.collection("users").doc(request.auth.uid).get();
+  if(!account.exists||account.data().status!=="Active")throw new HttpsError("permission-denied","An active account is required to view fines.");
+  const season="26-27";
+  const [players,results,payments]=await Promise.all([db.collection("players").select("fullName","publicName").get(),db.collection("results").where("season","==",season).select("season","sheetRow").get(),db.collection("finePayments").where("season","==",season).select("season","playerKey","amountPaidPence").get()]);
+  const unpack=snap=>snap.docs.map(doc=>({id:doc.id,...doc.data()}));
+  return {season,players:buildFineBalances(unpack(players),unpack(results),unpack(payments),season),updatedAt:new Date().toISOString()};
+});
+
 // Publish linked players' public names or unlinked accounts' first names, never emails or surnames.
 const { buildCompletions, buildLeaderboard, buildSurvivalLeaderboard } = require("./bot-completions");
 let botCompletionCache = null;
