@@ -35,13 +35,13 @@ test("Survival animates between rounds, reaches Filip and saves only best progre
   }
   await new Promise(r=>setImmediate(r));assert.equal(g.node("survivalChampionDialog").open,true);
   assert.equal(g.stored.get("onm-survival-complete-member"),"earned");assert.ok(g.writes.some(w=>w.data.monsterSurvivalCompleted&&w.data.monsterSurvivalBest===10));
-  assert.ok(g.writes.every(w=>Object.keys(w.data).every(key=>["monsterSurvivalStarted","monsterSurvivalBest","monsterSurvivalCompleted"].includes(key))));
+  assert.ok(g.writes.every(w=>Object.keys(w.data).every(key=>["monsterSurvivalStarted","monsterSurvivalBest","monsterSurvivalCompleted","monsterSurvivalPrevious"].includes(key))));
 });
 test("loss, quit and restart cannot bypass Billy or continue to the next opponent",async()=>{
   const g=await page();g.start();let q=g.current();g.api.recordResult({id:q.get("run"),level:1,won:true});g.api.returnFromGame();g.next();
   q=g.current();g.api.recordResult({id:q.get("run"),level:2,won:false});g.api.returnFromGame();g.start();assert.equal(g.current().get("level"),"1");
   g.api.returnFromGame(true);assert.equal(g.current().get("level"),"1");assert.notEqual(g.current().get("run"),q.get("run"));
-  g.api.returnFromGame();g.start();assert.equal(g.current().get("level"),"1");await new Promise(r=>setImmediate(r));assert.ok(g.writes.every(w=>w.data.monsterSurvivalBest<=1));
+  g.api.returnFromGame();g.start();assert.equal(g.current().get("level"),"1");await new Promise(r=>setImmediate(r));assert.ok(g.writes.every(w=>!Object.hasOwn(w.data,"monsterSurvivalBest")||w.data.monsterSurvivalBest<=1));
 });
 test("four trophies unlock a separate ten-round Tier 2 Survival starting at George",async()=>{
   const wins=[1,2,3,4,5,11,12].flatMap(level=>E.MODES.map(mode=>`${level}-${mode}`)),scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
@@ -65,6 +65,16 @@ test("Survival unlock updates without refresh and locked players cannot see the 
   const wins=["1-1","1-3","1-5","1-7","1-9","2-1","2-3"],scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
   g.updateAccount({monsterBotWins:wins,monsterBotBestScores:scores});assert.equal(g.node("survivalRoute").hidden,false);assert.equal(g.node("startSurvival").disabled,false);g.start();assert.equal(g.current().get("level"),"1");
 });
+test("Best and Previous badges mark the next round and completion has its own card",async()=>{
+  const wins=["1-1","1-3","1-5","1-7","1-9","2-1","2-3"],scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
+  const profile={monsterBotWins:wins,monsterBotBestScores:scores,monsterSurvivalBest:4,monsterSurvivalPrevious:2};
+  const g=await page({uid:"member"},[],profile),html=g.node("survivalRoute").innerHTML;
+  assert.match(html,/Nick Bot<span class="survivalRoundBadges"><small class="survivalBestBadge">BEST/);
+  assert.match(html,/Venton Bot<span class="survivalRoundBadges"><small class="survivalPreviousBadge">PREVIOUS/);
+  assert.doesNotMatch(html,/survivalCompleted/);
+  const done=await page({uid:"member"},[],{...profile,monsterSurvivalBest:10,monsterSurvivalPrevious:10,monsterSurvivalCompleted:true});
+  assert.match(done.node("survivalRoute").innerHTML,/class="survivalCompleted"[\s\S]*BEST[\s\S]*PREVIOUS/);
+});
 test("guests see signup and cannot begin a Survival run",async()=>{
   const g=await page(null);assert.equal(g.node("survivalSignUp").hidden,false);g.start();assert.equal(g.urls.length,0);
 });
@@ -86,10 +96,9 @@ test("missing Survival service support gives a retry message, not a fake empty l
   const g=await page({uid:"member"},null);g.node("survivalBoardTab").listeners.click();await new Promise(r=>setImmediate(r));
   assert.match(g.node("survivalBoardStatus").textContent,/couldn't load/);assert.equal(g.node("refreshSurvivalBoard").disabled,false);
 });
-test("Survival is promoted above the ladder, game rules stay in the footer and hamburger menus are removed",()=>{
+test("the ladder has a distinct scroll frame without duplicate promo or footer links",()=>{
   const html=fs.readFileSync(require.resolve("../monster-bot.html"),"utf8");
-  assert.ok(html.indexOf('class="survivalPromo"')<html.indexOf('id="botLevels"'));assert.equal((html.match(/id="openRules"/g)||[]).length,1);
-  assert.match(html,/<footer class="gameFootnote">[\s\S]*?id="openRules"[\s\S]*?<\/footer>/);
+  assert.doesNotMatch(html,/class="survivalPromo"|id="openRules"/);assert.match(html,/class="ladderScrollFrame"/);assert.match(html,/Scroll to explore Monsters/);
   assert.doesNotMatch(html,/id="openBotGameMenu"|id="botGameMenu"/);
   assert.doesNotMatch(html.slice(html.indexOf('class="botIntro"'),html.indexOf('id="challengeSetup"')),/openRules/);
   const css=fs.readFileSync(require.resolve("../styles/monster-game-navigation.css"),"utf8");assert.match(css,/\.survivalRoute\{display:flex;flex-direction:column/);assert.match(css,/content:"↓"/);

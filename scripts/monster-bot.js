@@ -76,7 +76,7 @@
       if(window.matchMedia?.("(max-width: 600px)").matches&&list.getBoundingClientRect){
         const viewport=window.visualViewport;
         const bottom=(viewport?.height||window.innerHeight)+(viewport?.offsetTop||0);
-        list.style.maxHeight=`${Math.max(160,bottom-list.getBoundingClientRect().top-24)}px`;
+        list.style.maxHeight=`${Math.max(160,bottom-list.getBoundingClientRect().top-8)}px`;
       }
       if(current.getBoundingClientRect&&list.getBoundingClientRect){
         list.scrollTop+=current.getBoundingClientRect().top-list.getBoundingClientRect().top;
@@ -94,7 +94,7 @@
     const highest=E.highestUnlocked(progress,bestScores,selectedTier,survivalBest());
     $("playerSummaryLevel").textContent=highest?`Tier ${selectedTier} · Level ${E.localLevel(highest)} unlocked`:`Tier ${selectedTier} · Locked`;
     $("playerSummaryPhoto").src = leaderboardPhoto({photoUrl:playerProfile.photoUrl,name:playerProfile.linkedPlayerName || firstName});
-    $("playerSummaryBeaten").textContent = `✓ Beaten ${tierProgress.size}`;
+    $("playerSummaryWins").textContent = `✓ Wins ${tierProgress.size}/50`;
     $("playerSummaryFlawless").textContent = `★ Flawless ${E.goldStars(tierProgress,bestScores)}`;
     $("playerSummaryTrophies").innerHTML = `${trophyIcon}<span>Trophy ${E.trophies(progress,bestScores,selectedTier)}</span>`;
     $("playerSummaryPercent").textContent = `${Math.round(tierProgress.size/50*100)}% complete`;
@@ -197,7 +197,7 @@
     $("completionNames").innerHTML = names.map(value=>{
       const row=typeof value==="string"?{name:value,results:[]}:value;
       const results=row.results||[],gold=parts[0]==="level"?E.MODES.every(mode=>results.some(result=>result.mode===mode&&result.flawless)):results.some(result=>result.flawless);
-      return `<li class="completionPlayerRow"><span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(leaderboardPhoto(row))}" alt="" loading="lazy" referrerpolicy="no-referrer"><strong>${escape(row.name)}</strong>${row.flag?`<span class="botLeaderboardFlag" role="img" aria-label="${escape(row.nationality||"Nationality")}">${escape(row.flag)}</span>`:""}</span><span class="completionAward ${gold?"gold":"won"}" aria-label="${gold?"Flawless win":"Beaten"}">${gold?"★":"✓"}</span></li>`;
+      return `<li class="completionPlayerRow"><span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(leaderboardPhoto(row))}" alt="" loading="lazy" referrerpolicy="no-referrer"><strong>${escape(row.name)}</strong>${row.flag?`<span class="botLeaderboardFlag" role="img" aria-label="${escape(row.nationality||"Nationality")}">${escape(row.flag)}</span>`:""}</span><span class="completionAward ${gold?"gold":"won"}" aria-label="${gold?"Flawless win":"Wins"}">${gold?"★":"✓"}</span></li>`;
     }).join("");
     $("retryCompletions").hidden = !communityError;
   }
@@ -255,7 +255,7 @@
       if (gold) complete++;
       const avatar = botAvatar(p.level) ? `<img class="botAvatar" src="${botAvatar(p.level)}" alt="${p.name} ${p.level>20?"avatar coming soon":"cartoon avatar"}">` : "";
       return `<article class="botLevel ${gold ? "complete flawlessComplete" : beaten ? "beatenComplete" : ""} ${unlocked ? "unlocked" : "locked"}" id="bot-level-${p.level}" aria-labelledby="bot-title-${p.level}">
-        <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${E.localLevel(p.level)}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><div class="completionMedals"><span class="${wins.length ? "won beatenCount" : ""}">${wins.length ? `✓ Beaten ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span>${wins.length ? `<span class="gold flawlessCount">★ Flawless ${flawless}/${E.MODES.length}</span>` : ""}${gold?`<span class="monsterComplete"><span class="monsterMasterTrophy" role="img" aria-label="${p.name} mastery trophy: all five modes flawless" title="Monster Mastery · All five modes flawless">${trophyIcon}</span> Trophy 1</span>`:""}</div></div><span class="levelStats">${p.average}–${p.average + 5} average</span></div></div>
+        <div class="botCardHeading">${avatar}<div><span class="levelNumber">Level ${E.localLevel(p.level)}</span><div class="levelTitle"><h3 id="bot-title-${p.level}">${p.name}</h3><div class="completionMedals"><span class="${wins.length ? "won beatenCount" : ""}">${wins.length ? `✓ Wins ${wins.length}/${E.MODES.length}` : unlocked ? "" : "🔒 Locked"}</span>${wins.length ? `<span class="gold flawlessCount">★ Flawless ${flawless}/${E.MODES.length}</span>` : ""}${gold?`<span class="monsterComplete"><span class="monsterMasterTrophy" role="img" aria-label="${p.name} mastery trophy: all five modes flawless" title="Monster Mastery · All five modes flawless">${trophyIcon}</span> Trophy 1</span>`:""}</div></div><span class="levelStats">${p.average}–${p.average + 5} average</span></div></div>
         <div class="modeMarks" role="group" aria-label="Match formats for ${p.name}">${E.MODES.map(mode => modeChip(p.level, mode, selectedMode)).join("")}</div>
         ${selectedMode!==null?`<div class="botCardControls pillPlayControls"><input id="bot-mode-${p.level}" type="hidden" value="${selectedMode}">${!user ? "" : `<button id="play-bot-${p.level}" type="button" class="primary" data-play-level="${p.level}" ${canPlay(p.level,selectedMode) ? "" : "disabled"}>${replay ? `Replay ${p.name} · ${E.modeLabel(selectedMode)}` : `Play ${p.name} · ${selectedMode===E.BULL_MODE ? "Bull or Bust" : `Best of ${selectedMode}`}`}</button>`}</div>`:""}
         ${selectedMode===E.BULL_MODE && !E.isFormatUnlocked(p.level,E.BULL_MODE,progress) ? '<p class="lockedHint">🔒 Beat BO1, BO3, BO5 and BO7 on this bot first to unlock Bull or Bust.</p>' : ""}

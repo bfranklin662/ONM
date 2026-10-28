@@ -71,9 +71,9 @@ test("tier selector is hidden until both tiers are unlocked",async()=>{
 test("player summary switches between separate Tier 1 and Tier 2 progress",async()=>{
   const wins=[1,2,3,4,5,11].flatMap(level=>E.MODES.map(mode=>`${level}-${mode}`)),scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
   const g=await gameHarness(new Map(),{uid:"member",seedWins:wins,seedScores:scores});
-  assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Beaten 25");assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 5</);assert.equal(g.element("playerSummaryPercent").textContent,"50% complete");
-  g.click("ladderTierTwo");assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Beaten 5");assert.equal(g.element("playerSummaryFlawless").textContent,"★ Flawless 5");assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 1</);assert.equal(g.element("playerSummaryPercent").textContent,"10% complete");assert.match(g.element("playerSummaryLevel").textContent,/Tier 2/);
-  g.click("ladderTierOne");assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Beaten 25");
+  assert.equal(g.element("playerSummaryWins").textContent,"✓ Wins 25/50");assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 5</);assert.equal(g.element("playerSummaryPercent").textContent,"50% complete");
+  g.click("ladderTierTwo");assert.equal(g.element("playerSummaryWins").textContent,"✓ Wins 5/50");assert.equal(g.element("playerSummaryFlawless").textContent,"★ Flawless 5");assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 1</);assert.equal(g.element("playerSummaryPercent").textContent,"10% complete");assert.match(g.element("playerSummaryLevel").textContent,/Tier 2/);
+  g.click("ladderTierOne");assert.equal(g.element("playerSummaryWins").textContent,"✓ Wins 25/50");
 });
 test("leaderboard shows trophy totals and raw challenge counts without a fixed denominator",async()=>{
   const g=await gameHarness(new Map(),null,async()=>({completions:{},leaderboard:[{name:"Alex",level:11,unlocked:8,completed:22,flawless:20,trophies:4}]}));
@@ -156,7 +156,7 @@ test("player summary shows identity, beaten and flawless totals and completion p
   assert.equal(g.element("playerSummaryName").textContent,"Nick");
   assert.equal(g.element("playerSummaryLevel").textContent,`Tier 1 · Level ${E.highestUnlocked(new Set(wins),scores)} unlocked`);
   assert.equal(g.element("playerSummaryPhoto").src,"https://example.test/nick.jpg");
-  assert.equal(g.element("playerSummaryBeaten").textContent,"✓ Beaten 7");
+  assert.equal(g.element("playerSummaryWins").textContent,"✓ Wins 7/50");
   assert.equal(g.element("playerSummaryFlawless").textContent,"★ Flawless 3");
   assert.match(g.element("playerSummaryTrophies").innerHTML,/Trophy 0</);
   assert.equal(g.element("playerSummaryPercent").textContent,"14% complete");
@@ -288,8 +288,8 @@ test("any two distinct formats unlock Croft and cards show completed counts",asy
   for(const count of [1,5]) {
     const wins=E.MODES.slice(0,count).map(mode=>`1-${mode}`);
     const g=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(wins)]]));
-    assert.match(g.element("botLevels").innerHTML,new RegExp(`✓ Beaten ${count}/5`));
-    assert.match(g.element("botLevels").innerHTML,new RegExp(`class="won beatenCount">✓ Beaten ${count}/5`));
+    assert.match(g.element("botLevels").innerHTML,new RegExp(`✓ Wins ${count}/5`));
+    assert.match(g.element("botLevels").innerHTML,new RegExp(`class="won beatenCount">✓ Wins ${count}/5`));
   }
 });
 test("bot cards display five-point average ranges for all ten levels",async()=>{
@@ -303,11 +303,11 @@ test("cards show flawless format counts beside wins, excluding missing and inval
   const scores={"1-1":{won:1,lost:0},"1-3":{won:2,lost:0},"1-5":{won:3,lost:1},"1-7":{won:99,lost:0},"1-9":{won:1,lost:0}};
   const stored=new Map([["onm-monster-bot-test-member",JSON.stringify(wins)],["onm-monster-bot-test-member-scores",JSON.stringify(scores)]]);
   const g=await gameHarness(stored);
-  assert.match(g.element("botLevels").innerHTML,/✓ Beaten 4\/5<\/span><span class="gold flawlessCount">★ Flawless 2\/5/);
+  assert.match(g.element("botLevels").innerHTML,/✓ Wins 4\/5<\/span><span class="gold flawlessCount">★ Flawless 2\/5/);
   assert.match(g.element("botLevels").innerHTML,/<div class="completionMedals">/);
   assert.doesNotMatch(g.element("botLevels").innerHTML,/Players who beat this bot|botCompletionTotal/);
   const noScores=await gameHarness(new Map([["onm-monster-bot-test-member",JSON.stringify(["1-3"])]]));
-  assert.match(noScores.element("botLevels").innerHTML,/✓ Beaten 1\/5<\/span><span class="gold flawlessCount">★ Flawless 0\/5/);
+  assert.match(noScores.element("botLevels").innerHTML,/✓ Wins 1\/5<\/span><span class="gold flawlessCount">★ Flawless 0\/5/);
 });
 test("only flawless modes expose the completion modal, independently of community loading",async()=>{
   for(const lost of [0,1]){
@@ -508,7 +508,7 @@ test("help links to a separate rules page and obsolete introductory controls are
   const card=fs.readFileSync(require.resolve("../games.html"),"utf8");
   assert.match(card,/<h2>Monster Bot Game<\/h2>/);
   assert.doesNotMatch(card,/Monster Bot Ladder/);
-  assert.match(html,/<a id="openRules" href="monster-bot-help.html"/);
+  assert.doesNotMatch(html,/id="openRules"/);
   assert.match(html,/<h2 class="srOnly">Leaderboard<\/h2>/);
   assert.doesNotMatch(html,/id="rulesDialog"|Monster leaderboard/);
   const help=fs.readFileSync(require.resolve("../monster-bot-help.html"),"utf8");

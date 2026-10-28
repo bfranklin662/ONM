@@ -10,7 +10,17 @@
   const canSurvive=()=>Boolean(user&&(tier===1||tier2Unlocked)&&E.highestUnlocked(new Set(accountData.monsterBotWins||[]),accountData.monsterBotBestScores||{},tier)>=(tier===2?13:3));
   const field=name=>`monsterSurvival${tier===2?"Tier2":""}${name}`;
   const bestKey=()=>`onm-survival-best-${tier===2?"tier2-":""}${user.uid}`;
-  let user=null,run=null,transitionTimer=null,champion=false,loading=false,best=0,boardLoading=false,stopAccountWatch=null;
+  let user=null,run=null,transitionTimer=null,champion=false,loading=false,best=0,previous=null,boardLoading=false,stopAccountWatch=null;
+  const previousKey=()=>`onm-survival-previous-${tier}-${user.uid}`;
+  function loadPrevious(){previous=null;try{const saved=localStorage.getItem(previousKey());if(saved!==null&&saved!==undefined)previous=cap(Number(saved));}catch{}if(Number.isInteger(accountData[field("Previous")]))previous=cap(accountData[field("Previous")]);}
+  function savePrevious(){
+    if(!user||!run||run.previousSaved||run.status==="ready")return;
+    run.previousSaved=true;previous=cap(run.beaten);accountData[field("Previous")]=previous;
+    try{localStorage.setItem(previousKey(),String(previous));}catch{}
+    const uid=user.uid,key=field("Previous"),value=previous;
+    window.ONMFirebase.ready.then(({db,firestoreSdk:sdk})=>sdk.updateDoc(sdk.doc(db,"users",uid),{[key]:value})).catch(()=>{});
+  }
+  const badges=round=>`${best>0&&best<10&&round===best+1?'<small class="survivalBestBadge">BEST</small>':""}${previous!==null&&previous<10&&round===previous+1?'<small class="survivalPreviousBadge">PREVIOUS</small>':""}`;
   const cap=value=>Number.isInteger(value)?Math.max(0,Math.min(10,value)):0;
   const escape=value=>String(value||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   let playerPhotos={};
@@ -32,7 +42,8 @@
     $("botProfileLink").href=user?"account.html":"auth.html?mode=register&redirect=monster-survival.html";
     $("botProfileLink").setAttribute("aria-label",user?"My account":"Sign up or sign in");
     const revealed=Math.min(10,Math.max(run?.level||1,best+1));
-    $("survivalRoute").innerHTML=bots().map((profile,index)=>{const bot={...profile,level:index+1};return bot.level>revealed?`<li class="survivalMystery"><span>ROUND ${bot.level}</span><span class="survivalMysteryLock" aria-hidden="true">🔒</span><strong>Mystery Monster</strong><span>Survive to reveal</span></li>`:`<li class="${run?.beaten>=bot.level?"defeated":run?.level===bot.level?"current":""}"><span>${run?.beaten>=bot.level?"✓ DEFEATED":`ROUND ${bot.level}`}${best===bot.level?' <small class="survivalBestBadge">BEST</small>':""}</span><img src="${avatar(bot.level)}" alt=""><strong>${bot.name}</strong><span>${bot.average}–${bot.average+5} avg</span></li>`}).join("");
+    $("survivalRoute").innerHTML=bots().map((profile,index)=>{const bot={...profile,level:index+1};return bot.level>revealed?`<li class="survivalMystery"><span>ROUND ${bot.level}</span><span class="survivalMysteryLock" aria-hidden="true">🔒</span><strong>Mystery Monster</strong><span>Survive to reveal</span></li>`:`<li class="${run?.beaten>=bot.level?"defeated":run?.level===bot.level?"current":""}"><span>${run?.beaten>=bot.level?"✓ DEFEATED":`ROUND ${bot.level}`}</span><img src="${avatar(bot.level)}" alt=""><strong class="survivalOpponentName">${bot.name}<span class="survivalRoundBadges">${badges(bot.level)}</span></strong><span>${bot.average}–${bot.average+5} avg</span></li>`}).join("");
+    if(best===10||previous===10)$("survivalRoute").innerHTML+=`<li class="survivalCompleted"><strong>✓ Completed</strong><span class="survivalRoundBadges">${best===10?'<small class="survivalBestBadge">BEST</small>':""}${previous===10?'<small class="survivalPreviousBadge">PREVIOUS</small>':""}</span></li>`;
   }
   async function persistBest(value){
     best=Math.max(best,cap(value));accountData[field("Best")]=best;if(best===10)accountData[field("Completed")]=true;const uid=user.uid,saved=best,startedField=field("Started"),bestField=field("Best"),completeField=field("Completed");
@@ -57,7 +68,7 @@
     $("botLaunchText").textContent=`Survival · Round ${run.level}/10 · ${bot.name}`;$("botLaunchSplash").hidden=false;
     window.ONMBotLaunch.open(`dart-scorer.html?mode=bot&survival=1&tier=${tier}&level=${bot.level}&format=1&run=${encodeURIComponent(run.id)}`);
   }
-  function endRun(message){clearTimeout(transitionTimer);$("survivalTransition").hidden=true;window.ONMBotLaunch.close();run=fresh();$("survivalStatus").textContent=message;render();$("startSurvival").focus();}
+  function endRun(message){savePrevious();clearTimeout(transitionTimer);$("survivalTransition").hidden=true;window.ONMBotLaunch.close();run=fresh();$("survivalStatus").textContent=message;render();$("startSurvival").focus();}
   function returnFromGame(restart=false){
     window.ONMBotLaunch.close();$("botLaunchSplash").hidden=true;
     if(restart){endRun(`New run. ${firstBot()} is waiting.`);launchLeg();return;}
@@ -75,7 +86,7 @@
   }
   window.ONMMonsterSurvival={
     authorize:(id,level,uid)=>Boolean(canSurvive()&&user.uid===uid&&run?.id===id&&bots()[run.level-1].level===level&&run.status==="playing"),
-    recordResult({id,level,won}){try{run=S.finish(run,id,E.localLevel(level),won);}catch{return false;}if(run.status==="complete")saveCompletion();else if(won)persistBest(run.beaten).catch(()=>{$("survivalStatus").textContent="Best run saved on this device. Reopen Survival when connected to sync it.";});return true;},
+    recordResult({id,level,won}){try{run=S.finish(run,id,E.localLevel(level),won);}catch{return false;}if(run.status==="complete"){savePrevious();saveCompletion();}else if(!won)savePrevious();else if(won)persistBest(run.beaten).catch(()=>{$("survivalStatus").textContent="Best run saved on this device. Reopen Survival when connected to sync it.";});return true;},
     returnFromGame
   };
   async function load(){
@@ -86,11 +97,11 @@
       run=fresh();$("survivalStatus").textContent=`${firstBot()} is waiting.`;
       $("survivalSignUp").hidden=true;
       try{champion=localStorage.getItem(trophyKey())==="earned";best=cap(Number(localStorage.getItem(bestKey())));}catch{}
-      try{const {db,firestoreSdk:sdk}=await window.ONMBotData.withTimeout(window.ONMFirebase.ready);const snap=await window.ONMBotData.withTimeout(sdk.getDoc(sdk.doc(db,"users",user.uid))),data=snap.data()||{};accountData=data;tier2Unlocked=E.tier2EntryUnlocked(new Set(data.monsterBotWins||[]),data.monsterBotBestScores||{});champion=champion||data[field("Completed")]===true;best=Math.max(best,cap(data[field("Best")]),champion?10:0);if(champion)saveCompletion();else if(best>cap(data[field("Best")]))persistBest(best).catch(()=>{});}catch{/* A restored signed-in session may play while offline. */}
+      try{const {db,firestoreSdk:sdk}=await window.ONMBotData.withTimeout(window.ONMFirebase.ready);const snap=await window.ONMBotData.withTimeout(sdk.getDoc(sdk.doc(db,"users",user.uid))),data=snap.data()||{};accountData=data;loadPrevious();tier2Unlocked=E.tier2EntryUnlocked(new Set(data.monsterBotWins||[]),data.monsterBotBestScores||{});champion=champion||data[field("Completed")]===true;best=Math.max(best,cap(data[field("Best")]),champion?10:0);if(champion)saveCompletion();else if(best>cap(data[field("Best")]))persistBest(best).catch(()=>{});}catch{/* A restored signed-in session may play while offline. */}
     }catch{$("survivalStatus").textContent="Couldn't check your account. Please retry.";$("retrySurvivalAccount").hidden=false;}
     finally{loading=false;$("survivalStatus").setAttribute("aria-busy","false");render();
       if(user&&!stopAccountWatch)window.ONMFirebase.ready.then(({db,firestoreSdk:sdk})=>{
-        if(sdk.onSnapshot)stopAccountWatch=sdk.onSnapshot(sdk.doc(db,"users",user.uid),snap=>{accountData=snap.data()||{};tier2Unlocked=E.tier2EntryUnlocked(new Set(accountData.monsterBotWins||[]),accountData.monsterBotBestScores||{});render();},()=>{});
+        if(sdk.onSnapshot)stopAccountWatch=sdk.onSnapshot(sdk.doc(db,"users",user.uid),snap=>{accountData=snap.data()||{};loadPrevious();tier2Unlocked=E.tier2EntryUnlocked(new Set(accountData.monsterBotWins||[]),accountData.monsterBotBestScores||{});render();},()=>{});
       }).catch(()=>{});
     }
   }
@@ -126,14 +137,14 @@
   let refreshingAccess=false;
   async function refreshAccess(){
     if(!user||loading||refreshingAccess)return;refreshingAccess=true;
-    try{const {db,firestoreSdk:sdk}=await window.ONMBotData.withTimeout(window.ONMFirebase.ready);const snap=await window.ONMBotData.withTimeout(sdk.getDoc(sdk.doc(db,"users",user.uid)));accountData=snap.data()||{};tier2Unlocked=E.tier2EntryUnlocked(new Set(accountData.monsterBotWins||[]),accountData.monsterBotBestScores||{});render();}catch{}finally{refreshingAccess=false;}
+    try{const {db,firestoreSdk:sdk}=await window.ONMBotData.withTimeout(window.ONMFirebase.ready);const snap=await window.ONMBotData.withTimeout(sdk.getDoc(sdk.doc(db,"users",user.uid)));accountData=snap.data()||{};loadPrevious();tier2Unlocked=E.tier2EntryUnlocked(new Set(accountData.monsterBotWins||[]),accountData.monsterBotBestScores||{});render();}catch{}finally{refreshingAccess=false;}
   }
   window.addEventListener("pageshow",refreshAccess);window.addEventListener("focus",refreshAccess);
   if(document.addEventListener)document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshAccess();});
   window.addEventListener("storage",refreshAccess);
   async function selectTier(next){
     if(loading||run?.status==="playing"||run?.status==="between"||next===2&&!tier2Unlocked)return;
-    tier=next;run=fresh();best=cap(accountData[field("Best")]);champion=accountData[field("Completed")]===true;
+    tier=next;loadPrevious();run=fresh();best=cap(accountData[field("Best")]);champion=accountData[field("Completed")]===true;
     try{best=Math.max(best,cap(Number(localStorage.getItem(bestKey()))));champion=champion||localStorage.getItem(trophyKey())==="earned";}catch{}
     $("survivalStatus").textContent=`${firstBot()} is waiting.`;render();if(!$("survivalBoardPanel").hidden)loadBoard(true);
   }
