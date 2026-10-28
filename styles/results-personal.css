@@ -1,0 +1,3 @@
+.resultPlayedBadge{display:table;margin:0 0 8px auto;padding:4px 8px;border:1px solid #4a9469;border-radius:20px;background:#194d31;color:#a8f1c7;font-size:11px;font-weight:800;line-height:1.4;white-space:nowrap}
+.result-card:has(.cup-icon) .resultPlayedBadge{margin-right:28px}
+@media(max-width:550px){.resultPlayedBadge{font-size:10px;padding:3px 7px}}

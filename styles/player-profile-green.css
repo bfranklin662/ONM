@@ -1,0 +1,21 @@
+/* Final profile surface layer: neutral club panels are green, not grey. */
+#playerProfileSection .stats-header,
+#playerProfileSection .player-header-card,
+#playerProfileSection .stats-and-appearances-wrapper,
+#playerProfileSection .appearance-card,
+#playerProfileSection .gallery-card{background:#143324;border-color:#3c654d}
+#playerProfileSection .player-stats-table table,
+#playerProfileSection .player-stats-table .table-container,
+#playerProfileSection .appearance-table-container,
+#playerProfileSection .profile-data-header,
+#playerProfileSection .stat-card,
+#playerProfileSection .stat-item,
+#playerProfileSection .medals-row,
+#playerProfileSection .last5-block{background:#102b1e;border-color:#345b43}
+#playerProfileSection .player-stats-table thead th,
+#playerProfileSection .appearances-table-simple th{background:#1b412d}
+#playerProfileSection .player-selector-inline,
+#playerProfileSection .profile-season-dropdown,
+#playerProfileSection .outstanding-fines-card{background:#183d29;border-color:#4d785b}
+.profile-edit-dialog,.payment-modal-card,.payment-details-panel{background:#122f21;border-color:#41674f}
+.profile-edit-form input,.profile-edit-form textarea{background:#0b2117;border-color:#41674f}

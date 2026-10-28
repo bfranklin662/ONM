@@ -664,7 +664,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
             : `<div class="no-images">No photos available.</div>`;
 
           return `
-        <div class="gallery-card ${(match.Result || "").toLowerCase()} league-${meta.key}">
+        <div class="gallery-card ${(match.Result || "").toLowerCase()} league-${meta.key}" data-result-lineup="${encodeURIComponent(JSON.stringify(Array.from({length:12},(_,i)=>getMatchValue(match,`Player${i+1}`)).filter(Boolean)))}">
           <div class="league-pill league-pill-${meta.key}">${meta.label}</div>
 
           <div class="gallery-header">
@@ -859,6 +859,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
         return `
       <div class="result-card result-card-wide ${(match.Result || "").toLowerCase()} league-${meta.key}"
+        data-result-lineup="${encodeURIComponent(JSON.stringify(players.map(p=>p.name)))}"
         data-competition="${meta.key}"
         data-key="${cardKey}"
         data-date="${isoDate}"

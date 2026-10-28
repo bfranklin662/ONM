@@ -20,7 +20,10 @@ function buildFineHistory(player,results,season="26-27"){
     for(let i=1;i<=12;i++)if(aliases.has(key(r[`Player${i}`]??r[`Player ${i}`]))){found=true;checkouts+=number(r[`C${i}`]??r[`C ${i}`]);finesPence+=Math.round(number(r[`F${i}`]??r[`F ${i}`])*100);}
     if(!found)return [];
     const home=clean(r.HomeTeam),away=clean(r.AwayTeam),atHome=/oche\s+ness\s+monsters/i.test(home),date=clean(r["Date Played"]||r["Match Date"]||r.Date),hs=r.HomeScore??r.HS??r["Home Score"],as=r.AwayScore??r.AS??r["Away Score"];
-    return [{date,opponent:(atHome?away:home)||"Unknown opponent",side:atHome?"Home":"Away",competition:clean(r.Competition||r.League),score:hs!=null&&as!=null&&clean(hs)!==""&&clean(as)!==""?`${hs}–${as}`:"—",appearances:1,checkouts,finesPence}];
+    const result=clean(r.Result).toLowerCase();
+    const validScores=hs!=null&&as!=null&&clean(hs)!==""&&clean(as)!==""&&Number.isFinite(Number(hs))&&Number.isFinite(Number(as));
+    const outcome=result.startsWith("w")?"win":result.startsWith("l")?"loss":validScores?(Number(hs)===Number(as)?"draw":((atHome?Number(hs)>Number(as):Number(as)>Number(hs))?"win":"loss")):"unknown";
+    return [{date,opponent:(atHome?away:home)||"Unknown opponent",side:atHome?"Home":"Away",competition:clean(r.Competition||r.League),score:validScores?`${hs}–${as}`:"—",outcome,appearances:1,checkouts,finesPence}];
   }).sort((a,b)=>stamp(b.date)-stamp(a.date));
 }
 module.exports={buildFineBalances,buildFineHistory};

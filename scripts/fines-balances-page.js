@@ -1,20 +1,25 @@
 (function(){
   "use strict";
   const $=id=>document.getElementById(id),money=p=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(p/100);
-  let user=null,viewer={},busy=false,timer=null,revision=0,paying=false;
+  let user=null,viewer={},busy=false,timer=null,revision=0,paying=false,photoMapPromise=null;
   const escape=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  async function showPhoto(){
+    const current=revision,photo=$("myPhoto");photo.src=viewer.photoUrl||"graphics/logoWoText.png";
+    if((!viewer.photoUrl||/^\/?images\/players\//i.test(viewer.photoUrl))&&viewer.photoName)try{photoMapPromise ||= fetch("data/player-photo-map.json").then(r=>r.json());const photos=await photoMapPromise,key=String(viewer.photoName).trim().toLowerCase().replace(/\s+/g,"");if(current===revision&&photos[key])photo.src=photos[key];}catch(_){}
+  }
+  $("myPhoto").addEventListener("error",()=>{if(!String($("myPhoto").src).endsWith("graphics/logoWoText.png"))$("myPhoto").src="graphics/logoWoText.png";});
   async function call(name,data={},who=user){
     const token=await who.getIdToken(),response=await fetch(`https://europe-west2-${window.ONMFirebase.config.projectId}.cloudfunctions.net/${name}`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({data}),signal:AbortSignal.timeout(15000)}),payload=await response.json();
     if(!response.ok||payload.error)throw Error(payload.error?.message||"Could not load your account. Please retry.");
     return payload.result||payload.data;
   }
   function render(){
-    const mine=viewer.balance;$("myName").textContent=viewer.name||"My account";$("unlinked").hidden=Boolean(mine);$("paymentCards").hidden=!mine;
+    const mine=viewer.balance;$("myName").textContent=viewer.name||"My account";showPhoto();$("unlinked").hidden=Boolean(mine);$("paymentCards").hidden=!mine;
     $("registeredBadge").hidden=!mine?.registrationPaid;$("matchHistory").hidden=!mine;
     if(!mine)return;
     const history=viewer.history||[];
-    $("historyRows").innerHTML=history.map(r=>`<tr><td>${escape(r.date)}</td><td>${escape(r.opponent)}<small>${escape(r.side)} · ${escape(r.competition)}</small></td><td>${escape(r.score)}</td><td>1</td><td>${escape(r.checkouts)}</td><td>${money(r.finesPence)}</td></tr>`).join("")||'<tr><td colspan="6">No appearances this season yet.</td></tr>';
-    $("historyApps").textContent=String(mine.appearances);$("historyCheckouts").textContent=String(history.reduce((n,r)=>n+Number(r.checkouts||0),0));$("historyFines").textContent=money(mine.issuedPence);
+    $("historyRows").innerHTML=history.map(r=>`<tr><td>${escape(r.date)}</td><td>${escape(r.opponent)}<small>${escape(r.side)} · ${escape(r.competition)}</small></td><td><span class="matchScore ${["win","loss","draw"].includes(r.outcome)?r.outcome:"unknown"}" aria-label="${escape(r.score)} · ${r.outcome==="win"?"Won":r.outcome==="loss"?"Lost":"Result"}">${escape(r.score)}</span></td><td>${escape(r.checkouts)}</td><td>${money(r.finesPence)}</td></tr>`).join("")||'<tr><td colspan="5">No appearances this season yet.</td></tr>';
+    $("historyApps").textContent=String(mine.appearances);$("historyCheckouts").textContent=String(history.reduce((n,r)=>n+Number(r.checkouts||0),0));
     $("totalFines").textContent=money(mine.issuedPence);$("finesPaid").textContent=money(mine.paidPence);$("finesOwed").textContent=money(mine.owedPence);
     const registration=mine.registrationPaid?0:1500;
     $("registrationAmount").textContent=money(registration);$("registrationStatus").textContent=mine.registrationPaid?"✓ Registration paid":"2026/27 registration fee";
@@ -38,8 +43,9 @@
   }
   function startTimer(){clearInterval(timer);if(user)timer=setInterval(()=>{if(!document.hidden)refresh();},30000);}
   function clearHistory(){
+    $("myPhoto").src="graphics/logoWoText.png";
     $("registeredBadge").hidden=true;$("matchHistory").hidden=true;$("historyRows").innerHTML="";
-    for(const id of ["historyApps","historyCheckouts","historyFines","totalFines","finesPaid","finesOwed"])$(id).textContent="";
+    for(const id of ["historyApps","historyCheckouts","totalFines","finesPaid","finesOwed"])$(id).textContent="";
   }
   function setUser(value){revision++;clearHistory();user=value;viewer={};$("balances").hidden=true;$("gate").hidden=Boolean(user);$("retry").hidden=true;$("loading").hidden=!user;$("paymentDialog").close();$("paymentDetails").textContent="";$("myName").textContent="";$("myTotal").textContent="";$("status").textContent=user?"Loading what you owe…":"Sign in to see your own registration and fines.";startTimer();if(user)refresh();}
   $("payRegistration").addEventListener("click",()=>pay("registration"));$("payFines").addEventListener("click",()=>pay("fines"));$("closePayment").addEventListener("click",()=>$("paymentDialog").close());$("refresh").addEventListener("click",refresh);$("retry").addEventListener("click",refresh);

@@ -108,7 +108,8 @@ exports.getFinesBalances=onCall(options,async request=>{
   }
   const matching=(await db.collection("bankMatching").doc("starling").get()).data(),automaticMatching=Boolean(matching?.healthy&&matching.enabled!==false&&Date.now()-Date.parse(matching.lastSuccessAt)<15*60000);
   const history=buildFineHistory(unpack(players).find(p=>p.id===data.linkedPlayerKey),unpack(results),season);
-  return {season,viewer:{isAdmin,name:data.firstName||"Player",playerKey:mine?.playerKey||null,balance:mine||null,history,reference,bank:mine?{name:"Nicholas Horne",accountNumber:"78664226",sortCode:"60-83-71"}:null,automaticMatching},updatedAt:new Date().toISOString()};
+  const profile=data.linkedPlayerKey?(await db.collection("publicPlayers").doc(data.linkedPlayerKey).get()).data():null;
+  return {season,viewer:{isAdmin,name:data.firstName||"Player",photoUrl:data.photoUrl||profile?.photoUrl||"",photoName:data.linkedPlayerName||profile?.publicName||data.firstName||"",playerKey:mine?.playerKey||null,balance:mine||null,history,reference,bank:mine?{name:"Nicholas Horne",accountNumber:"78664226",sortCode:"60-83-71"}:null,automaticMatching},updatedAt:new Date().toISOString()};
 });
 
 // Publish linked players' public names or unlinked accounts' first names, never emails or surnames.
