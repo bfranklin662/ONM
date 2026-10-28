@@ -18,18 +18,24 @@ async function postToOnmAppScript(payload) {
 
 async function checkOnmSession() {
   const user = getOnmUser();
-
-  if (!user) return null;
   let verified = false;
   try {
     if (window.ONMFirebase?.firebasePrimary) {
       const current = await window.ONMFirebase.currentFirebaseUser();
-      if (!current || current.uid !== user.uid) {
+      if (!current) {
         localStorage.removeItem("onmUser");
         return null;
       }
+      if(user&&current.uid!==user.uid)localStorage.removeItem("onmUser");
       verified = true;
+      if(window.ONMFirebase.loadOwnUser){
+        const fresh=await window.ONMFirebase.loadOwnUser();
+        if(!fresh||fresh.uid!==current.uid||fresh.status!=="Active"){localStorage.removeItem("onmUser");return null;}
+        localStorage.setItem("onmUser",JSON.stringify(fresh));return fresh;
+      }
+      if(!user||user.uid!==current.uid)return null;
     }
+    if(!user)return null;
     const result = await postToOnmAppScript({
       action: "checkUser",
       userId: user.userId,
@@ -45,7 +51,7 @@ async function checkOnmSession() {
     return result.user;
 
   } catch {
-    return !window.ONMFirebase?.firebasePrimary || verified ? user : null;
+    return !window.ONMFirebase?.firebasePrimary || (verified&&getOnmUser()?.uid===user?.uid) ? user : null;
   }
 }
 
@@ -80,6 +86,7 @@ async function resolveLinkedPlayerImage(user) {
   if (!user) return "";
 
   const candidates = [user.photoUrl, getCachedProfileImage(user)];
+  for(const candidate of [...new Set(candidates.map(normaliseProfileImageUrl).filter(Boolean))])if(await imageLoads(candidate))return candidate;
   const linkedName = user.linkedPlayerName || "";
 
   if (linkedName && window.PlayerData?.fetchPublicPlayerProfiles) {
@@ -112,7 +119,7 @@ function renderAuthInitial(authBtn, profileName) {
   authBtn.innerHTML = "";
   const initial = document.createElement("span");
   initial.className = "authProfileInitial";
-  initial.textContent = String(profileName || "P").charAt(0).toUpperCase();
+  initial.setAttribute("aria-hidden", "true");
   authBtn.appendChild(initial);
 }
 
@@ -126,8 +133,11 @@ function updateAuthHeader(user) {
     authBtn.classList.add("isProfileLoading");
 
     try {
-      if (user) window.location.href = "account.html";
-      else window.location.href = "auth.html?mode=register";
+      const current=window.ONMFirebase?.firebasePrimary?await window.ONMFirebase.currentFirebaseUser():user;
+      window.location.href=current?"account.html":"auth.html?mode=register";
+    } catch {
+      // A slow/offline verification is not evidence of being signed out.
+      window.location.href="account.html";
     } finally {
       authBtn.classList.remove("isProfileLoading");
     }
@@ -182,6 +192,7 @@ async function loadHeaderProfileImage(authBtn, user, profileName) {
 
 async function initOnmSession() {
   const cachedUser = getOnmUser();
+  let refreshed=false;
 
   // A cached profile is not proof of an active Firebase session.
   let verifiedUser = cachedUser;
@@ -190,6 +201,7 @@ async function initOnmSession() {
       const current = await window.ONMFirebase.currentFirebaseUser();
       verifiedUser = current && current.uid === cachedUser?.uid ? cachedUser : null;
       if (!current) localStorage.removeItem("onmUser");
+      else if(!verifiedUser){verifiedUser=await checkOnmSession();refreshed=true;}
     } catch { verifiedUser = null; }
   }
   updateAuthHeader(verifiedUser);
@@ -200,7 +212,7 @@ async function initOnmSession() {
   }
 
   // background refresh, don't block page
-  checkOnmSession().then(async freshUser => {
+  if(!refreshed)checkOnmSession().then(async freshUser => {
     if (!freshUser) {
       updateAuthHeader(null);
       return;

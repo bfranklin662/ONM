@@ -7,7 +7,7 @@ test("phone results release their animation height and do not retain a desktop f
  assert.doesNotMatch(read("results.html"),/>Season<\/label>/);
 });
 test("website menus keep Survival inside the game and use the shared compact theme",()=>{
- for(const page of ["index.html","results.html","players-landing.html","games.html","account.html"]){assert.match(read(page),/site-theme\.css\?v=20261028-brand-mobile/);assert.match(read(page),/site-ui\.js/);assert.doesNotMatch(read(page),/href="\/?monster-survival.html"[^>]*>Survival<\/a>/);}
+ for(const page of ["index.html","results.html","players-landing.html","games.html","account.html"]){assert.match(read(page),/site-theme\.css\?v=20261028-circle-avatar/);assert.match(read(page),/site-ui\.js/);assert.doesNotMatch(read(page),/href="\/?monster-survival.html"[^>]*>Survival<\/a>/);}
  assert.match(read("account.html"),/>← Back<\/a>/);
  assert.match(read("scripts/site-ui.js"),/history.back\(\)/);
 });

@@ -221,8 +221,8 @@
   const safeLoad = key => { try { return JSON.parse(localStorage.getItem(key) || "[]").filter(value => validKeys.has(value)); } catch { return []; } };
   const escape = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   function renderLevels() {
-    $("botProfileLink").href=ready&&user?"account.html":authUrl("register");
-    $("botProfileLink").setAttribute("aria-label",ready&&user?"My account":"Sign up or sign in");
+    $("botProfileLink").href=user?"account.html":authUrl("register");
+    $("botProfileLink").setAttribute("aria-label",user?"My account":"Sign up or sign in");
     if(!ready||!user){$("completionYourAttempts").hidden=true;$("completionYourResult").hidden=true;}
     renderCasual();
     const tier2Visible=ready&&user&&E.tier2EntryUnlocked(progress,bestScores);

@@ -7,6 +7,8 @@
   const message = document.getElementById("accountMessage");
   let user = null;
   let linkedProfile = null;
+  const touchedFields=new Set();
+  let linkedProfileLoading=Promise.resolve();
   function isMonsterPlayer() {
     const team=clean(user?.team).toLowerCase();
     return team==="oche ness monsters" || (!team && Boolean(user?.linkedPlayerKey || user?.linkedPlayerName));
@@ -74,7 +76,7 @@
 
     const actions = document.getElementById("accountHeroActions");
     actions.innerHTML = monster && user.linkedPlayerName
-      ? `<a class="btn btnGhost" href="player-profile.html?name=${encodeURIComponent(user.linkedPlayerName)}">View player profile</a>`
+      ? `<a class="btn btnPrimary" href="fines.html">What I owe</a><a class="accountProfileLink" href="player-profile.html?name=${encodeURIComponent(user.linkedPlayerName)}">View player profile →</a>`
       : "";
   }
 
@@ -97,9 +99,11 @@
       accolades: (linkedProfile.accolades || []).join(", "),
       gooch: linkedProfile.gooch || ""
     };
-    Object.assign(user, profileValues);
-    populate();
+    for(const [field,value] of Object.entries(profileValues))if(!touchedFields.has(field)){
+      user[field]=value;const input=form.elements[field];if(input){if(input.type==="checkbox")input.checked=value===true||value==="yes";else input.value=value;}
+    }
 
+    const loadPhoto=async()=>{
     let photoUrl = user.photoUrl || user.photo || linkedProfile.photoUrl || linkedProfile.photo || "";
     if (/^\/?images\/players\//i.test(photoUrl) || !photoUrl) {
       try {
@@ -111,6 +115,7 @@
       user.linkedPhotoUrl = photoUrl;
       document.getElementById("accountPhoto").src = photoUrl;
     }
+    };loadPhoto().catch(()=>{});
   }
 
   function fileAsBase64(file) {
@@ -128,6 +133,8 @@
     button.disabled = true;
     button.textContent = "Saving…";
     try {
+      await linkedProfileLoading;
+      if(isMonsterPlayer()&&user.linkedPlayerName&&!linkedProfile)throw new Error("Your linked player details could not be loaded. Please refresh before saving.");
       const data = new FormData(form);
       const monster=isMonsterPlayer();
       const fields=["firstName", "surname", "email", "team", "nationality", ...(monster?["bio","nickname","walkoutSong"]:[])];
@@ -215,13 +222,14 @@
       }
       localStorage.setItem("onmUser", JSON.stringify(user));
       populate();
-      await loadLinkedPlayerProfile();
+      form.addEventListener("input",event=>{if(event.target.name)touchedFields.add(event.target.name);});
       form.addEventListener("submit", saveProfile);
       document.getElementById("accountChangePhoto").addEventListener("click", () => document.getElementById("accountPhotoInput").click());
       document.getElementById("accountPhotoInput").addEventListener("change", uploadPhoto);
       document.getElementById("accountLogout").addEventListener("click", logout);
       loading.classList.add("hidden");
       app.classList.remove("hidden");
+      linkedProfileLoading=loadLinkedPlayerProfile();
     } catch (error) {
       loading.innerHTML = `<h2>Could not load your account</h2><p>${escapeHtml(error.message || "Please try again.")}</p><a class="btn btnGhost" href="index.html">Back to website</a>`;
     }

@@ -19,3 +19,4 @@
 #playerProfileSection .outstanding-fines-card{background:#183d29;border-color:#4d785b}
 .profile-edit-dialog,.payment-modal-card,.payment-details-panel{background:#122f21;border-color:#41674f}
 .profile-edit-form input,.profile-edit-form textarea{background:#0b2117;border-color:#41674f}
+.profileOweLink{display:inline-block;font-size:12px;color:#b9e8cd;text-decoration:underline;text-underline-offset:3px;margin:5px 0}

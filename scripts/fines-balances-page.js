@@ -49,6 +49,6 @@
   }
   function setUser(value){revision++;clearHistory();user=value;viewer={};$("balances").hidden=true;$("gate").hidden=Boolean(user);$("retry").hidden=true;$("loading").hidden=!user;$("paymentDialog").close();$("paymentDetails").textContent="";$("myName").textContent="";$("myTotal").textContent="";$("status").textContent=user?"Loading what you owe…":"Sign in to see your own registration and fines.";startTimer();if(user)refresh();}
   $("payRegistration").addEventListener("click",()=>pay("registration"));$("payFines").addEventListener("click",()=>pay("fines"));$("closePayment").addEventListener("click",()=>$("paymentDialog").close());$("refresh").addEventListener("click",refresh);$("retry").addEventListener("click",refresh);
-  window.ONMFirebase.ready.then(({auth,authSdk})=>authSdk.onAuthStateChanged(auth,setUser)).catch(()=>{$("loading").hidden=true;$("status").textContent="Couldn't connect to sign-in. Please refresh.";});
+  (window.ONMFirebase.authReady||window.ONMFirebase.ready).then(({auth,authSdk})=>authSdk.onAuthStateChanged(auth,setUser)).catch(()=>{$("loading").hidden=true;$("status").textContent="Couldn't connect to sign-in. Please refresh.";});
   window.addEventListener("pagehide",()=>clearInterval(timer));window.addEventListener("pageshow",()=>{startTimer();if(user)refresh();});
 })();

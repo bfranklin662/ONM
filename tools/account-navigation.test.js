@@ -6,7 +6,7 @@ async function account(team,linked=false){
   for(const field of ["firstName","surname","email","team","nationality","bio","nickname","walkoutSong","playerRole","highestCheckout","accolades","gooch"])fields[field]=node(field);
   const form=node("accountForm");form.elements=fields;form.querySelector=()=>node("saveButton");
   const user={uid:"member",firstName:"Alex",surname:"Player",email:"alex@example.test",team,nickname:"Keep nickname",walkoutSong:"Keep song",...(linked?{linkedPlayerKey:"alex",linkedPlayerName:"Alex Player"}:{})};
-  const context={document:{getElementById:node},localStorage:{setItem:(k,v)=>stored.set(k,v)},FormData:function(){this.get=k=>fields[k]?.value??null;},window:{scrollTo(){},ONMFirebase:{loadOwnUser:async()=>user,post:async payload=>{calls.push(payload);return{success:true,profiles:[]};}}}};
+  const context={document:{getElementById:node},localStorage:{setItem:(k,v)=>stored.set(k,v)},FormData:function(){this.get=k=>fields[k]?.value??null;},window:{scrollTo(){},ONMFirebase:{loadOwnUser:async()=>user,post:async payload=>{calls.push(payload);return{success:true,profiles:linked?[{playerKey:"alex",publicName:"Alex Player"}]:[]};}}}};
   vm.runInNewContext(source("account.js"),context);await new Promise(resolve=>setImmediate(resolve));
   return{node,fields,calls,stored,save:()=>form.listeners.submit({preventDefault(){}})};
 }

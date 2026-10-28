@@ -28,23 +28,11 @@
     databaseURL: "https://oche-ness-monsters-default-rtdb.europe-west1.firebasedatabase.app/"
   };
 
-  const ready = Promise.all([
-    import(`${BASE}/firebase-app.js`),
-    import(`${BASE}/firebase-auth.js`),
-    import(`${BASE}/firebase-firestore.js`),
-    import(`${BASE}/firebase-storage.js`)
-  ]).then(([appSdk, authSdk, firestoreSdk, storageSdk]) => {
-    const app = appSdk.getApps().length ? appSdk.getApp() : appSdk.initializeApp(config);
-    return {
-      app,
-      auth: authSdk.getAuth(app),
-      db: firestoreSdk.getFirestore(app),
-      storage: storageSdk.getStorage(app),
-      authSdk,
-      firestoreSdk,
-      storageSdk
-    };
-  });
+  const appReady=import(`${BASE}/firebase-app.js`).then(sdk=>sdk.getApps().length?sdk.getApp():sdk.initializeApp(config));
+  const authReady=Promise.all([appReady,import(`${BASE}/firebase-auth.js`)]).then(([app,authSdk])=>({app,auth:authSdk.getAuth(app),authSdk}));
+  const firestoreReady=Promise.all([appReady,import(`${BASE}/firebase-firestore.js`)]).then(([app,firestoreSdk])=>({db:firestoreSdk.getFirestore(app),firestoreSdk}));
+  const storageReady=Promise.all([appReady,import(`${BASE}/firebase-storage.js`)]).then(([app,storageSdk])=>({storage:storageSdk.getStorage(app),storageSdk}));
+  const ready=Promise.all([authReady,firestoreReady,storageReady]).then(parts=>Object.assign({},...parts));
 
   function clean(value) {
     return String(value == null ? "" : value).trim();
@@ -85,7 +73,7 @@
   }
 
   async function currentFirebaseUser() {
-    const { auth, authSdk } = await ready;
+    const { auth, authSdk } = await authReady;
     if (auth.currentUser) return auth.currentUser;
     return new Promise((resolve, reject) => {
       const unsubscribe = authSdk.onAuthStateChanged(auth, user => {
@@ -118,13 +106,18 @@
     };
   }
 
+  let ownUserRead=null,ownUserUid=null;
   async function loadOwnUser() {
     const firebaseUser = await currentFirebaseUser();
     if (!firebaseUser) return null;
-    const { db, firestoreSdk } = await ready;
-    const snapshot = await firestoreSdk.getDoc(firestoreSdk.doc(db, "users", firebaseUser.uid));
-    if (!snapshot.exists()) return null;
-    return publicUser(firebaseUser.uid, snapshot.data());
+    if(ownUserRead&&ownUserUid===firebaseUser.uid)return ownUserRead;
+    ownUserUid=firebaseUser.uid;
+    const pending=(async()=>{const {db,firestoreSdk}=await firestoreReady;
+      const snapshot=await firestoreSdk.getDoc(firestoreSdk.doc(db,"users",firebaseUser.uid));
+      const {auth}=await authReady;if(auth.currentUser?.uid!==firebaseUser.uid||!snapshot.exists())return null;
+      return publicUser(firebaseUser.uid,snapshot.data());})();
+    ownUserRead=pending;
+    try{return await pending;}finally{if(ownUserRead===pending){ownUserRead=null;ownUserUid=null;}}
   }
 
   async function register(payload) {
@@ -922,6 +915,7 @@
 
   window.ONMFirebase = {
     ready,
+    authReady,
     post,
     postFirebase,
     signOut,
