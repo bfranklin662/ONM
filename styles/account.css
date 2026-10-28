@@ -2,14 +2,14 @@
 * { box-sizing: border-box; }
 body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20% -10%,#28304a 0,transparent 55%),radial-gradient(900px 600px at 110% 10%,#2a3d2e 0,transparent 45%),#0f1115; color:#f4f6fb; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
 .hidden { display:none !important; }
-.accountHeader { min-height:72px; padding:12px clamp(16px,4vw,48px); display:flex; align-items:center; justify-content:space-between; gap:16px; border-bottom:1px solid #273443; background:rgba(10,19,32,.94); }
+.accountHeader { min-height:72px; padding:12px clamp(16px,4vw,48px); display:flex; align-items:center; justify-content:space-between; gap:16px; border-bottom:1px solid #273443; background:rgba(12,37,27,.94); }
 .accountBrand { display:flex; align-items:center; gap:12px; color:#fff; text-decoration:none; font-size:20px; font-weight:900; }
 .accountBrand img { display:block; width:auto; height:64px; max-width:120px; border-radius:0; object-fit:contain; }
 .accountShell { width:min(1120px,calc(100% - 28px)); margin:34px auto 70px; }
 .accountLoading { min-height:300px; display:grid; place-content:center; justify-items:center; color:#aebdca; }
 .accountSpinner { width:34px; height:34px; border:3px solid #304153; border-top-color:#14b89c; border-radius:50%; animation:accountSpin .8s linear infinite; }
 @keyframes accountSpin { to { transform:rotate(360deg); } }
-.accountHero { display:flex; align-items:center; gap:24px; padding:24px; margin-bottom:20px; border:1px solid #2a3a4a; border-radius:18px; background:linear-gradient(120deg,#101d2b,#0b1521); }
+.accountHero { display:flex; align-items:center; gap:24px; padding:24px; margin-bottom:20px; border:1px solid #2a3a4a; border-radius:18px; background:linear-gradient(120deg,#132e22,#0b2118); }
 .accountPhotoWrap { position:relative; flex:0 0 auto; }
 .accountPhotoWrap img { width:130px; height:130px; display:block; border:3px solid #ffd41d; border-radius:24px; background:#050b12; object-fit:cover; }
 .accountPhotoButton { position:absolute; left:5px; top:5px; display:grid; place-items:center; width:32px; height:32px; padding:0; border-radius:50%; background:rgba(4,10,17,.9); color:#fff; cursor:pointer; }
@@ -23,7 +23,7 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .accountMessage { margin-bottom:18px; padding:13px 16px; border:1px solid #288172; border-radius:9px; background:#114b43; font-weight:800; }
 .accountMessage.error { border-color:#8c3e46; background:#5a272d; }
 .accountLayout { display:grid; grid-template-columns:minmax(0,2fr) minmax(250px,.8fr); gap:18px; align-items:start; }
-.accountCard { padding:22px; border:1px solid #293949; border-radius:15px; background:#0c1622; }
+.accountCard { padding:22px; border:1px solid #293949; border-radius:15px; background:#132e22; }
 .accountCard h2 { margin:5px 0 10px; }
 .accountCard p { color:#aebdca; line-height:1.5; }
 .accountCardHeading { display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:19px; margin-bottom:18px; border-bottom:1px solid #253444; }
@@ -31,7 +31,7 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .accountGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; }
 .accountGrid label { display:grid; gap:7px; color:#bac6d0; font-size:12px; font-weight:900; }
 .accountGrid .wide { grid-column:1/-1; }
-.accountGrid input,.accountGrid textarea { width:100%; padding:11px 12px; border:1px solid #3a4b5e; border-radius:8px; background:#07111c; color:#fff; font:inherit; }
+.accountGrid input,.accountGrid textarea { width:100%; padding:11px 12px; border:1px solid #3a4b5e; border-radius:8px; background:#0b2118; color:#fff; font:inherit; }
 .accountGrid textarea { resize:vertical; }
 .accountGrid .accountCheck { display:flex; align-items:center; gap:9px; padding-top:24px; }
 .accountGrid .accountCheck input { width:18px; height:18px; }
@@ -47,16 +47,16 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .accountShell .btn.btnGhost,.accountHeader .btn.btnGhost { border:1px solid rgba(255,255,255,.14); background:transparent; color:#a9b0c3; }
 .accountHeader .backWebsiteButton { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; min-height:48px; padding:12px 18px; line-height:1.3; text-align:center; text-decoration:none; white-space:nowrap; }
 .accountPhotoButton { border:1px solid #ffd41d; color:#ffe55c; }
-.accountTabs { display:flex; gap:8px; padding:7px; margin-bottom:18px; border:1px solid #293949; border-radius:12px; background:#0c1622; }
+.accountTabs { display:flex; gap:8px; padding:7px; margin-bottom:18px; border:1px solid #293949; border-radius:12px; background:#132e22; }
 .accountTab { flex:1; min-height:44px; padding:10px; border:0; border-radius:8px; background:transparent; color:#aebdca; font:inherit; font-weight:900; cursor:pointer; }
 .accountTab.active { background:#124d45; color:#fff; }
 .accountTab:focus-visible { outline:2px solid #ffd740; outline-offset:2px; }
 .accountAvailabilityList { display:grid; gap:12px; margin-top:20px; }
-.accountAvailabilityFixture { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:18px; border:1px solid #293949; border-radius:12px; background:#09131e; }
+.accountAvailabilityFixture { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:18px; border:1px solid #293949; border-radius:12px; background:#0b2118; }
 .accountAvailabilityFixture h3 { margin:5px 0; }
 .accountAvailabilityFixture p { margin:5px 0 0; font-size:14px; }
 .accountAvailabilityFixture label { display:grid; gap:7px; min-width:170px; font-size:12px; font-weight:800; color:#aebdca; }
-.accountAvailabilityFixture select { width:100%; min-height:44px; padding:10px; border:1px solid #3a4b5e; border-radius:8px; background:#07111c; color:#fff; font:inherit; }
+.accountAvailabilityFixture select { width:100%; min-height:44px; padding:10px; border:1px solid #3a4b5e; border-radius:8px; background:#0b2118; color:#fff; font:inherit; }
 #accountFixturesPanel>a { color:#ffd740; }
 #availabilitySummary { font-weight:800; color:#ffd740; }
 @media (max-width:600px) { .accountAvailabilityFixture { flex-direction:column; align-items:stretch; } }

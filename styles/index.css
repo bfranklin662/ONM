@@ -6,7 +6,7 @@
 
 /* Homepage welcome title */
 .home-shell > .home-bot-feature { margin-top: 12px; }
-.home-bot-feature { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:22px 28px; box-sizing:border-box; border:1px solid #377562; border-radius:18px; background:linear-gradient(120deg,#173e37,#101c27); }
+.home-bot-feature { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:22px 28px; box-sizing:border-box; border:1px solid #377562; border-radius:18px; background:linear-gradient(120deg,#173e37,#0b2118); }
 .home-bot-copy h2 { font-size:clamp(1.2rem,3vw,1.8rem); line-height:1.2; }
 .home-bot-copy p { margin:8px 0 14px; color:#c5ded5; }
 .home-bot-avatars { display:flex; flex:none; }
@@ -414,37 +414,37 @@ a.forward:hover {
 
 /* Individual leaderboard accents */
 .leaderboard-owed {
-  background: linear-gradient(180deg, rgba(255, 153, 0, .12), rgba(18, 22, 32, .82));
+  background: linear-gradient(180deg, rgba(255, 153, 0, .12), rgba(12, 37, 27, .82));
   border-color: rgba(255, 153, 0, .35);
 }
 
 .leaderboard-checkouts {
-  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(18, 22, 32, .82));
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(12, 37, 27, .82));
   border-color: rgba(255,255,255,.25);
 }
 
 .leaderboard-oneEightys {
-  background: linear-gradient(180deg, rgba(255, 77, 77, .13), rgba(18, 22, 32, .82));
+  background: linear-gradient(180deg, rgba(255, 77, 77, .13), rgba(12, 37, 27, .82));
   border-color: rgba(255, 77, 77, .35);
 }
 
 .leaderboard-bulls {
-  background: linear-gradient(180deg, rgba(0, 255, 127, .12), rgba(18, 22, 32, .82));
+  background: linear-gradient(180deg, rgba(0, 255, 127, .12), rgba(12, 37, 27, .82));
   border-color: rgba(0, 255, 127, .35);
 }
 
 .leaderboard-tonOuts {
-  background: linear-gradient(180deg, rgba(36, 120, 255, .14), rgba(18, 22, 32, .82));
+  background: linear-gradient(180deg, rgba(36, 120, 255, .14), rgba(12, 37, 27, .82));
   border-color: rgba(36, 120, 255, .38);
 }
 
 .leaderboard-highestCheckout {
-  background: linear-gradient(180deg, rgba(255, 217, 26, .14), rgba(18, 22, 32, .82));
+  background: linear-gradient(180deg, rgba(255, 217, 26, .14), rgba(12, 37, 27, .82));
   border-color: rgba(255, 217, 26, .38);
 }
 
 .leaderboard-appearances {
-  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(18, 22, 32, .82));
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(12, 37, 27, .82));
   border-color: rgba(255,255,255,.25);
 }
 

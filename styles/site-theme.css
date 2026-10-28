@@ -1,1 +1,31 @@
 :root{--site-background:#091b13;--site-panel:#132e22;--site-text:#e6f4eb}html{background:var(--site-background)!important}body{background-color:var(--site-background)!important;background-image:none!important;color:var(--site-text)}
+/* Keep competition accents and gold awards while aligning neutral surfaces. */
+.site-header,.botHeader,.accountHeader{background:#0c251b;border-bottom-color:#315440}
+.accountHero,.accountCard,.accountTabs,.accountAvailabilityFixture,.player-card,.fixturesGlass,.fxCard,.fixtureCalendar,.fixtureCalendarDay,.result-card,.league-column,.league-box,.profile-card,.profileCard,.profileModal,.home-bot-feature,.survivalViewTabs,.boardNavigation{background:#132e22;border-color:#365d48}
+.accountGrid input,.accountGrid textarea,.accountAvailabilityFixture select{background:#0b2118;border-color:#406650}
+.player-card-stat{background:#1b3b2c}.accountBrand{color:#e6f4eb}
+.results-header-bar,.players-controls,.loadMoreResultsBtn,.adminHeader,.profile-modal-content,.profile-card-content{background:#132e22;border-color:#365d48}
+.home-bot-feature{background:linear-gradient(120deg,#173e2d,#10271b)}
+.compactMenu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:none;border:0;color:#d5ebdf;font-size:25px;cursor:pointer;min-width:44px;min-height:44px}
+.botHeader,.accountHeader{position:relative}
+.compactSiteMenu{position:absolute;top:100%;left:12px;right:12px;z-index:2100;padding:12px;background:#102c20;border:1px solid #416750;border-radius:12px;box-shadow:0 15px 35px #0008}
+.compactSiteMenu[hidden]{display:none}.compactSiteMenu a{display:block;padding:12px;color:#e6f4eb;text-decoration:none;font-weight:700}
+@media(max-width:650px){
+ :root{--header-h:72px;--header-row1:72px;--header-row2:0px}
+ body:has(.site-header){padding-top:72px}
+ .site-header{height:72px;grid-template-rows:72px}
+ .site-header .top-left-logo,.botHeader img,.accountBrand img{height:52px;width:auto}
+ .site-header .hamburger{font-size:26px;min-width:44px;min-height:44px}
+ .site-header .authProfileBtn{width:44px;height:44px;border-radius:50%;border:1px solid #527c66;background:#163729}
+ .site-header .authProfileBtn img{transform:none}
+ .authProfileInitial{font-size:0;background:center/23px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c3dfcf' stroke-width='1.8'%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3Cpath d='M4 22v-3a8 8 0 0 1 16 0v3'/%3E%3C/svg%3E")}
+ .botHeader,.accountHeader{min-height:72px;padding:10px 14px;box-sizing:border-box}
+ .accountBrand span{display:none}
+ .accountHeader .backWebsiteButton{min-height:40px;padding:8px 12px;border-radius:24px;font-size:13px;color:#d5ebdf}
+ .home-section.fixturesContainer{width:calc(100% - 28px);max-width:calc(100% - 28px);margin-inline:auto;padding-inline:0;box-sizing:border-box}
+ .result-card .player-data.expanded{height:auto;min-height:0;padding-bottom:8px}
+ .result-card .flex-layout{height:auto;min-height:0;gap:12px;align-items:start}
+ .result-card .player-images:empty{display:none}.result-card .match-venue{margin-block:10px}
+ /* The desktop 720px flex-basis otherwise becomes a 720px HEIGHT when stacked. */
+ .result-card .flex-layout.no-match-images .player-table-wrapper{flex:0 1 auto;min-width:0;max-width:100%}
+}

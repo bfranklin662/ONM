@@ -896,7 +896,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
         ${playerHTML}
         ${match._resultId ? `<button type="button" class="addResultPhotos" data-add-result-photos="${encodeURIComponent(match._resultId)}">Add photos</button>` : ""}
-        <button class="toggle-players" onclick="togglePlayers(this)" title="Match details">▽</button>
+        <button class="toggle-players" title="Match details">▽</button>
       </div>
     `;
       })
@@ -1804,7 +1804,7 @@ document.addEventListener("click", (e) => {
   const playerData = card.querySelector(".player-data");
   const imageIcon = card.querySelector(".result-images-corner"); // ✅ ADD THIS
 
-  if (!playerData || !btn) return;
+  if (!playerData || !btn || btn.disabled) return;
 
   btn.disabled = true;
 
@@ -1851,6 +1851,8 @@ function animateOpen(el, duration = SLIDE_DURATION) {
 
   return new Promise(resolve => {
     anim.onfinish = () => {
+      // Release the fill-forwards height so the expanded card uses its natural size.
+      anim.cancel();
       el.style.removeProperty("height");
       el.style.removeProperty("overflow");
       el.style.removeProperty("opacity");
@@ -1882,6 +1884,7 @@ function animateClose(el, duration = SLIDE_DURATION) {
   return new Promise(resolve => {
     anim.onfinish = () => {
       el.style.display = "none";
+      anim.cancel();
       el.style.removeProperty("height");
       el.style.removeProperty("overflow");
       el.style.removeProperty("opacity");
