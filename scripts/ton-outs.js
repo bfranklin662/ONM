@@ -1,7 +1,7 @@
 (function(){
   "use strict";
   const $=id=>document.getElementById(id),E=window.ONMTonOuts,escape=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  let user=null,progress={},accountData={},selected=100,busy=false,boardBusy=false,stop=null,revision=0,accountReady=false,audio=null;
+  let user=null,progress={},accountData={},selected=100,busy=false,boardBusy=false,stop=null,revision=0,accountReady=false;
   const lockIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
   let screenLock=null,screenRequest=null,screenWatch=null,wakeActive=false;
   const wantsScreen=()=>wakeActive&&$("tonChallenge").open&&document.visibilityState!=="hidden";
@@ -21,16 +21,18 @@
   document.addEventListener?.("visibilitychange",()=>{if(document.visibilityState==="hidden")stopScreenOn();else if($("tonChallenge").open)startScreenOn();});
   document.addEventListener?.("pointerdown",()=>{if($("tonChallenge").open)startScreenOn();},{passive:true});
   window.addEventListener("pageshow",()=>{if($("tonChallenge").open)startScreenOn();});
-  function unlockAudio(){try{const Context=window.AudioContext||window.webkitAudioContext;if(!audio&&Context)audio=new Context();if(audio?.state==="suspended")audio.resume().catch(()=>{});}catch{}}
-  function startDing(){
-    unlockAudio();if(!audio)return;
-    const play=()=>{if(audio.state!=="running")return;try{const oscillator=audio.createOscillator(),gain=audio.createGain(),start=audio.currentTime;oscillator.type="sine";oscillator.frequency.value=880;gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(.12,start+.015);gain.gain.exponentialRampToValueAtTime(.001,start+.12);oscillator.connect(gain);gain.connect(audio.destination);oscillator.start(start);oscillator.stop(start+.14);oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};}catch{}};
-    if(audio.state==="suspended")audio.resume().then(play).catch(()=>{});else play();
+  const soundClips={};let soundGeneration=0;
+  function prepareSounds(){if(typeof window.Audio!=="function")return;for(const name of ["start","miss","hit"]){if(soundClips[name])continue;const clip=new window.Audio(`audio/ton-outs/${name}.wav?v=20261029-media`);clip.preload="auto";clip.playsInline=true;clip.muted=false;clip.volume=1;soundClips[name]=clip;}}
+  function playSound(name){
+    const generation=++soundGeneration,status=$("tonAudioStatus");
+    const failed=()=>{if(generation!==soundGeneration)return;status.hidden=false;status.textContent="Sound couldn’t play. Check your device’s media volume and try again.";};
+    try{prepareSounds();const clip=soundClips[name];if(!clip){failed();return;}for(const sound of Object.values(soundClips))sound.pause();clip.muted=false;clip.volume=1;try{clip.currentTime=0;}catch{}
+      // This must run in the tap handler, before any Firebase await.
+      const playing=clip.play();Promise.resolve(playing).then(()=>{if(generation===soundGeneration)status.hidden=true;}).catch(failed);
+    }catch{failed();}
   }
-  function playFeedback(hit){
-    if(!audio||audio.state!=="running")return;
-    try{const notes=hit?[523.25,659.25,783.99]:[220,164.81];notes.forEach((frequency,i)=>{const oscillator=audio.createOscillator(),gain=audio.createGain(),start=audio.currentTime+i*.085;oscillator.type=hit?'sine':'triangle';oscillator.frequency.value=frequency;gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(hit ? 0.15 : 0.09,start+.012);gain.gain.exponentialRampToValueAtTime(.001,start+.14);oscillator.connect(gain);gain.connect(audio.destination);oscillator.start(start);oscillator.stop(start+.16);oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};});}catch{}
-  }
+  prepareSounds();
+  const startDing=()=>playSound("start");
   const current=()=>E.totals[E.completed(progress).length];
   function render(){
     const wins=E.completed(progress);$("tonProgress").textContent=`${wins.length} / ${E.totals.length} complete`;$("tonProgressBar").value=wins.length;
@@ -41,18 +43,21 @@
   function challenge(){
     const done=E.completed(progress).includes(selected);$("tonChallengeTitle").textContent=`${selected} checkout`;
     $("tonRoute").innerHTML=E.routes[selected].map((dart,i)=>`<span><small>${i+1}</small>${dart}</span>`).join("");$("tonDartboard").innerHTML=E.board(selected);$("tonAttempts").textContent=String(E.attempts(progress[selected]));
+    const alternate=E.alternateRoutes[selected];$("tonAlternate").hidden=!alternate;
+    $("tonAlternateLabel").textContent=alternate?`If your first dart hits single ${alternate[0]}`:"";
+    $("tonAlternateRoute").innerHTML=alternate?alternate.map((dart,i)=>`<span><small>${i+1}</small>${dart}</span>`).join(""):"";
     $("tonMiss").disabled=busy||done;$("tonHit").disabled=busy||done;$("tonChallengeActions").hidden=done;$("tonNext").hidden=!done||!current();
     $("tonChallengeStatus").textContent=busy?'Saving…':done?(current()?`✓ Complete! ${current()} is now unlocked.`:'✓ All 64 finishes complete!'):"One visit of up to three darts. Miss or hit the finish?";
   }
   async function record(hit){
-    if(busy||!user)return;busy=true;const who=user,rev=revision,total=selected;challenge();
+    if(busy||!user||E.completed(progress).includes(selected))return;playSound(hit?"hit":"miss");busy=true;const who=user,rev=revision,total=selected;challenge();
     try{
       const {db,firestoreSdk:sdk}=await window.ONMFirebase.ready;
       const saved=await sdk.runTransaction(db,async tx=>{const ref=sdk.doc(db,"users",who.uid),snap=await tx.get(ref),data=snap.data();if(!data||data.status!=="Active")throw Error("An active account is required.");const next=E.record(data.tonOutsProgress||{},total,hit);tx.update(ref,{tonOutsProgress:next});return next;});
       if(rev!==revision)return;progress=saved;render();
     }catch(error){if(rev===revision){$("tonChallengeStatus").textContent="Couldn’t save that attempt. Check your connection and try again.";busy=false;$("tonMiss").disabled=false;$("tonHit").disabled=false;}return;}
     finally{if(rev===revision)busy=false;}
-    if(rev===revision){challenge();playFeedback(hit);}
+    if(rev===revision)challenge();
   }
   async function leaderboard(){
     if(boardBusy)return;boardBusy=true;$("refreshTonBoard").disabled=true;$("tonBoardStatus").textContent="";$("tonBoardLoading").hidden=false;$("tonBoardTable").hidden=true;$("tonBoardRows").innerHTML="";$("tonLeaderboard").setAttribute("aria-busy","true");
@@ -63,7 +68,7 @@
   function view(){const board=location.hash==="#leaderboard";$("tonLeaderboard").hidden=!board;$("tonGame").hidden=board||!accountReady;$("tonLoading").hidden=board||accountReady;$("tonPageTitle").textContent=board?'Leaderboard':'Ton+ Outs';if(board)leaderboard();}
   window.addEventListener("hashchange",view);
   $("tonGrid").addEventListener("click",event=>{const button=event.target.closest("[data-total]");if(!button||button.disabled)return;selected=Number(button.dataset.total);challenge();$("tonChallenge").showModal();startScreenOn();startDing();});
-  $("tonMiss").addEventListener("click",()=>{unlockAudio();return record(false);});$("tonHit").addEventListener("click",()=>{unlockAudio();return record(true);});$("closeTonChallenge").addEventListener("click",()=>{if(!busy)$("tonChallenge").close();});$("tonChallenge").addEventListener("cancel",event=>{if(busy)event.preventDefault();});
+  $("tonMiss").addEventListener("click",()=>record(false));$("tonHit").addEventListener("click",()=>record(true));$("closeTonChallenge").addEventListener("click",()=>{if(!busy)$("tonChallenge").close();});$("tonChallenge").addEventListener("cancel",event=>{if(busy)event.preventDefault();});
   $("tonNext").addEventListener("click",()=>{if(current()){selected=current();challenge();startDing();}});$("refreshTonBoard").addEventListener("click",leaderboard);
   (window.ONMFirebase.authReady||window.ONMFirebase.ready).then(({auth,authSdk})=>authSdk.onAuthStateChanged(auth,async value=>{
     const rev=++revision;stop?.();stop=null;user=value;progress={};accountData={};busy=false;accountReady=false;$("tonChallenge").close();render();view();

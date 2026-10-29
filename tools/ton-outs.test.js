@@ -8,5 +8,14 @@ test("sequential progression cannot skip finishes and counts misses and successf
  for(const n of E.totals.slice(1))data=E.record(data,n,true);assert.equal(E.completed(data).length,64);assert.equal(E.attempts(data[170]),1);
 });
 test("tampered non-contiguous progress does not unlock or count later finishes",()=>{assert.deepEqual(E.completed({170:{hit:true}}),[]);assert.equal(E.unlocked(170,{170:{hit:true}}),false);});
+test("all 27 alternate routes hit the primary treble's single, total correctly and finish on a double or bull",()=>{
+ assert.equal(Object.keys(E.alternateRoutes).length,27);
+ for(const [total,route] of Object.entries(E.alternateRoutes)){assert.equal(route.length,3);assert.equal(Number(route[0]),Number(E.routes[total][0].slice(1)),total);assert.equal(route.reduce((sum,d)=>sum+E.value(d),0),Number(total),total);assert.match(route.at(-1),/^(D(?:[1-9]|1\d|20)|Bull)$/);}
+ assert.deepEqual(E.alternateRoutes[100],["20","D20","D20"]);assert.deepEqual(E.alternateRoutes[130],["20","T20","Bull"]);assert.equal(E.alternateRoutes[125],undefined);
+});
+test("the five revised primary routes are used by the board",()=>{
+ const expected={119:["T19","T12","D13"],121:["T20","T11","D14"],122:["T18","T18","D7"],123:["T19","T16","D9"],124:["T20","T14","D11"]};
+ for(const [total,route] of Object.entries(expected)){assert.deepEqual(E.routes[total],route);assert.ok(E.board(total).includes(route.join(", ")));}
+});
 test("dartboards show the exact route and repeated darts with separate numbered markers",()=>{for(const n of E.totals){const svg=E.board(n);assert.match(svg,/viewBox="0 0 400 400"/);assert.match(svg,new RegExp('Checkout '+n+':'));assert.equal((svg.match(/<g>/g)||[]).length,E.routes[n].length);}assert.match(E.board(170),/T20, T20, Bull/);});
 test("new game never launches the usual scorer and saves only private per-checkout progress",()=>{const code=fs.readFileSync(require.resolve("../scripts/ton-outs.js"),"utf8"),html=fs.readFileSync(require.resolve("../ton-outs.html"),"utf8");assert.doesNotMatch(code+html,/dart-scorer.html|ONMBotLaunch/);assert.match(code,/runTransaction/);assert.match(code,/tonOutsProgress:next/);assert.match(html,/id="tonMiss"/);assert.match(html,/id="tonHit"/);});
