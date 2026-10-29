@@ -25,5 +25,11 @@ test("progress spinner stays visible until account data arrives and leaderboard 
 });
 test("miss and hit feedback unlocks audio on the gesture and plays distinct saved-result tones",async()=>{
  const a=await app(),tones=[];a.ctx.window.AudioContext=function(){this.state="running";this.currentTime=0;this.destination={};this.createOscillator=()=>({frequency:{value:0},connect(){},disconnect(){},start(){tones.push(this.frequency.value)},stop(){}});this.createGain=()=>({gain:{setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},disconnect(){}});};
- a.open(100);await a.node("tonMiss").listeners.click();assert.deepEqual(tones,[220,164.81]);tones.length=0;await a.node("tonHit").listeners.click();assert.deepEqual(tones,[523.25,659.25,783.99]);
+ a.open(100);assert.deepEqual(tones,[880]);tones.length=0;await a.node("tonMiss").listeners.click();assert.deepEqual(tones,[220,164.81]);tones.length=0;await a.node("tonHit").listeners.click();assert.deepEqual(tones,[523.25,659.25,783.99]);tones.length=0;a.node("tonNext").listeners.click();assert.deepEqual(tones,[880]);
 });
+test("checkout requests a screen wake lock, reacquires it after release and stops on close",async()=>{
+ const a=await app(),locks=[],timers=new Map();let requests=0;
+ a.ctx.window.navigator={wakeLock:{request:async kind=>{assert.equal(kind,"screen");requests++;const lock={released:false,addEventListener(_type,fn){this.onrelease=fn},async release(){this.released=true;this.onrelease?.()}};locks.push(lock);return lock;}}};a.ctx.window.setInterval=fn=>{timers.set(1,fn);return 1};a.ctx.window.clearInterval=id=>timers.delete(id);
+ a.open(100);await tick();assert.equal(requests,1);await locks[0].release();await timers.get(1)();assert.equal(requests,2);a.node("tonChallenge").close();a.node("tonChallenge").listeners.close();await tick();assert.equal(locks[1].released,true);assert.equal(timers.size,0);
+});
+test("wake lock refusal does not block the checkout or add an error message",async()=>{const a=await app();a.ctx.window.navigator={wakeLock:{request:async()=>{throw Error("Not allowed")}}};a.open(100);await tick();assert.equal(a.node("tonChallenge").open,true);assert.doesNotMatch(a.node("tonChallengeStatus").textContent,/Not allowed|wake lock/i);});

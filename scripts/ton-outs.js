@@ -3,7 +3,30 @@
   const $=id=>document.getElementById(id),E=window.ONMTonOuts,escape=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   let user=null,progress={},accountData={},selected=100,busy=false,boardBusy=false,stop=null,revision=0,accountReady=false,audio=null;
   const lockIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+  let screenLock=null,screenRequest=null,screenWatch=null,wakeActive=false;
+  const wantsScreen=()=>wakeActive&&$("tonChallenge").open&&document.visibilityState!=="hidden";
+  async function keepScreenOn(){
+    if(!wantsScreen()||!window.navigator?.wakeLock?.request)return;
+    if(screenLock&&!screenLock.released||screenRequest)return;
+    screenRequest=(async()=>{try{
+      const lock=await window.navigator.wakeLock.request("screen");
+      if(!wantsScreen()){await lock.release();return;}
+      screenLock=lock;lock.addEventListener("release",()=>{if(screenLock===lock)screenLock=null;});
+    }catch{/* Power-saving settings or browser policy can refuse a wake lock. */}})();
+    try{await screenRequest;}finally{screenRequest=null;}
+  }
+  function startScreenOn(){wakeActive=true;keepScreenOn();if(screenWatch===null&&window.setInterval)screenWatch=window.setInterval(keepScreenOn,5000);}
+  function stopScreenOn(){wakeActive=false;if(screenWatch!==null){window.clearInterval(screenWatch);screenWatch=null;}const lock=screenLock;screenLock=null;if(lock)lock.release().catch(()=>{});}
+  $("tonChallenge").addEventListener("close",stopScreenOn);
+  document.addEventListener?.("visibilitychange",()=>{if(document.visibilityState==="hidden")stopScreenOn();else if($("tonChallenge").open)startScreenOn();});
+  document.addEventListener?.("pointerdown",()=>{if($("tonChallenge").open)startScreenOn();},{passive:true});
+  window.addEventListener("pageshow",()=>{if($("tonChallenge").open)startScreenOn();});
   function unlockAudio(){try{const Context=window.AudioContext||window.webkitAudioContext;if(!audio&&Context)audio=new Context();if(audio?.state==="suspended")audio.resume().catch(()=>{});}catch{}}
+  function startDing(){
+    unlockAudio();if(!audio)return;
+    const play=()=>{if(audio.state!=="running")return;try{const oscillator=audio.createOscillator(),gain=audio.createGain(),start=audio.currentTime;oscillator.type="sine";oscillator.frequency.value=880;gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(.12,start+.015);gain.gain.exponentialRampToValueAtTime(.001,start+.12);oscillator.connect(gain);gain.connect(audio.destination);oscillator.start(start);oscillator.stop(start+.14);oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};}catch{}};
+    if(audio.state==="suspended")audio.resume().then(play).catch(()=>{});else play();
+  }
   function playFeedback(hit){
     if(!audio||audio.state!=="running")return;
     try{const notes=hit?[523.25,659.25,783.99]:[220,164.81];notes.forEach((frequency,i)=>{const oscillator=audio.createOscillator(),gain=audio.createGain(),start=audio.currentTime+i*.085;oscillator.type=hit?'sine':'triangle';oscillator.frequency.value=frequency;gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(hit ? 0.15 : 0.09,start+.012);gain.gain.exponentialRampToValueAtTime(.001,start+.14);oscillator.connect(gain);gain.connect(audio.destination);oscillator.start(start);oscillator.stop(start+.16);oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};});}catch{}
@@ -39,9 +62,9 @@
   }
   function view(){const board=location.hash==="#leaderboard";$("tonLeaderboard").hidden=!board;$("tonGame").hidden=board||!accountReady;$("tonLoading").hidden=board||accountReady;$("tonPageTitle").textContent=board?'Leaderboard':'Ton+ Outs';if(board)leaderboard();}
   window.addEventListener("hashchange",view);
-  $("tonGrid").addEventListener("click",event=>{const button=event.target.closest("[data-total]");if(!button||button.disabled)return;selected=Number(button.dataset.total);challenge();$("tonChallenge").showModal();});
+  $("tonGrid").addEventListener("click",event=>{const button=event.target.closest("[data-total]");if(!button||button.disabled)return;selected=Number(button.dataset.total);challenge();$("tonChallenge").showModal();startScreenOn();startDing();});
   $("tonMiss").addEventListener("click",()=>{unlockAudio();return record(false);});$("tonHit").addEventListener("click",()=>{unlockAudio();return record(true);});$("closeTonChallenge").addEventListener("click",()=>{if(!busy)$("tonChallenge").close();});$("tonChallenge").addEventListener("cancel",event=>{if(busy)event.preventDefault();});
-  $("tonNext").addEventListener("click",()=>{if(current()){selected=current();challenge();}});$("refreshTonBoard").addEventListener("click",leaderboard);
+  $("tonNext").addEventListener("click",()=>{if(current()){selected=current();challenge();startDing();}});$("refreshTonBoard").addEventListener("click",leaderboard);
   (window.ONMFirebase.authReady||window.ONMFirebase.ready).then(({auth,authSdk})=>authSdk.onAuthStateChanged(auth,async value=>{
     const rev=++revision;stop?.();stop=null;user=value;progress={};accountData={};busy=false;accountReady=false;$("tonChallenge").close();render();view();
     if(!user){accountReady=true;$("tonStatus").innerHTML='<a href="auth.html?mode=register&amp;redirect=ton-outs.html">Sign up or log in to save your Ton+ Outs progress.</a>';view();return;}
@@ -50,5 +73,5 @@
     catch{if(rev===revision){$("tonLoading").hidden=true;$("tonStatus").textContent="Couldn’t load your account. Please refresh.";}}
   })).catch(()=>{$("tonLoading").hidden=true;$("tonStatus").textContent="Couldn’t connect to sign-in. Please refresh.";});
   view();
-  window.addEventListener("pagehide",()=>stop?.());
+  window.addEventListener("pagehide",()=>{stopScreenOn();stop?.();});
 })();
