@@ -6,3 +6,4 @@
 .tonBoardTable :is(th,td):last-child{text-align:right}
 .tonLegend>span:nth-child(2){color:#ffe17b}
 .tonChallengeActions{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tonChallengeActions #tonMiss{grid-column:1/-1;min-height:52px;font-size:18px}.tonChallengeActions #tonNearMiss{grid-column:1;min-height:46px}.tonChallengeActions #tonHit{grid-column:2;min-height:46px}
+.tonAttemptStats{display:flex;justify-content:center;align-items:center;gap:8px}.tonAttemptStats .tonAttemptPill{margin:10px 0;padding:8px 12px;font-size:12px;white-space:nowrap}

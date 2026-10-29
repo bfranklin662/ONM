@@ -10,6 +10,12 @@ async function app(signedIn=true,{holdProgress=false}={}){
 test("signed-in visit saves misses, successful hits, next unlock and review without duplicate awards",async()=>{
  const a=await app();a.open(100);assert.equal(a.node("tonChallenge").open,true);await a.node("tonMiss").listeners.click();await tick();assert.equal(a.data().tonOutsProgress[100].misses,1);assert.equal(a.node("tonAttempts").textContent,"1");await a.node("tonHit").listeners.click();await tick();assert.equal(a.node("tonProgress").textContent,"1 / 64 complete");assert.equal(a.node("tonAttempts").textContent,"2");assert.equal(a.node("tonNext").hidden,false);assert.equal(a.node("tonHit").disabled,true);a.node("tonNext").listeners.click();assert.equal(a.node("tonChallengeTitle").textContent,"101 checkout");
 });
+test("fresh completion shows both counters and only Next; reopening offers Try again without Next",async()=>{
+ const a=await app();a.open(100);await a.node("tonNearMiss").listeners.click();await a.node("tonHit").listeners.click();
+ assert.match(a.node("tonCompletionAttempts").textContent,/2 attempts · Near misses: 1/);assert.equal(a.node("tonNext").hidden,false);assert.equal(a.node("tonTryAgain").hidden,true);assert.equal(a.node("tonCompletionPlayers").hidden,true);
+ a.open(100);assert.equal(a.node("tonNext").hidden,true);assert.equal(a.node("tonTryAgain").hidden,false);assert.equal(a.node("tonCompletionPlayers").hidden,false);
+ a.node("tonTryAgain").listeners.click();await a.node("tonNearMiss").listeners.click();await a.node("tonNearMiss").listeners.click();await a.node("tonHit").listeners.click();assert.match(a.node("tonCompletionAttempts").textContent,/3 attempts · Near misses: 2/);assert.equal(a.node("tonTryAgain").hidden,true);
+});
 test("guests see locked challenge controls and do not write any progress",async()=>{const a=await app(false);assert.match(a.node("tonStatus").innerHTML,/Sign up or log in/);a.node("tonHit").listeners.click();await tick();assert.equal(a.writes.length,0);});
 test("Ton+ Outs shows signed-in identity and completion progress in the shared player card",async()=>{
  const a=await app();a.watch({data:()=>({firstName:"Nick",tonOutsProgress:{100:{hit:true}}})});assert.equal(a.node("tonSummaryName").textContent,"Nick");assert.equal(a.node("tonPlayerSummary").hidden,false);assert.equal(a.node("tonSummaryPercent").textContent,"2% complete");const guest=await app(false);assert.equal(guest.node("tonPlayerSummary").hidden,true);
@@ -18,6 +24,15 @@ test("all script element IDs exist in the game page",()=>{const script=fs.readFi
 test("alternate routes appear underneath the primary only when supplied, without changing attempts",async()=>{
  const a=await app();a.open(100);assert.equal(a.node("tonAlternate").hidden,false);assert.equal(a.node("tonAlternateLabel").textContent,"Alternate route");assert.match(a.node("tonAlternateRoute").innerHTML,/>D20</);assert.equal(a.node("tonAttempts").textContent,"0");assert.equal(a.writes.length,0);
  a.open(125);assert.equal(a.node("tonAlternate").hidden,true);assert.equal(a.node("tonAlternateRoute").innerHTML,"");
+});
+test("near miss counter sits alongside attempts and includes practice attempts",async()=>{
+ const a=await app();a.open(100);assert.equal(a.node("tonNearMisses").textContent,"0");
+ await a.node("tonNearMiss").listeners.click();assert.equal(a.node("tonAttempts").textContent,"1");assert.equal(a.node("tonNearMisses").textContent,"1");
+ await a.node("tonMiss").listeners.click();assert.equal(a.node("tonAttempts").textContent,"2");assert.equal(a.node("tonNearMisses").textContent,"1");
+ await a.node("tonNearMiss").listeners.click();assert.equal(a.node("tonAttempts").textContent,"3");assert.equal(a.node("tonNearMisses").textContent,"2");
+ await a.node("tonHit").listeners.click();a.node("tonTryAgain").listeners.click();assert.equal(a.node("tonNearMisses").textContent,"0");
+ await a.node("tonNearMiss").listeners.click();await a.node("tonMiss").listeners.click();assert.equal(a.node("tonAttempts").textContent,"2");assert.equal(a.node("tonNearMisses").textContent,"1");assert.equal(a.data().tonOutsProgress[100].nearMisses,2);
+ a.open(101);assert.equal(a.node("tonNearMisses").textContent,"0");
 });
 test("near misses save separately; completed cards show original attempts and retries cannot add awards",async()=>{
  const a=await app();a.open(100);await a.node("tonNearMiss").listeners.click();assert.equal(a.data().tonOutsProgress[100].nearMisses,1);assert.equal(a.node("tonAttempts").textContent,"1");await a.node("tonHit").listeners.click();assert.equal(a.node("tonCompletion").hidden,false);assert.equal(a.node("tonPlayArea").hidden,true);assert.match(a.node("tonCompletionAttempts").textContent,/2 attempts/);
