@@ -17,5 +17,10 @@
       if(requests.get(prefix)===token)photo.src=url||fallback;
     })().catch(()=>{});
   }
-  window.ONMGameSummaryIdentity={render};
+  let photoMap={};
+  async function loadPhotos(){photos ||= fetch("data/player-photo-map.json").then(r=>r.ok?r.json():{}).catch(()=>({}));photoMap=await photos;return photoMap;}
+  const escape=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  function row(person){let url=safePhoto(person.photoUrl);if(!url||/^\/?images\/players\//i.test(url))url=safePhoto(photoMap[key(url.split('/').pop())]||photoMap[key(person.name)])||url;return `<span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(url||fallback)}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${escape(person.name)}</span>${person.flag?`<span class="botLeaderboardFlag" aria-label="${escape(person.nationality||"Nationality")}">${escape(person.flag)}</span>`:''}</span>`;}
+  window.ONMGameSummaryIdentity={render,loadPhotos,row};
+  document.addEventListener?.("error",event=>{const image=event.target;if(image?.classList?.contains("botLeaderboardPhoto")&&image.src!==fallback)image.src=fallback;},true);
 })();

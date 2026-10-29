@@ -93,7 +93,7 @@ test("Survival has Play and Leaderboard views with progress and trophies",async(
   const g=await page({uid:"member"},[{name:"Alex <test>",best:7,complete:false},{name:"Winner",best:10,complete:true}]);
   g.node("survivalBoardTab").listeners.click();await new Promise(r=>setImmediate(r));
   assert.equal(g.node("survivalPlayPanel").hidden,true);assert.equal(g.node("survivalBoardPanel").hidden,false);
-  assert.match(g.node("survivalBoardRows").innerHTML,/7\/10/);assert.match(g.node("survivalBoardRows").innerHTML,/✓/);assert.doesNotMatch(g.node("survivalBoardRows").innerHTML,/🏆/);assert.match(g.node("survivalBoardRows").innerHTML,/Alex &lt;test&gt;/);
+  assert.match(g.node("survivalBoardRows").innerHTML,/7\/10/);assert.doesNotMatch(g.node("survivalBoardRows").innerHTML,/✓|<td>—<\/td>/);assert.doesNotMatch(g.node("survivalBoardRows").innerHTML,/🏆/);assert.match(g.node("survivalBoardRows").innerHTML,/Alex &lt;test&gt;/);
   g.node("survivalPlayTab").listeners.click();assert.equal(g.node("survivalPlayPanel").hidden,false);
 });
 test("missing Survival service support gives a retry message, not a fake empty leaderboard",async()=>{

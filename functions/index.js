@@ -117,7 +117,7 @@ exports.getFinesBalances=onCall(options,async request=>{
 });
 
 // Publish linked players' public names or unlinked accounts' first names, never emails or surnames.
-const { buildCompletions, buildLeaderboard, buildSurvivalLeaderboard, buildTonOutsLeaderboard } = require("./bot-completions");
+const { buildCompletions, buildLeaderboard, buildSurvivalLeaderboard, buildTonOutsLeaderboard, buildTonOutsCompletions } = require("./bot-completions");
 let botCompletionCache = null;
 let botCompletionCacheAt = 0;
 const getMonsterBotCompletions = async request => {
@@ -129,7 +129,7 @@ const getMonsterBotCompletions = async request => {
     db.collection("publicPlayers").select("publicName", "photoUrl", "nationality").get()
   ]);
   const users = accounts.docs.map(doc => ({id:doc.id,...doc.data()})), publicProfiles = new Map(profiles.docs.map(doc => [doc.id,doc.data()]));
-  botCompletionCache = { completions: buildCompletions(users,publicProfiles), leaderboard: buildLeaderboard(users,publicProfiles), survivalLeaderboard:buildSurvivalLeaderboard(users,publicProfiles), survivalTier2Leaderboard:buildSurvivalLeaderboard(users,publicProfiles,2), tonOutsLeaderboard:buildTonOutsLeaderboard(users,publicProfiles), updatedAt: new Date().toISOString() };
+  botCompletionCache = { completions: buildCompletions(users,publicProfiles), leaderboard: buildLeaderboard(users,publicProfiles), survivalLeaderboard:buildSurvivalLeaderboard(users,publicProfiles), survivalTier2Leaderboard:buildSurvivalLeaderboard(users,publicProfiles,2), tonOutsLeaderboard:buildTonOutsLeaderboard(users,publicProfiles), tonOutsCompletions:buildTonOutsCompletions(users,publicProfiles), updatedAt: new Date().toISOString() };
   botCompletionCacheAt = Date.now();
   return response();
 };

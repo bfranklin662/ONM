@@ -105,4 +105,11 @@ function buildTonOutsLeaderboard(users,profiles){
   }
   return [...players.values()].sort((a,b)=>b.completed-a.completed||a.name.localeCompare(b.name));
 }
-module.exports = { buildCompletions, buildLeaderboard, buildSurvivalLeaderboard, buildTonOutsLeaderboard };
+function buildTonOutsCompletions(users,profiles){
+  const valid=Array.from({length:71},(_,i)=>100+i).filter(n=>![159,162,163,165,166,168,169].includes(n)),result={};
+  for(const total of valid){const people=new Map();for(const user of users){if(!valid.slice(0,valid.indexOf(total)+1).every(n=>user.tonOutsProgress?.[String(n)]?.hit===true))continue;
+    const profile=profiles.get(user.linkedPlayerKey),id=profile?`player:${user.linkedPlayerKey}`:`account:${user.id}`;
+    if(!people.has(id))people.set(id,{name:displayName(user,profile),...publicIdentity(user,profile)});
+  }result[total]=[...people.values()].sort((a,b)=>a.name.localeCompare(b.name));}return result;
+}
+module.exports = { buildCompletions, buildLeaderboard, buildSurvivalLeaderboard, buildTonOutsLeaderboard, buildTonOutsCompletions };

@@ -16,8 +16,12 @@ test("Ton+ Outs shows signed-in identity and completion progress in the shared p
 });
 test("all script element IDs exist in the game page",()=>{const script=fs.readFileSync(require.resolve("../scripts/ton-outs.js"),"utf8"),html=fs.readFileSync(require.resolve("../ton-outs.html"),"utf8");for(const [,id] of script.matchAll(/\$\("([^"]+)"\)/g))assert.ok(html.includes(`id="${id}"`),`Missing ${id}`);});
 test("alternate routes appear underneath the primary only when supplied, without changing attempts",async()=>{
- const a=await app();a.open(100);assert.equal(a.node("tonAlternate").hidden,false);assert.match(a.node("tonAlternateLabel").textContent,/single 20/);assert.match(a.node("tonAlternateRoute").innerHTML,/>D20</);assert.equal(a.node("tonAttempts").textContent,"0");assert.equal(a.writes.length,0);
+ const a=await app();a.open(100);assert.equal(a.node("tonAlternate").hidden,false);assert.equal(a.node("tonAlternateLabel").textContent,"Alternate route");assert.match(a.node("tonAlternateRoute").innerHTML,/>D20</);assert.equal(a.node("tonAttempts").textContent,"0");assert.equal(a.writes.length,0);
  a.open(125);assert.equal(a.node("tonAlternate").hidden,true);assert.equal(a.node("tonAlternateRoute").innerHTML,"");
+});
+test("near misses save separately; completed cards show original attempts and retries cannot add awards",async()=>{
+ const a=await app();a.open(100);await a.node("tonNearMiss").listeners.click();assert.equal(a.data().tonOutsProgress[100].nearMisses,1);assert.equal(a.node("tonAttempts").textContent,"1");await a.node("tonHit").listeners.click();assert.equal(a.node("tonCompletion").hidden,false);assert.equal(a.node("tonPlayArea").hidden,true);assert.match(a.node("tonCompletionAttempts").textContent,/2 attempts/);
+ const original=JSON.stringify(a.data().tonOutsProgress),writes=a.writes.length;a.node("tonTryAgain").listeners.click();assert.equal(a.node("tonPlayArea").hidden,false);await a.node("tonNearMiss").listeners.click();await a.node("tonHit").listeners.click();assert.equal(a.writes.length,writes);assert.equal(JSON.stringify(a.data().tonOutsProgress),original);assert.equal(a.node("tonProgress").textContent,"1 / 64 complete");assert.match(a.node("tonCompletionAttempts").textContent,/Practice finish: 2/);
 });
 test("the grid contains only 64 checkouts, with SVG locks and no duplicate page navigation buttons",async()=>{
  const a=await app(),grid=a.node("tonGrid").innerHTML;assert.equal((grid.match(/data-total=/g)||[]).length,64);for(const n of [159,162,163,165,166,168,169])assert.ok(!grid.includes(`data-total="${n}"`));assert.doesNotMatch(grid,/🔒/);assert.match(grid,/<svg viewBox="0 0 24 24"/);

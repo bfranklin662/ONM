@@ -122,10 +122,11 @@
     if(boardLoading)return;boardLoading=true;$("survivalBoardStatus").setAttribute("aria-busy","true");$("refreshSurvivalBoard").disabled=true;$("survivalBoardStatus").textContent="Loading Survival leaderboard…";
     try{
       const data=await window.ONMBotData.fetchCommunity({projectId:window.ONMFirebase.config.projectId,refresh,getToken:user?.getIdToken?()=>user.getIdToken():null});
+      await window.ONMGameSummaryIdentity?.loadPhotos();
       if(typeof fetch==="function")try{const response=await fetch("data/player-photo-map.json");if(response.ok)playerPhotos=await response.json();}catch{}
       const rows=tier===2?data.survivalTier2Leaderboard:data.survivalLeaderboard;
       if(!Array.isArray(rows))throw Error("Leaderboard service needs its Survival update.");
-      $("survivalBoardRows").innerHTML=rows.map((row,index)=>`<tr><td>${index+1}</td><th scope="row"><span class="survivalBoardIdentity"><img src="${escape(boardPhoto(row))}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${escape(row.name)}</span><span aria-label="${escape(row.nationality)}">${escape(row.flag)}</span></span></th><td>${cap(row.best)}/10</td><td>${row.complete?"✓":"—"}</td></tr>`).join("");
+      $("survivalBoardRows").innerHTML=rows.map((row,index)=>`<tr><td>${index+1}</td><th scope="row">${window.ONMGameSummaryIdentity?.row(row)||`<span class="botLeaderboardIdentity"><img class="botLeaderboardPhoto" src="${escape(boardPhoto(row))}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${escape(row.name)}</span><span class="botLeaderboardFlag" aria-label="${escape(row.nationality)}">${escape(row.flag)}</span></span>`}</th><td>${cap(row.best)}/10</td></tr>`).join("");
       $("survivalBoardStatus").textContent=rows.length?"Ranked by most Monsters beaten in one run.":"No runs yet. Be the first to enter Survival.";
     }catch{$("survivalBoardStatus").textContent="Survival leaderboard couldn't load. Please refresh to retry.";}
     finally{boardLoading=false;$("survivalBoardStatus").setAttribute("aria-busy","false");$("refreshSurvivalBoard").disabled=false;}

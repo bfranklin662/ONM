@@ -20,6 +20,10 @@ test("Ton+ leaderboard counts sequential wins, merges linked players and never e
  const users=[{id:"a",linkedPlayerKey:"nick",tonOutsProgress:{100:{hit:true,misses:99}}},{id:"b",linkedPlayerKey:"nick",tonOutsProgress:{100:{hit:true},101:{hit:true}}},{id:"c",firstName:"No finish",tonOutsProgress:{100:{misses:12}}},{id:"d",firstName:"Skipped",tonOutsProgress:{170:{hit:true}}}];
  const rows=buildTonOutsLeaderboard(users,new Map([["nick",{publicName:"Nick"}]]));assert.equal(rows.length,1);assert.equal(rows[0].completed,2);assert.equal(rows[0].name,"Nick");assert.doesNotMatch(JSON.stringify(rows),/misses|99|linkedPlayerKey/);
 });
+test("per-checkout completions deduplicate profiles and never reveal attempts or near misses",()=>{
+ const {buildTonOutsCompletions}=require("./bot-completions"),users=[{id:"a",firstName:"Nick",linkedPlayerKey:"nick",tonOutsProgress:{100:{hit:true,misses:50,nearMisses:10}}},{id:"b",linkedPlayerKey:"nick",tonOutsProgress:{100:{hit:true}}},{id:"c",firstName:"Skipped",tonOutsProgress:{101:{hit:true}}}],rows=buildTonOutsCompletions(users,new Map([["nick",{publicName:"Nick",photoUrl:"https://example.com/nick.jpg"}]]));
+ assert.equal(rows[100].length,1);assert.equal(rows[101].length,0);assert.equal(rows[100][0].photoUrl,"https://example.com/nick.jpg");assert.doesNotMatch(JSON.stringify(rows),/misses|nearMisses|tonOutsProgress|linkedPlayerKey/);
+});
 test("private attempt counters never enter public completions or leaderboards",()=>{
   const users=[{id:"private",firstName:"Nick",monsterBotWins:["1-9"],monsterBotAttemptDevices:{"private-device-secret":{"1-9":12345}}}];
   const publicData=JSON.stringify({completions:buildCompletions(users,new Map()),leaderboard:buildLeaderboard(users,new Map())});

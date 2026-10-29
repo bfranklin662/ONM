@@ -12,9 +12,11 @@
   function record(data,total,hit){
     if(!unlocked(total,data)||completed(data).includes(total))throw Error("This checkout is locked or already complete.");
     const prior=data[String(total)]||{},misses=Math.min(1000000,Math.max(0,Number.isInteger(prior.misses)?prior.misses:0));
-    return {...data,[String(total)]:{misses:misses+(hit?0:1),hit:Boolean(hit)}};
+    const near=hit==="near",won=hit===true;
+    const nearMisses=Math.min(1000000,Math.max(0,Number.isInteger(prior.nearMisses)?prior.nearMisses:0));
+    return {...data,[String(total)]:{misses:misses+(!won&&!near?1:0),...(nearMisses||near?{nearMisses:nearMisses+(near?1:0)}:{}),hit:won}};
   }
-  const attempts=entry=>Math.max(0,Number.isInteger(entry?.misses)?entry.misses:0)+(entry?.hit===true?1:0);
+  const attempts=entry=>Math.max(0,Number.isInteger(entry?.misses)?entry.misses:0)+Math.max(0,Number.isInteger(entry?.nearMisses)?entry.nearMisses:0)+(entry?.hit===true?1:0);
   const value=segment=>segment==="Bull"?50:segment==="25"?25:Number(segment.replace(/^[TD]/,""))*(segment[0]==="T"?3:segment[0]==="D"?2:1);
   const order=[20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
   const point=(radius,angle)=>[200+radius*Math.sin(angle),200-radius*Math.cos(angle)];

@@ -8,6 +8,9 @@ test("sequential progression cannot skip finishes and counts misses and successf
  for(const n of E.totals.slice(1))data=E.record(data,n,true);assert.equal(E.completed(data).length,64);assert.equal(E.attempts(data[170]),1);
 });
 test("tampered non-contiguous progress does not unlock or count later finishes",()=>{assert.deepEqual(E.completed({170:{hit:true}}),[]);assert.equal(E.unlocked(170,{170:{hit:true}}),false);});
+test("near misses count as private attempts without unlocking or completing a finish",()=>{
+ let data=E.record({},100,"near");assert.equal(data[100].nearMisses,1);assert.equal(data[100].misses,0);assert.equal(data[100].hit,false);assert.equal(E.attempts(data[100]),1);assert.equal(E.unlocked(101,data),false);data=E.record(data,100,true);assert.equal(E.attempts(data[100]),2);assert.equal(E.completed(data).length,1);
+});
 test("all 27 alternate routes hit the primary treble's single, total correctly and finish on a double or bull",()=>{
  assert.equal(Object.keys(E.alternateRoutes).length,27);
  for(const [total,route] of Object.entries(E.alternateRoutes)){assert.equal(route.length,3);assert.equal(Number(route[0]),Number(E.routes[total][0].slice(1)),total);assert.equal(route.reduce((sum,d)=>sum+E.value(d),0),Number(total),total);assert.match(route.at(-1),/^(D(?:[1-9]|1\d|20)|Bull)$/);}
