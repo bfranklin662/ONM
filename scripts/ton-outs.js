@@ -1,7 +1,7 @@
 (function(){
   "use strict";
   const $=id=>document.getElementById(id),E=window.ONMTonOuts,escape=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  let user=null,progress={},selected=100,busy=false,boardBusy=false,stop=null,revision=0,accountReady=false,audio=null;
+  let user=null,progress={},accountData={},selected=100,busy=false,boardBusy=false,stop=null,revision=0,accountReady=false,audio=null;
   const lockIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
   function unlockAudio(){try{const Context=window.AudioContext||window.webkitAudioContext;if(!audio&&Context)audio=new Context();if(audio?.state==="suspended")audio.resume().catch(()=>{});}catch{}}
   function playFeedback(hit){
@@ -11,6 +11,8 @@
   const current=()=>E.totals[E.completed(progress).length];
   function render(){
     const wins=E.completed(progress);$("tonProgress").textContent=`${wins.length} / ${E.totals.length} complete`;$("tonProgressBar").value=wins.length;
+    $("tonPlayerSummary").hidden=!user||!accountReady;$("tonSummaryPercent").textContent=`${Math.round(wins.length/E.totals.length*100)}% complete`;
+    if(user){$("tonSummaryName").textContent=accountData.firstName||user.displayName?.split(" ")[0]||"Player";window.ONMGameSummaryIdentity?.render("tonSummary",user,accountData);}
     $("tonGrid").innerHTML=E.totals.map(n=>{const done=wins.includes(n),available=E.unlocked(n,progress);return `<button type="button" data-total="${n}" class="tonCell ${done?'complete':available?'available':'locked'}" ${available&&user&&accountReady?'':'disabled'} aria-label="${n}: ${done?'complete':available?'play checkout':'locked'}"><strong>${n}</strong><small>${done?'✓ Complete':available?'Play':lockIcon}</small></button>`;}).join("");
   }
   function challenge(){
@@ -41,10 +43,10 @@
   $("tonMiss").addEventListener("click",()=>{unlockAudio();return record(false);});$("tonHit").addEventListener("click",()=>{unlockAudio();return record(true);});$("closeTonChallenge").addEventListener("click",()=>{if(!busy)$("tonChallenge").close();});$("tonChallenge").addEventListener("cancel",event=>{if(busy)event.preventDefault();});
   $("tonNext").addEventListener("click",()=>{if(current()){selected=current();challenge();}});$("refreshTonBoard").addEventListener("click",leaderboard);
   (window.ONMFirebase.authReady||window.ONMFirebase.ready).then(({auth,authSdk})=>authSdk.onAuthStateChanged(auth,async value=>{
-    const rev=++revision;stop?.();stop=null;user=value;progress={};busy=false;accountReady=false;$("tonChallenge").close();render();view();
+    const rev=++revision;stop?.();stop=null;user=value;progress={};accountData={};busy=false;accountReady=false;$("tonChallenge").close();render();view();
     if(!user){accountReady=true;$("tonStatus").innerHTML='<a href="auth.html?mode=register&amp;redirect=ton-outs.html">Sign up or log in to save your Ton+ Outs progress.</a>';view();return;}
     $("tonStatus").textContent="";
-    try{const {db,firestoreSdk:sdk}=await window.ONMFirebase.ready;if(rev!==revision)return;stop=sdk.onSnapshot(sdk.doc(db,"users",user.uid),snap=>{if(rev!==revision)return;progress=snap.data()?.tonOutsProgress||{};accountReady=true;$("tonStatus").textContent="";render();$("tonGame").hidden=location.hash==="#leaderboard";$("tonLoading").hidden=true;if($("tonChallenge").open&&!busy)challenge();},()=>{if(rev!==revision)return;$("tonLoading").hidden=true;$("tonStatus").textContent="Couldn’t load your progress. Refresh to retry.";});}
+    try{const {db,firestoreSdk:sdk}=await window.ONMFirebase.ready;if(rev!==revision)return;stop=sdk.onSnapshot(sdk.doc(db,"users",user.uid),snap=>{if(rev!==revision)return;accountData=snap.data()||{};progress=accountData.tonOutsProgress||{};accountReady=true;$("tonStatus").textContent="";render();$("tonGame").hidden=location.hash==="#leaderboard";$("tonLoading").hidden=true;if($("tonChallenge").open&&!busy)challenge();},()=>{if(rev!==revision)return;$("tonLoading").hidden=true;$("tonStatus").textContent="Couldn’t load your progress. Refresh to retry.";});}
     catch{if(rev===revision){$("tonLoading").hidden=true;$("tonStatus").textContent="Couldn’t load your account. Please refresh.";}}
   })).catch(()=>{$("tonLoading").hidden=true;$("tonStatus").textContent="Couldn’t connect to sign-in. Please refresh.";});
   view();

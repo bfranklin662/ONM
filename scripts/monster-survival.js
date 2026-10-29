@@ -29,9 +29,16 @@
   const fresh=()=>S.fresh(crypto.randomUUID());
   const trophyKey=()=>`onm-survival-complete-${tier===2?"tier2-":""}${user.uid}`;
   function render(){
+    $("survivalSummary").hidden=!user||loading;
+    if(user){
+      $("survivalSummaryTier").textContent=`Tier ${tier} · Survival`;
+      $("survivalSummaryBar").value=best;$("survivalSummaryPercent").textContent=`${best*10}% complete`;
+      $("survivalSummaryName").textContent=accountData.firstName||user.displayName?.split(" ")[0]||"Player";
+      window.ONMGameSummaryIdentity?.render("survivalSummary",user,accountData);
+    }
     const accessible=canSurvive()&&!loading;
     $("survivalRoute").hidden=!accessible;$("survivalRouteTitle").hidden=!accessible;
-    $("survivalPersonalBest").hidden=!accessible;$("survivalTrophy").hidden=!accessible||!champion;
+    $("survivalPersonalBest").hidden=!user||loading;$("survivalTrophy").hidden=!accessible||!champion;
     $("startSurvival").textContent=canSurvive()?"Play Survival":`🔒 Reach Level 3 · Tier ${tier} Ladder`;
     $("survivalTierTabs").hidden=!tier2Unlocked;$("survivalTierTwo").hidden=!tier2Unlocked;
     $("survivalTierOne").setAttribute("aria-selected",String(tier===1));$("survivalTierTwo").setAttribute("aria-selected",String(tier===2));
