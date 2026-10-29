@@ -52,6 +52,7 @@
   }
   const clone = value => JSON.parse(JSON.stringify(value));
   function humanVisit(visit) {
+    if(survival)window.parent?.ONMMonsterSurvival?.recordAttempt?.({id:survivalRun,level});
     undoFrame = {players:clone(state.players),visitHistory:clone(state.visitHistory),currentPlayer:state.currentPlayer,legJustWon:state.legJustWon,reply:replayVisit};
     applyVisit(visit);
   }

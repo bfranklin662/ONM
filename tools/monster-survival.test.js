@@ -24,6 +24,10 @@ async function page(account={uid:"member"},community=[],profile={monsterBotWins:
   vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/monster-survival.js"),"utf8"),ctx);await new Promise(r=>setImmediate(r));
   return{updateAccount:data=>accountChanged({data:()=>data}),api:ctx.window.ONMMonsterSurvival,node,urls,writes,stored,start:()=>node("startSurvival").listeners.click(),next:()=>node("continueSurvivalTransition").listeners.click(),current:()=>new URL(urls.at(-1),"https://example.test").searchParams};
 }
+test("opening Survival and launching a scorer do not record participation until a valid score is submitted",async()=>{
+ const g=await page();assert.equal(g.writes.length,0);g.start();await new Promise(r=>setImmediate(r));assert.equal(g.writes.length,0);
+ const p=g.current();assert.equal(g.api.recordAttempt({id:"wrong",level:1}),false);assert.equal(g.api.recordAttempt({id:p.get("run"),level:1}),true);await new Promise(r=>setImmediate(r));assert.ok(g.writes.some(w=>w.data.monsterSurvivalAttempted===true));const count=g.writes.length;g.api.recordAttempt({id:p.get("run"),level:1});await new Promise(r=>setImmediate(r));assert.equal(g.writes.length,count);
+});
 test("Survival animates between rounds, reaches Filip and saves only best progress and trophy",async()=>{
   const g=await page();g.start();
   for(let level=1;level<=10;level++){
@@ -35,7 +39,7 @@ test("Survival animates between rounds, reaches Filip and saves only best progre
   }
   await new Promise(r=>setImmediate(r));assert.equal(g.node("survivalChampionDialog").open,true);
   assert.equal(g.stored.get("onm-survival-complete-member"),"earned");assert.ok(g.writes.some(w=>w.data.monsterSurvivalCompleted&&w.data.monsterSurvivalBest===10));
-  assert.ok(g.writes.every(w=>Object.keys(w.data).every(key=>["monsterSurvivalStarted","monsterSurvivalBest","monsterSurvivalCompleted","monsterSurvivalPrevious"].includes(key))));
+  assert.ok(g.writes.every(w=>Object.keys(w.data).every(key=>["monsterSurvivalStarted","monsterSurvivalAttempted","monsterSurvivalBest","monsterSurvivalCompleted","monsterSurvivalPrevious"].includes(key))));
 });
 test("loss, quit and restart cannot bypass Billy or continue to the next opponent",async()=>{
   const g=await page();g.start();let q=g.current();g.api.recordResult({id:q.get("run"),level:1,won:true});g.api.returnFromGame();g.next();

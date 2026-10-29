@@ -90,11 +90,19 @@ function buildSurvivalLeaderboard(users,profiles,tier=1){
   const players=new Map();
   for(const user of users){
     const best=user[field("Completed")]===true?10:Number.isInteger(user[field("Best")])?Math.max(0,Math.min(10,user[field("Best")])):0;
-    if(!user[field("Started")]&&!best)continue;
+    if(!user[field("Attempted")]&&!best)continue;
     const profile=profiles.get(user.linkedPlayerKey),identity=profile?`player:${user.linkedPlayerKey}`:`account:${user.id}`;
     const previous=players.get(identity);
     if(!previous||best>previous.best)players.set(identity,{name:displayName(user,profile),...publicIdentity(user,profile),best,complete:best===10});
   }
   return [...players.values()].sort((a,b)=>b.best-a.best||a.name.localeCompare(b.name));
 }
-module.exports = { buildCompletions, buildLeaderboard, buildSurvivalLeaderboard };
+function buildTonOutsLeaderboard(users,profiles){
+  const valid=Array.from({length:71},(_,i)=>100+i).filter(n=>![159,162,163,165,166,168,169].includes(n)),players=new Map();
+  for(const user of users){let completed=0;for(const n of valid){if(user.tonOutsProgress?.[String(n)]?.hit!==true)break;completed++;}if(!completed)continue;
+    const profile=profiles.get(user.linkedPlayerKey),id=profile?`player:${user.linkedPlayerKey}`:`account:${user.id}`,previous=players.get(id);
+    if(!previous||completed>previous.completed)players.set(id,{name:displayName(user,profile),...publicIdentity(user,profile),completed});
+  }
+  return [...players.values()].sort((a,b)=>b.completed-a.completed||a.name.localeCompare(b.name));
+}
+module.exports = { buildCompletions, buildLeaderboard, buildSurvivalLeaderboard, buildTonOutsLeaderboard };

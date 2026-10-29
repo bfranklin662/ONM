@@ -66,7 +66,10 @@ exports.matchStarlingPayments=onSchedule({...options,secrets:[starlingToken],sch
   const db=getFirestore();
   try {await require("./starling-matching").syncStarling({db,token:starlingToken.value()});}
   catch (_) {await db.collection("bankMatching").doc("starling").set({healthy:false,lastErrorAt:new Date().toISOString()},{merge:true});throw new Error("Starling matching failed; administrator attention required.");}
-  await require("./fines-sheet").syncFinesSheet({db,write:data=>request(`${base}/values:batchUpdate`,{method:"POST",data:{valueInputOption:"RAW",data}})});
+});
+// The balance sheet uses recorded payments, never depends on a bank API call.
+exports.syncOutstandingFinesSheet=onSchedule({...options,schedule:"every 1 minutes",maxInstances:1,concurrency:1},async()=>{
+  await require("./fines-sheet").syncFinesSheet({db:getFirestore(),write:data=>request(`${base}/values:batchUpdate`,{method:"POST",data:{valueInputOption:"RAW",data}})});
 });
 exports.getFinesPaymentInstructions=onCall(options,async request=>{
   if(!request.auth)throw new HttpsError("unauthenticated","Sign in to pay.");
@@ -114,7 +117,7 @@ exports.getFinesBalances=onCall(options,async request=>{
 });
 
 // Publish linked players' public names or unlinked accounts' first names, never emails or surnames.
-const { buildCompletions, buildLeaderboard, buildSurvivalLeaderboard } = require("./bot-completions");
+const { buildCompletions, buildLeaderboard, buildSurvivalLeaderboard, buildTonOutsLeaderboard } = require("./bot-completions");
 let botCompletionCache = null;
 let botCompletionCacheAt = 0;
 const getMonsterBotCompletions = async request => {
@@ -122,11 +125,11 @@ const getMonsterBotCompletions = async request => {
   if (botCompletionCache && Date.now() - botCompletionCacheAt < 30000 && !(request.auth && request.data?.refresh === true)) return response();
   const db = getFirestore();
   const [accounts, profiles] = await Promise.all([
-    db.collection("users").select("monsterBotWins", "monsterBotBestScores", "monsterBotStarted", "monsterSurvivalTier2Started", "monsterSurvivalTier2Best", "monsterSurvivalTier2Completed", "monsterSurvivalStarted", "monsterSurvivalBest", "monsterSurvivalCompleted", "linkedPlayerKey", "firstName", "photoUrl", "nationality").get(),
+    db.collection("users").select("monsterBotWins", "monsterBotBestScores", "monsterBotStarted", "monsterSurvivalTier2Started", "monsterSurvivalTier2Best", "monsterSurvivalTier2Completed", "monsterSurvivalStarted", "monsterSurvivalAttempted", "monsterSurvivalTier2Attempted", "tonOutsProgress", "monsterSurvivalBest", "monsterSurvivalCompleted", "linkedPlayerKey", "firstName", "photoUrl", "nationality").get(),
     db.collection("publicPlayers").select("publicName", "photoUrl", "nationality").get()
   ]);
   const users = accounts.docs.map(doc => ({id:doc.id,...doc.data()})), publicProfiles = new Map(profiles.docs.map(doc => [doc.id,doc.data()]));
-  botCompletionCache = { completions: buildCompletions(users,publicProfiles), leaderboard: buildLeaderboard(users,publicProfiles), survivalLeaderboard:buildSurvivalLeaderboard(users,publicProfiles), survivalTier2Leaderboard:buildSurvivalLeaderboard(users,publicProfiles,2), updatedAt: new Date().toISOString() };
+  botCompletionCache = { completions: buildCompletions(users,publicProfiles), leaderboard: buildLeaderboard(users,publicProfiles), survivalLeaderboard:buildSurvivalLeaderboard(users,publicProfiles), survivalTier2Leaderboard:buildSurvivalLeaderboard(users,publicProfiles,2), tonOutsLeaderboard:buildTonOutsLeaderboard(users,publicProfiles), updatedAt: new Date().toISOString() };
   botCompletionCacheAt = Date.now();
   return response();
 };

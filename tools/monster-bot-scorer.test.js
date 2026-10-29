@@ -23,7 +23,7 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
     openCheckoutPrompt:config=>{ctx.pendingCheckoutPrompt=config;},closeCheckoutPrompt:()=>{ctx.pendingCheckoutPrompt=null;},getSelectedPromptValue:()=>3,
     buildLocalMatchStatsData:()=>({}),openMolVictoryScreen:()=>{ctx.resultOpened=true;ctx.window.ONMMonsterScorer.showResult();ctx.window.ONMMonsterScorer.showUnlock();}
   };
-  if(survival){ctx.params.set("survival","1");ctx.params.set("run","test-run");ctx.survivalResults=[];ctx.survivalReturns=[];ctx.window.parent={ONMMonsterSurvival:{authorize:(id,current,uid)=>authorized&&id==="test-run"&&current===level&&uid===account?.uid,recordResult:result=>ctx.survivalResults.push(result),returnFromGame:restart=>ctx.survivalReturns.push(restart)}};}
+  if(survival){ctx.params.set("survival","1");ctx.params.set("run","test-run");ctx.survivalResults=[];ctx.survivalReturns=[];ctx.window.parent={ONMMonsterSurvival:{authorize:(id,current,uid)=>authorized&&id==="test-run"&&current===level&&uid===account?.uid,recordAttempt:attempt=>(ctx.survivalAttempts ||= []).push(attempt),recordResult:result=>ctx.survivalResults.push(result),returnFromGame:restart=>ctx.survivalReturns.push(restart)}};}
   if(introPlayed){ctx.params.set("intro","played");ctx.URL=URL;ctx.window.location.href=`https://ochenessmonsters.com/dart-scorer.html?mode=bot&level=${level}&format=${format}&intro=played`;ctx.window.history={replaceState(_state,_title,url){ctx.cleanedUrl=url;}};}
   vm.createContext(ctx);
   ctx.window.ONMBotAttempts=require("../scripts/monster-bot-attempts")(ctx.localStorage,()=>"test-device-123");
@@ -99,6 +99,9 @@ test("Tier 2 level ten uses Cod's name and avatar",async()=>{
   const scores=Object.fromEntries(wins.map(key=>[key,{won:E.legsNeeded(Number(key.split("-")[1])),lost:0}]));
   const g=await harness({level:20,seedWins:wins,seedScores:scores});
   assert.equal(g.api.canPlay(),true);assert.equal(g.els.names[1].value,"Cod Bot");assert.equal(g.api.photo(1),"graphics/bots/cod-bot.png");
+});
+test("Survival participation is recorded by a submitted visit, not a launch or invalid score",async()=>{
+ const g=await harness({survival:true});assert.equal(g.ctx.survivalAttempts,undefined);g.score(181);assert.equal(g.ctx.survivalAttempts,undefined);g.score(0);assert.equal(g.ctx.survivalAttempts.length,1);assert.equal(g.ctx.survivalAttempts[0].id,"test-run");
 });
 test("Survival allows all ten opponents without ladder unlocks and awards no ladder progress",async()=>{
   for(const level of [1,3,10]){

@@ -2,14 +2,23 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { buildCompletions, buildLeaderboard, buildSurvivalLeaderboard } = require("./bot-completions");
 test("Survival leaderboard ranks best runs, merges linked accounts and excludes private data",()=>{
-  const users=[{id:"a",firstName:"Alex",monsterSurvivalBest:3,email:"private@example.test"},{id:"b",firstName:"Bill",monsterSurvivalStarted:true},{id:"c",firstName:"Champion",monsterSurvivalCompleted:true},{id:"d",firstName:"No run"},{id:"e",linkedPlayerKey:"linked",monsterSurvivalBest:5},{id:"f",linkedPlayerKey:"linked",monsterSurvivalBest:7}];
+  const users=[{id:"a",firstName:"Alex",monsterSurvivalBest:3,email:"private@example.test"},{id:"b",firstName:"Bill",monsterSurvivalAttempted:true},{id:"c",firstName:"Champion",monsterSurvivalCompleted:true},{id:"d",firstName:"No run"},{id:"e",linkedPlayerKey:"linked",monsterSurvivalBest:5},{id:"f",linkedPlayerKey:"linked",monsterSurvivalBest:7}];
   const rows=buildSurvivalLeaderboard(users,new Map([["linked",{publicName:"Linked Player"}]]));
   assert.deepEqual(rows.map(r=>r.best),[10,7,3,0]);assert.equal(rows[0].complete,true);assert.equal(rows[1].name,"Linked Player");
   assert.ok(rows.every(r=>!r.email&&!r.id&&!r.monsterBotBestScores));
 });
 test("Survival leaderboard clamps invalid progress and uses first names without linked profiles",()=>{
-  const rows=buildSurvivalLeaderboard([{id:"a",firstName:"Alex",monsterSurvivalBest:99},{id:"b",firstName:"Beta",monsterSurvivalBest:3.5,monsterSurvivalStarted:true}],new Map());
+  const rows=buildSurvivalLeaderboard([{id:"a",firstName:"Alex",monsterSurvivalBest:99},{id:"b",firstName:"Beta",monsterSurvivalBest:3.5,monsterSurvivalAttempted:true}],new Map());
   assert.deepEqual(rows.map(r=>[r.name,r.best]),[["Alex",10],["Beta",0]]);
+});
+test("Survival excludes navigation-only legacy starts but includes genuine attempts at zero",()=>{
+ const rows=buildSurvivalLeaderboard([{id:"opened",firstName:"Opened",monsterSurvivalStarted:true},{id:"attempted",firstName:"Attempted",monsterSurvivalAttempted:true},{id:"winner",firstName:"Winner",monsterSurvivalBest:1}],new Map());
+ assert.deepEqual(rows.map(r=>r.name),["Winner","Attempted"]);
+});
+test("Ton+ leaderboard counts sequential wins, merges linked players and never exposes attempts",()=>{
+ const {buildTonOutsLeaderboard}=require("./bot-completions");
+ const users=[{id:"a",linkedPlayerKey:"nick",tonOutsProgress:{100:{hit:true,misses:99}}},{id:"b",linkedPlayerKey:"nick",tonOutsProgress:{100:{hit:true},101:{hit:true}}},{id:"c",firstName:"No finish",tonOutsProgress:{100:{misses:12}}},{id:"d",firstName:"Skipped",tonOutsProgress:{170:{hit:true}}}];
+ const rows=buildTonOutsLeaderboard(users,new Map([["nick",{publicName:"Nick"}]]));assert.equal(rows.length,1);assert.equal(rows[0].completed,2);assert.equal(rows[0].name,"Nick");assert.doesNotMatch(JSON.stringify(rows),/misses|99|linkedPlayerKey/);
 });
 test("private attempt counters never enter public completions or leaderboards",()=>{
   const users=[{id:"private",firstName:"Nick",monsterBotWins:["1-9"],monsterBotAttemptDevices:{"private-device-secret":{"1-9":12345}}}];

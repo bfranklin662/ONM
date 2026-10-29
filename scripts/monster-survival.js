@@ -53,7 +53,7 @@
     await window.ONMBotData.withTimeout(sdk.runTransaction(db,async tx=>{
       const ref=sdk.doc(db,"users",uid),snap=await tx.get(ref),data=snap.data()||{};
       const maximum=Math.max(saved,data[completeField]===true?10:cap(data[bestField]));
-      tx.update(ref,{[startedField]:true,[bestField]:maximum,...(maximum===10?{[completeField]:true}:{})});
+      tx.update(ref,{[startedField]:true,[startedField.replace(/Started$/,"Attempted")]:true,[bestField]:maximum,...(maximum===10?{[completeField]:true}:{})});
     }));
   }
   async function saveCompletion(){
@@ -85,6 +85,11 @@
     }else endRun(run?.status==="lost"?`Run over after ${run.beaten} wins. Start again with ${firstBot()}.`:`Run ended. Your next run starts with ${firstBot()}.`);
   }
   window.ONMMonsterSurvival={
+    recordAttempt({id,level}){
+      if(!user||!run||run.id!==id||run.status!=="playing"||bots()[run.level-1].level!==level)return false;
+      if(!run.attemptRecorded){run.attemptRecorded=true;persistBest(run.beaten).catch(()=>{$("survivalStatus").textContent="Your run has started. Progress will retry syncing when connected.";});}
+      return true;
+    },
     authorize:(id,level,uid)=>Boolean(canSurvive()&&user.uid===uid&&run?.id===id&&bots()[run.level-1].level===level&&run.status==="playing"),
     recordResult({id,level,won}){try{run=S.finish(run,id,E.localLevel(level),won);}catch{return false;}if(run.status==="complete"){savePrevious();saveCompletion();}else if(!won)savePrevious();else if(won)persistBest(run.beaten).catch(()=>{$("survivalStatus").textContent="Best run saved on this device. Reopen Survival when connected to sync it.";});return true;},
     returnFromGame
@@ -105,7 +110,7 @@
       }).catch(()=>{});
     }
   }
-  $("startSurvival").addEventListener("click",()=>{if(!canSurvive())return;persistBest(0).catch(()=>{});run=fresh();launchLeg();});
+  $("startSurvival").addEventListener("click",()=>{if(!canSurvive())return;run=fresh();launchLeg();});
   async function loadBoard(refresh=false){
     if(boardLoading)return;boardLoading=true;$("survivalBoardStatus").setAttribute("aria-busy","true");$("refreshSurvivalBoard").disabled=true;$("survivalBoardStatus").textContent="Loading Survival leaderboard…";
     try{
