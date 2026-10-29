@@ -32,12 +32,15 @@
   document.addEventListener?.("visibilitychange",()=>{if(document.visibilityState==="hidden")stopScreenOn();else if($("tonChallenge").open)startScreenOn();});
   document.addEventListener?.("pointerdown",()=>{if($("tonChallenge").open)startScreenOn();},{passive:true});
   window.addEventListener("pageshow",()=>{if($("tonChallenge").open)startScreenOn();});
-  const soundClips={};let soundGeneration=0;
-  function prepareSounds(){if(typeof window.Audio!=="function")return;for(const name of ["start","miss","hit"]){if(soundClips[name])continue;const clip=new window.Audio(`audio/ton-outs/${name}.wav?v=20261029-media`);clip.preload="auto";clip.playsInline=true;clip.muted=false;clip.volume=1;soundClips[name]=clip;}}
+  const soundClips={};let soundGeneration=0,activeSound=null;
+  function prepareSounds(){if(typeof window.Audio!=="function")return;for(const name of ["start","miss","near-miss","hit"]){if(soundClips[name])continue;const clip=new window.Audio(`audio/ton-outs/${name}.wav?v=20261029-louder`);clip.preload="auto";clip.playsInline=true;clip.muted=false;clip.volume=1;soundClips[name]=clip;}}
   function playSound(name){
     const generation=++soundGeneration,status=$("tonAudioStatus");
     const failed=()=>{if(generation!==soundGeneration)return;status.hidden=false;status.textContent="Sound couldn’t play. Check your device’s media volume and try again.";};
-    try{prepareSounds();const clip=soundClips[name];if(!clip){failed();return;}for(const sound of Object.values(soundClips))sound.pause();clip.muted=false;clip.volume=1;try{clip.currentTime=0;}catch{}
+    try{prepareSounds();const template=soundClips[name];if(!template){failed();return;}
+      // A fresh playback instance avoids seek/replay races on rapid repeated taps.
+      const clip=typeof template.cloneNode==="function"?template.cloneNode(true):template;
+      activeSound?.pause();activeSound=clip;clip.muted=false;clip.volume=1;clip.playsInline=true;try{clip.currentTime=0;}catch{}
       // This must run in the tap handler, before any Firebase await.
       const playing=clip.play();Promise.resolve(playing).then(()=>{if(generation===soundGeneration)status.hidden=true;}).catch(failed);
     }catch{failed();}
@@ -68,7 +71,7 @@
     if(review&&!finished&&finishersFor!==selected){finishersFor=selected;loadFinishers(selected);}
   }
   async function record(hit){
-    if(busy||!user||E.completed(progress).includes(selected)&&!retrying)return;playSound(hit===true?"hit":"miss");
+    if(busy||!user||E.completed(progress).includes(selected)&&!retrying)return;playSound(hit===true?"hit":hit==="near"?"near-miss":"miss");
     if(retrying){retryAttempts++;if(hit==="near")retryNearMisses++;if(hit===true){freshCompletion={total:selected,attempts:retryAttempts,nearMisses:retryNearMisses};retrying=false;practiceMessage=`Practice finish: ${retryAttempts} attempts`;}challenge();return;}
     busy=true;const who=user,rev=revision,total=selected;challenge();
     try{
