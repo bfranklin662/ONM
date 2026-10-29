@@ -1,6 +1,6 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 function nav(mode="ladder"){
-  const events={},mount={innerHTML:""},board={innerHTML:""},location={pathname:mode==="survival"?"/monster-survival.html":"/monster-bot.html",hash:mode==="casual"?"#casual":mode==="leaderboard"?"#leaderboard":"#game",href:""};
+  const events={},mount={innerHTML:""},board={innerHTML:""},location={pathname:mode==="ton"?"/ton-outs.html":mode==="survival"?"/monster-survival.html":"/monster-bot.html",hash:mode==="casual"?"#casual":mode==="leaderboard"?"#leaderboard":"#game",href:""};
   const ctx={document:{getElementById:id=>id==="modeNavigation"?mount:board,querySelector:()=>({addEventListener:(name,fn)=>events[name]=fn})},window:{location,addEventListener(){},getSelection:()=>({toString:()=>""})}};
   vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/monster-game-navigation.js"),"utf8"),ctx);
   const swipe=(dx,dy=0,interactive=false)=>{events.touchstart({touches:[{clientX:200,clientY:200}],target:{closest:()=>interactive?{}:null}});events.touchend({changedTouches:[{clientX:200+dx,clientY:200+dy}]});};return{mount,board,location,swipe};
@@ -10,6 +10,10 @@ test("the same five accessible top tabs highlight the current mode or leaderboar
 });
 test("leaderboard has only Ladder and Survival subtabs, with no Casual leaderboard",()=>{
   const g=nav("leaderboard");assert.equal((g.board.innerHTML.match(/<a /g)||[]).length,3);assert.match(g.board.innerHTML,/#leaderboard/);assert.doesNotMatch(g.board.innerHTML,/Casual/);
+});
+test("Leaderboard tab follows the current game mode",()=>{
+ for(const [mode,path] of [["ladder","monster-bot.html"],["survival","monster-survival.html"]]){const g=nav(mode);assert.ok(g.mount.innerHTML.includes(`<a href="${path}#leaderboard" ><svg`));}
+ assert.ok(nav("ton").mount.innerHTML.includes('<a href="ton-outs.html#leaderboard" ><svg'));
 });
 test("top tabs use matching line icons without a Survival NEW badge",()=>{
   const g=nav();assert.equal((g.mount.innerHTML.match(/<svg /g)||[]).length,5);assert.doesNotMatch(g.mount.innerHTML,/modeNewBadge|>NEW</);assert.doesNotMatch(g.mount.innerHTML,/⚡/);

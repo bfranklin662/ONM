@@ -38,6 +38,14 @@ test("near misses save separately; completed cards show original attempts and re
  const a=await app();a.open(100);await a.node("tonNearMiss").listeners.click();assert.equal(a.data().tonOutsProgress[100].nearMisses,1);assert.equal(a.node("tonAttempts").textContent,"1");await a.node("tonHit").listeners.click();assert.equal(a.node("tonCompletion").hidden,false);assert.equal(a.node("tonPlayArea").hidden,true);assert.match(a.node("tonCompletionAttempts").textContent,/2 attempts/);
  const original=JSON.stringify(a.data().tonOutsProgress),writes=a.writes.length;a.node("tonTryAgain").listeners.click();assert.equal(a.node("tonPlayArea").hidden,false);await a.node("tonNearMiss").listeners.click();await a.node("tonHit").listeners.click();assert.equal(a.writes.length,writes);assert.equal(JSON.stringify(a.data().tonOutsProgress),original);assert.equal(a.node("tonProgress").textContent,"1 / 64 complete");assert.match(a.node("tonCompletionAttempts").textContent,/Practice finish: 2/);
 });
+test("checkout leaderboard uses shared title, toolbar, refresh icon and table layout",()=>{
+ const html=fs.readFileSync(require.resolve("../ton-outs.html"),"utf8");assert.doesNotMatch(html,/Ton\+ Outs leaderboard<\/h2>|class="tonBoardHeading"/);assert.match(html,/class="leaderboardToolbar"/);assert.match(html,/id="refreshTonBoard"[^>]*class="refreshLeaderboard"/);assert.match(html,/class="leaderboardScroll"/);assert.match(html,/id="tonBoardTable" class="leaderboardTable"/);
+});
+test("grid uses tick, play and lock icons without redundant labels or a key",async()=>{
+ const a=await app();let grid=a.node("tonGrid").innerHTML;assert.match(grid,/<small><svg[^>]*><path d="m9 5/);assert.doesNotMatch(grid,/<small>Play/);
+ await a.open(100);await a.node("tonHit").listeners.click();grid=a.node("tonGrid").innerHTML;assert.match(grid,/<small>✓<\/small>/);assert.doesNotMatch(grid,/✓ Complete/);
+ const html=fs.readFileSync(require.resolve("../ton-outs.html"),"utf8");assert.doesNotMatch(html,/class="tonLegend"/);
+});
 test("the grid contains only 64 checkouts, with SVG locks and no duplicate page navigation buttons",async()=>{
  const a=await app(),grid=a.node("tonGrid").innerHTML;assert.equal((grid.match(/data-total=/g)||[]).length,64);for(const n of [159,162,163,165,166,168,169])assert.ok(!grid.includes(`data-total="${n}"`));assert.doesNotMatch(grid,/🔒/);assert.match(grid,/<svg viewBox="0 0 24 24"/);
  const html=fs.readFileSync(require.resolve("../ton-outs.html"),"utf8");assert.doesNotMatch(html,/id="showTonBoard"/);assert.match(html,/id="tonLoading" class="accountLoading"/);assert.match(html,/id="tonBoardLoading" class="accountLoading"/);

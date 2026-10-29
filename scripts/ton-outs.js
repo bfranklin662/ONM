@@ -13,6 +13,7 @@
     }catch{if(total===selected&&!retrying)$("tonFinishersStatus").textContent="Couldn’t load completions. Close and reopen to retry.";}
   }
   const lockIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+  const playIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 11 7-11 7Z"/></svg>';
   let screenLock=null,screenRequest=null,screenWatch=null,wakeActive=false;
   const wantsScreen=()=>wakeActive&&$("tonChallenge").open&&document.visibilityState!=="hidden";
   async function keepScreenOn(){
@@ -48,7 +49,7 @@
     const wins=E.completed(progress);$("tonProgress").textContent=`${wins.length} / ${E.totals.length} complete`;$("tonProgressBar").value=wins.length;
     $("tonPlayerSummary").hidden=!user||!accountReady;$("tonSummaryPercent").textContent=`${Math.round(wins.length/E.totals.length*100)}% complete`;
     if(user){$("tonSummaryName").textContent=accountData.firstName||user.displayName?.split(" ")[0]||"Player";window.ONMGameSummaryIdentity?.render("tonSummary",user,accountData);}
-    $("tonGrid").innerHTML=E.totals.map(n=>{const done=wins.includes(n),available=E.unlocked(n,progress);return `<button type="button" data-total="${n}" class="tonCell ${done?'complete':available?'available':'locked'}" ${available&&user&&accountReady?'':'disabled'} aria-label="${n}: ${done?'complete':available?'play checkout':'locked'}"><strong>${n}</strong><small>${done?'✓ Complete':available?'Play':lockIcon}</small></button>`;}).join("");
+    $("tonGrid").innerHTML=E.totals.map(n=>{const done=wins.includes(n),available=E.unlocked(n,progress);return `<button type="button" data-total="${n}" class="tonCell ${done?'complete':available?'available':'locked'}" ${available&&user&&accountReady?'':'disabled'} aria-label="${n}: ${done?'complete':available?'play checkout':'locked'}"><strong>${n}</strong><small>${done?'✓':available?playIcon:lockIcon}</small></button>`;}).join("");
   }
   function challenge(){
     const done=E.completed(progress).includes(selected);$("tonChallengeTitle").textContent=`${selected} checkout`;
