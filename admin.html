@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
   <link rel="stylesheet" href="styles/admin.css?v=20261021-mobile-status">
   <link rel="icon" type="image/png" href="graphics/favicon1.png">
+  <link rel="stylesheet" href="styles/club-bank.css?v=20261030-owed">
 <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"></head>
 <body>
   <header class="adminHeader">
@@ -29,7 +30,7 @@
         <div>
           <span class="adminEyebrow">Club administration</span>
           <h1>Club management</h1>
-          <p>Manage fixtures, results and player profiles.</p>
+          <p>Manage fixtures, results, player profiles and club funds.</p>
         </div>
         <div id="adminIdentity" class="adminIdentity"></div>
       </div>
@@ -39,6 +40,7 @@
         <button class="adminTab" type="button" data-admin-tab="results">Results</button>
         <button class="adminTab" type="button" data-admin-tab="players">Players</button>
         <button id="adminRequestsTab" class="adminTab hidden" type="button" data-admin-tab="requests">Accounts</button>
+        <button class="adminTab" type="button" data-admin-tab="bank">Bank</button>
       </div>
 
       <section id="fixturesPanel" class="adminPanel">
@@ -103,6 +105,16 @@
         <div id="finesList" class="adminList"></div>
       </section>
 
+      <section id="bankPanel" class="bankShell hidden" aria-label="Club bank">
+<section id="bankGate" class="adminGate"><div class="adminSpinner"></div><p>Checking administrator access…</p></section>
+<section id="bankApp" hidden><div class="bankHeading"><div><span class="adminEyebrow">ONM · 2026/27</span><h2>Club bank</h2><p>Club money in. Club expenses out.</p></div><button id="refreshBank" type="button">↻ Refresh</button></div>
+<p id="bankStatus" role="status" aria-live="polite"></p><div id="bankLoading" class="adminGate" hidden><div class="adminSpinner"></div><p>Loading club accounts…</p></div>
+<div id="bankContent" hidden><section class="bankTotals" aria-label="Club balance"><div class="bankBalance"><span>Club balance</span><strong id="bankBalance">—</strong><small>Money received − expenses, plus any saved club funds</small></div><div><span>Money received</span><strong id="bankIncome">—</strong><small>Confirmed fines, registrations and other income</small></div><div><span>Expenses paid</span><strong id="bankExpenses">—</strong><small>Recorded club expenses</small></div><div><span>Fines owed</span><strong id="bankOwed">—</strong><small>Still outstanding · not included in the balance</small></div></section>
+<section class="bankCard"><h2>Money received · 2026/27</h2><div class="bankBreakdown"><div><span>Fines paid</span><strong id="bankFines">—</strong></div><div><span>Registration paid</span><strong id="bankRegistrations">—</strong></div><div><span>Other income</span><strong id="bankOther">—</strong></div></div><p class="bankNote">Updates automatically from the same payment records as Club admin, including matched bank transfers. Unpaid fines are not included. Registration is £15 per player marked paid. Transfers are not added twice.</p><details><summary>View payments received</summary><div class="bankTableScroll"><table><thead><tr><th>Player</th><th>Type</th><th>Received</th></tr></thead><tbody id="bankPayments"></tbody></table></div></details></section>
+
+<section class="bankCard"><h2>Record a payment</h2><p class="bankNote">Only add expenses already paid or other income already received. Fines and registration payments belong in Club admin, not here.</p><form id="bankEntryForm" class="bankForm"><label>Type<select id="entryType"><option value="expense">Expense paid</option><option value="income">Other income received</option></select></label><label>Date<input id="entryDate" type="date" required></label><label>Amount (£)<input id="entryAmount" inputmode="decimal" type="text" required placeholder="0.00"></label><label class="bankDescription">Description<input id="entryDescription" maxlength="200" required placeholder="e.g. League entry fees"></label><button type="submit">Add entry</button></form></section>
+<section class="bankCard"><h2>Income &amp; expense history</h2><p class="bankNote">Mistakes can be voided, not deleted. Voided entries remain in the audit history but do not affect the balance.</p><div class="bankTableScroll"><table><thead><tr><th>Date</th><th>Description / recorded by</th><th>Amount</th><th>Action</th></tr></thead><tbody id="bankEntries"></tbody></table></div></section></div></section>
+      </section>
       <section id="requestsPanel" class="adminPanel hidden">
         <div class="adminToolbar">
           <div><span class="adminEyebrow">Owner controls</span><h2>Site accounts</h2></div>
@@ -163,6 +175,8 @@
 
   <script src="scripts/firebase-client.js?v=20261028-session-restore"></script>
   <script src="scripts/player-data.js?v=20261016-registration"></script>
-  <script src="scripts/admin.js?v=20261021-owner-accounts"></script>
+  <script src="scripts/admin.js?v=20261030-bank-tab"></script>
+  <script src="scripts/club-bank-engine.js?v=20261030-owed"></script>
+  <script src="scripts/club-bank.js?v=20261030-owed"></script>
 <script src="/scripts/site-ui.js?v=20261028-avatar-fill"></script></body>
 </html>

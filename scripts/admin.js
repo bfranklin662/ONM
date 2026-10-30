@@ -853,6 +853,7 @@
       document.getElementById("playersPanel").classList.toggle("hidden", state.activeTab !== "players");
       document.getElementById("finesPanel").classList.toggle("hidden", state.activeTab !== "fines");
       document.getElementById("requestsPanel").classList.toggle("hidden", state.activeTab !== "requests" || state.user.role !== "owner");
+      document.getElementById("bankPanel").classList.toggle("hidden", state.activeTab !== "bank");
     }));
     document.getElementById("fixtureSeasonFilter").addEventListener("change", renderFixtures);
     document.getElementById("fixtureSearch").addEventListener("input", renderFixtures);

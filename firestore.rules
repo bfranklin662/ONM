@@ -118,6 +118,45 @@ service cloud.firestore {
       allow read, write: if admin();
     }
 
+    // Club cash book: administrators only. Expenses are voided, never deleted.
+    match /clubBankSettings/{seasonId} {
+      allow read: if admin();
+      allow create, update: if admin() && seasonId == "26-27" &&
+        request.resource.data.keys().hasOnly(["openingPence", "updatedAt", "updatedBy", "updatedByName"]) &&
+        request.resource.data.openingPence is int && request.resource.data.openingPence >= -100000000 && request.resource.data.openingPence <= 100000000 &&
+        request.resource.data.updatedAt == request.time && request.resource.data.updatedBy == request.auth.uid &&
+        request.resource.data.updatedByName is string && request.resource.data.updatedByName.size() <= 200;
+      allow delete: if false;
+    }
+
+    match /clubBankOpeningHistory/{entryId} {
+      allow read: if admin();
+      allow create: if admin() &&
+        request.resource.data.keys().hasOnly(["season", "openingPence", "createdAt", "createdBy", "createdByName"]) &&
+        request.resource.data.season == "26-27" && request.resource.data.openingPence is int &&
+        request.resource.data.openingPence >= -100000000 && request.resource.data.openingPence <= 100000000 &&
+        request.resource.data.createdAt == request.time && request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.createdByName is string && request.resource.data.createdByName.size() <= 200;
+      allow update, delete: if false;
+    }
+
+    match /clubBankEntries/{entryId} {
+      allow read: if admin();
+      allow create: if admin() &&
+        request.resource.data.keys().hasOnly(["season", "type", "date", "description", "amountPence", "voided", "createdBy", "createdByName", "createdAt"]) &&
+        request.resource.data.season == "26-27" && request.resource.data.type in ["income", "expense"] &&
+        request.resource.data.date is string && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        request.resource.data.description is string && request.resource.data.description.size() > 0 && request.resource.data.description.size() <= 200 &&
+        request.resource.data.amountPence is int && request.resource.data.amountPence > 0 && request.resource.data.amountPence <= 100000000 &&
+        request.resource.data.voided == false && request.resource.data.createdAt == request.time &&
+        request.resource.data.createdBy == request.auth.uid && request.resource.data.createdByName is string && request.resource.data.createdByName.size() <= 200;
+      allow update: if admin() && resource.data.voided == false && request.resource.data.voided == true &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["voided", "voidedAt", "voidedBy", "voidedByName"]) &&
+        request.resource.data.voidedAt == request.time && request.resource.data.voidedBy == request.auth.uid &&
+        request.resource.data.voidedByName is string && request.resource.data.voidedByName.size() <= 200;
+      allow delete: if false;
+    }
+
     match /dartMatches/{matchId} {
       allow read: if activeMember();
       allow create: if activeMember() &&
