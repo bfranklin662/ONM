@@ -355,7 +355,7 @@ document.addEventListener("DOMContentLoaded", () => {
       leagueTeamsData = await teamsRes.json();
       const today = todayInputValue();
       seasonFixtures = (Array.isArray(fixtures) ? fixtures : [])
-        .filter(fixture => ["Banks League", "Trafalgar League"].includes(fixture.League))
+        .filter(isResultTeamFixture)
         .map(normaliseSeasonFixture)
         .filter(fixture => fixture.dateValue)
         .filter(fixture => fixture.dateValue <= today)
@@ -373,7 +373,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function setCup(isCup) {
+  function setCup(isCup, { save = true } = {}) {
     matchCup.checked = isCup;
 
     cupNoBtn?.classList.toggle("active", !isCup);
@@ -387,8 +387,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (stage) stage.value = "";
     }
 
-    readMatchInfo();
-    saveGameSnapshot();
+    if (save) {
+      readMatchInfo();
+      saveGameSnapshot();
+    }
   }
 
   function todayInputValue() {
@@ -411,15 +413,28 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${match[3]}-${String(monthIndex + 1).padStart(2, "0")}-${String(match[1]).padStart(2, "0")}`;
   }
 
+  function isResultTeamFixture(fixture = {}) {
+    const competition = String(fixture.League || "").trim();
+    const teamMatch = /^(Banks League|Trafalgar League)$/i.test(competition)
+      || /^(Banks Cup|Trafalgar Cup)(?:\s*-|$)/i.test(competition)
+      || /^TRAFALGAR\s*-\s*TDL MEMORIAL TROPHY/i.test(competition);
+    return teamMatch && /^(home|away)$/i.test(String(fixture.HA || "").trim())
+      && !!String(fixture.Opponent || "").trim() && !/^TBC$/i.test(String(fixture.Opponent).trim());
+  }
+
   function normaliseSeasonFixture(fixture = {}, index = 0) {
     const dateValue = fixtureDateValue(fixture.Date);
     const homeAway = String(fixture.HA || "").toLowerCase() === "away" ? "Away" : "Home";
     const opponent = String(fixture.Opponent || "").trim();
-    const league = String(fixture.League || "").trim();
+    const competition = String(fixture.League || "").trim();
+    const cup = !/League$/i.test(competition);
+    const league = /^Banks/i.test(competition) ? "Banks League" : "Trafalgar League";
 
     return {
       ...fixture,
       league,
+      cup,
+      stage: cup ? competition.split(/\s+-\s+/).slice(1).join(" - ") : "",
       opponent,
       homeAway,
       dateValue,
@@ -509,7 +524,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const homeTeam = fixture.homeAway === "Away" ? fixture.opponent : onmTeam;
     const awayTeam = fixture.homeAway === "Away" ? onmTeam : fixture.opponent;
 
-    if (fixtureSummaryLeague) fixtureSummaryLeague.textContent = fixture.league;
+    if (fixtureSummaryLeague) fixtureSummaryLeague.textContent = fixture.cup ? fixture.League : fixture.league;
     if (fixtureSummaryDate) fixtureSummaryDate.textContent = fixtureDateLabel(fixture.dateValue);
     if (fixtureSummaryHome) fixtureSummaryHome.textContent = homeTeam;
     if (fixtureSummaryAway) fixtureSummaryAway.textContent = awayTeam;
@@ -531,7 +546,9 @@ document.addEventListener("DOMContentLoaded", () => {
     matchAwayTeam.value = awayTeam;
     matchDate.value = fixture.dateValue;
     matchVenue.value = fixture.Location || "";
-    if (matchCup) matchCup.checked = false;
+    setCup(Boolean(fixture.cup), { save: false });
+    const stage = document.getElementById("matchStage");
+    if (stage) stage.value = fixture.stage || "";
 
     onmSide = fixture.homeAway === "Away" ? "away" : "home";
 
@@ -568,7 +585,7 @@ document.addEventListener("DOMContentLoaded", () => {
       matchFixture.value = "";
       matchFixture.disabled = true;
       if (fixtureAutofillStatus) {
-        fixtureAutofillStatus.textContent = "There are no unsubmitted Banks or Trafalgar fixtures up to today.";
+        fixtureAutofillStatus.textContent = "There are no unsubmitted Banks or Trafalgar league or cup fixtures up to today.";
         fixtureAutofillStatus.classList.remove("error");
       }
       return;
@@ -578,7 +595,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const currentKey = preferredKey || matchFixture.value;
     matchFixture.innerHTML = visibleFixtures.map(fixture => {
-      const leagueName = fixture.league === "Banks League" ? "Banks" : "Trafalgar";
+      const leagueName = (fixture.league === "Banks League" ? "Banks" : "Trafalgar") + (fixture.cup ? " Cup" : "");
       return `<option value="${escapeHtml(fixture.key)}">${escapeHtml(fixtureDateLabel(fixture.dateValue))} · ${leagueName} · ${escapeHtml(fixture.opponent)} · ${fixture.homeAway}</option>`;
     }).join("");
 
