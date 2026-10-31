@@ -19,15 +19,15 @@
   let knownWins = new Set(), knownScores = {};
   let undoFrame = null, replayVisit = null;
   let initialized = false, exited = false, restarting=false;
-  let lossAnnounced = false, lossVoiceTimer = null, lossSpeechUsed = false;
+  let lossAnnounced = false, lossVoiceTimer = null;
   const ONE_SHOT_LOSS = "You can't intentionally bust your checkout to return to a score of 50 or more. This is one-shot Bull or Bust — better luck next time!";
   function announceLoss() {
-    if(lossAnnounced || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+    if(lossAnnounced) return;
     lossAnnounced = true;
     const speak = () => {
       if(exited) return;
       if(isDartCalloutBusy()) {lossVoiceTimer=setTimeout(speak,100);return;}
-      try {lossSpeechUsed=true;window.speechSynthesis.speak(new window.SpeechSynthesisUtterance("You lose"));} catch {}
+      playDartCallout("bot-lose.m4a");
     };
     speak();
   }
@@ -48,7 +48,7 @@
       // Consume the launch cue so a later refresh is treated as a fresh game.
       const url=new URL(window.location.href);url.searchParams.delete("intro");
       window.history?.replaceState(null,"",url.pathname+url.search+url.hash);
-    } else playDartCallout("game-on.mp3");
+    } else playDartCallout("bot-start.m4a");
   }
   const clone = value => JSON.parse(JSON.stringify(value));
   function humanVisit(visit) {
@@ -97,8 +97,8 @@
     els.submit.disabled = !playable;
     els.input.disabled = !playable;
     els.keypad.querySelectorAll("button").forEach(button => { button.disabled = button.dataset.action === "undo" ? !active || !undoFrame || state.winnerIndex !== null || Boolean(pendingCheckoutPrompt) : !playable; });
-    if (active && state.winnerIndex === null && state.currentPlayer === 1) els.turnMessage.textContent = `${profile.name} is throwing…`;
-    else if (playable && els.names[0].value === "You") els.turnMessage.textContent = "Your turn!";
+    if (active && state.winnerIndex === null && state.currentPlayer === 1) els.turnMessage.textContent = `${profile.name}'s turn`;
+    else if (playable) els.turnMessage.textContent = els.names[0].value === "You" ? "Your turn" : `${els.names[0].value}'s turn`;
   }
   async function saveVictory() {
     if (survival || casual || recorded || !user || state.winnerIndex !== 0) return;
@@ -147,7 +147,8 @@
     let status = $("monsterBotResultStatus");
     if (!status) { status = document.createElement("p"); status.id = "monsterBotResultStatus"; els.molVictoryTitle.after(status); }
     const won = state.winnerIndex === 0;
-    status.textContent = casual ? `${won?"You win!":"You lose."} Casual game — no stats or progress saved.` : won ? (state.players[1].legs === 0 ? "Flawless Victory – Gold Star earned" : "Challenge beaten") : `You lose. ${resultMessage}`;
+    status.textContent = casual ? `${won?"You win!":"You lose."} Casual game — no stats or progress saved.` : won ? (state.players[1].legs === 0 ? "Flawless Victory – Gold Star earned" : "Challenge beaten") : bullMode ? "You lose · One-shot Bull or Bust" : "You lose. Better luck next time!";
+    els.molVictoryOverlay.classList.toggle("bullBustLoss",bullMode&&!won);
     if(survival)status.textContent=won?(survivalRound===10?"All ten Monsters defeated. Survival complete!":`${profile.name} defeated · ${survivalRound}/10 Monsters beaten`):`Run over. Your next attempt starts with ${survivalFirst}.`;
     status.classList.toggle("flawlessResult",!survival&&!casual&&won&&state.players[1].legs===0);
     const attempts=$("monsterBotResultAttempts");
@@ -250,16 +251,12 @@
     if(!initialized||exited||restarting)return;
     const countAttempt=state.winnerIndex!==null||state.players.some(player=>player.legs>0);
     restarting=true;active=false;clearTimeout(timer); clearTimeout(lossVoiceTimer);
+    window.parent?.ONMBotLaunch?.prepareRestart?.(window);
     window.speechSynthesis?.cancel();
     if(typeof clearDartAudioQueue==="function")clearDartAudioQueue();
     $("monsterBotLoadingText").textContent=`Restarting ${profile.name} · ${formatLabel}`;
     $("monsterBotSplash").hidden=false;
-    // Mobile speech synthesis can keep media ducked briefly after cancel().
-    // Keep the restart splash visible until that audio session has released.
-    if(lossSpeechUsed){
-      await new Promise(resolve=>setTimeout(resolve,400));
-      lossSpeechUsed=false;
-    }
+    // Loss is a media clip, so Restart need not wait for speech-session ducking.
     await saving;
     restarting=false;if(exited)return;
     undoFrame=null;replayVisit=null;recorded=false;resultMessage="";saving=null;lossAnnounced=false;

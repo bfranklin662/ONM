@@ -38,6 +38,10 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
   const bot=()=>{const entry=[...timers].find(([,t])=>t.delay===1000);if(entry){timers.delete(entry[0]);entry[1].fn();}};
   return{ctx,state,els,api,writes,stored,timers,score,bot,confirm:(bull=false)=>{bullSelected=bull;api.confirmCheckout();},signOut:()=>authChanged(null)};
 }
+test("bot turn label is compact and checkout prompts have reserved layout space",async()=>{
+ const g=await harness({level:3});g.score(60);assert.equal(g.els.turnMessage.textContent,"Venton Bot's turn");
+ const css=fs.readFileSync(require.resolve('../styles/monster-bot-scorer.css'),'utf8');assert.match(css,/grid-template-rows:36px minmax\(68px,1fr\) 30px 52px/);assert.match(css,/checkoutBox\{display:block;visibility:hidden/);assert.match(css,/checkoutBox.show\{visibility:visible/);assert.match(css,/white-space:nowrap;overflow:hidden;text-overflow:ellipsis/);
+});
 test("Tier 2 scorer enforces entry, uses placeholders and stores separate challenge keys",async()=>{
   const wins=E.LEVELS.slice(0,5).flatMap(p=>E.MODES.map(m=>`${p.level}-${m}`));
   const locked=await harness({level:11,seedWins:wins.filter(key=>!["4","5"].includes(key.split("-")[0])),survivalBest:10});assert.equal(locked.api.canPlay(),false);
@@ -178,7 +182,7 @@ test("bot games open fullscreen with the player's first name and the bot's name"
   assert.equal(g.els.names[1].value,"Billy Bot");
   assert.equal(g.ctx.fullscreen,true);
   assert.equal(g.ctx.document.getElementById("monsterBotSplash").hidden,true);
-  assert.equal(g.ctx.callouts[0].file,"game-on.mp3");
+  assert.equal(g.ctx.callouts[0].file,"bot-start.m4a");
 });
 test("a Game on clip already heard during launch is not announced twice",async()=>{
   const g=await harness({introPlayed:true});
@@ -361,7 +365,7 @@ test("zero or blank visits on any finish lose Bull or Bust, but not standard mod
   for(const remaining of [50,60,100,170]) for(const value of [0,""]) {
     const g=await harness({format:9});g.state.players[0].score=remaining;g.score(value);
     assert.equal(g.state.winnerIndex,1);assert.equal(g.api.canPlay(),false);
-    assert.match(g.ctx.document.getElementById("monsterBotResultStatus").textContent,/one-shot Bull or Bust/);
+    assert.match(g.ctx.document.getElementById("monsterBotResultStatus").textContent,/[Oo]ne-shot Bull or Bust/);
     assert.ok(g.writes.every(w=>!w.data.monsterBotWins));
   }
   const early=await harness({format:9});early.score(0);assert.equal(early.state.winnerIndex,null);
@@ -372,7 +376,7 @@ test("losses announce You lose once where speech is supported and offer Restart"
   g.ctx.window.SpeechSynthesisUtterance=function(text){this.text=text;};
   g.ctx.window.speechSynthesis={speak:utterance=>spoken.push(utterance.text),cancel(){}};
   g.state.players[0].score=50;g.score(0);g.api.afterVisit();
-  assert.deepEqual(spoken,["You lose"]);assert.equal(g.els.molVictoryRematchBtn.textContent,"Restart");
+  assert.deepEqual(spoken,[]);assert.equal(g.ctx.callouts.filter(c=>c.file==="bot-lose.m4a").length,1);assert.equal(g.els.molVictoryRematchBtn.textContent,"Restart");
 });
 test("Restart keeps the authenticated scorer and cancels the previous bot throw",async()=>{
   const g=await harness();g.score(60);
@@ -381,7 +385,7 @@ test("Restart keeps the authenticated scorer and cancels the previous bot throw"
   assert.notEqual(g.ctx.reloaded,true);assert.equal(g.ctx.window.location.href,"");assert.equal(g.state.players[1].score,501);
   assert.equal(g.state.players[0].score,501);assert.equal(g.api.canPlay(),true);assert.equal(g.state.visitHistory.length,0);
 });
-test("Restart waits for loss speech ducking to release before announcing Game on",async()=>{
+test("Restart cancels loss audio and starts the combined cue without speech ducking delay",async()=>{
   const g=await harness({format:9});let cancelled=0;
   g.ctx.window.SpeechSynthesisUtterance=function(text){this.text=text;};
   g.ctx.window.speechSynthesis={speak(){},cancel(){cancelled++;}};
@@ -389,10 +393,9 @@ test("Restart waits for loss speech ducking to release before announcing Game on
   const before=g.ctx.callouts.length,restart=g.api.rematch();
   assert.equal(cancelled,1);assert.equal(g.ctx.callouts.length,before);
   assert.equal(g.ctx.document.getElementById("monsterBotSplash").hidden,false);
-  const recovery=[...g.timers.values()].find(t=>t.delay===400);
-  assert.ok(recovery);recovery.fn();await restart;
+  assert.equal([...g.timers.values()].some(t=>t.delay===400),false);await restart;
   assert.equal(g.ctx.callouts.length,before+1);
-  assert.equal(g.ctx.callouts.at(-1).file,"game-on.mp3");
+  assert.equal(g.ctx.callouts.at(-1).file,"bot-start.m4a");
   assert.equal(g.ctx.document.getElementById("monsterBotSplash").hidden,true);
 });
 test("first-leg restarts reuse an attempt; completed legs and losses start another",async()=>{

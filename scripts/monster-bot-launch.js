@@ -1,6 +1,6 @@
 (function(root){
   "use strict";
-  const GAME_ON=root.ONMNickAudio?.source("game-on.mp3")||"audio/darts/nick-boosted/game-on.m4a?v=20261025-all-nick-v2";
+  const GAME_ON="audio/darts/bot-start.m4a?v=20261031-cues";
   const audio=typeof Audio==="function"?new Audio(GAME_ON):null;
   if(audio){audio.preload="auto";audio.playsInline=true;}
   let busy=false;
@@ -45,7 +45,7 @@
     if(announcedSource===source)return true;
     announcedSource=source;opening=false;
     const splash=document.getElementById("botLaunchSplash");if(splash)splash.hidden=true;
-    if(context)tone(880,context.currentTime,.12);
+    // The beep is baked into GAME_ON, not a suspended Web Audio oscillator.
     if(audio){audio.loop=false;audio.pause();audio.src=GAME_ON;audio.currentTime=0;audio.volume=1;
       try{audio.play()?.catch(()=>{});}catch{}
     }
@@ -82,5 +82,6 @@
     // This call must stay synchronous inside the user's Play/Restart click.
     try{audio.play()?.catch(()=>finish(false));}catch{finish(false);}
   }
-  root.ONMBotLaunch={start,open,ready,celebrate,stop,close,resetAnnouncement,isPlaying:()=>Boolean(audio&&!audio.paused&&audio.src.includes("/game-on.m4a"))};
+  function prepareRestart(source){if(frame?.contentWindow===source){announcedSource=null;prime();}}
+  root.ONMBotLaunch={start,open,ready,celebrate,stop,close,resetAnnouncement,prepareRestart,isPlaying:()=>Boolean(audio&&!audio.paused&&audio.src.includes("/bot-start.m4a"))};
 })(typeof window!=="undefined"?window:globalThis);

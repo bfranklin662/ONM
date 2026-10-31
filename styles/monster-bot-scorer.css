@@ -29,3 +29,32 @@
 .botUnlockSpark{position:absolute;left:50%;top:35%;width:7px;height:7px;border-radius:50%;background:var(--spark-color);pointer-events:none;opacity:0;animation:botUnlockBurst .95s ease-out var(--delay) both}
 @keyframes botUnlockBurst{0%{opacity:0;transform:translate(0,0) scale(.5)}15%{opacity:1}100%{opacity:0;transform:translate(var(--x),var(--y)) scale(.2)}}
 @media(prefers-reduced-motion:reduce){.botUnlockSpark{display:none}}
+/* Compact failure summary keeps Restart within the iPhone viewport. */
+.monsterBotScorer #molVictoryOverlay.bullBustLoss{padding:10px;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+.monsterBotScorer .bullBustLoss .molVictoryCard{padding:16px 14px;max-height:calc(100dvh - 20px);width:min(100%,560px)}
+.monsterBotScorer .bullBustLoss .readyLeagueKicker{font-size:10px;letter-spacing:.1em;margin:0 0 5px}
+.monsterBotScorer .bullBustLoss #molVictoryTitle{font-size:22px;margin:4px 0}
+.monsterBotScorer .bullBustLoss #monsterBotResultStatus{font-size:12px;line-height:1.3;margin:6px 0}
+.monsterBotScorer .bullBustLoss .monsterBotAttemptPill{font-size:11px;margin:6px auto;padding:4px 10px}
+.monsterBotScorer .bullBustLoss .molVictoryPlayers{gap:8px;margin:10px 0}
+.monsterBotScorer .bullBustLoss .molVictoryPlayerCard{min-height:110px;padding:10px 6px;gap:4px;border-radius:12px}
+.monsterBotScorer .bullBustLoss .molVictoryPlayerCard .readyPlayerPhoto{width:48px;height:48px}
+.monsterBotScorer .bullBustLoss .molVictoryPlayerCard strong{font-size:14px;min-height:20px}
+.monsterBotScorer .bullBustLoss .molVictoryPlayerCard .wonPill{font-size:10px;padding:5px 10px}
+.monsterBotScorer .bullBustLoss .molStatsCarousel{margin-top:4px}
+.monsterBotScorer .bullBustLoss .statRow{padding:7px 0;min-height:0;margin:0;font-size:14px}
+.monsterBotScorer .bullBustLoss .statRow strong{font-size:20px}
+.monsterBotScorer .bullBustLoss .molStatsDots{margin:7px 0}
+.monsterBotScorer .bullBustLoss .readyActions{position:sticky;bottom:-1px;margin-top:8px;padding-top:6px;background:#171d1c;z-index:1;gap:8px}
+.monsterBotScorer .bullBustLoss .readyActions button{padding:12px 8px;min-height:44px;font-size:14px}
+.monsterBotScorer .bullBustLoss .statValue{font-size:20px}.monsterBotScorer .bullBustLoss .statLabel{font-size:11px;padding:5px 8px}.monsterBotScorer .bullBustLoss .statLabelWrap{min-width:0}
+/* Reserve checkout space; showing a finish must not shift either stats block. */
+.monsterBotScorer.scorer-fullscreen .playerScoreCard{display:grid;grid-template-rows:46px minmax(76px,1fr) 36px 64px;align-content:stretch}
+.monsterBotScorer.scorer-fullscreen .score{margin:4px 0;align-self:center;font-size:clamp(70px,18vw,110px)}
+.monsterBotScorer.scorer-fullscreen .checkoutBox{display:block;visibility:hidden;align-self:center;justify-self:center;margin:0;max-width:100%;padding:5px 8px;font-size:13px;line-height:1.2;white-space:nowrap}
+.monsterBotScorer.scorer-fullscreen .checkoutBox.show{visibility:visible}
+.monsterBotScorer.scorer-fullscreen .statsGrid{margin:0;align-self:end;gap:4px}
+.monsterBotScorer.scorer-fullscreen .turnMessage{box-sizing:border-box;margin:0;width:50%;height:32px;padding:12px 4px 0;line-height:18px;font-size:clamp(11px,3.4vw,15px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.monsterBotScorer.scorer-fullscreen .turnMessage.playerTwoTurn{margin-left:50%}
+@media(max-width:600px){.monsterBotScorer.scorer-fullscreen .playerScoreCard{grid-template-rows:36px minmax(68px,1fr) 30px 52px;padding:10px 9px}.monsterBotScorer.scorer-fullscreen .score{font-size:clamp(62px,18vw,100px)}.monsterBotScorer.scorer-fullscreen .statsGrid div{font-size:12px;line-height:1.2}.monsterBotScorer.scorer-fullscreen .statsGrid{gap:3px}.monsterBotScorer.scorer-fullscreen .checkoutBox{font-size:12px;padding:4px 6px}}
+@media(max-height:650px){.monsterBotScorer.scorer-fullscreen .playerScoreCard{grid-template-rows:28px minmax(52px,1fr) 24px 44px;padding:6px 8px}.monsterBotScorer.scorer-fullscreen .playerTop{height:28px}.monsterBotScorer.scorer-fullscreen .score{font-size:58px}.monsterBotScorer.scorer-fullscreen .statsGrid div{font-size:11px;line-height:1.15}.monsterBotScorer.scorer-fullscreen .checkoutBox{font-size:11px;padding:3px 5px}.monsterBotScorer.scorer-fullscreen .turnMessage{height:24px;padding-top:8px;line-height:16px;font-size:11px}.monsterBotScorer.scorer-fullscreen .playerScoreCard.activePlayer::after{height:9px;bottom:-9px}}
