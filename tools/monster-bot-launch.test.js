@@ -5,7 +5,7 @@ function harness(fail=false){
   const ctx={window:{},Audio:function(src){audio=this;this.src=src;this.pause=()=>{};this.play=()=>{plays++;return fail?Promise.reject(Error("Blocked")):Promise.resolve();};},setTimeout:fn=>{timers.set(1,fn);return 1;},clearTimeout:id=>timers.delete(id)};
   vm.runInNewContext(source,ctx);return{api:ctx.window.ONMBotLaunch,audio,timers,plays:()=>plays};
 }
-test("start cue includes the beep as media rather than scheduling a suspended oscillator",()=>{
+test("start cue uses the softer chime recording rather than scheduling a suspended oscillator",()=>{
  const ready=source.slice(source.indexOf('function ready('),source.indexOf('function celebrate('));assert.doesNotMatch(ready,/tone\(880/);assert.match(source,/audio\/darts\/bot-start\.m4a/);
  const css=fs.readFileSync(require.resolve('../styles/monster-bot-scorer.css'),'utf8');assert.match(css,/bullBustLoss/);assert.match(css,/100dvh - 20px/);assert.match(css,/position:sticky/);
  for(const name of ['bot-start','bot-lose']){const bytes=fs.readFileSync(require.resolve('../audio/darts/'+name+'.m4a'));assert.ok(bytes.length>5000);assert.equal(bytes.toString('ascii',4,8),'ftyp');}
@@ -33,10 +33,10 @@ test("embedded scorer reveals and announces only when its own ready signal arriv
   ctx.window.ONMBotLaunch.open("dart-scorer.html?mode=bot&level=1&format=3");assert.equal(calls.length,1);
   assert.equal(ctx.window.ONMBotLaunch.ready({}),false);assert.equal(calls.length,1);
   assert.equal(ctx.window.ONMBotLaunch.ready(frame.contentWindow),true);
-  assert.equal(splash.hidden,true);assert.equal(calls[1],"audio/darts/bot-start.m4a?v=20261031-cues");assert.equal(audio.loop,false);assert.equal(audio.currentTime,0);
+  assert.equal(splash.hidden,true);assert.equal(calls[1],"audio/darts/bot-start.m4a?v=20261031-soft-chime");assert.equal(audio.loop,false);assert.equal(audio.currentTime,0);
   assert.equal(ctx.window.ONMBotLaunch.isPlaying(),true);
   ctx.window.ONMBotLaunch.ready(frame.contentWindow);ctx.window.ONMBotLaunch.ready(frame.contentWindow);
-  assert.equal(calls.filter(src=>src==="audio/darts/bot-start.m4a?v=20261031-cues").length,1);
+  assert.equal(calls.filter(src=>src==="audio/darts/bot-start.m4a?v=20261031-soft-chime").length,1);
   ctx.window.ONMBotLaunch.close();ctx.window.ONMBotLaunch.open("dart-scorer.html?mode=bot&level=1&format=3");ctx.window.ONMBotLaunch.ready(frame.contentWindow);
-  assert.equal(calls.filter(src=>src==="audio/darts/bot-start.m4a?v=20261031-cues").length,2);
+  assert.equal(calls.filter(src=>src==="audio/darts/bot-start.m4a?v=20261031-soft-chime").length,2);
 });

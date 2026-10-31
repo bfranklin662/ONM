@@ -1,6 +1,6 @@
 (function(root){
   "use strict";
-  const GAME_ON="audio/darts/bot-start.m4a?v=20261031-cues";
+  const GAME_ON="audio/darts/bot-start.m4a?v=20261031-soft-chime";
   const audio=typeof Audio==="function"?new Audio(GAME_ON):null;
   if(audio){audio.preload="auto";audio.playsInline=true;}
   let busy=false;
@@ -45,7 +45,7 @@
     if(announcedSource===source)return true;
     announcedSource=source;opening=false;
     const splash=document.getElementById("botLaunchSplash");if(splash)splash.hidden=true;
-    // The beep is baked into GAME_ON, not a suspended Web Audio oscillator.
+    // The gentle chime is in the same clip as Game on, keeping both in sync.
     if(audio){audio.loop=false;audio.pause();audio.src=GAME_ON;audio.currentTime=0;audio.volume=1;
       try{audio.play()?.catch(()=>{});}catch{}
     }

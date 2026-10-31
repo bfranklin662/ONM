@@ -923,6 +923,7 @@ function fullyStopDartAudio() {
 }
 
 function dartCalloutSource(fileName) {
+  if (fileName === "bot-start.m4a") return "audio/darts/bot-start.m4a?v=20261031-soft-chime";
   // Boost the recordings themselves: media volume is already at its maximum,
   // and relying on per-element volume changes is inconsistent on phones.
   return window.ONMNickAudio?.source(fileName,DART_VOICE_CREDITS[fileName])||`audio/darts/${fileName}`;
