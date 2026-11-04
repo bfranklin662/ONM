@@ -1,0 +1,32 @@
+const test = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), vm = require("node:vm"), path = require("node:path");
+const source = fs.readFileSync(path.join(__dirname, "../scripts/admin.js"), "utf8");
+test("account row has a compact link button, not an inline selector", () => {
+  const start = source.indexOf("  function accountPlayerControl("), end = source.indexOf("  function openAccountLinker(", start);
+  const context = { state: { user: { role: "owner" } }, escapeHtml: value => value };
+  vm.runInNewContext(source.slice(start, end), context);
+  assert.match(context.accountPlayerControl({ id: "test" }), /Link player/);
+  assert.doesNotMatch(context.accountPlayerControl({ id: "test" }), /select/);
+  assert.match(context.accountPlayerControl({ id: "test", linkedPlayerKey: "old" }), /Change link/);
+  context.state.user.role = "admin";
+  assert.equal(context.accountPlayerControl({ role: "owner" }), "—");
+});
+test("link modal toggles existing and new player fields and disables hidden required inputs", () => {
+  const start = source.indexOf("  function openAccountLinker("), end = source.indexOf("  let accountLinkFunctions;", start);
+  let change, shown = false;
+  const fields = { existingMonsterFields: {}, newMonsterFields: {} }, submit = {};
+  const context = { state: { user: { role: "owner" }, adminRequests: [{ id: "account", firstName: "Test", surname: "Player" }], players: [] }, typeLabel: {}, title: {}, clean: value => value || "", escapeHtml: value => value || "", form: { elements: { linkMode: { value: "existing", addEventListener: (_event, fn) => { change = fn; } } }, querySelector: () => submit }, document: { getElementById: id => fields[id] }, showEditor: () => { shown = true; } };
+  vm.runInNewContext(source.slice(start, end), context);
+  context.openAccountLinker({ dataset: { linkAccount: "account" } });
+  assert.equal(shown, true);
+  assert.match(context.form.innerHTML, /Create new Monster/);
+  assert.match(context.form.innerHTML, /No appearances needed/);
+  context.form.elements.linkMode.value = "new";
+  change();
+  assert.equal(fields.existingMonsterFields.disabled, true);
+  assert.equal(fields.newMonsterFields.disabled, false);
+  assert.equal(fields.newMonsterFields.hidden, false);
+  assert.equal(submit.textContent, "Create & link Monster");
+  context.form.elements.linkMode.value = "existing";
+  change();
+  assert.equal(fields.newMonsterFields.disabled, true);
+});

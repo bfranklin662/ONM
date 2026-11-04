@@ -356,52 +356,64 @@
       .sort((a, b) => clean(a.firstName || a.email).localeCompare(clean(b.firstName || b.email)));
     document.getElementById("adminRequestsTab").textContent = `Accounts (${state.adminRequests.length})`;
     document.getElementById("adminRequestsList").innerHTML = accounts.length
-      ? `<div class="adminTableScroll"><table class="adminMatchTable"><thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Player</th><th>Status</th><th>Access</th><th>Action</th></tr></thead><tbody>${accounts.map(user => `<tr>
+      ? `<div class="adminTableScroll"><table class="adminMatchTable"><thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Player</th><th>Status</th><th>Access</th><th>Admin access</th><th>Player link</th></tr></thead><tbody>${accounts.map(user => `<tr>
         <td>${escapeHtml(`${user.firstName || ""} ${user.surname || ""}`.trim() || "Unnamed")}</td>
         <td>${escapeHtml(user.email)}</td><td>${escapeHtml(user.accountType || "player")}</td>
-        <td>${accountPlayerControl(user)}</td><td>${escapeHtml(user.status)}</td><td>${escapeHtml(user.role || "member")}</td>
+        <td>${escapeHtml(user.linkedPlayerName || "Not linked")}</td><td>${escapeHtml(user.status)}</td><td>${escapeHtml(user.role || "member")}</td>
         <td><div class="adminRowActions">${state.user.role !== "owner" ? "—" : user.role === "owner" ? "Site owner" : user.role === "admin" ? `<button class="adminSmallBtn" type="button" data-review-admin="${escapeHtml(user.id)}" data-decision="rejected">Remove admin</button>` : user.role === "member" && user.status === "Active" ? `<button class="adminSmallBtn" type="button" data-review-admin="${escapeHtml(user.id)}" data-decision="approved">Assign as admin</button>` : "—"}</div></td>
-      </tr>`).join("")}</tbody></table></div>`
+        <td>${accountPlayerControl(user)}</td></tr>`).join("")}</tbody></table></div>`
       : '<div class="adminEmpty">No accounts match this search.</div>';
   }
 
   function accountPlayerControl(user) {
-    if (user.role === "owner" && state.user.role !== "owner") return escapeHtml(user.linkedPlayerName || "Not linked");
+    if (user.role === "owner" && state.user.role !== "owner") return "—";
+    return `<button type="button" class="adminSmallBtn" data-link-account="${escapeHtml(user.id)}">${user.linkedPlayerKey ? "Change link" : "Link player"}</button>`;
+  }
+
+  function openAccountLinker(button) {
+    const user = state.adminRequests.find(account => account.id === button.dataset.linkAccount);
+    if (!user || (user.role === "owner" && state.user.role !== "owner")) return;
+    state.editor = { type: "accountLink", id: user.id, expectedPlayerKey: user.linkedPlayerKey || "" };
+    typeLabel.textContent = "Oche Ness Monsters";
+    title.textContent = "Link player account";
     const options = [...state.players].sort((a, b) => clean(a.fullName || a.publicName).localeCompare(clean(b.fullName || b.publicName))).map(player => {
       const key = player.playerKey || player.id;
       const taken = state.adminRequests.some(account => account.id !== user.id && account.linkedPlayerKey === key);
       return `<option value="${escapeHtml(key)}"${user.linkedPlayerKey === key ? " selected" : ""}${taken ? " disabled" : ""}>${escapeHtml(player.fullName || player.publicName)}${taken ? " (already linked)" : ""}</option>`;
     }).join("");
-    return `<div class="adminFilters"><label>Monster player<select data-account-player="${escapeHtml(user.id)}"><option value="">Select a Monster…</option>${options}</select></label><button type="button" class="adminSmallBtn" data-link-account="${escapeHtml(user.id)}">${user.linkedPlayerKey ? "Update link" : "Link player"}</button></div><small>${escapeHtml(user.linkedPlayerName ? `Currently: ${user.linkedPlayerName}` : "Not linked")}</small>`;
+    form.innerHTML = `<p>${escapeHtml(`${user.firstName || ""} ${user.surname || ""}`.trim() || user.email)}${user.email ? ` · ${escapeHtml(user.email)}` : ""}</p>
+      <p>${escapeHtml(user.linkedPlayerName ? `Currently linked to ${user.linkedPlayerName}. Saving will replace this link.` : "Choose their Monsters player profile, or create one below.")}</p>
+      <label>Link to<select name="linkMode"><option value="existing">Existing Monster</option><option value="new">Create new Monster</option></select></label>
+      <fieldset id="existingMonsterFields" class="adminGrid"><label class="wide">Monster player<select name="playerKey" required><option value="">Choose a Monster…</option>${options}</select></label></fieldset>
+      <fieldset id="newMonsterFields" class="adminGrid" hidden disabled><label>Full name<input name="monsterFullName" maxlength="120" required value="${escapeHtml(`${user.firstName || ""} ${user.surname || ""}`.trim())}"></label><label>Display name<input name="monsterPublicName" maxlength="80" required placeholder="e.g. Phil L"></label><p class="wide">No appearances needed. Starts with no match records or registration payment recorded.</p></fieldset>
+      <p id="accountLinkError" role="alert"></p><div class="adminFormActions"><button class="btn btnGhost" type="button" data-cancel-editor>Cancel</button><button class="btn btnPrimary" type="submit">Link player</button></div>`;
+    form.elements.linkMode.addEventListener("change", () => {
+      const creating = form.elements.linkMode.value === "new";
+      for (const [id, enabled] of [["newMonsterFields", creating], ["existingMonsterFields", !creating]]) {
+        const fields = document.getElementById(id);
+        fields.hidden = !enabled;
+        fields.disabled = !enabled;
+      }
+      form.querySelector('[type="submit"]').textContent = creating ? "Create & link Monster" : "Link player";
+    });
+    showEditor();
   }
 
   let accountLinkFunctions;
-  async function linkAccountPlayer(button) {
-    const account = state.adminRequests.find(user => user.id === button.dataset.linkAccount);
-    const select = button.closest("td").querySelector("select");
-    const player = state.players.find(item => (item.playerKey || item.id) === select.value);
-    if (!account || !player) return showToast("Select a Monsters player first.", true);
-    if (account.linkedPlayerKey === select.value) return showToast("This account is already linked to that player.");
-    if (!window.confirm(`Link ${account.email || account.firstName} to ${player.fullName || player.publicName}?${account.linkedPlayerName ? ` This replaces their link to ${account.linkedPlayerName}.` : ""} Existing player records and account game progress will be kept.`)) return;
-    button.disabled = true;
-    select.disabled = true;
-    button.textContent = "Linking…";
-    try {
+  async function saveAccountLink(data) {
+      const creating = data.get("linkMode") === "new";
+      const accountId = state.editor.id;
+      const payload = { accountId, expectedPlayerKey: state.editor.expectedPlayerKey,
+        ...(creating ? { newPlayer: { fullName: clean(data.get("monsterFullName")), publicName: clean(data.get("monsterPublicName")) } } : { playerKey: clean(data.get("playerKey")) }) };
       const { app } = await window.ONMFirebase.ready;
       accountLinkFunctions ||= import("https://www.gstatic.com/firebasejs/10.12.5/firebase-functions.js");
       const sdk = await accountLinkFunctions;
-      await sdk.httpsCallable(sdk.getFunctions(app, "europe-west2"), "linkAccountToPlayer")({ accountId: account.id, playerKey: select.value, expectedPlayerKey: account.linkedPlayerKey || "" });
-      await loadAdminRequests();
+      const { data: result } = await sdk.httpsCallable(sdk.getFunctions(app, "europe-west2"), "linkAccountToPlayer")(payload);
+      if (result.player) state.players.push({ ...result.player, id: result.player.playerKey });
+      state.adminRequests = state.adminRequests.map(user => user.id === accountId ? { ...user, linkedPlayerKey: result.linkedPlayerKey, linkedPlayerName: result.linkedPlayerName, accountType: "player" } : user);
+      renderAdminRequests();
       state.linkedPlayerKeys = new Set(state.adminRequests.map(user => user.linkedPlayerKey).filter(Boolean));
       renderPlayers();
-      showToast("Account linked to Monsters player.");
-    } catch (error) {
-      showToast(error.message || "Could not link this account. Please try again.", true);
-    } finally {
-      button.disabled = false;
-      select.disabled = false;
-      button.textContent = account.linkedPlayerKey ? "Update link" : "Link player";
-    }
   }
 
   async function reviewAdminRequest(button) {
@@ -554,6 +566,7 @@
   }
 
   function closeEditor() {
+    if (state.editor?.saving) return;
     state.editor = null;
     overlay.classList.add("hidden");
     overlay.setAttribute("aria-hidden", "true");
@@ -920,7 +933,7 @@
       if (!button) return;
       if (button.hasAttribute("data-cancel-editor")) closeEditor();
       if (button.dataset.reviewAdmin) reviewAdminRequest(button);
-      if (button.dataset.linkAccount) linkAccountPlayer(button);
+      if (button.dataset.linkAccount) openAccountLinker(button);
       if (button.dataset.editFixture) openFixtureEditor(state.fixtures.find(item => item.id === button.dataset.editFixture));
       if (button.dataset.editResult) openResultEditor(state.results.find(item => item.id === button.dataset.editResult));
       if (button.dataset.editPlayer) openPlayerEditor(state.players.find(item => item.playerKey === button.dataset.editPlayer));
@@ -934,19 +947,24 @@
       const submit = form.querySelector('[type="submit"]');
       submit.disabled = true;
       submit.textContent = "Saving…";
+      state.editor.saving = true;
       try {
         const data = new FormData(form);
         if (state.editor.type === "fixture") await saveFixture(data);
         else if (state.editor.type === "result") await saveResult(data);
+        else if (state.editor.type === "accountLink") await saveAccountLink(data);
         else await savePlayer(data);
-        const label = state.editor.type === "fixture" ? "Fixture" : state.editor.type === "result" ? "Result" : "Player";
+        const label = state.editor.type === "accountLink" ? "Player link" : state.editor.type === "fixture" ? "Fixture" : state.editor.type === "result" ? "Result" : "Player";
+        state.editor.saving = false;
         closeEditor();
         showToast(`${label} saved. The live website has been updated.`);
       } catch (error) {
         console.error(error);
+        state.editor.saving = false;
+        if (state.editor.type === "accountLink") document.getElementById("accountLinkError").textContent = error.message || "Could not link this account.";
         showToast(error.message || "Could not save those changes.", true);
         submit.disabled = false;
-        submit.textContent = state.editor.type === "fixture" ? "Save fixture" : state.editor.type === "result" ? "Save result" : "Save player";
+        submit.textContent = state.editor.type === "accountLink" ? (form.elements.linkMode.value === "new" ? "Create & link Monster" : "Link player") : state.editor.type === "fixture" ? "Save fixture" : state.editor.type === "result" ? "Save result" : "Save player";
       }
     });
   }
