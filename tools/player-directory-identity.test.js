@@ -12,3 +12,6 @@ test('directory waits for restored Firebase auth and retries on focus instead of
  const s=fs.readFileSync(require.resolve('../scripts/fines.js'),'utf8'),loader=s.slice(s.indexOf('async function loadSignedInPlayerDirectory('),s.indexOf('  let resultSubmitData'));
  assert.match(loader,/await window.ONMFirebase.currentFirebaseUser\(\)/);assert.doesNotMatch(loader,/ONMSession\?\.getUser/);assert.match(s,/if \(!signedInPlayerDirectory.length\) loadSignedInPlayerDirectory\(\)/);assert.match(s,/player.aliases \|\| \[\]/);
 });
+test('both match routes request fresh identity and directory scripts',()=>{
+ for(const file of ['match.html','match/index.html']){const html=fs.readFileSync(require.resolve('../'+file),'utf8');assert.match(html,/firebase-client.js\?v=20261104-player-identity/);assert.match(html,/scripts\/fines.js\?v=20261104-player-directory/);}
+});
