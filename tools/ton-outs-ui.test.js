@@ -16,7 +16,7 @@ test("checkout timer survives counter updates, stops on hit and resets for next 
  now+=65000;draw();assert.equal(a.node("tonTimer").textContent,"1:05");
  await a.node("tonNearMiss").listeners.click();now+=2000;draw();assert.equal(a.node("tonTimer").textContent,"1:07");
  await a.node("tonMiss").listeners.click();assert.equal(a.node("tonTimer").textContent,"1:07");
- await a.node("tonHit").listeners.click();now+=10000;draw();assert.equal(a.node("tonTimer").textContent,"1:07");assert.match(a.node("tonCompletionAttempts").textContent,/Time: 1:07/);
+ await a.node("tonHit").listeners.click();now+=10000;draw();assert.equal(a.node("tonTimer").textContent,"1:07");assert.equal(a.node("tonCompletionTime").textContent,"1:07");
  assert.doesNotMatch(JSON.stringify(a.data()),/elapsed|timer|duration/);
  a.node("tonNext").listeners.click();assert.equal(a.node("tonTimer").textContent,"0:00");
  now+=3000;draw();assert.equal(a.node("tonTimer").textContent,"0:03");
@@ -24,8 +24,8 @@ test("checkout timer survives counter updates, stops on hit and resets for next 
 });
 test("completed checkout review does not run a timer; practice gets a fresh timer",async()=>{
  const a=await app();let now=0,id=0;const timers=new Map();a.ctx.Date={now:()=>now};a.ctx.window.setInterval=fn=>{timers.set(++id,fn);return id;};a.ctx.window.clearInterval=key=>timers.delete(key);
- a.open(100);now=9000;await a.node("tonHit").listeners.click();a.open(100);now=19000;for(const fn of timers.values())fn();assert.equal(a.node("tonTimer").textContent,"0:09");assert.doesNotMatch(a.node("tonCompletionAttempts").textContent,/Time:/);
- a.node("tonTryAgain").listeners.click();now=23000;for(const fn of timers.values())fn();assert.equal(a.node("tonTimer").textContent,"0:04");await a.node("tonHit").listeners.click();assert.match(a.node("tonCompletionAttempts").textContent,/Time: 0:04/);
+ a.open(100);now=9000;await a.node("tonHit").listeners.click();a.open(100);now=19000;for(const fn of timers.values())fn();assert.equal(a.node("tonTimer").textContent,"0:09");assert.equal(a.node("tonCompletionTimeRow").hidden,true);
+ a.node("tonTryAgain").listeners.click();now=23000;for(const fn of timers.values())fn();assert.equal(a.node("tonTimer").textContent,"0:04");await a.node("tonHit").listeners.click();assert.equal(a.node("tonCompletionTime").textContent,"0:04");
 });
 async function app(signedIn=true,{holdProgress=false}={}){
  const nodes=new Map(),writes=[],events={};let data={status:"Active",tonOutsProgress:{}},watch;
@@ -37,11 +37,18 @@ async function app(signedIn=true,{holdProgress=false}={}){
 test("signed-in visit saves misses, successful hits, next unlock and review without duplicate awards",async()=>{
  const a=await app();a.open(100);assert.equal(a.node("tonChallenge").open,true);await a.node("tonMiss").listeners.click();await tick();assert.equal(a.data().tonOutsProgress[100].misses,1);assert.equal(a.node("tonAttempts").textContent,"1");await a.node("tonHit").listeners.click();await tick();assert.equal(a.node("tonProgress").textContent,"1 / 64 complete");assert.equal(a.node("tonAttempts").textContent,"2");assert.equal(a.node("tonNext").hidden,false);assert.equal(a.node("tonHit").disabled,true);a.node("tonNext").listeners.click();assert.equal(a.node("tonChallengeTitle").textContent,"101 checkout");
 });
+test("completion stats use three vertically stacked labelled rows",()=>{
+ const html=fs.readFileSync(require.resolve("../ton-outs.html"),"utf8"),css=fs.readFileSync(require.resolve("../styles/ton-outs.css"),"utf8");
+ assert.match(html,/<dl><div><dt>Attempts<\/dt><dd id="tonCompletionAttempts"/);
+ assert.match(html,/<div><dt>Near misses<\/dt><dd id="tonCompletionNearMisses"/);
+ assert.match(html,/<div id="tonCompletionTimeRow" hidden><dt>Time<\/dt>/);
+ assert.match(css,/\.tonCompletionStats dl\{[^}]*display:grid/);
+});
 test("fresh completion shows both counters and only Next; reopening offers Try again without Next",async()=>{
  const a=await app();a.open(100);await a.node("tonNearMiss").listeners.click();await a.node("tonHit").listeners.click();
- assert.match(a.node("tonCompletionAttempts").textContent,/2 attempts · Near misses: 1/);assert.equal(a.node("tonNext").hidden,false);assert.equal(a.node("tonTryAgain").hidden,true);assert.equal(a.node("tonCompletionPlayers").hidden,true);
+ assert.equal(a.node("tonCompletionAttempts").textContent,"2");assert.equal(a.node("tonCompletionNearMisses").textContent,"1");assert.equal(a.node("tonNext").hidden,false);assert.equal(a.node("tonTryAgain").hidden,true);assert.equal(a.node("tonCompletionPlayers").hidden,true);
  a.open(100);assert.equal(a.node("tonNext").hidden,true);assert.equal(a.node("tonTryAgain").hidden,false);assert.equal(a.node("tonCompletionPlayers").hidden,false);
- a.node("tonTryAgain").listeners.click();await a.node("tonNearMiss").listeners.click();await a.node("tonNearMiss").listeners.click();await a.node("tonHit").listeners.click();assert.match(a.node("tonCompletionAttempts").textContent,/3 attempts · Near misses: 2/);assert.equal(a.node("tonTryAgain").hidden,true);
+ a.node("tonTryAgain").listeners.click();await a.node("tonNearMiss").listeners.click();await a.node("tonNearMiss").listeners.click();await a.node("tonHit").listeners.click();assert.equal(a.node("tonCompletionAttempts").textContent,"3");assert.equal(a.node("tonCompletionNearMisses").textContent,"2");assert.equal(a.node("tonTryAgain").hidden,true);
 });
 test("guests see locked challenge controls and do not write any progress",async()=>{const a=await app(false);assert.match(a.node("tonStatus").innerHTML,/Sign up or log in/);a.node("tonHit").listeners.click();await tick();assert.equal(a.writes.length,0);});
 test("Ton+ Outs shows signed-in identity and completion progress in the shared player card",async()=>{
@@ -62,8 +69,8 @@ test("near miss counter sits alongside attempts and includes practice attempts",
  a.open(101);assert.equal(a.node("tonNearMisses").textContent,"0");
 });
 test("near misses save separately; completed cards show original attempts and retries cannot add awards",async()=>{
- const a=await app();a.open(100);await a.node("tonNearMiss").listeners.click();assert.equal(a.data().tonOutsProgress[100].nearMisses,1);assert.equal(a.node("tonAttempts").textContent,"1");await a.node("tonHit").listeners.click();assert.equal(a.node("tonCompletion").hidden,false);assert.equal(a.node("tonPlayArea").hidden,true);assert.match(a.node("tonCompletionAttempts").textContent,/2 attempts/);
- const original=JSON.stringify(a.data().tonOutsProgress),writes=a.writes.length;a.node("tonTryAgain").listeners.click();assert.equal(a.node("tonPlayArea").hidden,false);await a.node("tonNearMiss").listeners.click();await a.node("tonHit").listeners.click();assert.equal(a.writes.length,writes);assert.equal(JSON.stringify(a.data().tonOutsProgress),original);assert.equal(a.node("tonProgress").textContent,"1 / 64 complete");assert.match(a.node("tonCompletionAttempts").textContent,/Practice finish: 2/);
+ const a=await app();a.open(100);await a.node("tonNearMiss").listeners.click();assert.equal(a.data().tonOutsProgress[100].nearMisses,1);assert.equal(a.node("tonAttempts").textContent,"1");await a.node("tonHit").listeners.click();assert.equal(a.node("tonCompletion").hidden,false);assert.equal(a.node("tonPlayArea").hidden,true);assert.equal(a.node("tonCompletionAttempts").textContent,"2");
+ const original=JSON.stringify(a.data().tonOutsProgress),writes=a.writes.length;a.node("tonTryAgain").listeners.click();assert.equal(a.node("tonPlayArea").hidden,false);await a.node("tonNearMiss").listeners.click();await a.node("tonHit").listeners.click();assert.equal(a.writes.length,writes);assert.equal(JSON.stringify(a.data().tonOutsProgress),original);assert.equal(a.node("tonProgress").textContent,"1 / 64 complete");assert.equal(a.node("tonCompletionTitle").textContent,"✓ Practice complete");assert.equal(a.node("tonCompletionAttempts").textContent,"2");
 });
 test("checkout leaderboard uses shared title, toolbar, refresh icon and table layout",()=>{
  const html=fs.readFileSync(require.resolve("../ton-outs.html"),"utf8");assert.doesNotMatch(html,/Ton\+ Outs leaderboard<\/h2>|class="tonBoardHeading"/);assert.match(html,/class="leaderboardToolbar"/);assert.match(html,/id="refreshTonBoard"[^>]*class="refreshLeaderboard"/);assert.match(html,/class="leaderboardScroll"/);assert.match(html,/id="tonBoardTable" class="leaderboardTable"/);

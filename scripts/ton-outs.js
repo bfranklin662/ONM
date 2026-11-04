@@ -74,7 +74,11 @@
     const review=done&&!retrying;$("tonPlayArea").hidden=review;$("tonCompletion").hidden=!review;
     if(review)stopTimer();
     const finished=freshCompletion?.total===selected?freshCompletion:null;
-    $("tonCompletionAttempts").textContent=`✓ Completed in ${finished?.attempts??E.attempts(progress[selected])} attempts · Near misses: ${finished?.nearMisses??(Number(progress[selected]?.nearMisses)||0)}${finished?' · Time: '+formatTime(timerValue()):''}${practiceMessage?' · '+practiceMessage:''}`;
+    $("tonCompletionTitle").textContent=practiceMessage?"✓ Practice complete":"✓ Checkout complete";
+    $("tonCompletionAttempts").textContent=String(finished?.attempts??E.attempts(progress[selected]));
+    $("tonCompletionNearMisses").textContent=String(finished?.nearMisses??(Number(progress[selected]?.nearMisses)||0));
+    $("tonCompletionTimeRow").hidden=!finished;
+    $("tonCompletionTime").textContent=finished?formatTime(timerValue()):"";
     $("tonCompletionPlayers").hidden=!!finished;
     $("tonTryAgain").hidden=!!finished;
     $("tonMiss").disabled=busy||review;$("tonNearMiss").disabled=busy||review;$("tonHit").disabled=busy||review;$("tonChallengeActions").hidden=review;$("tonNext").hidden=!review||!finished||!current();
