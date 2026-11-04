@@ -32,6 +32,12 @@ const service = createAvailabilityService({
 });
 
 const options = { region: "europe-west2", maxInstances: 2, concurrency: 10, timeoutSeconds: 30, memory: "256MiB", serviceAccount: "765901984167-compute@developer.gserviceaccount.com" };
+const { createAccountLinker } = require("./account-link");
+exports.linkAccountToPlayer = onCall(options, createAccountLinker({
+  db: getFirestore(),
+  timestamp: () => require("firebase-admin/firestore").FieldValue.serverTimestamp(),
+  fail: (code, message) => new HttpsError(code, message)
+}));
 // Connection check only. Does not read a transaction feed or change balances.
 exports.checkStarlingConnection = onCall({...options,secrets:[starlingToken]}, async request => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Sign in as an administrator.");

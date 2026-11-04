@@ -336,7 +336,7 @@
   }
 
   async function loadAdminRequests() {
-    if (state.user.role !== "owner") return;
+    if (!["owner", "admin"].includes(state.user.role)) return;
     const list = document.getElementById("adminRequestsList");
     list.innerHTML = '<div class="adminEmpty">Loading site accounts…</div>';
     try {
@@ -359,10 +359,49 @@
       ? `<div class="adminTableScroll"><table class="adminMatchTable"><thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Player</th><th>Status</th><th>Access</th><th>Action</th></tr></thead><tbody>${accounts.map(user => `<tr>
         <td>${escapeHtml(`${user.firstName || ""} ${user.surname || ""}`.trim() || "Unnamed")}</td>
         <td>${escapeHtml(user.email)}</td><td>${escapeHtml(user.accountType || "player")}</td>
-        <td>${escapeHtml(user.linkedPlayerName || "Not linked")}</td><td>${escapeHtml(user.status)}</td><td>${escapeHtml(user.role || "member")}</td>
-        <td><div class="adminRowActions">${user.role === "owner" ? "Site owner" : user.role === "admin" ? `<button class="adminSmallBtn" type="button" data-review-admin="${escapeHtml(user.id)}" data-decision="rejected">Remove admin</button>` : user.role === "member" && user.status === "Active" ? `<button class="adminSmallBtn" type="button" data-review-admin="${escapeHtml(user.id)}" data-decision="approved">Assign as admin</button>` : "—"}</div></td>
+        <td>${accountPlayerControl(user)}</td><td>${escapeHtml(user.status)}</td><td>${escapeHtml(user.role || "member")}</td>
+        <td><div class="adminRowActions">${state.user.role !== "owner" ? "—" : user.role === "owner" ? "Site owner" : user.role === "admin" ? `<button class="adminSmallBtn" type="button" data-review-admin="${escapeHtml(user.id)}" data-decision="rejected">Remove admin</button>` : user.role === "member" && user.status === "Active" ? `<button class="adminSmallBtn" type="button" data-review-admin="${escapeHtml(user.id)}" data-decision="approved">Assign as admin</button>` : "—"}</div></td>
       </tr>`).join("")}</tbody></table></div>`
       : '<div class="adminEmpty">No accounts match this search.</div>';
+  }
+
+  function accountPlayerControl(user) {
+    if (user.role === "owner" && state.user.role !== "owner") return escapeHtml(user.linkedPlayerName || "Not linked");
+    const options = [...state.players].sort((a, b) => clean(a.fullName || a.publicName).localeCompare(clean(b.fullName || b.publicName))).map(player => {
+      const key = player.playerKey || player.id;
+      const taken = state.adminRequests.some(account => account.id !== user.id && account.linkedPlayerKey === key);
+      return `<option value="${escapeHtml(key)}"${user.linkedPlayerKey === key ? " selected" : ""}${taken ? " disabled" : ""}>${escapeHtml(player.fullName || player.publicName)}${taken ? " (already linked)" : ""}</option>`;
+    }).join("");
+    return `<div class="adminFilters"><label>Monster player<select data-account-player="${escapeHtml(user.id)}"><option value="">Select a Monster…</option>${options}</select></label><button type="button" class="adminSmallBtn" data-link-account="${escapeHtml(user.id)}">${user.linkedPlayerKey ? "Update link" : "Link player"}</button></div><small>${escapeHtml(user.linkedPlayerName ? `Currently: ${user.linkedPlayerName}` : "Not linked")}</small>`;
+  }
+
+  let accountLinkFunctions;
+  async function linkAccountPlayer(button) {
+    const account = state.adminRequests.find(user => user.id === button.dataset.linkAccount);
+    const select = button.closest("td").querySelector("select");
+    const player = state.players.find(item => (item.playerKey || item.id) === select.value);
+    if (!account || !player) return showToast("Select a Monsters player first.", true);
+    if (account.linkedPlayerKey === select.value) return showToast("This account is already linked to that player.");
+    if (!window.confirm(`Link ${account.email || account.firstName} to ${player.fullName || player.publicName}?${account.linkedPlayerName ? ` This replaces their link to ${account.linkedPlayerName}.` : ""} Existing player records and account game progress will be kept.`)) return;
+    button.disabled = true;
+    select.disabled = true;
+    button.textContent = "Linking…";
+    try {
+      const { app } = await window.ONMFirebase.ready;
+      accountLinkFunctions ||= import("https://www.gstatic.com/firebasejs/10.12.5/firebase-functions.js");
+      const sdk = await accountLinkFunctions;
+      await sdk.httpsCallable(sdk.getFunctions(app, "europe-west2"), "linkAccountToPlayer")({ accountId: account.id, playerKey: select.value, expectedPlayerKey: account.linkedPlayerKey || "" });
+      await loadAdminRequests();
+      state.linkedPlayerKeys = new Set(state.adminRequests.map(user => user.linkedPlayerKey).filter(Boolean));
+      renderPlayers();
+      showToast("Account linked to Monsters player.");
+    } catch (error) {
+      showToast(error.message || "Could not link this account. Please try again.", true);
+    } finally {
+      button.disabled = false;
+      select.disabled = false;
+      button.textContent = account.linkedPlayerKey ? "Update link" : "Link player";
+    }
   }
 
   async function reviewAdminRequest(button) {
@@ -855,7 +894,7 @@
       document.getElementById("resultsPanel").classList.toggle("hidden", state.activeTab !== "results");
       document.getElementById("playersPanel").classList.toggle("hidden", state.activeTab !== "players");
       document.getElementById("finesPanel").classList.toggle("hidden", state.activeTab !== "fines");
-      document.getElementById("requestsPanel").classList.toggle("hidden", state.activeTab !== "requests" || state.user.role !== "owner");
+      document.getElementById("requestsPanel").classList.toggle("hidden", state.activeTab !== "requests");
       document.getElementById("bankPanel").classList.toggle("hidden", state.activeTab !== "bank");
     }));
     document.getElementById("fixtureSeasonFilter").addEventListener("change", renderFixtures);
@@ -881,6 +920,7 @@
       if (!button) return;
       if (button.hasAttribute("data-cancel-editor")) closeEditor();
       if (button.dataset.reviewAdmin) reviewAdminRequest(button);
+      if (button.dataset.linkAccount) linkAccountPlayer(button);
       if (button.dataset.editFixture) openFixtureEditor(state.fixtures.find(item => item.id === button.dataset.editFixture));
       if (button.dataset.editResult) openResultEditor(state.results.find(item => item.id === button.dataset.editResult));
       if (button.dataset.editPlayer) openPlayerEditor(state.players.find(item => item.playerKey === button.dataset.editPlayer));
@@ -947,7 +987,7 @@
       renderResults();
       renderPlayers();
       renderFines();
-      if (state.user.role === "owner") {
+      if (["owner", "admin"].includes(state.user.role)) {
         document.getElementById("adminRequestsTab").classList.remove("hidden");
         await loadAdminRequests();
       }
