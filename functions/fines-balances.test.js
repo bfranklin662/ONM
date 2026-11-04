@@ -9,9 +9,13 @@ test("balances use season results, subtract payments and count each appearance o
   const rows=buildFineBalances([{id:"nick",publicName:"Nick H",fullName:"Nick Horne",email:"private"}],[{season:"26-27",sheetRow:{Player1:"Nick H",F1:"£3.50",Player2:"Nick Horne",F2:"1"}},{season:"26-27",sheetRow:{Player1:"Nick H",F1:"2"}},{season:"25-26",sheetRow:{Player1:"Nick H",F1:100}}],[{season:"26-27",playerKey:"nick",amountPaidPence:300}]);
   assert.deepEqual(rows,[{playerKey:"nick",name:"Nick Horne",registrationPaid:false,appearances:2,issuedPence:650,paidPence:300,owedPence:350}]);assert.ok(!JSON.stringify(rows).includes("private"));
 });
-test("unmatched players remain visible, invalid fines are ignored, and overpayments never produce negative debt",()=>{
+test("unmatched players remain visible, invalid fines are ignored, and overpayments remain as credit for future fines",()=>{
   const rows=buildFineBalances([{id:"a",publicName:"Alex"}],[{season:"26-27",sheetRow:{"Player 1":"Guest","F 1":"1.25",Player2:"Alex",F2:"bad"}}],[{season:"26-27",playerKey:"a",amountPaidPence:400}]);
-  assert.equal(rows[0].name,"Guest");assert.equal(rows[0].owedPence,125);assert.equal(rows[1].owedPence,0);assert.equal(rows[1].paidPence,400);
+  assert.equal(rows[0].name,"Guest");assert.equal(rows[0].owedPence,125);assert.equal(rows[1].owedPence,-400);assert.equal(rows[1].paidPence,400);
+});
+test("credit automatically offsets new fines without changing recorded cash received",()=>{
+ const players=[{id:"nick",publicName:"Nick"}],payments=[{season:"26-27",playerKey:"nick",amountPaidPence:1000}],results=[{season:"26-27",sheetRow:{Player1:"Nick",F1:5}}];
+ assert.equal(buildFineBalances(players,results,payments)[0].owedPence,-500);results.push({season:"26-27",sheetRow:{Player1:"Nick",F1:3}});assert.equal(buildFineBalances(players,results,payments)[0].owedPence,-200);results.push({season:"26-27",sheetRow:{Player1:"Nick",F1:4}});const balance=buildFineBalances(players,results,payments)[0];assert.equal(balance.owedPence,200);assert.equal(balance.paidPence,1000);
 });
 test("players without appearances are excluded and registration status follows the selected season",()=>{
   const rows=buildFineBalances([{id:"played",publicName:"Played",registrationPaidSeasons:["26-27"]},{id:"unused",publicName:"Unused",registrationPaidSeasons:["26-27"]}],[{season:"26-27",sheetRow:{Player1:"Played",F1:"2"}}],[]);

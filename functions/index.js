@@ -81,7 +81,7 @@ exports.getFinesPaymentInstructions=onCall(options,async request=>{
   const [p,r,pay,ref]=await Promise.all([db.collection("players").doc(key).get(),db.collection("results").where("season","==",season).get(),db.collection("finePayments").where("season","==",season).get(),db.collection("finePaymentReferences").doc(key).get()]);
   if(!p.exists||!ref.exists)throw new HttpsError("failed-precondition","Refresh your fines page to create payment instructions.");
   const unpack=s=>s.docs.map(d=>({id:d.id,...d.data()})),mine=buildFineBalances([{id:p.id,...p.data()}],unpack(r),unpack(pay),season,true).find(row=>row.playerKey===key);
-  const finesPence=type==="registration"?0:mine?.owedPence||0,registrationPence=type==="fines"||p.data().registrationPaidSeasons?.includes(season)?0:1500;
+  const finesPence=type==="registration"?0:Math.max(0,mine?.owedPence||0),registrationPence=type==="fines"||p.data().registrationPaidSeasons?.includes(season)?0:1500;
   if(!finesPence&&!registrationPence)throw new HttpsError("failed-precondition","You have nothing to pay.");
   const baseline=pay.docs.find(d=>d.id===`${season}__${key}`)?.data().amountPaidPence||0;
   const intentId=type==="combined"?key:`${key}__${type}`;

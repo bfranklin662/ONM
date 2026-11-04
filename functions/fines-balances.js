@@ -8,7 +8,7 @@ function buildFineBalances(players,results,payments,season="26-27",includeUnused
     for(let i=1;i<=12;i++){const name=clean(row[`Player${i}`]??row[`Player ${i}`]);if(!name)continue;const id=aliases.get(key(name))||`unmatched:${key(name)}`;if(!rows.has(id))rows.set(id,{playerKey:id,name,appearances:0,issuedPence:0,paidPence:0,owedPence:0});const total=rows.get(id);if(!seen.has(id)){total.appearances++;seen.add(id);}const amount=Number(clean(row[`F${i}`]??row[`F ${i}`]).replace(/[£,\s]/g,""));if(Number.isFinite(amount)&&amount>0)total.issuedPence+=Math.round(amount*100);}
   }
   for(const p of payments){const row=rows.get(p.playerKey),amount=Number(p.amountPaidPence);if(p.season===season&&row&&Number.isSafeInteger(amount)&&amount>0)row.paidPence+=amount;}
-  return [...rows.values()].filter(r=>includeUnused||r.appearances>0).map(r=>({...r,registrationPaid:Boolean(r.registrationPaid),owedPence:Math.max(0,r.issuedPence-r.paidPence)})).sort((a,b)=>b.owedPence-a.owedPence||b.appearances-a.appearances||a.name.localeCompare(b.name));
+  return [...rows.values()].filter(r=>includeUnused||r.appearances>0).map(r=>({...r,registrationPaid:Boolean(r.registrationPaid),owedPence:r.issuedPence-r.paidPence})).sort((a,b)=>b.owedPence-a.owedPence||b.appearances-a.appearances||a.name.localeCompare(b.name));
 }
 function buildFineHistory(player,results,season="26-27"){
   if(!player)return [];

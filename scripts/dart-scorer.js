@@ -10,7 +10,7 @@ window.STATS_MODE = STATS_MODE;
 
 const params = new URLSearchParams(window.location.search);
 const BOT_MODE = params.get("mode") === "bot";
-const PAGE_MODE = params.get("mode") === "league" ? "league" : "casual";
+const PAGE_MODE = ["league","versus"].includes(params.get("mode")) ? "league" : "casual";
 
 function lockScorerZoom() {
   document.addEventListener("gesturestart", event => event.preventDefault(), { passive: false });
@@ -511,7 +511,7 @@ function getMatchFormatLabel(gameType = "bestOf", legsCount = 3) {
 }
 
 function getMatchInviteText(hostName, gameType = "bestOf", legsCount = 3) {
-  return `${hostName} has invited you to a competitive leaderboard ${getMatchFormatLabel(gameType, legsCount)} game.`;
+  return `${hostName} has invited you to a friendly online ${getMatchFormatLabel(gameType, legsCount)} game.`;
 }
 
 function showLeagueResumePrompt(match) {
@@ -1382,8 +1382,8 @@ function buildMatchStatsData() {
   const p2Stats = playerStatsFromFirebase(firebaseP2);
 
   function buildPlayerData(index, key, name, nationality, photo, firebasePlayer) {
-    const isWinner = match.ratingChange?.winnerKey === key;
-    const isLoser = match.ratingChange?.loserKey === key;
+    const isWinner = (match.winnerKey || match.ratingChange?.winnerKey) === key;
+    const isLoser = (match.loserKey || match.ratingChange?.loserKey) === key;
 
     const oldRating = isWinner
       ? Number(match.ratingChange?.winnerOldRating || 1000)
@@ -1607,7 +1607,7 @@ function openMolVictoryScreen(matchData) {
     els.molVictoryOverlay.dataset.resultMode = isCasualResult ? "casual" : "online";
   }
   if (kicker) {
-    kicker.textContent = isCasualResult ? "Casual darts match" : "Monsters Online League";
+    kicker.textContent = isCasualResult ? "Casual darts match" : "Monsters Versus";
   }
 
   const p1 = matchData.players[0];
@@ -1896,8 +1896,8 @@ async function openOpponentModal() {
       <div class="molInviteHead">
         <img src="graphics/logoWoText.png" alt="">
         <div>
-          <h2>Monsters Online League</h2>
-          <span>Leaderboard match</span>
+          <h2>Monsters Versus</h2>
+          <span>Friendly match · Averages tracked</span>
         </div>
       </div>
 
@@ -2367,7 +2367,7 @@ function listenForInviteResponse(inviteId, playerName) {
         <div class="linkErrorIcon">×</div>
         <strong>Invite not delivered</strong>
         <div class="muted">
-          ${playerName} did not receive the invite. They may need to refresh the Monsters Online League page.
+          ${playerName} did not receive the invite. They may need to refresh the Monsters Versus page.
         </div>
         <button type="button" class="btn btnPrimary" onclick="openOpponentModal()">
           Try again
@@ -4148,7 +4148,7 @@ function buildRatingHistoryEntry({
     format: `BO${legsCount}`,
     score: `${playerLegs}-${opponentLegs}`,
     result: won ? "Victory!" : "Defeat!",
-    ratingChange: `${ratingChange > 0 ? "+" : ""}${ratingChange} rating`,
+    ratingChange: "",
     newRating,
     won,
     playerName: playerData.name || "Player",
@@ -4296,12 +4296,8 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       const winnerProfile = await getFirebasePlayerRating(myKey, player.name || "");
       const loserProfile = await getFirebasePlayerRating(opponentKey, opponent.name || "");
 
-      const elo = calculateDartRatingChange({
-        winnerRating: winnerProfile.rating,
-        loserRating: loserProfile.rating,
-        winnerLegs: newLegs,
-        loserLegs: opponent.legs || 0
-      });
+      // Friendly games preserve historical ratings; no Elo or league points.
+      const elo = {winnerNewRating:winnerProfile.rating,loserNewRating:loserProfile.rating,winnerChange:0,loserChange:0};
 
       updates.status = "complete";
       updates.winnerKey = myKey;
@@ -4314,16 +4310,9 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       updates[`game/players/${myKey}/rating`] = elo.winnerNewRating;
       updates[`game/players/${opponentKey}/rating`] = elo.loserNewRating;
 
-      updates.ratingChange = {
-        winnerKey: myKey,
-        loserKey: opponentKey,
-        winnerOldRating: winnerProfile.rating,
-        winnerNewRating: elo.winnerNewRating,
-        loserOldRating: loserProfile.rating,
-        loserNewRating: elo.loserNewRating
-      };
+      updates.friendly = true;
 
-      const winnerStreak = Number(winnerProfile.streak || 0) + 1;
+      const winnerStreak = Number(winnerProfile.streak || 0);
       const completedAt = Date.now();
       const winnerStatsPlayer = {
         ...player,
@@ -4382,14 +4371,14 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
           nationality: myKey === match.hostPlayerKey ? match.hostNationality || "" : match.guestNationality || "",
           rating: elo.winnerNewRating,
           gamesPlayed: winnerProfile.gamesPlayed + 1,
-          wins: winnerProfile.wins + 1,
+          wins: winnerProfile.wins,
           streak: winnerStreak,
           updatedAt: Date.now(),
           lastResult: `${newLegs}-${opponent.legs || 0} Victory!`,
-          lastRatingChange: `+${elo.winnerChange} rating`,
+          lastRatingChange: "",
           lastMatch: winnerHistoryEntry,
           matchHistory: [winnerHistoryEntry, ...(winnerProfile.matchHistory || [])].slice(0, 30),
-          form: [...(winnerProfile.form || []), "W"].slice(-5),
+          form: winnerProfile.form || [],
         },
         [`ratings/${opponentKey}`]: {
           playerKey: opponentKey,
@@ -4399,13 +4388,13 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
           rating: elo.loserNewRating,
           gamesPlayed: loserProfile.gamesPlayed + 1,
           wins: loserProfile.wins,
-          streak: 0,
+          streak: loserProfile.streak || 0,
           updatedAt: Date.now(),
           lastResult: `${opponent.legs || 0}-${newLegs} Defeat!`,
-          lastRatingChange: `-${elo.loserChange} rating`,
+          lastRatingChange: "",
           lastMatch: loserHistoryEntry,
           matchHistory: [loserHistoryEntry, ...(loserProfile.matchHistory || [])].slice(0, 30),
-          form: [...(loserProfile.form || []), "L"].slice(-5),
+          form: loserProfile.form || [],
         }
       };
     }
@@ -7908,7 +7897,7 @@ function initialisePageModeView() {
     return;
   }
 
-  if (title) title.textContent = "Monsters Online League";
+  if (title) title.textContent = "Monsters Versus";
 
   MATCH_MODE = "online";
   STATS_MODE = "competitive";
@@ -7937,148 +7926,22 @@ function formatStreak(streak) {
 }
 
 function renderLeaderboard(players = []) {
-  const rowsEl = document.getElementById("leaderboardRows");
-  if (!rowsEl) return;
-
-  const currentUser = window.ONMSession?.getUser?.() || loggedInUser;
-  const myKey = getCurrentPlayerKey();
-
-  const myIndex = players.findIndex(player => player.playerKey === myKey);
-  const me = myIndex >= 0 ? players[myIndex] : null;
-  currentLeagueProfile = me;
-
-  const heroMeta = document.querySelector(".leagueHeroMeta");
-  const heroResult = document.getElementById("leagueLastResult");
-  const heroRating = document.getElementById("leagueRatingChange");
-  const heroOpponent = document.getElementById("leagueLastOpponent");
-  const statsBtn = document.getElementById("openLastGameStatsBtn");
-  const historyBtn = document.getElementById("openGameHistoryBtn");
-  const myRankEl = document.getElementById("myLeaderboardRank");
-  const myRatingEl = document.getElementById("myLeaderboardRating");
-  const formDotsEl = document.getElementById("leagueLastFiveDots");
-
-  if (!currentUser) {
-    heroMeta?.classList.add("hidden");
-    if (heroResult) {
-      heroResult.textContent = "Join the league";
-      heroResult.className = "leagueResultText win";
-    }
-    if (heroRating) heroRating.textContent = "Log in and play to enter";
-    if (heroOpponent) heroOpponent.textContent = "Enter the leaderboard";
-    if (statsBtn) statsBtn.textContent = "Log in";
-    if (historyBtn) {
-      historyBtn.textContent = "Register";
-      historyBtn.classList.remove("hidden");
-    }
-  } else if (!me) {
-    heroMeta?.classList.add("hidden");
-    if (heroResult) {
-      heroResult.textContent = "Play a game";
-      heroResult.className = "leagueResultText win";
-    }
-    if (heroRating) heroRating.textContent = "Enter the league";
-    if (heroOpponent) heroOpponent.textContent = "Start your first online match";
-    if (statsBtn) statsBtn.textContent = "Play";
-    if (historyBtn) historyBtn.classList.add("hidden");
-  } else {
-    heroMeta?.classList.remove("hidden");
-    if (myRankEl) myRankEl.textContent = myIndex + 1;
-    if (myRatingEl) myRatingEl.textContent = me.rating;
-
-    if (heroResult) {
-      heroResult.textContent = me.lastResult || "Last game";
-      heroResult.className = `leagueResultText ${String(me.lastResult || "").toLowerCase().includes("defeat") ? "loss" : "win"
-        }`;
-    }
-
-    const lastMatch = me.lastMatch || null;
-    if (heroRating) heroRating.textContent = lastMatch?.ratingChange || me.lastRatingChange || "+0 rating";
-    if (heroOpponent) {
-      heroOpponent.textContent = lastMatch
-        ? `Last game vs ${lastMatch.opponentName || "Opponent"} (${lastMatch.format || "BO3"})`
-        : "Last game";
-    }
-    if (statsBtn) statsBtn.textContent = "Stats";
-    if (historyBtn) {
-      historyBtn.textContent = "History";
-      historyBtn.classList.remove("hidden");
-    }
-
-    if (formDotsEl) {
-      const form = me.form || [];
-      formDotsEl.innerHTML = Array.from({ length: 5 }).map((_, index) => {
-        const result = form[index];
-        if (result === "W") return `<i class="win"></i>`;
-        if (result === "L") return `<i class="loss"></i>`;
-        return `<i></i>`;
-      }).join("");
-    }
-  }
-
-  if (!players.length) {
-    rowsEl.innerHTML = `<div class="leaderboardEmpty">No ratings yet.</div>`;
-    return;
-  }
-
-  rowsEl.innerHTML = players.map((player, index) => {
-    const rank = index + 1;
-    const name = player.playerName || "Player";
-    const played = Number(player.gamesPlayed || 0);
-    const wins = Number(player.wins || 0);
-    const rating = Number(player.rating || 1000);
-    const streak = Number(player.streak || 0) > 0 ? formatStreak(player.streak) : "";
-    const photo = player.photo || "graphics/logoWoText.png";
-    const flag = player.nationality ? leaderboardFlag(player.nationality) : "";
-    const isMe = player.playerKey === myKey;
-
-    return `
-      <div class="leaderboardRow ${isMe ? "me" : ""}" data-player-key="${player.playerKey}" data-player-name="${name}">
-        <div class="leaderboardRank">${rank}</div>
-        <div class="leaderboardPlayer">
-          <img class="leaderboardAvatar" src="${photo}" alt="${name}">
-          <div class="leaderboardNameWrap">
-            <span class="leaderboardName">${name}</span>
-            ${flag ? `<span class="leaderboardFlag">${flag}</span>` : ""}
-          </div>
-        </div>
-        <div class="leaderboardStat streak ${streak ? "" : "noStreak"}">${streak}</div>
-        <div class="leaderboardStat">${played}</div>
-        <div class="leaderboardStat">${wins}</div>
-        <div class="leaderboardRating">${rating}</div>
-        <button type="button" class="leaderboardExpandBtn">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="leaderboardDetails"></div>
-      </div>
-    `;
-  }).join("");
-
-  rowsEl.querySelectorAll(".leaderboardExpandBtn").forEach(button => {
-    button.addEventListener("click", async event => {
-      event.stopPropagation();
-
-      const row = button.closest(".leaderboardRow");
-      const alreadyOpen = row.classList.contains("open");
-
-      if (alreadyOpen) {
-        row.classList.remove("open");
-        button.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-        return;
-      }
-
-      row.classList.add("open");
-
-      if (!row.dataset.loadedStats) {
-        button.innerHTML = `<span class="inlineSpinner"></span>`;
-        row.dataset.loadedStats = "true";
-        await loadExpandedPlayerStats(row);
-      }
-
-      button.innerHTML = `<svg viewBox="0 0 24 24" fill="none" style="transform:rotate(180deg)"><path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-    });
-  });
+  const rowsEl=document.getElementById("leaderboardRows");if(!rowsEl)return;
+  const currentUser=window.ONMSession?.getUser?.()||loggedInUser,myKey=getCurrentPlayerKey();
+  const me=players.find(p=>p.playerKey===myKey)||null;currentLeagueProfile=me;
+  document.querySelector(".leagueHeroMeta")?.classList.add("hidden");
+  const result=document.getElementById("leagueLastResult"),opponent=document.getElementById("leagueLastOpponent"),rating=document.getElementById("leagueRatingChange"),stats=document.getElementById("openLastGameStatsBtn"),history=document.getElementById("openGameHistoryBtn");
+  if(rating)rating.textContent="";
+  if(result){result.textContent=me?.average?me.average+" three-dart average":currentUser?"Play a friend":"Play with friends";result.className="leagueResultText";}
+  if(opponent)opponent.textContent=me?.lastMatch?"Last game vs "+(me.lastMatch.opponentName||"Opponent"):"Friendly online darts · No rankings";
+  if(stats)stats.textContent=!currentUser?"Log in":me?.lastMatch?"Stats":"Play";
+  history?.classList.toggle("hidden",!currentUser||!me?.matchHistory?.length);
+  rowsEl.innerHTML=players.length?players.map(p=>{
+    const name=escapeHtml(p.playerName||"Player"),flag=p.nationality?leaderboardFlag(p.nationality):"",isMe=p.playerKey===myKey;
+    const photo=String(p.photo||"graphics/logoWoText.png");
+    const safePhoto=/^(https?:\/\/|(?:graphics|images)\/)/i.test(photo)?photo:"graphics/logoWoText.png";
+    return '<article class="versusPlayer '+(isMe?'me':'')+'"><img src="'+escapeHtml(safePhoto)+'" alt=""><div class="versusIdentity"><strong>'+name+'</strong><span class="versusFlag">'+escapeHtml(flag)+'</span>'+(isMe?'<span class="versusYou">You</span>':'')+'</div><div class="versusAverage"><strong>'+escapeHtml(p.average??"—")+'</strong><small>3-dart average</small></div></article>';
+  }).join(""):'<div class="versusEmpty">No completed games yet. Invite a friend to get started.</div>';
 }
 
 async function loadExpandedPlayerStats(row) {
@@ -8223,7 +8086,6 @@ function buildLeagueMatchStatsHtml(match) {
       <div>
         <div class="leagueMatchKicker">Last game vs ${escapeHtml(match.opponentName || "Opponent")} (${escapeHtml(match.format || "BO3")})</div>
         <div class="leagueResultText ${resultClass}">${escapeHtml(match.score || "-")} ${escapeHtml(match.result || "")}</div>
-        <div class="leagueRatingChange">${escapeHtml(match.ratingChange || "")}</div>
       </div>
       <div class="leagueMatchDate">${escapeHtml(formatLeagueMatchDate(match.completedAt))}</div>
     </div>
@@ -8252,7 +8114,7 @@ function openLeagueHistory() {
     : [];
 
   if (!history.length) {
-    openLeagueInfoModal("Game history", `<div class="leaderboardEmpty">No league game history available yet.</div>`);
+    openLeagueInfoModal("Game history", `<div class="leaderboardEmpty">No game history available yet.</div>`);
     return;
   }
 
@@ -8263,7 +8125,6 @@ function openLeagueHistory() {
           <div>
             <div class="leagueMatchKicker">vs ${escapeHtml(match.opponentName || "Opponent")} (${escapeHtml(match.format || "BO3")})</div>
             <strong class="${match.won ? "win" : "loss"}">${escapeHtml(match.score || "-")} ${escapeHtml(match.result || "")}</strong>
-            <span>${escapeHtml(match.ratingChange || "")}</span>
           </div>
           <small>${escapeHtml(formatLeagueMatchDate(match.completedAt))}</small>
         </button>
@@ -8279,58 +8140,19 @@ function openLeagueHistory() {
   });
 }
 
+document.getElementById("refreshVersusPlayers")?.addEventListener("click",()=>loadLeaderboard());
 async function loadLeaderboard() {
-  const rowsEl = document.getElementById("leaderboardRows");
-  if (!rowsEl) return;
-
-  rowsEl.innerHTML = `
-    <div class="leaderboardLoading">
-      <span class="inlineSpinner"></span>
-      Loading leaderboard...
-    </div>
-  `;
-
-  try {
-    if (!window.ONMLiveDarts) {
-      rowsEl.innerHTML = `<div class="leaderboardEmpty">Leaderboard unavailable.</div>`;
-      return;
-    }
-
-    const { db, ref, get } = window.ONMLiveDarts;
-    const snapshot = await get(ref(db, "ratings"));
-
-    if (!snapshot.exists()) {
-      renderLeaderboard([]);
-      return;
-    }
-
-    const players = Object.values(snapshot.val())
-      .map(player => ({
-        playerKey: player.playerKey || "",
-        playerName: player.playerName || "Player",
-        photo: player.photo || "",
-        nationality: player.nationality || "",
-        rating: Number(player.rating || 1000),
-        gamesPlayed: Number(player.gamesPlayed || 0),
-        wins: Number(player.wins || 0),
-        losses: Number(player.losses || 0),
-        streak: Number(player.streak || 0),
-        form: Array.isArray(player.form) ? player.form : [],
-        lastResult: player.lastResult || "",
-        lastRatingChange: player.lastRatingChange || "",
-        lastMatch: player.lastMatch || null,
-        matchHistory: Array.isArray(player.matchHistory) ? player.matchHistory : []
-      }))
-      .filter(player => player.gamesPlayed > 0)
-      .sort((a, b) => Number(b.rating || 1000) - Number(a.rating || 1000));
-
-    window.currentLeaderboardPlayers = players;
-    renderLeaderboard(players);
-
-  } catch (err) {
-    console.warn("Could not load leaderboard:", err);
-    rowsEl.innerHTML = `<div class="leaderboardEmpty">Could not connect to leaderboard.</div>`;
-  }
+  const rowsEl=document.getElementById("leaderboardRows");if(!rowsEl)return;
+  rowsEl.innerHTML='<div class="versusEmpty"><span class="inlineSpinner"></span> Loading players and averages…</div>';
+  try{
+    const user=await window.ONMFirebase.currentFirebaseUser();
+    if(!user){rowsEl.innerHTML='<div class="versusEmpty"><a href="auth.html?redirect=dart-scorer.html%3Fmode%3Dleague">Log in to view players and tracked averages</a></div>';renderLeaderboard([]);rowsEl.innerHTML='<div class="versusEmpty"><a href="auth.html?redirect=dart-scorer.html%3Fmode%3Dleague">Log in to view players and tracked averages</a></div>';return;}
+    const {db:liveDb,ref,get}=window.ONMLiveDarts,{db,firestoreSdk:s}=await window.ONMFirebase.ready;
+    const [ratings,matches]=await Promise.all([get(ref(liveDb,"ratings")),s.getDocs(s.collection(db,"dartMatches"))]);
+    const profiles=ratings.exists()?Object.values(ratings.val()):[];
+    const players=window.ONMVersusPlayers.players(profiles,matches.docs.map(d=>d.data()));
+    window.currentLeaderboardPlayers=players;renderLeaderboard(players);
+  }catch(err){console.warn("Could not load versus averages",err);rowsEl.innerHTML='<div class="versusEmpty">Couldn’t load players and averages. Please try Refresh.</div>';}
 }
 
 

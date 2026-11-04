@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const DEFAULT_PLAYER_INPUTS = 6;
   let playerInputCount = DEFAULT_PLAYER_INPUTS;
   let signedInPlayerDirectory = [];
+  let playerDirectoryLoading = false;
   const PLAYER_FULL_NAME_CORRECTIONS = {
     "alfie sells": "Alfie Sell"
   };
@@ -25,7 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     return signedInPlayerDirectory.find(player =>
       normalisePlayerName(player.fullName) === key ||
-      normalisePlayerName(player.publicName) === key
+      normalisePlayerName(player.publicName) === key ||
+      (player.aliases || []).some(alias => normalisePlayerName(alias) === key)
     ) || null;
   }
 
@@ -70,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function signedInPlayerDirectoryEnabled() {
-    return Boolean(window.ONMSession?.getUser?.() && signedInPlayerDirectory.length);
+    return Boolean(signedInPlayerDirectory.length);
   }
 
   function updatePlayerNameOptions(query = "", input = null) {
@@ -116,18 +118,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function loadSignedInPlayerDirectory() {
-    const currentUser = window.ONMSession?.getUser?.();
     const help = document.getElementById("playerNameHelp");
-
-    if (!currentUser) {
-      if (help) help.textContent = "Sign in to search players by their full name.";
-      return;
-    }
-
+    if (playerDirectoryLoading) return;
+    playerDirectoryLoading = true;
     if (help) help.textContent = "Loading the player directory…";
 
     try {
       if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
+      // Wait for Firebase restoration, not the possibly empty local session cache.
+      const currentUser = await window.ONMFirebase.currentFirebaseUser();
+      if (!currentUser) {
+        signedInPlayerDirectory = [];
+        if (help) help.textContent = "Sign in to search players by their full name.";
+        return;
+      }
       const result = await window.ONMFirebase.post({
         action: "getMatchPlayerDirectory",
         userId: currentUser.userId,
@@ -147,7 +151,9 @@ document.addEventListener("DOMContentLoaded", () => {
         .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
       updatePlayerNameOptions();
-      renderSetupInputs();
+      const activeInput = document.activeElement;
+      if (activeInput?.closest?.(".playerNameInputWrap")) updatePlayerNameOptions(activeInput.value, activeInput);
+      else renderSetupInputs();
 
       if (help) {
         help.textContent = "Start typing a full name and choose the player. Leave the field to confirm a new player. Results and fines will use their shorter club name.";
@@ -155,6 +161,8 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.warn("Could not load signed-in player directory", error);
       if (help) help.textContent = "The full-name player search is temporarily unavailable. Public player names still work.";
+    } finally {
+      playerDirectoryLoading = false;
     }
   }
 
@@ -2067,6 +2075,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
       input?.addEventListener("focus", () => {
+        if (!signedInPlayerDirectory.length) loadSignedInPlayerDirectory();
         clearNewPlayerState(input);
         updatePlayerNameOptions();
       });

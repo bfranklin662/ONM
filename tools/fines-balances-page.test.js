@@ -5,6 +5,10 @@ async function harness({admin=false,registrationPaid=false,linked=true,fail=fals
  const ctx={document:{getElementById:node},window:{ONMFirebase:{config:{projectId:"test"},ready:Promise.resolve({auth:{},authSdk:{onAuthStateChanged:(_,fn)=>{authChanged=fn;}}})},addEventListener(){}},AbortSignal,setInterval:()=>1,clearInterval(){},fetch:async(url,options)=>{const data=JSON.parse(options.body).data;requests.push({url,data});return {ok:!fail,json:async()=>fail?{error:{message:"Please retry"}}:{result:url.includes("Instructions")?{amountPence:data.type==="registration"?1500:400,reference:data.type==="registration"?"Reg-NH":"Fines-NH",expiresAt:"2026-11-04T00:00:00Z"}:{viewer,updatedAt:new Date().toISOString()}}};}};
  vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/fines-balances-page.js"),"utf8"),ctx);await new Promise(r=>setImmediate(r));authChanged({uid:"nick",getIdToken:async()=>"test"});await new Promise(r=>setImmediate(r));return {node,requests,ctx,signOut:()=>authChanged(null)};
 }
+test("overpaid fines show green credit and never reduce the separate registration charge",async()=>{
+ const g=await harness();g.ctx.fetch=async()=>({ok:true,json:async()=>({result:{updatedAt:new Date().toISOString(),viewer:{name:"Nick",balance:{appearances:2,registrationPaid:false,issuedPence:500,paidPence:1000,owedPence:-500}}}})});
+ await g.node("refresh").listeners.click();assert.equal(g.node("finesAmount").textContent,"+£5.00 credit");assert.equal(g.node("finesAmount").className,"amount paid");assert.equal(g.node("finesOwed").className,"paid");assert.equal(g.node("payFines").hidden,true);assert.equal(g.node("myTotal").textContent,"£15.00");
+});
 test("personal cards show only own fines and registration, including for admins",async()=>{
  for(const admin of [false,true]){const g=await harness({admin});assert.equal(g.node("finesAmount").textContent,"£4.00");assert.equal(g.node("registrationAmount").textContent,"£15.00");assert.equal(g.node("myTotal").textContent,"£19.00");assert.equal(g.node("loading").hidden,true);assert.equal(g.node("balances").hidden,false);}
 });

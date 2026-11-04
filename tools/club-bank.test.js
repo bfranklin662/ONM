@@ -12,7 +12,7 @@ test('unpaid fines are not cash and invalid or other-season entries are excluded
 test('fines owed match admin balances per player, never offset by another player’s overpayment',()=>{
  const {buildFineBalances}=require('../functions/fines-balances');
  const players=[{id:'nick',publicName:'Nick',fullName:'Nick Horne'},{id:'ian',publicName:'Ian'}],results=[{season:'26-27',sheetRow:{Player1:'Nick',F1:'£10.00',Player2:'Ian',F2:5}},{season:'26-27',sheetRow:{'Player 1':'Nick Horne','F 1':2,Player2:'Guest',F2:3}}],payments=[{season:'26-27',playerKey:'nick',amountPaidPence:400},{season:'26-27',playerKey:'ian',amountPaidPence:2000}];
- const expected=buildFineBalances(players,results,payments).reduce((n,r)=>n+r.owedPence,0);assert.equal(E.finesOwed(players,results,payments),expected);assert.equal(expected,1100);
+ const expected=buildFineBalances(players,results,payments).reduce((n,r)=>n+Math.max(0,r.owedPence),0);assert.equal(E.finesOwed(players,results,payments),expected);assert.equal(expected,1100);
  const totals=E.summary({players,results,payments});assert.equal(totals.owed,1100);assert.equal(totals.balance,2400);
 });
 test('amounts are validated as integer pence with no floating point drift',()=>{

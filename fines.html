@@ -1,5 +1,31 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>What I owe | Oche Ness Monsters</title><link rel="icon" href="graphics/favicon1.png"><link rel="stylesheet" href="styles/fines-balances.css?v=20261028-payment-confirmation"><link rel="stylesheet" href="styles/header.css"><link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"></head><body><header class="site-header">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>What I owe | Oche Ness Monsters</title><link rel="stylesheet" href="styles/fines-balances.css?v=20261028-payment-confirmation"><link rel="stylesheet" href="styles/header.css"><link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill">
+  <!-- Shared Monsters branding: browser, home screen and link previews. -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
+  <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
+  <link rel="apple-touch-icon" sizes="180x180" href="/graphics/icons/apple-touch-icon.png?v=20261104-brand">
+  <link rel="manifest" href="/site.webmanifest?v=20261104-brand">
+  <meta name="theme-color" content="#0c2419">
+  <meta name="application-name" content="Oche Ness Monsters">
+  <meta name="apple-mobile-web-app-title" content="Monsters">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="What I owe | Oche Ness Monsters">
+  <meta name="twitter:description" content="Oche Ness Monsters — London darts, fixtures, results and games.">
+  <meta name="twitter:image" content="https://ochenessmonsters.com/graphics/icons/share-monsters.png?v=20261104-brand">
+  <meta property="og:site_name" content="Oche Ness Monsters">
+  <meta property="og:title" content="What I owe | Oche Ness Monsters">
+  <meta property="og:description" content="Oche Ness Monsters — London darts, fixtures, results and games.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ochenessmonsters.com/fines.html">
+  <meta property="og:image" content="https://ochenessmonsters.com/graphics/icons/share-monsters.png?v=20261104-brand">
+  <meta property="og:image:secure_url" content="https://ochenessmonsters.com/graphics/icons/share-monsters.png?v=20261104-brand">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Oche Ness Monsters club logo on a dark green background">
+</head><body><header class="site-header">
     <a href="/" class="brand-left">
       <img class="top-left-logo" src="graphics/logoWText.png" alt="Oche Ness Monsters">
     </a>
@@ -46,7 +72,7 @@
       </div>
       <p id="matchingNote" class="muted"></p>
       <p class="allFinesLink"><a href="https://docs.google.com/spreadsheets/d/1jrh1Ij_H2sidOam3mZY_lCwT-KC5qVp1QNUxxgrUzqQ/preview?gid=202627001" target="_blank" rel="noopener noreferrer">View all fines ↗</a> <small>2026/27 · Read-only spreadsheet</small></p>
-      <section id="matchHistory" class="panel" hidden aria-labelledby="historyHeading"><h2 id="historyHeading">My 2026/27 matches</h2><p class="muted">Scores shown home–away</p><div class="historyScroll" tabindex="0" role="region" aria-label="Your match history"><table class="personalHistory"><caption class="srOnly">Your checkouts and fines by match</caption><thead><tr><th>Date</th><th>Opponent</th><th>Score</th><th><abbr title="Checkouts">CO</abbr></th><th>Fines</th></tr></thead><tbody id="historyRows"></tbody></table></div><div class="historyTotals" aria-label="2026/27 season totals"><span>Appearances <strong id="historyApps"></strong></span><span>Checkouts <strong id="historyCheckouts"></strong></span><span>Total fines <strong id="totalFines"></strong></span><span>Paid <strong id="finesPaid" class="paid"></strong></span><span>Still owed <strong id="finesOwed" class="owed"></strong></span></div></section>
+      <section id="matchHistory" class="panel" hidden aria-labelledby="historyHeading"><h2 id="historyHeading">My 2026/27 matches</h2><p class="muted">Scores shown home–away</p><div class="historyScroll" tabindex="0" role="region" aria-label="Your match history"><table class="personalHistory"><caption class="srOnly">Your checkouts and fines by match</caption><thead><tr><th>Date</th><th>Opponent</th><th>Score</th><th><abbr title="Checkouts">CO</abbr></th><th>Fines</th></tr></thead><tbody id="historyRows"></tbody></table></div><div class="historyTotals" aria-label="2026/27 season totals"><span>Appearances <strong id="historyApps"></strong></span><span>Checkouts <strong id="historyCheckouts"></strong></span><span>Total fines <strong id="totalFines"></strong></span><span>Paid <strong id="finesPaid" class="paid"></strong></span><span>Fines balance <strong id="finesOwed" class="owed"></strong></span></div></section>
     </section><button id="retry" type="button" hidden>Retry</button>
   </main>
   <dialog id="paymentDialog" aria-labelledby="paymentTitle"><div class="paymentBrand"><img src="graphics/logoWText.png" width="64" height="64" alt="Oche Ness Monsters"><div><span>OCHE NESS MONSTERS</span><small>Club payments · 2026/27</small></div></div><h2 id="paymentTitle">Payment details</h2><p class="paymentIntro">Transfer from your banking app using the exact reference below to match your payment automatically.</p><div id="paymentDetails" class="paymentDetailsCard"></div><p class="paymentFootnote">Registration and fines must be paid separately. Payments are checked every minute.</p><button id="confirmPaid" type="button">I have paid</button><button id="closePayment" type="button">Close</button></dialog>

@@ -32,14 +32,15 @@
     const history=viewer.history||[];
     $("historyRows").innerHTML=history.map(r=>`<tr><td>${matchDate(r.date)}</td><td>${escape(r.opponent)}<small>${escape(r.side)} · ${escape(r.competition)}</small></td><td><span class="matchScore ${["win","loss","draw"].includes(r.outcome)?r.outcome:"unknown"}" aria-label="${escape(r.score)} · ${r.outcome==="win"?"Won":r.outcome==="loss"?"Lost":"Result"}">${escape(r.score)}</span></td><td>${escape(r.checkouts)}</td><td>${money(r.finesPence)}</td></tr>`).join("")||'<tr><td colspan="5">No appearances this season yet.</td></tr>';
     $("historyApps").textContent=String(mine.appearances);$("historyCheckouts").textContent=String(history.reduce((n,r)=>n+Number(r.checkouts||0),0));
-    $("totalFines").textContent=money(mine.issuedPence);$("finesPaid").textContent=money(mine.paidPence);$("finesOwed").textContent=money(mine.owedPence);
+    const credit=mine.owedPence<0,displayBalance=credit?`+${money(-mine.owedPence)} credit`:money(mine.owedPence);
+    $("totalFines").textContent=money(mine.issuedPence);$("finesPaid").textContent=money(mine.paidPence);$("finesOwed").textContent=displayBalance;$("finesOwed").className=mine.owedPence>0?"owed":"paid";
     const registration=mine.registrationPaid?0:1500;
     $("registrationAmount").textContent=money(registration);$("registrationStatus").textContent=mine.registrationPaid?"✓ Registration paid":"2026/27 registration fee";
-    $("finesAmount").textContent=money(mine.owedPence);$("finesStatus").textContent=mine.owedPence?"Outstanding fines":"✓ All fines paid";
+    $("finesAmount").textContent=displayBalance;$("finesStatus").textContent=credit?"✓ In credit — this will cover future fines":mine.owedPence>0?"Outstanding fines":"✓ All fines paid";
     $("finesBreakdown").textContent=`Fines issued ${money(mine.issuedPence)} · Paid ${money(mine.paidPence)}`;
-    $("registrationAmount").className=registration?"amount owed":"amount paid";$("finesAmount").className=mine.owedPence?"amount owed":"amount paid";
-    $("payRegistration").hidden=!registration;$("payFines").hidden=!mine.owedPence;
-    $("myTotal").textContent=money(registration+mine.owedPence);
+    $("registrationAmount").className=registration?"amount owed":"amount paid";$("finesAmount").className=mine.owedPence>0?"amount owed":"amount paid";
+    $("payRegistration").hidden=!registration;$("payFines").hidden=mine.owedPence<=0;
+    $("myTotal").textContent=money(registration+Math.max(0,mine.owedPence));
     $("matchingNote").textContent=viewer.automaticMatching?"Bank transfers are checked every minute. Your balance updates once confirmed.":"Bank confirmation may be delayed. An admin can confirm your payment if needed.";
   }
   async function pay(type){

@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "Oche Ness Monsters",
+  "short_name": "Monsters",
+  "description": "Oche Ness Monsters — London darts, fixtures, results and games.",
+  "lang": "en-GB",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0c2419",
+  "theme_color": "#0c2419",
+  "icons": [
+    {"src": "/graphics/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/graphics/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/graphics/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

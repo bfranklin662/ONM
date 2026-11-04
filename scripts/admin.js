@@ -1,6 +1,7 @@
 (function () {
   "use strict";
   const DEFAULT_MATCH_TIME = "18:30";
+  const pendingDeletions = new Set();
 
   const state = {
     user: null,
@@ -225,7 +226,7 @@
       }
     });
     const paid = Number(finePaymentFor(player.playerKey, season));
-    return { issued, paid, owed: Math.max(0, issued - paid) };
+    return { issued, paid, owed: issued - paid };
   }
 
   function hasPlayedMatch(player, results = state.results) {
@@ -238,7 +239,7 @@
     const accounts = state.players.map(player => playerFineAccount(player));
     document.getElementById("totalFinesCollected").textContent = currencyForToast(
       state.finePayments.filter(item => item.season === "26-27").reduce((sum, item) => sum + Number(item.amountPaidPence || 0), 0));
-    document.getElementById("totalFinesOwed").textContent = currencyForToast(accounts.reduce((sum, item) => sum + item.owed, 0));
+    document.getElementById("totalFinesOwed").textContent = currencyForToast(accounts.reduce((sum, item) => sum + Math.max(0,item.owed), 0));
     const registered = state.players.filter(player => player.registrationPaidSeasons?.includes("26-27")).length;
     document.getElementById("totalRegistrationsCollected").textContent = currencyForToast(registered * 1500);
     document.getElementById("totalRegistrationsCount").textContent = `${registered} players × £15 · 2026/27`;
@@ -266,9 +267,9 @@
         return (registration === "all" || (registration === "paid") === Boolean(paid))
           && (account === "all" || (account === "linked") === linked)
           && (fines === "all" || fines === "owed" && balance.owed > 0
-            || fines === "paid" && balance.issued > 0 && balance.owed === 0
+            || fines === "paid" && balance.paid > 0 && balance.owed <= 0
             || fines === "part" && balance.paid > 0 && balance.owed > 0
-            || fines === "none" && balance.issued === 0);
+            || fines === "none" && balance.issued === 0 && balance.paid === 0);
       })
       .filter(player => !query || `${player.fullName || ""} ${player.publicName || ""} ${player.nickname || ""} ${player.role || ""}`.toLowerCase().includes(query))
       .sort((a, b) => played(b) - played(a) || clean(a.publicName).localeCompare(clean(b.publicName)));
@@ -288,7 +289,7 @@
         <td class="adminPlayerAppearances"><strong>${played(player)}</strong></td>
         <td><button class="adminRegistrationButton ${paid ? "isPaid" : "isOutstanding"}" type="button" data-toggle-player-registration="${escapeHtml(player.playerKey)}" data-registration-paid="${paid ? "false" : "true"}" aria-label="${paid ? "Registration paid. Mark unpaid" : "Registration outstanding. Mark £15 registration paid"}" title="${paid ? "Mark registration unpaid" : "Mark £15 registration paid"}"><span class="desktopLabel" aria-hidden="true">${paid ? "Paid" : "Outstanding"}</span><span class="mobileLabel" aria-hidden="true">${paid ? "✓" : "✕"}</span></button></td>
         <td><span class="adminLinkStatus ${linked ? "isLinked" : "isUnlinked"}"><span class="desktopLabel">${linked ? "Linked" : "Not linked"}</span><span class="mobileLabel" aria-hidden="true">${linked ? "✓" : "✕"}</span><span class="adminVisuallyHidden mobileLabel">${linked ? "Account linked" : "Account not linked"}</span></span></td>
-        <td class="adminFineOwed">${currencyForToast(balance.owed)}</td>
+        <td class="adminFineOwed ${balance.owed<0?'fineCredit':''}">${balance.owed<0?`+${currencyForToast(-balance.owed)} credit`:currencyForToast(balance.owed)}</td>
         <td>${currencyForToast(balance.paid)}</td>
         <td class="adminPlayerEdit"><button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit</button></td>
       </tr>`;
@@ -323,14 +324,14 @@
         const paidPence = season === "all"
           ? state.finePayments.filter(item => item.playerKey === player.playerKey).reduce((sum, item) => sum + Number(item.amountPaidPence || 0), 0)
           : Number(finePaymentFor(player.playerKey, season));
-        return { ...player, paidPence, outstandingPence: Math.max(0, player.pence - paidPence) };
+        return { ...player, paidPence, outstandingPence: player.pence - paidPence };
       })
       .filter(player => player.name.toLowerCase().includes(query))
       .sort((a, b) => b.outstandingPence - a.outstandingPence || a.name.localeCompare(b.name));
     const currency = pence => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
-    document.getElementById("finesTotal").textContent = currency(players.reduce((sum, player) => sum + player.outstandingPence, 0));
+    document.getElementById("finesTotal").textContent = currency(players.reduce((sum, player) => sum + Math.max(0,player.outstandingPence), 0));
     document.getElementById("finesList").innerHTML = players.length
-      ? `<div class="adminTableScroll"><table class="adminMatchTable adminFinesTable"><caption class="adminVisuallyHidden">Player fines and payments</caption><thead><tr><th scope="col">Player</th><th scope="col">Matches</th><th scope="col">Fines</th><th scope="col">Paid</th><th scope="col">Outstanding</th><th scope="col">Record payment</th></tr></thead><tbody>${players.map(player => `<tr><td>${escapeHtml(player.name)}</td><td>${player.matches.size}</td><td>${currency(player.pence)}</td><td>${currency(player.paidPence)}</td><td class="${player.outstandingPence ? "fineOutstanding" : "fineClear"}">${currency(player.outstandingPence)}</td><td>${season === "all" ? '<span class="adminPending">Choose a season</span>' : player.outstandingPence ? `<div class="adminFinePayment"><label class="adminVisuallyHidden" for="fine-payment-${escapeHtml(player.playerKey)}">Payment from ${escapeHtml(player.name)}</label><span>£</span><input id="fine-payment-${escapeHtml(player.playerKey)}" type="number" min="0.01" max="${(player.outstandingPence / 100).toFixed(2)}" step="0.01" placeholder="0.00" data-fine-payment-input="${escapeHtml(player.playerKey)}"><button class="adminSmallBtn" type="button" data-record-fine-payment="${escapeHtml(player.playerKey)}" data-player-name="${escapeHtml(player.name)}" data-outstanding-pence="${player.outstandingPence}">Add payment</button></div>` : '<span class="fineClear">Paid in full</span>'}</td></tr>`).join("")}</tbody></table></div>`
+      ? `<div class="adminTableScroll"><table class="adminMatchTable adminFinesTable"><caption class="adminVisuallyHidden">Player fines and payments</caption><thead><tr><th scope="col">Player</th><th scope="col">Matches</th><th scope="col">Fines</th><th scope="col">Paid</th><th scope="col">Outstanding</th><th scope="col">Record payment</th></tr></thead><tbody>${players.map(player => `<tr><td>${escapeHtml(player.name)}</td><td>${player.matches.size}</td><td>${currency(player.pence)}</td><td>${currency(player.paidPence)}</td><td class="${player.outstandingPence>0 ? "fineOutstanding" : player.outstandingPence<0 ? "fineCredit" : "fineClear"}">${player.outstandingPence<0?`+${currency(-player.outstandingPence)} credit`:currency(player.outstandingPence)}</td><td>${season === "all" ? '<span class="adminPending">Choose a season</span>' : `<div class="adminFinePayment"><label class="adminVisuallyHidden" for="fine-payment-${escapeHtml(player.playerKey)}">Payment from ${escapeHtml(player.name)}</label><span>£</span><input id="fine-payment-${escapeHtml(player.playerKey)}" type="number" min="0.01" step="0.01" placeholder="0.00" data-fine-payment-input="${escapeHtml(player.playerKey)}"><button class="adminSmallBtn" type="button" data-record-fine-payment="${escapeHtml(player.playerKey)}" data-player-name="${escapeHtml(player.name)}" data-outstanding-pence="${player.outstandingPence}">Add payment</button></div>`}</td></tr>`).join("")}</tbody></table></div>`
       : '<div class="adminEmpty">No player fines match these filters.</div>';
   }
 
@@ -420,6 +421,7 @@
       <label class="wide">Venue<input name="location" value="${escapeHtml(row.Location)}"></label>
     </div>
     <div class="adminFormActions">
+      ${item?.id ? `<button class="btn btnGhost adminDeleteFixture" type="button" data-delete-fixture="${escapeHtml(item.id)}">Delete fixture</button>` : ""}
       <button class="btn btnGhost" type="button" data-cancel-editor>Cancel</button>
       <button class="btn btnPrimary" type="submit">Save fixture</button>
     </div>`;
@@ -739,10 +741,6 @@
     const pence = Math.round(Number(input.value) * 100);
     if (!player) { status.textContent = "Choose a player from the name suggestions."; select.focus(); return; }
     if (!Number.isSafeInteger(pence) || pence <= 0) return;
-    if (pence > playerFineAccount(player).owed) {
-      status.textContent = "Payment exceeds the outstanding balance.";
-      return;
-    }
     const button = form.querySelector('button[type="submit"]');
     form.dataset.saving = "true";
     button.disabled = true;
@@ -781,10 +779,6 @@
       return;
     }
     const pence = Math.round(amount * 100), id = `${season}__${playerKey}`;
-    if (pence > Number(button.dataset.outstandingPence || 0)) {
-      showToast("The payment cannot be more than the outstanding fine balance.", true);
-      return;
-    }
     button.disabled = true;
     button.textContent = "Saving…";
     try {
@@ -810,6 +804,8 @@
   }
 
   async function deleteItem(type, id) {
+    const deletionKey = `${type}:${id}`;
+    if (pendingDeletions.has(deletionKey)) return;
     const items = type === "fixture" ? state.fixtures : state.results;
     const item = items.find(entry => entry.id === id);
     if (!item) return;
@@ -817,7 +813,11 @@
     const description = type === "fixture"
       ? `${row.Opponent || "this fixture"} on ${row.Date || "the selected date"}`
       : `${row.HomeTeam || "Home"} v ${row.AwayTeam || "Away"} on ${row.Date || "the selected date"}`;
-    if (!window.confirm(`Delete ${description}?\n\nThis removes it from the live website and cannot be undone.`)) return;
+    const consequence = type === "fixture"
+      ? "This removes the fixture from the live website. Any submitted result will remain. This cannot be undone."
+      : "This removes the result from the live website and cannot be undone.";
+    if (!window.confirm(`Delete ${description}?\n\n${consequence}`)) return;
+    pendingDeletions.add(deletionKey);
     try {
       const { db, firestoreSdk } = await window.ONMFirebase.ready;
       await firestoreSdk.deleteDoc(firestoreSdk.doc(db, type === "fixture" ? "fixtures" : "results", id));
@@ -831,10 +831,13 @@
         renderFixtures();
         renderPlayers();
       }
+      if (state.editor?.type === type && state.editor.id === id) closeEditor();
       showToast(`${type === "fixture" ? "Fixture" : "Result"} deleted.`);
     } catch (error) {
       console.error(error);
       showToast(error.message || "Could not delete that item.", true);
+    } finally {
+      pendingDeletions.delete(deletionKey);
     }
   }
 

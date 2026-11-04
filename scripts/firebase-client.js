@@ -338,7 +338,8 @@
       return {
         publicName: data.publicName || "",
         fullName: data.fullName || "",
-        playerKey: data.playerKey || item.id
+        playerKey: data.playerKey || item.id,
+        aliases: Array.isArray(data.aliases) ? data.aliases : []
       };
     }).filter(item => item.fullName).sort((a, b) => a.fullName.localeCompare(b.fullName));
     return { success: true, players };
@@ -562,6 +563,14 @@
     const known = new Set(directory.map(item => normaliseName(item.fullName)).filter(Boolean));
     for (const player of players || []) {
       const fullName = clean(player.fullName);
+      // Older saved games may contain the short club name as fullName.
+      // An existing ID or exact public-name/alias match is not a new player.
+      const named = [fullName, player.name].map(normaliseName).filter(Boolean);
+      const existing = directory.find(item =>
+        player.playerKey && [item.id,item.playerKey].includes(player.playerKey) ||
+        [item.fullName,item.publicName,...(item.aliases||[])].map(normaliseName).some(name=>name&&named.includes(name))
+      );
+      if (existing) continue;
       if (fullName.split(/\s+/).length < 2 || known.has(normaliseName(fullName))) continue;
       const publicName = makeAutomaticPublicName(fullName, directory);
       const key = playerKey(publicName);
