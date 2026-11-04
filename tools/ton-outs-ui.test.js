@@ -1,11 +1,38 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm"),E=require("../scripts/ton-outs-engine");
 const tick=()=>new Promise(r=>setImmediate(r));
+test("timer pauses on phone sleep, pagehide and closing a checkout, then resumes without counting time away",async()=>{
+ const a=await app();let now=0,id=0;const timers=new Map();a.ctx.Date={now:()=>now};a.ctx.window.setInterval=fn=>{timers.set(++id,fn);return id;};a.ctx.window.clearInterval=key=>timers.delete(key);const draw=()=>{for(const fn of timers.values())fn();};
+ a.open(100);now=5000;a.ctx.document.visibilityState="hidden";a.events["document:visibilitychange"]();assert.equal(a.node("tonTimer").textContent,"0:05");
+ now=65000;draw();assert.equal(a.node("tonTimer").textContent,"0:05");a.ctx.document.visibilityState="visible";a.events["document:visibilitychange"]();now=68000;draw();assert.equal(a.node("tonTimer").textContent,"0:08");
+ a.node("tonChallenge").close();a.node("tonChallenge").listeners.close();now=100000;a.open(100);assert.equal(a.node("tonTimer").textContent,"0:08");now=102000;draw();assert.equal(a.node("tonTimer").textContent,"0:10");
+ a.events.pagehide();now=200000;draw();assert.equal(a.node("tonTimer").textContent,"0:10");a.events.pageshow();now=201000;draw();assert.equal(a.node("tonTimer").textContent,"0:11");
+ await a.node("tonHit").listeners.click();a.ctx.document.visibilityState="hidden";a.events["document:visibilitychange"]();now=300000;a.ctx.document.visibilityState="visible";a.events["document:visibilitychange"]();now=400000;draw();assert.equal(a.node("tonTimer").textContent,"0:11");
+});
+test("checkout timer survives counter updates, stops on hit and resets for next checkout",async()=>{
+ const a=await app();let now=10000,id=0;const timers=new Map();
+ a.ctx.Date={now:()=>now};a.ctx.window.setInterval=fn=>{timers.set(++id,fn);return id;};a.ctx.window.clearInterval=key=>timers.delete(key);
+ const draw=()=>{for(const fn of timers.values())fn();};
+ a.open(100);assert.equal(a.node("tonTimer").textContent,"0:00");
+ now+=65000;draw();assert.equal(a.node("tonTimer").textContent,"1:05");
+ await a.node("tonNearMiss").listeners.click();now+=2000;draw();assert.equal(a.node("tonTimer").textContent,"1:07");
+ await a.node("tonMiss").listeners.click();assert.equal(a.node("tonTimer").textContent,"1:07");
+ await a.node("tonHit").listeners.click();now+=10000;draw();assert.equal(a.node("tonTimer").textContent,"1:07");assert.match(a.node("tonCompletionAttempts").textContent,/Time: 1:07/);
+ assert.doesNotMatch(JSON.stringify(a.data()),/elapsed|timer|duration/);
+ a.node("tonNext").listeners.click();assert.equal(a.node("tonTimer").textContent,"0:00");
+ now+=3000;draw();assert.equal(a.node("tonTimer").textContent,"0:03");
+ a.node("tonChallenge").close();a.node("tonChallenge").listeners.close();assert.equal(timers.size,0);
+});
+test("completed checkout review does not run a timer; practice gets a fresh timer",async()=>{
+ const a=await app();let now=0,id=0;const timers=new Map();a.ctx.Date={now:()=>now};a.ctx.window.setInterval=fn=>{timers.set(++id,fn);return id;};a.ctx.window.clearInterval=key=>timers.delete(key);
+ a.open(100);now=9000;await a.node("tonHit").listeners.click();a.open(100);now=19000;for(const fn of timers.values())fn();assert.equal(a.node("tonTimer").textContent,"0:09");assert.doesNotMatch(a.node("tonCompletionAttempts").textContent,/Time:/);
+ a.node("tonTryAgain").listeners.click();now=23000;for(const fn of timers.values())fn();assert.equal(a.node("tonTimer").textContent,"0:04");await a.node("tonHit").listeners.click();assert.match(a.node("tonCompletionAttempts").textContent,/Time: 0:04/);
+});
 async function app(signedIn=true,{holdProgress=false}={}){
  const nodes=new Map(),writes=[],events={};let data={status:"Active",tonOutsProgress:{}},watch;
  const node=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,disabled:false,innerHTML:"",textContent:"",listeners:{},setAttribute(){},addEventListener(k,fn){this.listeners[k]=fn},showModal(){this.open=true},close(){this.open=false}});return nodes.get(id);};
  const sdk={doc:()=>"users/member",onSnapshot:(_ref,fn)=>{watch=fn;if(!holdProgress)fn({data:()=>data});return ()=>{}},runTransaction:async(_db,fn)=>fn({get:async()=>({data:()=>data}),update:(_ref,fields)=>{data={...data,...fields};writes.push(fields)}})};
- const ctx={document:{getElementById:node},location:{hash:"#play"},window:{ONMTonOuts:E,ONMFirebase:{config:{projectId:"test"},ready:Promise.resolve({db:{},firestoreSdk:sdk}),authReady:Promise.resolve({auth:{},authSdk:{onAuthStateChanged:(_auth,fn)=>fn(signedIn?{uid:"member",getIdToken:async()=>"token"}:null)}})},ONMBotData:{fetchCommunity:async()=>({tonOutsLeaderboard:[]})},addEventListener:(k,fn)=>events[k]=fn}};
- vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/ton-outs.js"),"utf8"),ctx);await tick();await tick();return {node,writes,data:()=>data,open:n=>node("tonGrid").listeners.click({target:{closest:()=>({dataset:{total:String(n)},disabled:false})}}),watch,ctx};
+ const ctx={document:{getElementById:node,visibilityState:"visible",addEventListener:(k,fn)=>events[`document:${k}`]=fn},location:{hash:"#play"},window:{ONMTonOuts:E,ONMFirebase:{config:{projectId:"test"},ready:Promise.resolve({db:{},firestoreSdk:sdk}),authReady:Promise.resolve({auth:{},authSdk:{onAuthStateChanged:(_auth,fn)=>fn(signedIn?{uid:"member",getIdToken:async()=>"token"}:null)}})},ONMBotData:{fetchCommunity:async()=>({tonOutsLeaderboard:[]})},addEventListener:(k,fn)=>events[k]=fn}};
+ vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/ton-outs.js"),"utf8"),ctx);await tick();await tick();return {node,writes,data:()=>data,open:n=>node("tonGrid").listeners.click({target:{closest:()=>({dataset:{total:String(n)},disabled:false})}}),watch,ctx,events};
 }
 test("signed-in visit saves misses, successful hits, next unlock and review without duplicate awards",async()=>{
  const a=await app();a.open(100);assert.equal(a.node("tonChallenge").open,true);await a.node("tonMiss").listeners.click();await tick();assert.equal(a.data().tonOutsProgress[100].misses,1);assert.equal(a.node("tonAttempts").textContent,"1");await a.node("tonHit").listeners.click();await tick();assert.equal(a.node("tonProgress").textContent,"1 / 64 complete");assert.equal(a.node("tonAttempts").textContent,"2");assert.equal(a.node("tonNext").hidden,false);assert.equal(a.node("tonHit").disabled,true);a.node("tonNext").listeners.click();assert.equal(a.node("tonChallengeTitle").textContent,"101 checkout");

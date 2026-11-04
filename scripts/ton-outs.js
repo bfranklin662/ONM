@@ -3,6 +3,14 @@
   const $=id=>document.getElementById(id),E=window.ONMTonOuts,escape=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   let user=null,progress={},accountData={},selected=100,busy=false,boardBusy=false,stop=null,revision=0,accountReady=false,retrying=false,retryAttempts=0,retryNearMisses=0,practiceMessage="",finishersFor=null;
   let freshCompletion=null;
+  let timerStartedAt=null,timerElapsed=0,timerWatch=null,timerTotal=null,timerFinished=false;
+  const timerSessions=new Map();
+  const timerValue=()=>timerElapsed+(timerStartedAt===null?0:Math.max(0,Date.now()-timerStartedAt));
+  function formatTime(ms){const seconds=Math.floor(ms/1000);return `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,"0")}`;}
+  function drawTimer(){$("tonTimer").textContent=formatTime(timerValue());}
+  function stopTimer(){if(timerStartedAt!==null){timerElapsed=timerValue();timerStartedAt=null;}if(timerTotal!==null)timerSessions.set(timerTotal,timerElapsed);if(timerWatch!==null){window.clearInterval(timerWatch);timerWatch=null;}drawTimer();}
+  function startTimer(reset=false){stopTimer();timerTotal=selected;timerElapsed=reset?0:timerSessions.get(selected)||0;if(document.visibilityState!=="hidden")timerStartedAt=Date.now();if(timerStartedAt!==null&&window.setInterval)timerWatch=window.setInterval(drawTimer,250);drawTimer();}
+  function resumeTimer(){if(user&&$("tonChallenge").open&&document.visibilityState!=="hidden"&&!timerFinished&&(retrying||!E.completed(progress).includes(selected)))startTimer();}
   const community=()=>window.ONMBotData.fetchCommunity({projectId:window.ONMFirebase.config.projectId,refresh:true,getToken:user?()=>user.getIdToken():null});
   const identity=row=>window.ONMGameSummaryIdentity?.row(row)||`<span>${escape(row.name)} ${escape(row.flag||'')}</span>`;
   async function loadFinishers(total){
@@ -28,10 +36,12 @@
   }
   function startScreenOn(){wakeActive=true;keepScreenOn();if(screenWatch===null&&window.setInterval)screenWatch=window.setInterval(keepScreenOn,5000);}
   function stopScreenOn(){wakeActive=false;if(screenWatch!==null){window.clearInterval(screenWatch);screenWatch=null;}const lock=screenLock;screenLock=null;if(lock)lock.release().catch(()=>{});}
-  $("tonChallenge").addEventListener("close",stopScreenOn);
-  document.addEventListener?.("visibilitychange",()=>{if(document.visibilityState==="hidden")stopScreenOn();else if($("tonChallenge").open)startScreenOn();});
+  $("tonChallenge").addEventListener("close",()=>{stopScreenOn();stopTimer();});
+  document.addEventListener?.("visibilitychange",()=>{if(document.visibilityState==="hidden"){stopScreenOn();stopTimer();}else if($("tonChallenge").open){startScreenOn();resumeTimer();}});
+  document.addEventListener?.("freeze",stopTimer);
+  document.addEventListener?.("resume",resumeTimer);
   document.addEventListener?.("pointerdown",()=>{if($("tonChallenge").open)startScreenOn();},{passive:true});
-  window.addEventListener("pageshow",()=>{if($("tonChallenge").open)startScreenOn();});
+  window.addEventListener("pageshow",()=>{if($("tonChallenge").open){startScreenOn();resumeTimer();}});
   const soundClips={};let soundGeneration=0,activeSound=null;
   function prepareSounds(){if(typeof window.Audio!=="function")return;for(const name of ["start","miss","near-miss","hit"]){if(soundClips[name])continue;const clip=new window.Audio(`audio/ton-outs/${name}.wav?v=20261029-louder`);clip.preload="auto";clip.playsInline=true;clip.muted=false;clip.volume=1;soundClips[name]=clip;}}
   function playSound(name){
@@ -62,8 +72,9 @@
     $("tonAlternateLabel").textContent=alternate?"Alternate route":"";
     $("tonAlternateRoute").innerHTML=alternate?alternate.map((dart,i)=>`<span><small>${i+1}</small>${dart}</span>`).join(""):"";
     const review=done&&!retrying;$("tonPlayArea").hidden=review;$("tonCompletion").hidden=!review;
+    if(review)stopTimer();
     const finished=freshCompletion?.total===selected?freshCompletion:null;
-    $("tonCompletionAttempts").textContent=`✓ Completed in ${finished?.attempts??E.attempts(progress[selected])} attempts · Near misses: ${finished?.nearMisses??(Number(progress[selected]?.nearMisses)||0)}${practiceMessage?' · '+practiceMessage:''}`;
+    $("tonCompletionAttempts").textContent=`✓ Completed in ${finished?.attempts??E.attempts(progress[selected])} attempts · Near misses: ${finished?.nearMisses??(Number(progress[selected]?.nearMisses)||0)}${finished?' · Time: '+formatTime(timerValue()):''}${practiceMessage?' · '+practiceMessage:''}`;
     $("tonCompletionPlayers").hidden=!!finished;
     $("tonTryAgain").hidden=!!finished;
     $("tonMiss").disabled=busy||review;$("tonNearMiss").disabled=busy||review;$("tonHit").disabled=busy||review;$("tonChallengeActions").hidden=review;$("tonNext").hidden=!review||!finished||!current();
@@ -72,13 +83,14 @@
   }
   async function record(hit){
     if(busy||!user||E.completed(progress).includes(selected)&&!retrying)return;playSound(hit===true?"hit":hit==="near"?"near-miss":"miss");
+    if(hit===true){timerFinished=true;stopTimer();}
     if(retrying){retryAttempts++;if(hit==="near")retryNearMisses++;if(hit===true){freshCompletion={total:selected,attempts:retryAttempts,nearMisses:retryNearMisses};retrying=false;practiceMessage=`Practice finish: ${retryAttempts} attempts`;}challenge();return;}
     busy=true;const who=user,rev=revision,total=selected;challenge();
     try{
       const {db,firestoreSdk:sdk}=await window.ONMFirebase.ready;
       const saved=await sdk.runTransaction(db,async tx=>{const ref=sdk.doc(db,"users",who.uid),snap=await tx.get(ref),data=snap.data();if(!data||data.status!=="Active")throw Error("An active account is required.");const next=E.record(data.tonOutsProgress||{},total,hit);tx.update(ref,{tonOutsProgress:next});return next;});
       if(rev!==revision)return;progress=saved;if(hit===true)freshCompletion={total,attempts:E.attempts(saved[total]),nearMisses:Number(saved[total]?.nearMisses)||0};render();
-    }catch(error){if(rev===revision){$("tonChallengeStatus").textContent="Couldn’t save that attempt. Check your connection and try again.";busy=false;$("tonMiss").disabled=false;$("tonNearMiss").disabled=false;$("tonHit").disabled=false;}return;}
+    }catch(error){if(rev===revision){if(hit===true){timerFinished=false;resumeTimer();}$("tonChallengeStatus").textContent="Couldn’t save that attempt. Check your connection and try again.";busy=false;$("tonMiss").disabled=false;$("tonNearMiss").disabled=false;$("tonHit").disabled=false;}return;}
     finally{if(rev===revision)busy=false;}
     if(rev===revision)challenge();
   }
@@ -90,17 +102,17 @@
   }
   function view(){const board=location.hash==="#leaderboard";$("tonLeaderboard").hidden=!board;$("tonGame").hidden=board||!accountReady;$("tonLoading").hidden=board||accountReady;$("tonPageTitle").textContent=board?'Leaderboard':'Ton+ Outs';if(board)leaderboard();}
   window.addEventListener("hashchange",view);
-  $("tonGrid").addEventListener("click",event=>{const button=event.target.closest("[data-total]");if(!button||button.disabled)return;selected=Number(button.dataset.total);retrying=false;practiceMessage="";freshCompletion=null;finishersFor=null;challenge();$("tonChallenge").showModal();startScreenOn();if(!E.completed(progress).includes(selected))startDing();});
+  $("tonGrid").addEventListener("click",event=>{const button=event.target.closest("[data-total]");if(!button||button.disabled)return;selected=Number(button.dataset.total);retrying=false;practiceMessage="";freshCompletion=null;finishersFor=null;timerFinished=false;startTimer();challenge();$("tonChallenge").showModal();startScreenOn();if(!E.completed(progress).includes(selected))startDing();});
   $("tonMiss").addEventListener("click",()=>record(false));$("tonNearMiss").addEventListener("click",()=>record("near"));$("tonHit").addEventListener("click",()=>record(true));$("closeTonChallenge").addEventListener("click",()=>{if(!busy)$("tonChallenge").close();});$("tonChallenge").addEventListener("cancel",event=>{if(busy)event.preventDefault();});
-  $("tonTryAgain").addEventListener("click",()=>{retrying=true;retryAttempts=0;retryNearMisses=0;freshCompletion=null;practiceMessage="";challenge();startScreenOn();startDing();});
-  $("tonNext").addEventListener("click",()=>{if(current()){selected=current();retrying=false;practiceMessage="";freshCompletion=null;finishersFor=null;challenge();startDing();}});$("refreshTonBoard").addEventListener("click",leaderboard);
+  $("tonTryAgain").addEventListener("click",()=>{retrying=true;retryAttempts=0;retryNearMisses=0;freshCompletion=null;practiceMessage="";timerFinished=false;startTimer(true);challenge();startScreenOn();startDing();});
+  $("tonNext").addEventListener("click",()=>{if(current()){selected=current();retrying=false;practiceMessage="";freshCompletion=null;finishersFor=null;timerFinished=false;startTimer(true);challenge();startDing();}});$("refreshTonBoard").addEventListener("click",leaderboard);
   (window.ONMFirebase.authReady||window.ONMFirebase.ready).then(({auth,authSdk})=>authSdk.onAuthStateChanged(auth,async value=>{
-    const rev=++revision;stop?.();stop=null;user=value;progress={};accountData={};busy=false;accountReady=false;retrying=false;retryAttempts=0;finishersFor=null;$("tonChallenge").close();render();view();
+    const rev=++revision;stopTimer();timerSessions.clear();timerTotal=null;timerElapsed=0;timerFinished=false;stop?.();stop=null;user=value;progress={};accountData={};busy=false;accountReady=false;retrying=false;retryAttempts=0;finishersFor=null;$("tonChallenge").close();render();view();
     if(!user){accountReady=true;$("tonStatus").innerHTML='<a href="auth.html?mode=register&amp;redirect=ton-outs.html">Sign up or log in to save your Ton+ Outs progress.</a>';view();return;}
     $("tonStatus").textContent="";
     try{const {db,firestoreSdk:sdk}=await window.ONMFirebase.ready;if(rev!==revision)return;stop=sdk.onSnapshot(sdk.doc(db,"users",user.uid),snap=>{if(rev!==revision)return;accountData=snap.data()||{};progress=accountData.tonOutsProgress||{};accountReady=true;$("tonStatus").textContent="";render();$("tonGame").hidden=location.hash==="#leaderboard";$("tonLoading").hidden=true;if($("tonChallenge").open&&!busy)challenge();},()=>{if(rev!==revision)return;$("tonLoading").hidden=true;$("tonStatus").textContent="Couldn’t load your progress. Refresh to retry.";});}
     catch{if(rev===revision){$("tonLoading").hidden=true;$("tonStatus").textContent="Couldn’t load your account. Please refresh.";}}
   })).catch(()=>{$("tonLoading").hidden=true;$("tonStatus").textContent="Couldn’t connect to sign-in. Please refresh.";});
   view();
-  window.addEventListener("pagehide",()=>{stopScreenOn();stop?.();});
+  window.addEventListener("pagehide",()=>{stopTimer();stopScreenOn();stop?.();});
 })();
