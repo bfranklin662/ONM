@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oche Ness Monsters | Tournament</title>
+
+  <link rel="stylesheet" href="styles/header.css">
+  <link rel="stylesheet" href="styles/buttons.css">
+  <link rel="stylesheet" href="styles/dart-scorer.css">
+  <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link">
+  <link rel="stylesheet" href="styles/games.css?v=20261110-tournament">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill">
+  <!-- Shared Monsters branding: browser, home screen and link previews. -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
+  <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
+  <link rel="apple-touch-icon" sizes="180x180" href="/graphics/icons/apple-touch-icon.png?v=20261104-brand">
+  <link rel="manifest" href="/site.webmanifest?v=20261104-brand">
+  <meta name="theme-color" content="#0c2419">
+  <meta name="application-name" content="Oche Ness Monsters">
+  <meta name="apple-mobile-web-app-title" content="Monsters">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Oche Ness Monsters | Tournament">
+  <meta name="twitter:description" content="Oche Ness Monsters — London darts, fixtures, results and games.">
+  <meta name="twitter:image" content="https://ochenessmonsters.com/graphics/icons/share-monsters.png?v=20261104-brand">
+  <meta property="og:site_name" content="Oche Ness Monsters">
+  <meta property="og:title" content="Oche Ness Monsters | Tournament">
+  <meta property="og:description" content="Oche Ness Monsters — London darts, fixtures, results and games.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ochenessmonsters.com/tournament.html">
+  <meta property="og:image" content="https://ochenessmonsters.com/graphics/icons/share-monsters.png?v=20261104-brand">
+  <meta property="og:image:secure_url" content="https://ochenessmonsters.com/graphics/icons/share-monsters.png?v=20261104-brand">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Oche Ness Monsters club logo on a dark green background">
+  <link rel="stylesheet" href="styles/tournament.css">
+</head>
+
+<body>
+  <header class="site-header">
+    <a href="/" class="brand-left">
+      <img class="top-left-logo" src="graphics/logoWText.png" alt="Oche Ness Monsters">
+    </a>
+
+    <img class="logo" src="graphics/onmLogoWhiteFit.png" alt="Oche Ness Monsters">
+
+    <nav class="nav-links desktop-nav">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="results.html">Results & Stats</a></li>
+        <li><a href="players-landing.html">Players</a></li>
+        <li><a href="/games.html" class="active">Play</a></li>
+        <li><a href="/match">Match</a></li>
+      </ul>
+    </nav>
+
+    <button id="authNavBtn" type="button" class="authProfileBtn">
+      <span class="authProfileInitial">👤</span>
+    </button>
+
+    <button class="hamburger" type="button" onclick="toggleSidebar()">☰</button>
+  </header>
+
+  <div id="sidebar" class="sidebar">
+    <button class="close-btn" type="button" onclick="toggleSidebar()">✖</button>
+
+    <a href="/">Home</a>
+    <a href="results.html">Results & Stats</a>
+    <a href="players-landing.html">Players</a>
+    <a href="/games.html" class="active">Play</a>
+
+    <a href="/match">Match</a>
+  </div>
+
+  <main class="wrap tournament">
+    <a id="tournamentBack" class="tournamentBack" href="games.html">← Play</a>
+    <header class="tournamentHero">
+      <p class="tournamentKicker">Monsters darts</p>
+      <h1 id="tournamentTitle">Tournament</h1>
+      <p id="tournamentIntro">Join an open tournament, follow the draw and browse past results.</p>
+    </header>
+    <p id="tournamentMessage" class="tournamentMessage" role="status">Loading tournaments…</p>
+
+    <details id="tournamentSetup" class="tournamentPanel" hidden>
+      <summary>Create a tournament</summary>
+      <form id="tournamentForm">
+        <div class="tournamentFields">
+          <label class="wide">Tournament name
+            <input name="title" required maxlength="100" placeholder="Monsters Christmas Tournament">
+          </label>
+          <label class="wide">Structure
+            <select name="structure">
+              <option value="knockout">Knockout</option>
+              <option value="groups">Group (Round-Robin)</option>
+              <option value="combined">Groups &amp; Knockout</option>
+            </select>
+          </label>
+          <p class="wide tournamentHint" id="structureHint"></p>
+          <label id="bracketField">Knockout grid
+            <select name="bracket">
+              <option>4</option><option>8</option><option selected>16</option>
+              <option>32</option><option>64</option><option>128</option>
+            </select>
+          </label>
+          <label id="capacityField" hidden>Player limit
+            <input type="number" name="capacity" min="4" max="128" value="16" required>
+          </label>
+          <label id="groupField" hidden>Maximum players per group
+            <input type="number" name="groupSize" min="3" max="8" value="4" required>
+          </label>
+          <label id="qualifierField" hidden>Players who qualify
+            <input type="number" name="qualifiers" min="4" max="128" value="8" required>
+          </label>
+          <p id="bracketHint" class="wide tournamentHint" hidden></p>
+          <label>Match format
+            <select name="gameType"><option value="bestOf">Best of</option><option value="firstTo">First to</option></select>
+          </label>
+          <label>Number of legs
+            <input type="number" name="legsCount" min="1" max="19" step="2" value="3" required>
+          </label>
+          <label>Starting score
+            <select name="startScore"><option>301</option><option selected>501</option><option>701</option><option value="custom">Custom</option></select>
+          </label>
+          <label id="customField" hidden>Custom starting score
+            <input type="number" name="customScore" min="2" max="9999" value="901" required>
+          </label>
+          <label>Opening rule
+            <select name="inMode"><option value="straight">Straight in</option><option value="double">Double in</option></select>
+          </label>
+          <label>Draw
+            <select name="drawMode"><option value="random">Random</option><option value="ability">By ability</option></select>
+          </label>
+        </div>
+        <p class="tournamentHint">All matches finish on a double. Entries open as soon as you create the tournament.</p>
+        <button class="btn btnPrimary" type="submit">Create tournament</button>
+      </form>
+    </details>
+    <div id="tournamentContent"></div>
+  </main>
+
+  <div id="profileOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modalCard profileModalCard">
+      <div class="modalHeader">
+        <div class="modalTitle">Profile</div>
+        <button id="closeProfileBtn" class="modalClose" type="button">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <div id="profileModalContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts/firebase-client.js?v=20261104-player-identity"></script>
+  <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
+  <script src="scripts/session.js?v=20261028-avatar-fill"></script>
+  <script src="scripts/profile.js?v=20261025-profile-navigation"></script>
+  <script type="module" defer src="scripts/firebase-live.js"></script>
+  <script type="module" src="scripts/tournament-lobby.mjs"></script>
+
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("active");
+    }
+
+    document.querySelectorAll("#sidebar a").forEach(a => {
+      a.addEventListener("click", () => {
+        document.getElementById("sidebar").classList.remove("active");
+      });
+    });
+  </script>
+<script src="/scripts/site-ui.js?v=20261028-avatar-fill"></script></body>
+
+</html>

@@ -9,6 +9,8 @@ let STATS_MODE = "casual";
 window.STATS_MODE = STATS_MODE;
 
 const params = new URLSearchParams(window.location.search);
+const TOURNAMENT_MODE = params.get("mode") === "tournament";
+let tournamentMatch = null;
 const BOT_MODE = params.get("mode") === "bot";
 const PAGE_MODE = ["league","versus"].includes(params.get("mode")) ? "league" : "casual";
 
@@ -2566,6 +2568,7 @@ function updateLegTarget() {
 function getGameTitle() {
   const count = Number(els.legsCount.textContent);
   const gameTypeText = GAME_TYPE === "bestOf" ? `BO${count}` : `FT${count}`;
+  if (TOURNAMENT_MODE) return `${STARTING_SCORE} · ${gameTypeText} · ${IN_MODE === "double" ? "Double in" : "Straight in"}`;
   const statsModeText = STATS_MODE === "competitive" ? "COMPETITIVE" : "CASUAL";
 
   return `${statsModeText}: ${STARTING_SCORE} · ${gameTypeText}`;
@@ -2795,6 +2798,7 @@ els.quitConfirmOverlay.addEventListener("click", event => {
 
 els.confirmQuitBtn.addEventListener("click", async () => {
   if (BOT_MODE) { window.ONMMonsterScorer?.exit(); return; }
+  if (tournamentMatch) { location.href = tournamentMatch.back; return; }
   fullyStopDartAudio();
   const wasMOLGame =
     MATCH_MODE === "online" ||
@@ -2958,6 +2962,10 @@ function startActualGame() {
 }
 
 function setStartingPlayer(index) {
+  if (tournamentMatch) {
+    tournamentMatch.starter = index;
+    state.matchStartedAt = new Date();
+  }
   state.currentPlayer = index;
   startActualGame();
 }
@@ -3033,6 +3041,7 @@ els.skipDeciderBtn.addEventListener("click", async () => {
 });
 
 els.deciderQuitBtn.addEventListener("click", () => {
+  if (tournamentMatch) { location.href = tournamentMatch.back; return; }
   fullyStopDartAudio();
   closeStartDecider();
   els.setupCard.classList.remove("hidden");
@@ -3478,7 +3487,7 @@ function render() {
   syncScoreCorrectionButton();
 
   state.players.forEach((player, index) => {
-    const checkout = CHECKOUTS[player.score];
+    const checkout = needsTournamentDouble(player) ? "Double in" : CHECKOUTS[player.score];
 
     els.checkouts[index].textContent = checkout || "";
     els.checkouts[index].classList.toggle("show", Boolean(checkout));
@@ -3495,7 +3504,10 @@ function render() {
     els.cards[index].classList.toggle("activePlayer", index === state.currentPlayer);
   });
 
-  els.turnMessage.textContent = `${playerName(state.currentPlayer)}'s turn!`;
+  const opening = needsTournamentDouble(state.players[state.currentPlayer]);
+  els.turnMessage.textContent = opening
+    ? `${playerName(state.currentPlayer)} · Count from the opening double`
+    : `${playerName(state.currentPlayer)}'s turn!`;
   els.turnMessage.classList.toggle("playerTwoTurn", state.currentPlayer === 1);
   if (document.activeElement !== els.input) {
     els.input.blur();
@@ -3503,6 +3515,7 @@ function render() {
 
   syncCheckoutPhotoButton();
   if (BOT_MODE) window.ONMMonsterScorer?.onRender();
+  if (tournamentMatch?.starter != null) rememberTournamentDraft();
 }
 
 function switchPlayer() {
@@ -3622,6 +3635,14 @@ function getSelectedPromptValue(container) {
 }
 
 function syncCheckoutPromptOptions(changedContainer = null) {
+  if (pendingCheckoutPrompt?.openingCheckout) {
+    const darts = getSelectedPromptValue(els.checkoutPromptOptions);
+    const { bull, other } = pendingCheckoutPrompt.openingCheckout;
+    const options = document.getElementById("bullOutPromptOptions");
+    const previous = options.querySelector(".selected")?.dataset.value;
+    const values = [...(other(darts) ? ["No"] : []), ...(bull(darts) ? ["Yes"] : [])];
+    if (changedContainer !== options) buildPromptButtons(options, values, values.includes(previous) ? previous : values[0]);
+  }
   if (!pendingCheckoutPrompt || !pendingCheckoutPrompt.doubleOptions || !pendingCheckoutPrompt.checkoutOptions) return;
 
   const doubleDarts = getSelectedPromptValue(els.doublePromptOptions);
@@ -3695,8 +3716,29 @@ function submitScore() {
 
   state.legJustWon = false;
 
+  if (TOURNAMENT_MODE && (!tournamentMatch || state.winnerIndex !== null || !els.input.value)) return;
   const player = state.players[state.currentPlayer];
   const previousScore = player.score;
+  const opening = needsTournamentDouble(player);
+  if (opening && !tournamentMatch.engine.validDoubleInVisit(value)) {
+    showImpossibleMessage("A double must open the scoring");
+    els.input.value = "";
+    return;
+  }
+  if (opening && value === previousScore) {
+    const checkout = tournamentMatch.engine.doubleInCheckout(value);
+    if (!checkout.darts.length) {
+      showImpossibleMessage("This score needs a double in and a double out");
+      els.input.value = "";
+      return;
+    }
+    openCheckoutPrompt({
+      playerIndex: state.currentPlayer, visitScore: value, previousScore,
+      legWon: true, bust: false, checkoutOptions: checkout.darts,
+      bullOutOptions: ["No", "Yes"], openingCheckout: checkout
+    });
+    return;
+  }
   let bust = false;
   let legWon = false;
 
@@ -3784,7 +3826,7 @@ function submitScore() {
     }
   }
 
-  if (!legWon && !bust) {
+  if (!legWon && !bust && (!opening || value > 0)) {
     const doubleOptions = getDoubleOptionsForMissedVisit(previousScore, value);
 
     if (doubleOptions && doubleOptions.length > 1) {
@@ -4560,6 +4602,7 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
     previousBullOuts: player.bullOuts,
     previousLegDarts: [...(player.legDarts || [])],
     previousLegs: player.legs,
+    previousOpened: player.opened,
     bust,
     legWon,
     doublesAttempted
@@ -4593,6 +4636,7 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
 
     player.totalScored += visitScore;
     player.score -= visitScore;
+    if (tournamentMatch && visitScore > 0) player.opened = true;
 
     if (visitScore === 180) {
       player.oneEightys += 1;
@@ -4623,6 +4667,10 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
       els.submit.disabled = true;
 
       setTimeout(() => {
+        if (tournamentMatch) {
+          openStatsModal(true);
+          return;
+        }
         openMolVictoryScreen(
           MATCH_MODE === "online"
             ? buildMatchStatsData()
@@ -4639,7 +4687,7 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
     }
   }
 
-  state.visitHistory.push(historyItem);
+  if (!tournamentMatch || !legWon) state.visitHistory.push(historyItem);
   els.input.value = "";
 
   if (!els.submit.disabled) {
@@ -4658,6 +4706,9 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
     }
   }
 
+  if (tournamentMatch && legWon && state.winnerIndex === null) {
+    state.currentPlayer = (tournamentMatch.starter + state.players[0].legs + state.players[1].legs) % 2;
+  }
   if (BOT_MODE && legWon && state.winnerIndex === null) {
     state.currentPlayer = (state.players[0].legs + state.players[1].legs) % 2;
   }
@@ -4668,6 +4719,7 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
 function resetLeg() {
   state.players.forEach(player => {
     player.score = STARTING_SCORE;
+    if (tournamentMatch) player.opened = false;
     player.lastScore = null;
     player.currentLegDarts = 0;
     player.currentLegFirstNineScored = 0;
@@ -4678,7 +4730,7 @@ function resetLeg() {
 
 function undoLastVisit() {
   if (BOT_MODE) { window.ONMMonsterScorer?.undo(); return; }
-  if (state.legJustWon) {
+  if (state.legJustWon || (tournamentMatch && state.winnerIndex !== null)) {
     els.input.blur();
     return;
   }
@@ -4707,6 +4759,7 @@ function undoLastVisit() {
   player.bullOuts = last.previousBullOuts;
   player.legDarts = [...(last.previousLegDarts || [])];
   player.legs = last.previousLegs;
+  if (tournamentMatch) player.opened = last.previousOpened;
 
   state.currentPlayer = last.playerIndex;
   els.submit.disabled = false;
@@ -4985,7 +5038,11 @@ function openStatsModal(isMatchComplete = false) {
 
   if (isMatchComplete) {
     els.matchCompleteActions.innerHTML =
-      MATCH_MODE === "online"
+      tournamentMatch
+        ? `<button id="saveTournamentResult" type="button" class="btn btnPrimary">Save tournament result</button>
+           <a class="btn btnGhost" href="${tournamentMatch.back}">Back to tournament</a>
+           <p id="tournamentSaveMessage" role="status"></p>`
+        : MATCH_MODE === "online"
         ? `<button id="continueAfterMatchBtn" type="button" class="btn btnPrimary">Continue</button>`
         : STATS_MODE === "competitive"
           ? `<button id="submitMatchResultBtn" type="button" class="btn btnPrimary">Submit result</button>`
@@ -4993,6 +5050,7 @@ function openStatsModal(isMatchComplete = false) {
         <button id="rematchBtn" type="button" class="btn btnGhost">Rematch</button>
         <button id="continueAfterMatchBtn" type="button" class="btn btnPrimary">Continue</button>
       `;
+    document.getElementById("saveTournamentResult")?.addEventListener("click", saveTournamentResult);
     document.getElementById("submitMatchResultBtn")?.addEventListener("click", submitCompetitiveResult);
 
     document.getElementById("rematchBtn")?.addEventListener("click", () => {
@@ -5200,7 +5258,7 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
 
   const doublesAttempted = pendingCheckoutPrompt.doubleOptions
     ? getSelectedPromptValue(els.doublePromptOptions)
-    : 0;
+    : pendingCheckoutPrompt.openingCheckout ? 1 : 0;
 
   const dartsUsed = pendingCheckoutPrompt.checkoutOptions
     ? getSelectedPromptValue(els.checkoutPromptOptions)
@@ -6015,7 +6073,7 @@ function toggleScorerFullscreen() {
 els.fullscreenBtn?.addEventListener("click", toggleScorerFullscreen);
 
 async function initDartScorerAuth() {
-  if (BOT_MODE) return;
+  if (BOT_MODE || TOURNAMENT_MODE) return;
   console.log("[DART DEBUG] initDartScorerAuth started");
   console.log("[DART DEBUG] PAGE_MODE:", PAGE_MODE);
   console.log("[DART DEBUG] ONMLiveDarts available:", !!window.ONMLiveDarts);
@@ -7879,7 +7937,7 @@ if (params.get("testCasualVictory") === "1") {
 }
 
 function initialisePageModeView() {
-  if (BOT_MODE) return;
+  if (BOT_MODE || TOURNAMENT_MODE) return;
   const title = document.getElementById("screenTitleText");
 
   if (PAGE_MODE === "casual") {
@@ -8219,3 +8277,95 @@ setTogglePosition(
   els.statsModeSwitch,
   document.querySelector("#statsModeSwitch .toggleBtn.active")
 );
+
+function needsTournamentDouble(player) {
+  return TOURNAMENT_MODE && IN_MODE === "double" && !player.opened;
+}
+
+function rememberTournamentDraft() {
+  try {
+    const { draftKey, starter, submissionId, entrants } = tournamentMatch;
+    sessionStorage.setItem(draftKey, JSON.stringify({ starter, submissionId, entrants, state }));
+  } catch {
+    // Scoring can continue when browser storage is disabled or full.
+  }
+}
+
+async function saveTournamentResult(event) {
+  const button = event.currentTarget;
+  button.disabled = true;
+  const { store, id, matchId, entrants, submissionId, draftKey, back, describeError } = tournamentMatch;
+  try {
+    await store.saveResult(id, matchId, entrants, state.winnerIndex, state.players, submissionId);
+  } catch (error) {
+    document.getElementById("tournamentSaveMessage").textContent = describeError(error);
+    button.disabled = false;
+    return;
+  }
+  try { sessionStorage.removeItem(draftKey); } catch {}
+  location.href = back;
+}
+
+async function initialiseTournamentMatch() {
+  document.title = "Oche Ness Monsters | Tournament scorer";
+  const notice = document.getElementById("tournamentScorerNotice");
+  const link = notice.querySelector("a");
+  const status = notice.querySelector("p");
+  notice.classList.remove("hidden");
+  try {
+    const id = params.get("tournament");
+    const matchId = params.get("match");
+    const [engine, { canManage, tournamentStore, tournamentUrl, tournamentError }] = await Promise.all([
+      import("./tournament-engine.mjs"),
+      import("./tournament-store.mjs")
+    ]);
+    link.href = tournamentUrl(id);
+    if (!id || !matchId) throw new Error("Open a match from the tournament lobby.");
+    const user = await window.ONMFirebase.loadOwnUser();
+    if (!canManage(user)) {
+      if (!user) {
+        link.href = `auth.html?redirect=${encodeURIComponent(location.pathname.split("/").pop() + location.search)}`;
+        link.textContent = "Sign in";
+      }
+      throw new Error("A site administrator scores tournament matches.");
+    }
+    const store = await tournamentStore();
+    const tournament = await store.load(id);
+    const match = engine.tournamentView(tournament)?.matches.find(item => item.id === matchId);
+    if (tournament.status !== "live" || !match?.ready || match.result) {
+      throw new Error("This match is no longer available to score.");
+    }
+    const entrants = [match.a, match.b];
+    const draftKey = `onmTournament:${user.uid}:${id}:${matchId}`;
+    let draft;
+    try { draft = JSON.parse(sessionStorage.getItem(draftKey)); } catch {}
+    if (draft?.entrants?.length !== 2 || ![0, 1].includes(draft.starter) ||
+        !draft.entrants.every((entrant, index) => entrant === entrants[index])) draft = null;
+    tournamentMatch = {
+      store, id, matchId, entrants, engine, draftKey, back: tournamentUrl(id), describeError: tournamentError,
+      submissionId: draft?.submissionId || crypto.randomUUID(), starter: null
+    };
+    els.gameSettingsBtn.classList.add("hidden");
+    els.names.forEach((input, index) => {
+      input.value = tournament.entries[entrants[index]];
+      input.readOnly = true;
+    });
+    applyMatchSettings(tournament.settings);
+    newGame();
+    notice.classList.add("hidden");
+    if (draft) {
+      Object.assign(state, draft.state);
+      state.matchStartedAt = new Date(state.matchStartedAt);
+      tournamentMatch.starter = draft.starter;
+      els.submit.disabled = state.winnerIndex !== null;
+      startActualGame();
+      if (state.winnerIndex !== null) openStatsModal(true);
+    } else {
+      openStartDecider();
+    }
+  } catch (error) {
+    status.textContent = error.message || "Could not load the tournament match.";
+  }
+}
+
+if (TOURNAMENT_MODE) initialiseTournamentMatch();

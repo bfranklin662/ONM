@@ -1,4 +1,25 @@
 {
   "indexes": [],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "tournaments",
+      "fieldPath": "entries",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "tournaments",
+      "fieldPath": "seeds",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "tournaments",
+      "fieldPath": "draw",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "tournaments",
+      "fieldPath": "results",
+      "indexes": []
+    }
+  ]
 }

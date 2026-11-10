@@ -157,6 +157,54 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /tournaments/{tournamentId} {
+      function ownEntryChange() {
+        let uid = request.auth.uid;
+        let before = resource.data.entries;
+        let after = request.resource.data.entries;
+        let profile = userRecord().data;
+        let linkedName = profile.get("linkedPlayerName", "");
+        let name = linkedName == "" ? profile.get("firstName", "") : linkedName;
+        return resource.data.status == "open" &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["entries"]) &&
+          after is map && after.diff(before).affectedKeys().hasOnly([uid]) &&
+          ((!before.keys().hasAny([uid]) && after.keys().hasAny([uid]) &&
+            after.size() <= resource.data.settings.capacity && name is string &&
+            name.size() > 0 && name.size() <= 100 && after[uid] == name) ||
+           (before.keys().hasAny([uid]) && !after.keys().hasAny([uid])));
+      }
+
+      function appendResult() {
+        let before = resource.data.results;
+        let after = request.resource.data.results;
+        return after is map && after.size() == before.size() + 1 &&
+          after.diff(before).affectedKeys().size() == 1;
+      }
+
+      allow read: if true;
+      allow create: if admin() &&
+        request.resource.data.keys().hasOnly(["title", "settings", "createdBy", "createdAt", "status", "entries", "seeds", "results"]) &&
+        request.resource.data.title is string && request.resource.data.title.size() > 0 &&
+        request.resource.data.title.size() <= 100 &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.createdAt == request.time && request.resource.data.status == "open" &&
+        request.resource.data.settings.capacity is int && request.resource.data.settings.capacity >= 4 &&
+        request.resource.data.settings.capacity <= 128 &&
+        request.resource.data.entries == {} && request.resource.data.seeds == {} && request.resource.data.results == {};
+      allow update: if (activeMember() && ownEntryChange()) ||
+        (admin() && (
+          (resource.data.status == "open" && request.resource.data.status == "live" &&
+            request.resource.data.startedAt == request.time &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(["draw", "seeds", "status", "startedAt"])) ||
+          (resource.data.status == "live" && request.resource.data.status == "live" && appendResult() &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(["results"])) ||
+          (resource.data.status == "live" && request.resource.data.status == "complete" && appendResult() &&
+            request.resource.data.completedAt == request.time &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(["results", "status", "completedAt"]))
+        ));
+      allow delete: if false;
+    }
+
     match /dartMatches/{matchId} {
       allow read: if activeMember();
       allow create: if activeMember() &&

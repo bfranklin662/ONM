@@ -266,3 +266,14 @@ body::before {
 .title {
   text-align: center;
 }
+
+.gameTileTournament .tournamentTileArt {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at center, #346b4b, #102820 75%);
+  color: #ffdd83;
+}
+
+.tournamentTileArt svg {
+  width: min(72%, 260px);
+}
