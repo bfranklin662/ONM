@@ -642,7 +642,8 @@
   async function getUserStats(payload) {
     const wantedName = normaliseName(payload.linkedPlayerName);
     const wantedKey = clean(payload.linkedPlayerKey);
-    if (!wantedName && !wantedKey) return { success: false, error: "Missing linked player name." };
+    const wantedUid = clean(payload.uid);
+    if (!wantedName && !wantedKey && !wantedUid) return { success: false, error: "Missing linked player name." };
     const { db, firestoreSdk } = await ready;
     const snapshot = await firestoreSdk.getDocs(firestoreSdk.collection(db, "dartMatches"));
     const totals = {
@@ -653,12 +654,12 @@
     };
     const matchResults = [];
     snapshot.docs.map(item => item.data()).forEach(match => {
-      const p1Match = wantedKey
+      const p1Match = (wantedUid && match.playerOneUid === wantedUid) || (wantedKey
         ? clean(match.playerOneId) === wantedKey
-        : normaliseName(match.playerOneName) === wantedName;
-      const p2Match = wantedKey
+        : Boolean(wantedName) && normaliseName(match.playerOneName) === wantedName);
+      const p2Match = (wantedUid && match.playerTwoUid === wantedUid) || (wantedKey
         ? clean(match.playerTwoId) === wantedKey
-        : normaliseName(match.playerTwoName) === wantedName;
+        : Boolean(wantedName) && normaliseName(match.playerTwoName) === wantedName);
       if (!p1Match && !p2Match) return;
       const prefix = p1Match ? "playerOne" : "playerTwo";
       const other = p1Match ? "playerTwo" : "playerOne";
@@ -684,12 +685,13 @@
         totals.firstNineMatches += 1;
       }
       const won = match[`${prefix}Won`] === true || clean(match[`${prefix}Won`]).toLowerCase() === "true";
-      totals[won ? "wins" : "losses"] += 1;
-      matchResults.push({ won, date: clean(match.dateTime) });
+      if (match.draw !== true) totals[won ? "wins" : "losses"] += 1;
+      matchResults.push({ won: match.draw === true ? null : won, date: clean(match.dateTime) });
     });
     matchResults.sort((a, b) => a.date.localeCompare(b.date));
     let streak = 0;
     for (let index = matchResults.length - 1; index >= 0; index -= 1) {
+      if (matchResults[index].won === null) break;
       const amount = matchResults[index].won ? 1 : -1;
       if (streak && Math.sign(streak) !== amount) break;
       streak += amount;
@@ -902,9 +904,16 @@
   }
 
   let availabilityFunctions;
+  async function tournamentScoring(data) {
+    return callRegionalFunction("tournamentScoring", data);
+  }
   async function availability(action, data = {}) {
-    const { app } = await ready;
     if (!["getPlayerAvailability", "setPlayerAvailability"].includes(action)) throw new Error("Unknown availability action.");
+    return callRegionalFunction(action, data);
+  }
+
+  async function callRegionalFunction(action, data) {
+    const { app } = await ready;
     availabilityFunctions ||= import(`${BASE}/firebase-functions.js`).then(sdk => ({ sdk, functions: sdk.getFunctions(app, "europe-west2") }));
     const { sdk, functions } = await availabilityFunctions;
     return (await sdk.httpsCallable(functions, action)(data)).data;
@@ -931,6 +940,7 @@
     loadOwnUser,
     currentFirebaseUser,
     availability,
+    tournamentScoring,
     resultPhotos: { list: listResultPhotos, upload: uploadSharedResultPhoto, remove: removeSharedResultPhoto },
     importSiteData,
     playerKey,

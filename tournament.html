@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="tournamentPage">
 
 <head>
   <meta charset="utf-8" />
@@ -37,7 +37,7 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Oche Ness Monsters club logo on a dark green background">
-  <link rel="stylesheet" href="styles/tournament.css">
+  <link rel="stylesheet" href="styles/tournament.css?v=20261111-tournament-scoring">
 </head>
 
 <body>
@@ -77,70 +77,141 @@
   </div>
 
   <main class="wrap tournament">
-    <a id="tournamentBack" class="tournamentBack" href="games.html">← Play</a>
+    <div class="tournamentToolbar">
+      <a id="tournamentBack" class="tournamentBack tournamentEntryButton tournamentEntryView" href="games.html">← Play</a>
+      <button id="tournamentEditRules" class="tournamentEntryButton tournamentEntryView" type="button" hidden>Tournament settings</button>
+    </div>
     <header class="tournamentHero">
-      <p class="tournamentKicker">Monsters darts</p>
-      <h1 id="tournamentTitle">Tournament</h1>
-      <p id="tournamentIntro">Join an open tournament, follow the draw and browse past results.</p>
+      <svg class="tournamentHeroArt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 4h8v5a4 4 0 0 1-8 0V4ZM8 6H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 1v5m-4 2h8m-6-2h4"/>
+      </svg>
+      <div class="tournamentHeroCopy">
+        <div class="tournamentHeroLabel">
+          <p class="tournamentKicker">Tournament</p>
+          <span id="tournamentTestBadge" class="tournamentTestBadge" hidden>Test</span>
+          <span id="tournamentLiveBadge" class="tournamentLobbyBadge tournamentLiveBadge" hidden>Live</span>
+        </div>
+        <h1 id="tournamentTitle">Tournament</h1>
+        <p id="tournamentIntro">Join an open tournament, follow the draw and browse past results.</p>
+        <div id="tournamentWinners" class="tournamentWinners" hidden></div>
+        <div class="tournamentHeroActions">
+          <button id="tournamentPlayerCount" class="tournamentPlayerCount tournamentEntryButton" type="button" aria-haspopup="dialog" hidden></button>
+          <button id="tournamentInfo" class="tournamentEntryButton tournamentInfo" type="button" aria-label="Tournament rules and information" aria-haspopup="dialog" hidden>i</button>
+        </div>
+      </div>
     </header>
     <p id="tournamentMessage" class="tournamentMessage" role="status">Loading tournaments…</p>
+    <div id="tournamentSettingsToast" class="tournamentSettingsToast" role="status"></div>
 
-    <details id="tournamentSetup" class="tournamentPanel" hidden>
-      <summary>Create a tournament</summary>
-      <form id="tournamentForm">
-        <div class="tournamentFields">
-          <label class="wide">Tournament name
-            <input name="title" required maxlength="100" placeholder="Monsters Christmas Tournament">
-          </label>
-          <label class="wide">Structure
-            <select name="structure">
-              <option value="knockout">Knockout</option>
-              <option value="groups">Group (Round-Robin)</option>
-              <option value="combined">Groups &amp; Knockout</option>
-            </select>
-          </label>
-          <p class="wide tournamentHint" id="structureHint"></p>
-          <label id="bracketField">Knockout grid
-            <select name="bracket">
-              <option>4</option><option>8</option><option selected>16</option>
-              <option>32</option><option>64</option><option>128</option>
-            </select>
-          </label>
-          <label id="capacityField" hidden>Player limit
-            <input type="number" name="capacity" min="4" max="128" value="16" required>
-          </label>
-          <label id="groupField" hidden>Maximum players per group
-            <input type="number" name="groupSize" min="3" max="8" value="4" required>
-          </label>
-          <label id="qualifierField" hidden>Players who qualify
-            <input type="number" name="qualifiers" min="4" max="128" value="8" required>
-          </label>
-          <p id="bracketHint" class="wide tournamentHint" hidden></p>
-          <label>Match format
-            <select name="gameType"><option value="bestOf">Best of</option><option value="firstTo">First to</option></select>
-          </label>
-          <label>Number of legs
-            <input type="number" name="legsCount" min="1" max="19" step="2" value="3" required>
-          </label>
-          <label>Starting score
-            <select name="startScore"><option>301</option><option selected>501</option><option>701</option><option value="custom">Custom</option></select>
-          </label>
-          <label id="customField" hidden>Custom starting score
-            <input type="number" name="customScore" min="2" max="9999" value="901" required>
-          </label>
-          <label>Opening rule
-            <select name="inMode"><option value="straight">Straight in</option><option value="double">Double in</option></select>
-          </label>
-          <label>Draw
-            <select name="drawMode"><option value="random">Random</option><option value="ability">By ability</option></select>
-          </label>
-        </div>
-        <p class="tournamentHint">All matches finish on a double. Entries open as soon as you create the tournament.</p>
-        <button class="btn btnPrimary" type="submit">Create tournament</button>
+    <section id="tournamentSetup" class="tournamentPanel" hidden>
+      <button id="tournamentSetupButton" class="btn btnPrimary" type="button"
+        aria-controls="tournamentForm" aria-expanded="false" aria-describedby="tournamentAccessMessage">Create a tournament</button>
+      <p id="tournamentAccessMessage" class="tournamentMessage" role="status"></p>
+      <form id="tournamentForm" hidden>
+        <label class="tournamentFormat">Where will players compete?
+          <select name="playMode" required>
+            <option value="">Choose Online or In person</option>
+            <option value="online">Online</option>
+            <option value="inPerson">In person</option>
+          </select>
+        </label>
+        <fieldset id="tournamentSettings" class="tournamentSettings" hidden disabled>
+          <legend class="tournamentHint" id="tournamentFormatHint"></legend>
+          <div class="tournamentFields">
+            <label class="wide">Tournament name
+              <input name="title" required maxlength="100" placeholder="Monsters Christmas Tournament">
+            </label>
+            <label class="wide tournamentCheck"><input name="testTournament" type="checkbox"> Test tournament (admins only)</label>
+            <label id="boardField" hidden>Number of boards
+              <input name="boardCount" type="number" min="1" value="1" required disabled>
+            </label>
+            <label id="startDelayField" hidden>Countdown after admin starts (minutes)
+              <input name="startDelayMinutes" type="number" min="0" max="60" value="0" required disabled>
+            </label>
+            <label id="dummyField" hidden>Dummy entrants
+              <input name="dummyCount" type="number" min="4" max="16" value="4" required disabled>
+            </label>
+            <label class="wide">Structure
+              <select name="structure">
+                <option value="knockout">Knockout</option>
+                <option value="groups">Group (Round-Robin)</option>
+                <option value="combined">Groups &amp; Knockout</option>
+              </select>
+            </label>
+            <p class="wide tournamentHint" id="structureHint"></p>
+            <label id="bracketField">Knockout grid
+              <select name="bracket">
+                <option>4</option><option>8</option><option selected>16</option>
+                <option>32</option><option>64</option><option>128</option>
+              </select>
+            </label>
+            <label id="capacityField" hidden>Player limit
+              <input type="number" name="capacity" min="4" max="128" value="16" required>
+            </label>
+            <label id="groupField" hidden>Maximum players per group
+              <input type="number" name="groupSize" min="3" max="8" value="4" required>
+            </label>
+            <label id="qualifierField" hidden>Players who qualify
+              <input type="number" name="qualifiers" min="4" value="8" required>
+            </label>
+            <label id="plateField" class="wide tournamentCheck" hidden>
+              <input name="plate" type="checkbox"> Add a Plate knockout for players who miss the main bracket
+            </label>
+            <p id="bracketHint" class="wide tournamentHint" hidden></p>
+            <label>Match format
+              <select name="gameType"><option value="bestOf">Best of</option><option value="firstTo">First to</option></select>
+            </label>
+            <label>Default number of legs
+              <input type="number" name="legsCount" min="1" max="19" step="2" value="3" required>
+            </label>
+            <label id="groupLegsField" hidden>Group-stage legs
+              <input name="groupLegs" type="number" min="1" max="19" placeholder="Use default">
+            </label>
+            <label id="quarterFinalLegsField" hidden>Quarter-final legs
+              <input name="quarterFinalLegs" type="number" min="1" max="19" placeholder="Use default">
+            </label>
+            <label id="semiFinalLegsField" hidden>Semi-final legs
+              <input name="semiFinalLegs" type="number" min="1" max="19" placeholder="Use default">
+            </label>
+            <label id="finalLegsField" hidden>Final legs
+              <input name="finalLegs" type="number" min="1" max="19" placeholder="Use default">
+            </label>
+            <p id="groupLegsHint" class="wide tournamentHint" hidden>Even Best of group matches can end in a draw.</p>
+            <p id="laterLegsHint" class="wide tournamentHint" hidden>Leave a round blank to use the default. These settings also apply to the Plate.</p>
+            <label>Starting score
+              <select name="startScore"><option>301</option><option selected>501</option><option>701</option><option value="custom">Custom</option></select>
+            </label>
+            <label id="customField" hidden>Custom starting score
+              <input type="number" name="customScore" min="2" max="9999" value="901" required>
+            </label>
+            <label>Opening rule
+              <select name="inMode"><option value="straight">Straight in</option><option value="double">Double in</option></select>
+            </label>
+            <label>Draw
+              <select name="drawMode"><option value="random">Random</option><option value="ability">By ability</option></select>
+            </label>
+            <label>Who throws first?
+              <select name="firstThrow"><option value="bull">Bull off</option><option value="coin">Coin toss</option><option value="random">Random</option></select>
+            </label>
+          </div>
+          <p id="tournamentSetupHint" class="tournamentHint">All matches finish on a double. Entries open as soon as you create the tournament.</p>
+          <button id="tournamentCreate" class="btn btnPrimary" type="submit">Create tournament</button>
+        </fieldset>
       </form>
-    </details>
+    </section>
     <div id="tournamentContent"></div>
+    <footer class="tournamentManagement">
+      <button id="tournamentDelete" class="tournamentEntryButton tournamentDelete" type="button" hidden>Delete tournament</button>
+    </footer>
   </main>
+
+  <dialog id="tournamentDialog" class="tournamentDialog" aria-labelledby="tournamentDialogTitle">
+    <div class="tournamentDialogHeader">
+      <h2 id="tournamentDialogTitle"></h2>
+      <form method="dialog"><button class="tournamentEntryButton" type="submit" autofocus>Close</button></form>
+    </div>
+    <div id="tournamentDialogBody"></div>
+  </dialog>
 
   <div id="profileOverlay" class="modalOverlay hidden" aria-hidden="true">
     <div class="modalCard profileModalCard">
@@ -155,12 +226,12 @@
     </div>
   </div>
 
-  <script src="scripts/firebase-client.js?v=20261104-player-identity"></script>
+  <script src="scripts/firebase-client.js?v=20261111-tournament-scoring"></script>
   <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
   <script src="scripts/session.js?v=20261028-avatar-fill"></script>
-  <script src="scripts/profile.js?v=20261025-profile-navigation"></script>
+  <script src="scripts/profile.js?v=20261111-tournament-scoring"></script>
   <script type="module" defer src="scripts/firebase-live.js"></script>
-  <script type="module" src="scripts/tournament-lobby.mjs"></script>
+  <script type="module" src="scripts/tournament-lobby.mjs?v=20261111-tournament-scoring"></script>
 
   <script>
     function toggleSidebar() {
@@ -174,6 +245,6 @@
       });
     });
   </script>
-<script src="/scripts/site-ui.js?v=20261028-avatar-fill"></script></body>
+<script src="/scripts/site-ui.js?v=20261111-tournament-scoring"></script></body>
 
 </html>

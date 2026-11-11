@@ -141,3 +141,10 @@ const getMonsterBotCompletions = async request => {
 };
 exports.getMonsterBotCompletions = onCall(options, getMonsterBotCompletions);
 exports.getMonsterBotCommunityEurope = onCall({ ...options, region: "europe-west1" }, getMonsterBotCompletions);
+
+const { createTournamentScoring } = require("./tournament-scoring");
+exports.tournamentScoring = onCall(options, createTournamentScoring({
+  db: getFirestore(),
+  timestamp: () => require("firebase-admin/firestore").FieldValue.serverTimestamp(),
+  fail: (code, message) => new HttpsError(code, message)
+}));

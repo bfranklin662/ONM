@@ -157,7 +157,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /tournaments/{tournamentId} {
+    // Versioned probe for the tournament form. The document does not need to exist.
+    match /tournamentAccess/create-v1 {
+      allow get: if admin();
+    }
+
+    match /{tournamentCollection}/{tournamentId} {
+      function testTournament() {
+        return tournamentCollection == "testTournaments";
+      }
+
       function ownEntryChange() {
         let uid = request.auth.uid;
         let before = resource.data.entries;
@@ -169,7 +178,9 @@ service cloud.firestore {
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(["entries"]) &&
           after is map && after.diff(before).affectedKeys().hasOnly([uid]) &&
           ((!before.keys().hasAny([uid]) && after.keys().hasAny([uid]) &&
-            after.size() <= resource.data.settings.capacity && name is string &&
+            !resource.data.get("markers", {}).keys().hasAny([uid]) &&
+            (resource.data.settings.get("playMode", "") == "inPerson" || after.size() <= resource.data.settings.capacity) &&
+            name is string &&
             name.size() > 0 && name.size() <= 100 && after[uid] == name) ||
            (before.keys().hasAny([uid]) && !after.keys().hasAny([uid])));
       }
@@ -181,28 +192,97 @@ service cloud.firestore {
           after.diff(before).affectedKeys().size() == 1;
       }
 
-      allow read: if true;
-      allow create: if admin() &&
+      function countdownFinished() {
+        let settings = resource.data.settings;
+        let delay = settings.get("startDelayMinutes", 0);
+        return settings.get("playMode", "") != "online" || delay == 0 ||
+          request.time >= resource.data.startedAt + duration.value(delay, "m");
+      }
+
+      function validLegCount(count, oddOnly) {
+        return count is int && count >= 1 && count <= 19 && (!oddOnly || count % 2 == 1);
+      }
+
+      function tournamentRulesEdit() {
+        let settings = request.resource.data.settings;
+        let bestOf = settings.gameType == "bestOf";
+        let groupOnly = settings.structure == "groups";
+        let boards = settings.get("boardCount", 1);
+        return resource.data.status in ["open", "live"] &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["settings"]) &&
+          settings.diff(resource.data.settings).affectedKeys()
+            .hasOnly(["boardCount", "gameType", "legsCount", "groupLegs", "quarterFinalLegs", "semiFinalLegs", "finalLegs", "firstThrow"]) &&
+          (resource.data.status == "open" || !settings.diff(resource.data.settings).affectedKeys().hasAny(["firstThrow"])) &&
+          settings.get("firstThrow", "bull") in ["bull", "coin", "random"] &&
+          settings.gameType in ["bestOf", "firstTo"] &&
+          (settings.get("playMode", "inPerson") == "online"
+            ? !settings.keys().hasAny(["boardCount"])
+            : (boards is int && boards >= 1 && boards <= 64)) &&
+          validLegCount(settings.legsCount, bestOf && !groupOnly) &&
+          (settings.structure == "knockout"
+            ? !settings.keys().hasAny(["groupLegs"])
+            : validLegCount(settings.get("groupLegs", settings.legsCount), false)) &&
+          (groupOnly
+            ? !settings.keys().hasAny(["quarterFinalLegs", "semiFinalLegs", "finalLegs"])
+            : validLegCount(settings.get("quarterFinalLegs", settings.legsCount), bestOf) &&
+              validLegCount(settings.get("semiFinalLegs", settings.legsCount), bestOf) &&
+              validLegCount(settings.get("finalLegs", settings.legsCount), bestOf));
+      }
+
+      allow read: if tournamentCollection == "tournaments" || (testTournament() && admin());
+      allow create: if (tournamentCollection == "tournaments" || testTournament()) && admin() &&
         request.resource.data.keys().hasOnly(["title", "settings", "createdBy", "createdAt", "status", "entries", "seeds", "results"]) &&
         request.resource.data.title is string && request.resource.data.title.size() > 0 &&
         request.resource.data.title.size() <= 100 &&
         request.resource.data.createdBy == request.auth.uid &&
         request.resource.data.createdAt == request.time && request.resource.data.status == "open" &&
-        request.resource.data.settings.capacity is int && request.resource.data.settings.capacity >= 4 &&
-        request.resource.data.settings.capacity <= 128 &&
-        request.resource.data.entries == {} && request.resource.data.seeds == {} && request.resource.data.results == {};
-      allow update: if (activeMember() && ownEntryChange()) ||
-        (admin() && (
+        request.resource.data.settings.get("playMode", "inPerson") in ["online", "inPerson"] &&
+        request.resource.data.settings.get("firstThrow", "bull") in ["bull", "coin", "random"] &&
+        (request.resource.data.settings.get("playMode", "inPerson") == "online"
+          ? (request.resource.data.settings.get("startDelayMinutes", 0) is int &&
+            request.resource.data.settings.get("startDelayMinutes", 0) >= 0 &&
+            request.resource.data.settings.get("startDelayMinutes", 0) <= 60)
+          : !request.resource.data.settings.keys().hasAny(["startDelayMinutes"])) &&
+        (request.resource.data.settings.get("playMode", "inPerson") == "online"
+          ? !request.resource.data.settings.keys().hasAny(["boardCount"])
+          : (request.resource.data.settings.get("boardCount", 1) is int &&
+            request.resource.data.settings.get("boardCount", 1) >= 1 &&
+            request.resource.data.settings.get("boardCount", 1) <= 64)) &&
+        ((request.resource.data.settings.get("playMode", "") == "inPerson" && request.resource.data.settings.capacity == null) ||
+          (request.resource.data.settings.capacity is int && request.resource.data.settings.capacity >= 4 &&
+            request.resource.data.settings.capacity <= 128)) &&
+        (request.resource.data.settings.get("plate", false) == false ||
+          (request.resource.data.settings.plate == true && request.resource.data.settings.structure == "combined")) &&
+        (testTournament()
+          ? (request.resource.data.entries is map && request.resource.data.entries.size() >= 3 &&
+            request.resource.data.entries.size() <= (request.resource.data.settings.get("playMode", "") == "inPerson"
+              ? 512 : request.resource.data.settings.capacity))
+          : request.resource.data.entries == {}) &&
+        request.resource.data.seeds == {} && request.resource.data.results == {};
+      allow update: if (tournamentCollection == "tournaments" && activeMember() && ownEntryChange()) ||
+        (testTournament() && admin() && ownEntryChange()) ||
+        ((tournamentCollection == "tournaments" || testTournament()) && admin() && (
+          tournamentRulesEdit() ||
+          (resource.data.status == "live" && resource.data.settings.get("playMode", "inPerson") == "inPerson" &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(["activeMatches"]) &&
+            request.resource.data.activeMatches is map &&
+            request.resource.data.activeMatches.diff(resource.data.get("activeMatches", {})).affectedKeys().size() == 1) ||
           (resource.data.status == "open" && request.resource.data.status == "live" &&
             request.resource.data.startedAt == request.time &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(["draw", "seeds", "status", "startedAt"])) ||
-          (resource.data.status == "live" && request.resource.data.status == "live" && appendResult() &&
+          (resource.data.status == "live" && request.resource.data.status == "live" && countdownFinished() && appendResult() &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(["results"])) ||
-          (resource.data.status == "live" && request.resource.data.status == "complete" && appendResult() &&
+          (resource.data.status == "live" && request.resource.data.status == "complete" && countdownFinished() && appendResult() &&
             request.resource.data.completedAt == request.time &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(["results", "status", "completedAt"]))
         ));
-      allow delete: if false;
+      match /scoring/{fixtureId} {
+        allow get: if activeMember() && (tournamentCollection == "tournaments" || (testTournament() && admin())) &&
+          (resource.data.mode == "shared" ? request.auth.uid in resource.data.players : request.auth.uid == resource.data.owner);
+      }
+
+      allow delete: if (tournamentCollection == "tournaments" || testTournament()) &&
+        admin() && resource.data.createdBy == request.auth.uid;
     }
 
     match /dartMatches/{matchId} {

@@ -1,5 +1,15 @@
 (function(){
   "use strict";
+  const notificationsUrl = new URL("./tournament-notifications.mjs", document.currentScript.src);
+  function startTournamentNotifications() {
+    if (!window.ONMFirebase) return;
+    import(notificationsUrl).then(module => module.watchTournamentStarts(window.ONMFirebase)).catch(() => {});
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startTournamentNotifications, { once: true });
+  } else {
+    startTournamentNotifications();
+  }
   const botProfile=document.getElementById("botProfileLink");
   if(botProfile&&window.ONMFirebase){
     // Only use a cached picture after verifying that it belongs to this session.

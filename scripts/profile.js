@@ -118,6 +118,7 @@ async function loadProfileAverages(user) {
 
   const result = await profilePostToAppScript({
     action: "getUserStats",
+    uid: user.uid || user.userId,
     linkedPlayerName,
     linkedPlayerKey
   });

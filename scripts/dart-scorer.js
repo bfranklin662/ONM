@@ -924,7 +924,11 @@ function fullyStopDartAudio() {
   dartAudioUnlocked = false;
 }
 
+const shortScoreCalls = new Set([67, 95]);
+
 function dartCalloutSource(fileName) {
+  const score = /^score-(\d+)\.mp3$/.exec(fileName);
+  if (score && shortScoreCalls.has(Number(score[1]))) return `audio/darts/score-${score[1]}-short.mp3`;
   if (fileName === "bot-start.m4a") return "audio/darts/bot-start.m4a?v=20261031-soft-chime";
   // Boost the recordings themselves: media volume is already at its maximum,
   // and relying on per-element volume changes is inconsistent on phones.
@@ -1284,7 +1288,12 @@ function announceRequiredScore(requiredScore) {
     required <= 170 &&
     POSSIBLE_CHECKOUTS.has(required)
   ) {
-    playDartCallout(`require-${required}.m4a`);
+    if (shortScoreCalls.has(required)) {
+      playDartCallout("you-require.mp3");
+      announceDartVisit(required);
+    } else {
+      playDartCallout(`require-${required}.m4a`);
+    }
   }
 }
 
@@ -1297,10 +1306,6 @@ function announceLegWon(isMatchShot = false, isBullOut = false) {
   if (isBullOut) {
     playDartCallout("bull-out.mp3");
   }
-}
-
-function announceGameOn() {
-  playDartCallout("game-on.mp3");
 }
 
 function announceBullOut() {
@@ -1597,7 +1602,8 @@ function applyMolRematchState(match) {
 }
 
 function openMolVictoryScreen(matchData) {
-  const isCasualResult = matchData.mode === "casual" || MATCH_MODE !== "online";
+  const isTournamentResult = matchData.mode === "tournament";
+  const isCasualResult = isTournamentResult || matchData.mode === "casual" || MATCH_MODE !== "online";
   const kicker = els.molVictoryOverlay?.querySelector(".readyLeagueKicker");
 
   els.scorerCard?.classList.add("hidden");
@@ -1606,10 +1612,10 @@ function openMolVictoryScreen(matchData) {
   els.molVictoryOverlay?.setAttribute("aria-hidden", "false");
   els.molVictoryOverlay?.classList.toggle("casualVictory", isCasualResult);
   if (els.molVictoryOverlay) {
-    els.molVictoryOverlay.dataset.resultMode = isCasualResult ? "casual" : "online";
+    els.molVictoryOverlay.dataset.resultMode = isTournamentResult ? "tournament" : isCasualResult ? "casual" : "online";
   }
   if (kicker) {
-    kicker.textContent = isCasualResult ? "Casual darts match" : "Monsters Versus";
+    kicker.textContent = isTournamentResult ? "Tournament match" : isCasualResult ? "Casual darts match" : "Monsters Versus";
   }
 
   const p1 = matchData.players[0];
@@ -1668,16 +1674,17 @@ function openMolVictoryScreen(matchData) {
     `${p1.legs} - ${p2.legs}`;
 
   els.molVictoryTitle.textContent =
-    isCasualResult
+    isTournamentResult ? getGameTitle() : isCasualResult
       ? `${STARTING_SCORE} · ${GAME_TYPE === "bestOf" ? `BO${Number(els.legsCount.textContent)}` : `FT${Number(els.legsCount.textContent)}`}`
       : `${STARTING_SCORE} · ${getMatchFormatLabel(GAME_TYPE, Number(els.legsCount.textContent))}`;
 
-  els.molVictoryPlayerOneWon.textContent = p1.isWinner ? "WINNER" : "LOSER";
-  els.molVictoryPlayerTwoWon.textContent = p2.isWinner ? "WINNER" : "LOSER";
+  const draw = isTournamentResult && state.winnerIndex === -1;
+  els.molVictoryPlayerOneWon.textContent = draw ? "DRAW" : p1.isWinner ? "WINNER" : "LOSER";
+  els.molVictoryPlayerTwoWon.textContent = draw ? "DRAW" : p2.isWinner ? "WINNER" : "LOSER";
   els.molVictoryPlayerOneWon.classList.remove("hidden");
   els.molVictoryPlayerTwoWon.classList.remove("hidden");
-  els.molVictoryPlayerOneWon.classList.toggle("loser", !p1.isWinner);
-  els.molVictoryPlayerTwoWon.classList.toggle("loser", !p2.isWinner);
+  els.molVictoryPlayerOneWon.classList.toggle("loser", !draw && !p1.isWinner);
+  els.molVictoryPlayerTwoWon.classList.toggle("loser", !draw && !p2.isWinner);
 
   populateMolVictoryStats(matchData);
 
@@ -1685,6 +1692,7 @@ function openMolVictoryScreen(matchData) {
   els.molVictoryRematchBtn.disabled = false;
   els.molVictoryRematchBtn.classList.remove("active");
   els.molVictoryCloseBtn.disabled = false;
+  if (isTournamentResult) els.molVictoryCloseBtn.textContent = "Back to tournament";
 
   if (!isCasualResult) {
     updateMolResultPresence("viewing");
@@ -2645,6 +2653,11 @@ function leaveMolVictoryScreenLocally() {
 
 els.molVictoryCloseBtn?.addEventListener("click", async () => {
   if (BOT_MODE) { window.ONMMonsterScorer?.exit(); return; }
+  if (tournamentMatch) {
+    fullyStopDartAudio();
+    location.href = tournamentMatch.back;
+    return;
+  }
   fullyStopDartAudio();
 
   if (els.molVictoryOverlay?.dataset.resultMode === "casual") {
@@ -2798,7 +2811,10 @@ els.quitConfirmOverlay.addEventListener("click", event => {
 
 els.confirmQuitBtn.addEventListener("click", async () => {
   if (BOT_MODE) { window.ONMMonsterScorer?.exit(); return; }
-  if (tournamentMatch) { location.href = tournamentMatch.back; return; }
+  if (tournamentMatch) {
+    await returnToTournamentLobby();
+    return;
+  }
   fullyStopDartAudio();
   const wasMOLGame =
     MATCH_MODE === "online" ||
@@ -2830,12 +2846,18 @@ els.confirmQuitBtn.addEventListener("click", async () => {
   }
 });
 
-els.quitGameBtn.addEventListener("click", () => {
+function openQuitConfirm() {
   if (!els.quitConfirmOverlay.classList.contains("hidden")) return;
+  if (tournamentMatch) {
+    els.quitConfirmOverlay.querySelector(".modalBody > p").textContent = tournamentMatch.starter == null
+      ? "You can start this match from the lobby when you’re ready."
+      : "This match stays in play. You can resume scoring from the tournament lobby.";
+  }
 
   els.quitConfirmOverlay.classList.remove("hidden");
   els.quitConfirmOverlay.setAttribute("aria-hidden", "false");
-});
+}
+els.quitGameBtn.addEventListener("click", openQuitConfirm);
 
 els.gameSettingsBtn.addEventListener("click", () => {
   els.settingsOverlay.classList.remove("hidden");
@@ -2968,6 +2990,7 @@ function setStartingPlayer(index) {
   }
   state.currentPlayer = index;
   startActualGame();
+  if (tournamentMatch) void syncTournamentScore();
 }
 
 function updateDeciderNames() {
@@ -3041,7 +3064,7 @@ els.skipDeciderBtn.addEventListener("click", async () => {
 });
 
 els.deciderQuitBtn.addEventListener("click", () => {
-  if (tournamentMatch) { location.href = tournamentMatch.back; return; }
+  if (tournamentMatch) { openQuitConfirm(); return; }
   fullyStopDartAudio();
   closeStartDecider();
   els.setupCard.classList.remove("hidden");
@@ -3210,14 +3233,47 @@ function getInitial(name) {
   return String(name || "?").trim().charAt(0).toUpperCase() || "?";
 }
 
-function getCoinMarkup(finalWinner = null) {
-  const p1 = getInitial(playerName(0));
-  const p2 = getInitial(playerName(1));
+const coinTossDuration = 720;
+const coinTossSound = "coin-toss-metal.wav";
 
+function getCoinMarkup() {
+  const p1 = escapeHtml(getInitial(playerName(0)));
+  const p2 = escapeHtml(getInitial(playerName(1)));
   return `
-    <span class="coinFace coinFront">${finalWinner === 1 ? p2 : p1}</span>
-    <span class="coinFace coinBack">${finalWinner === 0 ? p1 : p2}</span>
+    <span class="coinFace coinFront">${p1}</span>
+    <span class="coinFace coinBack">${p2}</span>
   `;
+}
+
+function animateCoinToss(winner, onLand) {
+  els.coinBtn.disabled = true;
+  els.coinBtn.classList.remove("coinFlipping", "coinLandsBack");
+  els.coinBtn.innerHTML = getCoinMarkup();
+  els.coinBtn.style.setProperty("--coin-duration", `${coinTossDuration}ms`);
+  els.coinBtn.style.setProperty("--coin-turn", winner === 1 ? "1260deg" : "1080deg");
+  els.coinBtn.classList.add("coinFlipping");
+  els.coinResultText.textContent = "Tossing…";
+  playLayeredDartAudio(coinTossSound, 0.7);
+  coinFlipTimer = setTimeout(() => {
+    els.coinBtn.classList.remove("coinFlipping");
+    els.coinBtn.classList.toggle("coinLandsBack", winner === 1);
+    onLand();
+  }, coinTossDuration);
+}
+
+function startAfterCoinCallout(firstThrowCall, start) {
+  let transitioned = false;
+  const startOnce = () => {
+    if (transitioned || els.coinDeciderView.classList.contains("hidden")) return;
+    transitioned = true;
+    clearTimeout(deciderStartTimer);
+    start();
+  };
+  playDartCallout(firstThrowCall);
+  deciderStartTimer = setTimeout(() => {
+    deciderStartTimer = setTimeout(startOnce, 1800);
+    playDartCallout("game-on.mp3", null, startOnce, startOnce);
+  }, 1000);
 }
 
 function openCoinDecider() {
@@ -3236,7 +3292,8 @@ function openCoinDecider() {
   els.coinPlayerTwoStatus.textContent = "Waiting";
 
   els.coinResultText.textContent = "Coin toss starting...";
-  coinAutoTimer = setTimeout(runCoinToss, 1000);
+  preloadDartCallout(dartCalloutSource(coinTossSound));
+  coinAutoTimer = setTimeout(runCoinToss, 350);
   els.coinWinnerText.textContent = "";
 }
 
@@ -3244,24 +3301,10 @@ function runCoinToss() {
   if (deciderResolved || !pendingGameReady) return;
 
   deciderResolved = true;
-  els.coinBtn.disabled = true;
-  els.coinBtn.classList.remove("coinLandsBack");
-  els.coinBtn.classList.add("coinFlipping");
-  els.coinResultText.textContent = "Tossing...";
-  playLayeredDartAudio("coin-flip.mp3", 0.6);
-
-  coinFlipTimer = setTimeout(() => {
+  const winner = Math.random() < 0.5 ? 0 : 1;
+  animateCoinToss(winner, () => {
     if (!pendingGameReady) return;
-
-    const winner = Math.random() < 0.5 ? 0 : 1;
     const loser = winner === 0 ? 1 : 0;
-
-    els.coinBtn.classList.remove("coinFlipping");
-    els.coinBtn.innerHTML = getCoinMarkup(winner);
-
-    if (winner === 1) {
-      els.coinBtn.classList.add("coinLandsBack");
-    }
 
     els.coinPlayerOneBox.classList.toggle("won", winner === 0);
     els.coinPlayerOneBox.classList.toggle("lost", loser === 0);
@@ -3274,15 +3317,9 @@ function runCoinToss() {
     els.coinResultText.textContent = "Coin toss complete";
     els.coinWinnerText.textContent =
       `${playerName(winner)} throws first`;
-    const myLocalIndex = 0;
-    playDartCallout(winner === myLocalIndex ? "you-throw.mp3" : "oppo-throw.mp3");
-    playDartCallout("game-on.mp3");
     launchDeciderFireworks(winner === 0 ? els.coinPlayerOneBox : els.coinPlayerTwoBox);
-
-    deciderStartTimer = setTimeout(() => {
-      setStartingPlayer(winner);
-    }, 3000);
-  }, 2200);
+    startAfterCoinCallout(winner === 0 ? "you-throw.mp3" : "oppo-throw.mp3", () => setStartingPlayer(winner));
+  });
 }
 
 function firstNameOnly(name) {
@@ -3515,7 +3552,7 @@ function render() {
 
   syncCheckoutPhotoButton();
   if (BOT_MODE) window.ONMMonsterScorer?.onRender();
-  if (tournamentMatch?.starter != null) rememberTournamentDraft();
+  if (tournamentMatch?.starter != null) els.submit.disabled = !canEnterTournamentScore();
 }
 
 function switchPlayer() {
@@ -3707,6 +3744,7 @@ function submitScore() {
     return;
   }
 
+  if (TOURNAMENT_MODE && !canEnterTournamentScore()) return;
   const value = Number(els.input.value);
 
   if (!Number.isInteger(value) || value < 0 || value > MAX_VISIT) {
@@ -4581,6 +4619,7 @@ function launchDeciderFireworks(card) {
 }
 
 function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dartsUsed, doublesAttempted, bullOut = false }) {
+  if (TOURNAMENT_MODE && (!canEnterTournamentScore() || playerIndex !== state.currentPlayer || state.players[playerIndex].score !== previousScore)) return;
   const player = state.players[playerIndex];
 
   const historyItem = {
@@ -4660,17 +4699,17 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
 
     updateLegTarget();
 
-    if (player.legs >= LEGS_TO_WIN) {
-      announceLegWon(true, bullOut);
+    const outcome = tournamentMatch
+      ? tournamentMatch.engine.matchOutcome(tournamentMatch.settings, state.players)
+      : player.legs >= LEGS_TO_WIN ? playerIndex : null;
+    if (outcome !== null) {
+      announceLegWon(outcome !== -1, bullOut);
 
-      state.winnerIndex = playerIndex;
+      state.winnerIndex = outcome;
       els.submit.disabled = true;
 
       setTimeout(() => {
-        if (tournamentMatch) {
-          openStatsModal(true);
-          return;
-        }
+        if (tournamentMatch) return;
         openMolVictoryScreen(
           MATCH_MODE === "online"
             ? buildMatchStatsData()
@@ -4714,6 +4753,7 @@ function applyVisit({ playerIndex, visitScore, previousScore, legWon, bust, dart
   }
   render();
   if (BOT_MODE) window.ONMMonsterScorer?.afterVisit({playerIndex, legWon});
+  if (tournamentMatch) void syncTournamentScore();
 }
 
 function resetLeg() {
@@ -4730,7 +4770,7 @@ function resetLeg() {
 
 function undoLastVisit() {
   if (BOT_MODE) { window.ONMMonsterScorer?.undo(); return; }
-  if (state.legJustWon || (tournamentMatch && state.winnerIndex !== null)) {
+  if (state.legJustWon || (tournamentMatch && (tournamentMatch.session.mode === "shared" || !canEnterTournamentScore()))) {
     els.input.blur();
     return;
   }
@@ -4764,6 +4804,7 @@ function undoLastVisit() {
   state.currentPlayer = last.playerIndex;
   els.submit.disabled = false;
   render();
+  if (tournamentMatch) void syncTournamentScore();
 }
 
 function closeEditOnlineScore() {
@@ -5017,7 +5058,7 @@ function openStatsModal(isMatchComplete = false) {
   }
 
   document.querySelector("#statsOverlay .modalTitle").textContent = isMatchComplete
-    ? `Match complete - ${playerName(state.winnerIndex)} wins`
+    ? state.winnerIndex === -1 ? "Match complete - Draw" : `Match complete - ${playerName(state.winnerIndex)} wins`
     : "Match stats";
 
   els.statsMatchTitle.textContent = getGameTitle();
@@ -5038,11 +5079,7 @@ function openStatsModal(isMatchComplete = false) {
 
   if (isMatchComplete) {
     els.matchCompleteActions.innerHTML =
-      tournamentMatch
-        ? `<button id="saveTournamentResult" type="button" class="btn btnPrimary">Save tournament result</button>
-           <a class="btn btnGhost" href="${tournamentMatch.back}">Back to tournament</a>
-           <p id="tournamentSaveMessage" role="status"></p>`
-        : MATCH_MODE === "online"
+      MATCH_MODE === "online"
         ? `<button id="continueAfterMatchBtn" type="button" class="btn btnPrimary">Continue</button>`
         : STATS_MODE === "competitive"
           ? `<button id="submitMatchResultBtn" type="button" class="btn btnPrimary">Submit result</button>`
@@ -5050,7 +5087,6 @@ function openStatsModal(isMatchComplete = false) {
         <button id="rematchBtn" type="button" class="btn btnGhost">Rematch</button>
         <button id="continueAfterMatchBtn" type="button" class="btn btnPrimary">Continue</button>
       `;
-    document.getElementById("saveTournamentResult")?.addEventListener("click", saveTournamentResult);
     document.getElementById("submitMatchResultBtn")?.addEventListener("click", submitCompetitiveResult);
 
     document.getElementById("rematchBtn")?.addEventListener("click", () => {
@@ -6855,20 +6891,7 @@ function openOnlineCoinDecider(match) {
   const winnerIndex = match.decider.coinWinnerIndex ?? 0;
   const loserIndex = winnerIndex === 0 ? 1 : 0;
 
-  els.coinBtn.disabled = true;
-  els.coinBtn.classList.remove("coinLandsBack");
-  els.coinBtn.classList.add("coinFlipping");
-  els.coinResultText.textContent = "Tossing...";
-  playDartCallout("coin-flip.mp3");
-
-  setTimeout(async () => {
-    els.coinBtn.classList.remove("coinFlipping");
-    els.coinBtn.innerHTML = getCoinMarkup(winnerIndex);
-
-    if (winnerIndex === 1) {
-      els.coinBtn.classList.add("coinLandsBack");
-    }
-
+  animateCoinToss(winnerIndex, () => {
     els.coinPlayerOneBox.classList.toggle("won", winnerIndex === 0);
     els.coinPlayerOneBox.classList.toggle("lost", loserIndex === 0);
     els.coinPlayerTwoBox.classList.toggle("won", winnerIndex === 1);
@@ -6879,15 +6902,11 @@ function openOnlineCoinDecider(match) {
 
     els.coinResultText.textContent = "Coin toss complete";
     els.coinWinnerText.textContent = `${winnerIndex === 0 ? match.hostName : match.guestName} throws first`;
-    const keys = onlinePlayerKeys(match);
-    announceGameOn();
-
-    if (onlineRole === "host") {
-      setTimeout(() => {
-        startOnlinePlaying(winnerIndex);
-      }, 2500);
-    }
-  }, 2200);
+    const localIndex = onlineRole === "host" ? 0 : 1;
+    startAfterCoinCallout(winnerIndex === localIndex ? "you-throw.mp3" : "oppo-throw.mp3", () => {
+      if (onlineRole === "host") void startOnlinePlaying(winnerIndex);
+    });
+  });
 }
 
 async function restoreOnlineSession() {
@@ -7846,7 +7865,7 @@ function showLeaderboardTab() {
 }
 
 els.molVictoryCloseBtn?.addEventListener("click", () => {
-  if(BOT_MODE)return;
+  if(BOT_MODE || tournamentMatch)return;
   if (els.molVictoryOverlay?.dataset.resultMode === "casual") return;
 
   els.molVictoryOverlay?.classList.add("hidden");
@@ -8282,29 +8301,120 @@ function needsTournamentDouble(player) {
   return TOURNAMENT_MODE && IN_MODE === "double" && !player.opened;
 }
 
-function rememberTournamentDraft() {
-  try {
-    const { draftKey, starter, submissionId, entrants } = tournamentMatch;
-    sessionStorage.setItem(draftKey, JSON.stringify({ starter, submissionId, entrants, state }));
-  } catch {
-    // Scoring can continue when browser storage is disabled or full.
+function canEnterTournamentScore() {
+  const match = tournamentMatch;
+  return match?.session.status === "playing" && match.starter != null &&
+    !match.write && !match.pending && state.winnerIndex === null &&
+    (match.session.mode === "chalk" || match.entrants[state.currentPlayer] === match.uid);
+}
+
+async function returnToTournamentLobby() {
+  const match = tournamentMatch;
+  els.confirmQuitBtn.disabled = true;
+  await match.write?.catch(() => {});
+  if (match.pending && !window.confirm("The latest score hasn’t saved. Return to the tournament anyway?")) {
+    els.confirmQuitBtn.disabled = false;
+    return;
+  }
+  location.href = match.back;
+}
+
+function applyTournamentSession(session) {
+  const match = tournamentMatch;
+  if (!session) {
+    location.replace(match.back);
+    return;
+  }
+  if (session.revision < match.session.revision ||
+      (session.revision === match.session.revision && session.status === "invited" && match.session.status !== "invited")) return;
+  match.session = session;
+  const host = session.owner === match.uid;
+  if (session.status === "invited" || (!session.state && !host)) {
+    match.notice.classList.remove("hidden");
+    match.notice.querySelector("p").textContent = session.status === "invited"
+      ? `Waiting for ${playerName(match.entrants.indexOf(match.uid) === 0 ? 1 : 0)} to accept.`
+      : "Match accepted. Waiting for your opponent to decide who throws first.";
+    document.getElementById("cancelTournamentInvite").hidden = session.status !== "invited";
+    return;
+  }
+  match.notice.classList.add("hidden");
+  document.getElementById("cancelTournamentInvite").hidden = true;
+  if (session.state) {
+    if (pendingCheckoutPrompt && session.revision !== match.renderedRevision) closeCheckoutPrompt();
+    match.renderedRevision = session.revision;
+    Object.assign(state, JSON.parse(JSON.stringify(session.state)));
+    state.matchStartedAt = new Date(state.matchStartedAt);
+    match.starter = session.starter;
+    if (!match.resultShown) startActualGame();
+    if (session.status === "complete" && !match.resultShown) {
+      match.resultShown = true;
+      try { sessionStorage.removeItem(match.draftKey); } catch {}
+      try { localStorage.removeItem(match.draftKey); } catch {}
+      openMolVictoryScreen({ ...buildLocalMatchStatsData(), mode: "tournament" });
+      document.getElementById("tournamentSaveMessage").textContent = "Result saved.";
+    }
+    return;
+  }
+  if (match.deciding) return;
+  match.deciding = true;
+  if (match.settings.firstThrow === "random") {
+    setStartingPlayer(Math.random() < 0.5 ? 0 : 1);
+  } else {
+    openStartDecider();
+    updateDeciderNames();
+    els.deciderChoiceView.classList.add("hidden");
+    if (match.settings.firstThrow === "coin") openCoinDecider();
+    else openBullDecider();
   }
 }
 
-async function saveTournamentResult(event) {
-  const button = event.currentTarget;
-  button.disabled = true;
-  const { store, id, matchId, entrants, submissionId, draftKey, back, describeError } = tournamentMatch;
+async function syncTournamentScore() {
+  const match = tournamentMatch;
+  if (match.write) return match.write;
+  const retry = document.getElementById("retryTournamentScore");
+  const status = document.getElementById("tournamentScoreStatus");
+  match.pending ||= {
+    matchId: match.matchId, revision: match.session.revision, starter: match.starter,
+    requestId: crypto.randomUUID(), state: JSON.parse(JSON.stringify(state))
+  };
+  retry.hidden = true;
+  status.textContent = "Saving score…";
+  els.submit.disabled = true;
+  match.write = match.store.scoring(match.id, "write", match.pending);
   try {
-    await store.saveResult(id, matchId, entrants, state.winnerIndex, state.players, submissionId);
+    const session = await match.write;
+    match.pending = null;
+    match.write = null;
+    status.textContent = "";
+    applyTournamentSession(session);
+    if (match.queued) applyTournamentSession(match.queued);
+    match.queued = null;
   } catch (error) {
-    document.getElementById("tournamentSaveMessage").textContent = describeError(error);
-    button.disabled = false;
-    return;
+    match.write = null;
+    if (match.queued && match.queued.revision > match.pending.revision) {
+      match.pending = null;
+      status.textContent = "Score updated on another phone.";
+      applyTournamentSession(match.queued);
+      match.queued = null;
+      return;
+    }
+    retry.hidden = false;
+    status.textContent = error.message || "The score hasn’t saved. Try again.";
   }
-  try { sessionStorage.removeItem(draftKey); } catch {}
-  location.href = back;
 }
+
+document.getElementById("retryTournamentScore")?.addEventListener("click", syncTournamentScore);
+document.getElementById("cancelTournamentInvite")?.addEventListener("click", async event => {
+  const match = tournamentMatch;
+  event.target.disabled = true;
+  try {
+    await match.store.scoring(match.id, "cancel", { matchId: match.matchId });
+    location.href = match.back;
+  } catch (error) {
+    match.notice.querySelector("p").textContent = error.message;
+    event.target.disabled = false;
+  }
+});
 
 async function initialiseTournamentMatch() {
   document.title = "Oche Ness Monsters | Tournament scorer";
@@ -8315,54 +8425,57 @@ async function initialiseTournamentMatch() {
   try {
     const id = params.get("tournament");
     const matchId = params.get("match");
-    const [engine, { canManage, tournamentStore, tournamentUrl, tournamentError }] = await Promise.all([
+    const testMode = params.get("test") === "1";
+    const [engine, { canManage, readTournamentDraft, tournamentDraftKey, tournamentStore, tournamentUrl }] = await Promise.all([
       import("./tournament-engine.mjs"),
       import("./tournament-store.mjs")
     ]);
-    link.href = tournamentUrl(id);
+    const back = tournamentUrl(id, testMode, "fixtures");
+    link.href = back;
     if (!id || !matchId) throw new Error("Open a match from the tournament lobby.");
     const user = await window.ONMFirebase.loadOwnUser();
-    if (!canManage(user)) {
-      if (!user) {
-        link.href = `auth.html?redirect=${encodeURIComponent(location.pathname.split("/").pop() + location.search)}`;
-        link.textContent = "Sign in";
-      }
-      throw new Error("A site administrator scores tournament matches.");
+    if (!user) {
+      link.href = `auth.html?redirect=${encodeURIComponent(location.pathname.split("/").pop() + location.search)}`;
+      link.textContent = "Sign in";
+      throw new Error("Sign in to join this match.");
     }
-    const store = await tournamentStore();
+    const store = await tournamentStore(testMode);
     const tournament = await store.load(id);
-    const match = engine.tournamentView(tournament)?.matches.find(item => item.id === matchId);
-    if (tournament.status !== "live" || !match?.ready || match.result) {
-      throw new Error("This match is no longer available to score.");
-    }
-    const entrants = [match.a, match.b];
-    const draftKey = `onmTournament:${user.uid}:${id}:${matchId}`;
-    let draft;
-    try { draft = JSON.parse(sessionStorage.getItem(draftKey)); } catch {}
-    if (draft?.entrants?.length !== 2 || ![0, 1].includes(draft.starter) ||
-        !draft.entrants.every((entrant, index) => entrant === entrants[index])) draft = null;
+    const mode = params.get("scoring") ?? (tournament.settings.playMode === "online" ? "shared" : "chalk");
+    const draftKey = tournamentDraftKey(user.uid, id, matchId, testMode);
+    const draft = mode === "chalk" && canManage(user) ? readTournamentDraft(draftKey) : null;
+    const session = await store.scoring(id, "open", { matchId, mode, ...(draft ? { draft } : {}) });
+    const entrants = session.players;
     tournamentMatch = {
-      store, id, matchId, entrants, engine, draftKey, back: tournamentUrl(id), describeError: tournamentError,
-      submissionId: draft?.submissionId || crypto.randomUUID(), starter: null
+      store, id, matchId, entrants, engine, settings: session.settings, back, session, notice, draftKey,
+      uid: user.uid, starter: null
     };
+    els.quitConfirmOverlay.classList.add("tournamentReturnOverlay");
+    els.quitConfirmOverlay.querySelector(".modalTitle").textContent = "Return to lobby?";
+    els.confirmQuitBtn.textContent = "Return to lobby";
+    els.cancelQuitBtn.textContent = "Keep scoring";
+    els.deciderQuitBtn.title = "Return to lobby";
     els.gameSettingsBtn.classList.add("hidden");
     els.names.forEach((input, index) => {
       input.value = tournament.entries[entrants[index]];
       input.readOnly = true;
     });
-    applyMatchSettings(tournament.settings);
+    applyMatchSettings(session.settings);
     newGame();
-    notice.classList.add("hidden");
-    if (draft) {
-      Object.assign(state, draft.state);
-      state.matchStartedAt = new Date(state.matchStartedAt);
-      tournamentMatch.starter = draft.starter;
-      els.submit.disabled = state.winnerIndex !== null;
-      startActualGame();
-      if (state.winnerIndex !== null) openStatsModal(true);
-    } else {
-      openStartDecider();
-    }
+    applyTournamentSession(session);
+    store.watchScoring(id, matchId, updated => {
+      if (tournamentMatch.write) {
+        tournamentMatch.queued = updated;
+      } else if (!tournamentMatch.pending || updated?.revision > tournamentMatch.pending.revision) {
+        tournamentMatch.pending = null;
+        document.getElementById("retryTournamentScore").hidden = true;
+        document.getElementById("tournamentScoreStatus").textContent = "";
+        applyTournamentSession(updated);
+      }
+    }, error => {
+      document.getElementById("tournamentScoreStatus").textContent = error.message;
+      if (tournamentMatch.session.status === "invited") location.replace(back);
+    });
   } catch (error) {
     status.textContent = error.message || "Could not load the tournament match.";
   }

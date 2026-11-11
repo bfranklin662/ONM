@@ -2016,51 +2016,84 @@ body.scorer-fullscreen button {
 
 .coinBtn {
   position: relative;
-  width: 140px;
-  height: 140px;
+  width: clamp(92px, 25vw, 120px);
+  aspect-ratio: 1;
   border-radius: 50%;
-  border: 8px solid rgba(255, 216, 61, .35);
+  border: 0;
+  padding: 0;
   background: transparent;
   margin: 14px auto;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, .35);
+  justify-self: center;
   transform-style: preserve-3d;
-  perspective: 800px;
 }
+
+.coinBtn:disabled { opacity: 1; }
 
 .coinFace {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--yellow);
-  color: #111;
-  font-size: 54px;
-  font-weight: 900;
+  border: 3px solid #f4c96b;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 25%, #fff1b6, #dba844 63%, #9c5f21);
+  box-shadow: inset 0 0 0 4px #ad742c, inset 0 0 0 6px #ffe192, 0 5px 0 #805020;
+  color: #583409;
+  font: 900 clamp(34px, 9vw, 49px) Georgia, serif;
+  text-shadow: 0 1px #fff0b6;
   backface-visibility: hidden;
 }
 
 .coinBack {
   transform: rotateY(180deg);
+  border-color: #e4d8ba;
+  background: radial-gradient(circle at 35% 25%, #fff8e3, #c2b398 65%, #897c61);
+  box-shadow: inset 0 0 0 4px #978970, inset 0 0 0 6px #e8ddc6, 0 5px 0 #665b45;
+  color: #49402c;
 }
 
 .coinFlipping {
-  animation: coinFlip .45s linear infinite;
+  animation: coinFlip var(--coin-duration, 720ms) cubic-bezier(.21, .66, .35, 1) both;
 }
 
-.coinLandsBack {
-  transform: rotateY(180deg);
-}
+.coinLandsBack { transform: rotateY(180deg); }
 
 @keyframes coinFlip {
-  from {
-    transform: rotateY(0deg);
-  }
-
-  to {
-    transform: rotateY(360deg);
-  }
+  0% { transform: perspective(600px) translateY(0) rotateZ(0deg) rotateY(0deg); }
+  32% { transform: perspective(600px) translateY(-24px) rotateZ(-8deg) rotateY(390deg); }
+  100% { transform: perspective(600px) translateY(0) rotateZ(0deg) rotateY(var(--coin-turn, 1080deg)); }
 }
+
+#coinPlayerOneName::before, #coinPlayerTwoName::before {
+  content: "";
+  display: inline-block;
+  width: .75em;
+  height: .75em;
+  margin-inline-end: .4em;
+  border: 1px solid #fff1b6;
+  border-radius: 50%;
+  background: #dba844;
+}
+#coinPlayerTwoName::before { border-color: #fff8e3; background: #c2b398; }
+
+@media (prefers-reduced-motion: reduce) {
+  .coinFlipping { animation: none; }
+}
+
+[data-result-mode="tournament"] #molVictoryRematchBtn,
+#retryTournamentResult[hidden],
+#tournamentSaveMessage:empty { display: none; }
+
+#tournamentSaveMessage { margin: 8px 0 0; text-align: center; font-size: .85rem; }
+
+#quitConfirmOverlay.tournamentReturnOverlay .modalCard {
+  border: 1px solid #4c755f;
+  background: radial-gradient(ellipse at top left, #244d38, transparent 65%), #122b21;
+  color: #e6f4eb;
+}
+#quitConfirmOverlay.tournamentReturnOverlay .modalHeader { border-bottom-color: #40634f; }
+#quitConfirmOverlay.tournamentReturnOverlay .modalBody > p { color: #c5dbd1; line-height: 1.5; }
+#quitConfirmOverlay.tournamentReturnOverlay .modalBody > .row { flex-wrap: wrap; gap: 8px; }
 
 .startDeciderScreen {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025));
@@ -4401,6 +4434,31 @@ body.casualMode #matchModeSwitch {
   border-color: rgba(255, 255, 255, .18);
 }
 
+#molVictoryOverlay[data-result-mode="tournament"] .molVictoryCard {
+  border-color: #4c755f;
+  background: radial-gradient(ellipse at top left, #244d38, transparent 60%), #122b21;
+}
+#molVictoryOverlay[data-result-mode="tournament"] .molVictoryPlayerCard {
+  border-color: #40634f;
+  background: #173729;
+}
+#molVictoryOverlay[data-result-mode="tournament"] .molVictoryPlayerCard.winner {
+  border-color: #83bd92;
+  background: #22503a;
+}
+#molVictoryOverlay[data-result-mode="tournament"] .molVictoryVs span {
+  border-color: #527e64;
+  background: #173729;
+}
+#molVictoryOverlay[data-result-mode="tournament"] .readyActions {
+  grid-template-columns: minmax(0, 1fr);
+}
+#molVictoryOverlay[data-result-mode="tournament"] .readyActions .btn {
+  width: 100%;
+  min-height: 44px;
+  text-align: center;
+}
+
 
 .molStatsCarousel {
   display: block;
@@ -4640,3 +4698,6 @@ body.casualMode #matchModeSwitch {
     grid-template-columns: 1fr;
   }
 }
+
+.tournamentScoreFeedback { color: #b7e7cb; }
+.tournamentScoreFeedback:has(span:empty):has(button[hidden]) { display: none; }
