@@ -29,9 +29,10 @@
   const fresh=()=>S.fresh(crypto.randomUUID());
   const trophyKey=()=>`onm-survival-complete-${tier===2?"tier2-":""}${user.uid}`;
   function render(){
-    $("survivalSummary").hidden=!user||loading;
+    $("survivalPlayerIdentity").hidden=!user||loading;
+    const title = $("survivalBoardPanel").hidden ? "Monster Survival" : "Leaderboard · Survival";
+    $("survivalPageTitle").textContent = `${title} · Tier ${tier}`;
     if(user){
-      $("survivalSummaryTier").textContent=`Tier ${tier} · Survival`;
       $("survivalSummaryBar").value=best;$("survivalSummaryPercent").textContent=`${best*10}% complete`;
       $("survivalSummaryName").textContent=accountData.firstName||user.displayName?.split(" ")[0]||"Player";
       window.ONMGameSummaryIdentity?.render("survivalSummary",user,accountData);
@@ -134,7 +135,7 @@
   function showView(board){
     $("survivalPlayPanel").hidden=board;$("survivalBoardPanel").hidden=!board;
     $("survivalPlayTab").setAttribute("aria-selected",String(!board));$("survivalBoardTab").setAttribute("aria-selected",String(board));
-    $("survivalPageTitle").textContent=board?"Leaderboard":"Monster Survival";
+    $("survivalPageTitle").textContent = `${board ? "Leaderboard · Survival" : "Monster Survival"} · Tier ${tier}`;
     window.history?.replaceState(null,"",board?"#leaderboard":"#play");if(board)loadBoard(true);
   }
   $("survivalPlayTab").addEventListener("click",()=>showView(false));$("survivalBoardTab").addEventListener("click",()=>showView(true));

@@ -60,7 +60,7 @@
   const current=()=>E.totals[E.completed(progress).length];
   function render(){
     const wins=E.completed(progress);$("tonProgress").textContent=`${wins.length} / ${E.totals.length} complete`;$("tonProgressBar").value=wins.length;
-    $("tonPlayerSummary").hidden=!user||!accountReady;$("tonSummaryPercent").textContent=`${Math.round(wins.length/E.totals.length*100)}% complete`;
+    $("tonPlayerIdentity").hidden=!user||!accountReady;$("tonSummaryPercent").textContent=`${Math.round(wins.length/E.totals.length*100)}% complete`;
     if(user){$("tonSummaryName").textContent=accountData.firstName||user.displayName?.split(" ")[0]||"Player";window.ONMGameSummaryIdentity?.render("tonSummary",user,accountData);}
     $("tonGrid").innerHTML=E.totals.map(n=>{const done=wins.includes(n),available=E.unlocked(n,progress);return `<button type="button" data-total="${n}" class="tonCell ${done?'complete':available?'available':'locked'}" ${available&&user&&accountReady?'':'disabled'} aria-label="${n}: ${done?'complete':available?'play checkout':'locked'}"><strong>${n}</strong><small>${done?'✓':available?playIcon:lockIcon}</small></button>`;}).join("");
   }
@@ -104,7 +104,7 @@
     catch{$("tonBoardStatus").textContent="Couldn’t load the leaderboard. Please try Refresh.";}
     finally{boardBusy=false;$("refreshTonBoard").disabled=false;$("tonBoardLoading").hidden=true;$("tonBoardTable").hidden=!$("tonBoardRows").innerHTML&&$("tonBoardStatus").textContent.startsWith("Couldn’t");$("tonLeaderboard").setAttribute("aria-busy","false");}
   }
-  function view(){const board=location.hash==="#leaderboard";$("tonLeaderboard").hidden=!board;$("tonGame").hidden=board||!accountReady;$("tonLoading").hidden=board||accountReady;$("tonPageTitle").textContent=board?'Leaderboard':'Ton+ Outs';if(board)leaderboard();}
+  function view(){const board=location.hash==="#leaderboard";$("tonLeaderboard").hidden=!board;$("tonGame").hidden=board||!accountReady;$("tonLoading").hidden=board||accountReady;$("tonPageTitle").textContent=board?'Leaderboard · Ton+ Outs':'Ton+ Outs';if(board)leaderboard();}
   window.addEventListener("hashchange",view);
   $("tonGrid").addEventListener("click",event=>{const button=event.target.closest("[data-total]");if(!button||button.disabled)return;selected=Number(button.dataset.total);retrying=false;practiceMessage="";freshCompletion=null;finishersFor=null;timerFinished=false;startTimer();challenge();$("tonChallenge").showModal();startScreenOn();if(!E.completed(progress).includes(selected))startDing();});
   $("tonMiss").addEventListener("click",()=>record(false));$("tonNearMiss").addEventListener("click",()=>record("near"));$("tonHit").addEventListener("click",()=>record(true));$("closeTonChallenge").addEventListener("click",()=>{if(!busy)$("tonChallenge").close();});$("tonChallenge").addEventListener("cancel",event=>{if(busy)event.preventDefault();});

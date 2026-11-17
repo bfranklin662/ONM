@@ -49,9 +49,9 @@
   }
   function openCasual() {
     $("ladderPanel").hidden=true;$("leaderboardPanel").hidden=true;$("casualPanel").hidden=false;
-    $("botPageTitle").textContent="Casual Bot Game";document.title="Casual Bot Game | Oche Ness Monsters";
+    document.title="Casual Bot Game | Oche Ness Monsters";
     $("ladderTab").setAttribute("aria-selected","true");$("ladderTab").setAttribute("aria-label","Play casual");$("leaderboardTab").setAttribute("aria-selected","false");$("casualTab").setAttribute("aria-selected","true");
-    window.history?.replaceState(null,"","#casual");renderCasual();window.dispatchEvent?.(new Event("onm-mode-change"));
+    window.history?.replaceState(null,"","#casual");renderPlayerSummary();renderCasual();window.dispatchEvent?.(new Event("onm-mode-change"));
   }
   function launch(url,label) {
     if(!window.ONMBotLaunch){window.location.href=url;return;}
@@ -71,13 +71,17 @@
   let bestScores = {};
   let playerProfile = {};
   function renderPlayerSummary() {
-    $("playerSummary").hidden = !ready || !user;
+    const mode = window.location.hash;
+    $("botPageTitle").textContent = mode === "#casual" ? "Casual Bot Game"
+      : mode === "#leaderboard" ? "Leaderboard · Ladder" : `Monster Bot Ladder · Tier ${selectedTier}`;
+    $("ladderPlayerIdentity").hidden = !ready || !user;
+    $("playerSummaryProgress").hidden = mode === "#casual";
     if (!ready || !user) return;
     const firstName = playerProfile.firstName || user.displayName?.split(" ")[0] || "Player";
     $("playerSummaryName").textContent = firstName;
     const tierProgress=new Set([...progress].filter(key=>E.tierOf(Number(key.split("-")[0]))===selectedTier));
     const highest=E.highestUnlocked(progress,bestScores,selectedTier,survivalBest());
-    $("playerSummaryLevel").textContent=highest?`Tier ${selectedTier} · Level ${E.localLevel(highest)} unlocked`:`Tier ${selectedTier} · Locked`;
+    $("playerSummaryLevel").textContent=highest?`Level ${E.localLevel(highest)} unlocked`:"Locked";
     $("playerSummaryPhoto").src = leaderboardPhoto({photoUrl:playerProfile.photoUrl,name:playerProfile.linkedPlayerName || firstName});
     $("playerSummaryBeaten").textContent = `✓ Wins ${tierProgress.size}/50`;
     $("playerSummaryFlawless").textContent = `★ Flawless ${E.goldStars(tierProgress,bestScores)}`;
@@ -152,7 +156,7 @@
     $("casualPanel").hidden=true;$("casualTab").setAttribute("aria-selected","false");
     const hash = board ? "#leaderboard" : "#game";
     if (window.location.hash !== hash) window.history?.replaceState(null,"",hash);
-    $("botPageTitle").textContent = board ? "Leaderboard" : "Monster Bot Ladder";
+    renderPlayerSummary();
     document.title = `${board ? "Leaderboard" : "Monster Bot Ladder"} | Oche Ness Monsters`;
     $("ladderPanel").hidden = board; $("leaderboardPanel").hidden = !board;
     $("ladderTab").setAttribute("aria-selected", String(!board));
