@@ -18,3 +18,14 @@ html{background:#0a1712}body{background:radial-gradient(ellipse at top right,#17
 .survivalOpponentName{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}.survivalRoundBadges{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap}.survivalBestBadge,.survivalPreviousBadge{display:inline-block;margin:0;padding:4px 6px;border-radius:999px;font-size:8px;font-weight:900;letter-spacing:.04em;line-height:1.1;white-space:nowrap}.survivalBestBadge{background:#ffd740;color:#211c05}.survivalPreviousBadge{background:#345348;color:#e0ebe5;border:1px solid #648778}.survivalRoute li.survivalCompleted{display:flex;justify-content:space-between;align-items:center;border-color:#a9923c;background:#2e2c16;min-height:64px;padding:14px;color:#ffe47a}.survivalCompleted:before{display:none}@media(max-width:600px){.survivalOpponentName{gap:5px;flex-wrap:wrap}.survivalBestBadge,.survivalPreviousBadge{font-size:7px;padding:4px 5px}}
 .survivalShell #survivalSummary+.survivalHero{margin-top:0}.playerSummary>img{padding:0;object-position:center;aspect-ratio:1}
 .survivalBoardTable :is(th,td):first-child{width:1%;white-space:nowrap}.survivalBoardTable :is(th,td):nth-child(2){width:auto;color:inherit}.survivalBoardTable :is(th,td):last-child{width:1%;text-align:right;white-space:nowrap}.survivalBoardTable .botLeaderboardIdentity{display:flex;align-items:center;gap:7px}.survivalBoardTable .botLeaderboardIdentity>span:not(.botLeaderboardFlag){flex:1;min-width:0}.survivalBoardTable .botLeaderboardFlag{margin-left:auto}.survivalBoardTable td:last-child{color:#8ee2ac;font-weight:800}
+
+
+/* Keep the ladder bounded while letting a swipe continue onto the page. */
+.monsterBotPage .ladderScrollFrame .botLevels {
+  max-height: min(65svh, 680px);
+  overflow-anchor: none;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: auto;
+}
+.monsterBotPage .ladderScrollFrame { overflow: clip; }
+.monsterBotPage { overflow-x: clip; overflow-y: visible; }

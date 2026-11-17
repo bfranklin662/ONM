@@ -277,3 +277,53 @@ body::before {
 .tournamentTileArt svg {
   width: min(72%, 260px);
 }
+
+
+.playGameList .gameTile { border: 1px solid #466b59; }
+.playGameList .gameTile:hover, .playGameList .gameTile:focus-visible { border-color: #b2dcc5; }
+@media (max-width: 800px) {
+  .playGameList.scorerSetupCard { padding: 0; }
+  .playGameList .setupGrid { gap: 7px; }
+  .playGameList .gameTile {
+    position: relative;
+    grid-template-columns: 70px minmax(0, 1fr);
+    gap: 0;
+    min-height: 76px;
+    border-radius: 10px;
+    background: #112a20;
+  }
+  .playGameList .gameTileImage { min-height: 0; }
+  .playGameList .gameTileBody { padding: 8px 36px 8px 10px; gap: 3px; }
+  .playGameList .gameTile h2 { margin: 0; font-size: 15px; line-height: 1.15; }
+  .playGameList .gameTileKicker {
+    margin: 0 !important;
+    font-size: 10px !important;
+    letter-spacing: .015em;
+    line-height: 1.2;
+    text-transform: none;
+  }
+  .playGameList .gameTileBody > p:not(.gameTileKicker),
+  .playGameList .gameTileMonster .gameTileKicker,
+  .playGameList .gameTileMonster .gameTileStats span:not(#botGamePlayers),
+  .playGameList .monsterArtLabel,
+  .playGameList .monsterArtCaption,
+  .playGameList .monsterTileArt::before { display: none; }
+  .playGameList .gameTileStats { margin: 0; }
+  .playGameList .gameTileStats span { padding: 3px 6px; font-size: 10px; }
+  .playGameList .gameTileStats span[hidden] { display: none; }
+  .playGameList .gameTileMonster .monsterTileArt { justify-content: center; min-height: 0; padding: 4px; }
+  .playGameList .monsterArtCast img { width: 31px; height: 59px; }
+  .playGameList .monsterArtCast img + img { margin-left: -6px; }
+  .playGameList .gameTileAction {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: #c6e8d4 !important;
+    font-size: 0;
+  }
+  .playGameList .gameTileAction::after { content: "→"; font-size: 20px; }
+}

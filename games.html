@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="styles/buttons.css">
   <link rel="stylesheet" href="styles/dart-scorer.css">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link">
-  <link rel="stylesheet" href="styles/games.css?v=20261110-tournament">
+  <link rel="stylesheet" href="styles/games.css?v=20261117-play-cards">
   <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
@@ -82,7 +82,7 @@
       </div>
     </div>
 
-    <section class="scorerSetupCard">
+    <section class="scorerSetupCard playGameList" aria-label="Games">
       <div class="setupGrid">
 
         <a href="monster-bot.html" class="gameTile gameTileMonster">
@@ -95,7 +95,7 @@
             <p class="gameTileKicker">YOUR NEXT RIVAL IS WAITING</p>
             <h2>Monster Bot Game</h2>
             <p>Meet the Monsters. Beat their challenges. Unlock your next rival.</p>
-            <div class="gameTileStats"><span>50 challenges</span><span>★ Flawless wins</span><span>🎯 Bull or Bust</span></div>
+            <div class="gameTileStats"><span id="botGamePlayers" hidden></span><span>50 challenges</span><span>★ Flawless wins</span><span>🎯 Bull or Bust</span></div>
           </div>
           <span class="gameTileAction">Enter the game →</span>
         </a>
@@ -160,7 +160,8 @@
   <script src="scripts/session.js?v=20261028-avatar-fill"></script>
   <script src="scripts/profile.js?v=20261111-tournament-scoring"></script>
   <script type="module" defer src="scripts/firebase-live.js"></script>
-  <script defer src="scripts/games.js?v=20261101-versus"></script>
+  <script defer src="scripts/monster-bot-data.js?v=20261027-trophy-backfill"></script>
+  <script defer src="scripts/games.js?v=20261117-play-cards"></script>
 
   <script>
     function toggleSidebar() {

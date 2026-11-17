@@ -68,21 +68,6 @@
     }
     launch(`dart-scorer.html?mode=bot&level=${level}&format=${format}`,`Loading ${botName(level)} · ${E.modeLabel(format)}`);
   }
-  function focusUnlocked() {
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      const current = $("bot-level-" + (E.highestUnlocked(progress,bestScores,selectedTier,survivalBest())||(selectedTier===2?11:1)));
-      if (!ready || !current || $("challengeSetup").hidden || $("ladderPanel").hidden) return;
-      const list=$("botLevels");
-      if(window.matchMedia?.("(max-width: 600px)").matches&&list.getBoundingClientRect){
-        const viewport=window.visualViewport;
-        const bottom=(viewport?.height||window.innerHeight)+(viewport?.offsetTop||0);
-        list.style.maxHeight=`${Math.max(160,bottom-list.getBoundingClientRect().top-8)}px`;
-      }
-      if(current.getBoundingClientRect&&list.getBoundingClientRect){
-        list.scrollTop+=current.getBoundingClientRect().top-list.getBoundingClientRect().top;
-      }else current.scrollIntoView({block:"start",inline:"nearest",behavior:"instant"});
-    }));
-  }
   let bestScores = {};
   let playerProfile = {};
   function renderPlayerSummary() {
@@ -174,7 +159,6 @@
     window.dispatchEvent?.(new Event("onm-mode-change"));
     $("leaderboardTab").setAttribute("aria-selected", String(board));
     if (board) { renderLeaderboard(); loadCommunity(Boolean(user)); }
-    else focusUnlocked();
   }
   function showCompletionList() {
     if (!completionKey) return;
@@ -316,7 +300,6 @@
     ready = true;
     renderLevels();
     $("botLaunchSplash").hidden=true;
-    focusUnlocked();
     showUnlockNotices();
     loadCommunity(Boolean(user));
   }
@@ -454,7 +437,7 @@
       if (!E.MODES.includes(mode)) return;
       if(isFlawless(level,mode)){completionKey=`${level}-${mode}`;showCompletionList();$("completionDialog").showModal();return;}
       modes.set(level,mode); renderLevels();
-      $("bot-level-"+level)?.querySelector?.(`[data-choose-mode="${mode}"]`)?.focus();
+      $("bot-level-"+level)?.querySelector?.(`[data-choose-mode="${mode}"]`)?.focus({preventScroll:true});
       return;
     }
     const completion = event.target.closest("[data-community-key]");
@@ -468,11 +451,8 @@
   $("botLevels").addEventListener("keydown",event=>{
     if (event.key !== "Escape") return;
     const picker = event.target.closest(".modePicker");
-    if (picker) { picker.open=false;picker.querySelector("summary").focus(); }
+    if (picker) { picker.open=false;picker.querySelector("summary").focus({preventScroll:true}); }
   });
-  $("botLevels").addEventListener("toggle",event=>{
-    if (event.target.matches?.(".modePicker") && event.target.open) requestAnimationFrame(()=>event.target.scrollIntoView({block:"nearest",inline:"nearest"}));
-  },true);
   $("closeCompletions").addEventListener("click", () => $("completionDialog").close());
   $("confirmBullStart").addEventListener("click",()=>{
     const game=pendingBullGame;pendingBullGame=null;$("bullStartDialog").close();
@@ -506,8 +486,8 @@
   $("ladderTab").addEventListener("click", () => window.location.hash==="#casual"?openCasual():showTab(false));
   $("leaderboardTab").addEventListener("click", () => showTab(true));
   $("casualTab").addEventListener("click",openCasual);
-  $("ladderTierOne").addEventListener("click",()=>{selectedTier=1;renderLevels();focusUnlocked();});
-  $("ladderTierTwo").addEventListener("click",()=>{if(!ready||!user||!E.tier2EntryUnlocked(progress,bestScores))return;selectedTier=2;renderLevels();focusUnlocked();});
+  $("ladderTierOne").addEventListener("click",()=>{selectedTier=1;renderLevels();$("botLevels").scrollTop=0;});
+  $("ladderTierTwo").addEventListener("click",()=>{if(!ready||!user||!E.tier2EntryUnlocked(progress,bestScores))return;selectedTier=2;renderLevels();$("botLevels").scrollTop=0;});
   $("casualBots").addEventListener("click",event=>{
     const button=event.target.closest("[data-casual-bot]");if(!button)return;
     $("casualBot").value=button.dataset.casualBot;renderCasual();

@@ -1,3 +1,17 @@
+async function loadBotPlayerCount() {
+  const count = document.getElementById("botGamePlayers");
+  try {
+    const { leaderboard } = await window.ONMBotData.fetchCommunity({
+      projectId: window.ONMFirebase.config.projectId
+    });
+    count.textContent = `${leaderboard.length.toLocaleString("en-GB")} ${leaderboard.length === 1 ? "player" : "players"}`;
+    count.hidden = false;
+  } catch {
+    // The game card remains usable when the leaderboard is unavailable.
+  }
+}
+void loadBotPlayerCount();
+
 async function initGamesPageLeagueStats(){
   const playersEl=document.getElementById("molGamePlayers");if(!playersEl)return;
   try{const {db,ref,get}=window.ONMLiveDarts,snapshot=await get(ref(db,"ratings"));playersEl.textContent=snapshot.exists()?Object.values(snapshot.val()).filter(p=>Number(p.gamesPlayed)>0).length:"0";}
