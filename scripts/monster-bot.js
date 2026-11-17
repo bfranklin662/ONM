@@ -462,8 +462,7 @@
     if (Math.abs(delta) <= Math.abs(previous.clientX - touch.clientX)) return;
     const atTop = ladder.scrollTop <= 0;
     const atBottom = ladder.scrollHeight - ladder.clientHeight - ladder.scrollTop <= 1;
-    if ((delta < 0 && atTop && window.scrollY > 0) || (delta > 0 && atBottom &&
-        window.scrollY + window.innerHeight < document.documentElement.scrollHeight - 1)) {
+    if ((delta < 0 && atTop) || (delta > 0 && atBottom)) {
       event.preventDefault();
       window.scrollBy(0, delta);
     }

@@ -21,23 +21,24 @@ html{background:#0a1712}body{background:radial-gradient(ellipse at top right,#17
 
 
 /* Keep the ladder bounded while letting a swipe continue onto the page. */
-.monsterBotPage .ladderScrollFrame .botLevels {
+.monsterGamePage .ladderScrollFrame .botLevels {
   max-height: min(65svh, 680px);
   overflow-anchor: none;
   overscroll-behavior-x: none;
   overscroll-behavior-y: auto;
 }
-.monsterBotPage .ladderScrollFrame { overflow: clip; }
-.monsterBotDocument {
+.monsterGamePage .ladderScrollFrame { overflow: clip; }
+.monsterGameDocument {
   overflow-x: clip;
+  overscroll-behavior-y: none;
   scroll-padding-top: var(--header-h);
 }
-.monsterBotPage {
+.monsterGamePage {
   padding-top: 0;
   overflow-x: clip;
   overflow-y: visible;
 }
-.monsterBotPage > .site-header {
+.monsterGamePage > .site-header {
   position: sticky;
   top: 0;
   background: #0c251b;
