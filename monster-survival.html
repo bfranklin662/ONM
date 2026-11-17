@@ -25,10 +25,42 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Oche Ness Monsters club logo on a dark green background">
+  <link rel="stylesheet" href="/styles/header.css">
 </head>
 <body>
 <link rel="stylesheet" href="styles/monster-bot-updates.css?v=20261027-modes"><link rel="stylesheet" href="styles/monster-game-navigation.css?v=20261029-game-menu">
-<header class="botHeader"><a href="index.html"><img src="graphics/logoWText.png" alt="Oche Ness Monsters"></a><div class="botHeaderActions"><a id="botProfileLink" class="botProfileLink" href="auth.html?mode=register&amp;redirect=monster-survival.html" aria-label="Sign up or sign in" title="My account"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg></a></div></header>
+<header class="site-header">
+    <a href="/" class="brand-left">
+      <img class="top-left-logo" src="graphics/logoWText.png" alt="Oche Ness Monsters">
+    </a>
+
+    <img class="logo" src="graphics/onmLogoWhiteFit.png" alt="Oche Ness Monsters">
+
+    <nav class="nav-links desktop-nav">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="results.html">Results & Stats</a></li>
+        <li><a href="players-landing.html">Players</a></li>
+        <li><a href="/games.html" class="active">Play</a></li>
+        <li><a href="/match">Match</a></li>
+      </ul>
+    </nav>
+
+    <a id="botProfileLink" class="authProfileBtn botProfileLink" href="auth.html?mode=register&amp;redirect=monster-survival.html" aria-label="Sign up or sign in" title="My account"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg></a>
+
+    <button class="hamburger" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">☰</button>
+  </header>
+
+  <div id="sidebar" class="sidebar" data-site-sidebar inert>
+    <button class="close-btn" type="button" aria-label="Close menu">✖</button>
+
+    <a href="/">Home</a>
+    <a href="results.html">Results & Stats</a>
+    <a href="players-landing.html">Players</a>
+    <a href="/games.html" class="active">Play</a>
+
+    <a href="/match">Match</a>
+  </div>
 <link rel="stylesheet" href="styles/monster-game-layout.css?v=20261029-board-format">
 <main class="survivalShell">
   <nav id="modeNavigation" class="modeNavigation" aria-label="Game modes"></nav>
@@ -46,4 +78,4 @@
 <section id="botLaunchSplash" class="botLaunchSplash" role="status" hidden><img src="graphics/logoWText.png" alt="Oche Ness Monsters" width="160"><p id="botLaunchText">Loading Survival…</p></section>
 <script src="scripts/firebase-client.js?v=20261104-player-identity"></script><script src="scripts/monster-bot-data.js?v=20261022-belgium"></script><script src="scripts/monster-bot-engine.js?v=20261027-survival-release"></script><script src="scripts/dart-nick-clips.js?v=20261025-flow"></script><script src="scripts/monster-bot-launch.js?v=20261031-soft-chime"></script><script src="scripts/monster-survival-state.js?v=20261027-survival"></script><script src="scripts/game-summary-identity.js?v=20261029-community-photos"></script><script src="scripts/monster-survival.js?v=20261029-board-format"></script>
 <script src="scripts/monster-game-navigation.js?v=20261029-mode-leaderboard"></script>
-<script src="/scripts/site-ui.js?v=20261028-avatar-fill"></script></body></html>
+<script src="/scripts/site-ui.js?v=20261117-shared-menu"></script></body></html>

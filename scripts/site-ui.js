@@ -30,9 +30,28 @@
   if(botProfile)botProfile.addEventListener("click",async event=>{
     if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
     event.preventDefault();botProfile.setAttribute("aria-busy","true");
-    try{const current=await window.ONMFirebase.currentFirebaseUser();window.location.href=current?"account.html":"auth.html?mode=register&redirect=monster-bot.html";}
+    try{const current=await window.ONMFirebase.currentFirebaseUser();window.location.href=current?"account.html":`auth.html?mode=register&redirect=${encodeURIComponent(location.pathname.split("/").pop() + location.search + location.hash)}`;}
     catch(_){window.location.href="account.html";}finally{botProfile.setAttribute("aria-busy","false");}
   });
+  const sidebar = document.querySelector("[data-site-sidebar]");
+  if (sidebar) {
+    const toggle = document.querySelector('[aria-controls="sidebar"]');
+    const close = sidebar.querySelector(".close-btn");
+    function setSidebar(open) {
+      sidebar.inert = !open;
+      sidebar.classList.toggle("active", open);
+      toggle.setAttribute("aria-expanded", String(open));
+      (open ? close : toggle).focus();
+    }
+    toggle.addEventListener("click", () => setSidebar(!sidebar.classList.contains("active")));
+    close.addEventListener("click", () => setSidebar(false));
+    sidebar.addEventListener("click", event => {
+      if (event.target.closest("a")) setSidebar(false);
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && sidebar.classList.contains("active")) setSidebar(false);
+    });
+  }
   const header=document.querySelector(".botHeader,.accountHeader"),existing=document.querySelector(".hamburger");
   if(header&&!existing){
     const button=document.createElement("button");button.className="compactMenu";button.type="button";button.setAttribute("aria-label","Open menu");button.setAttribute("aria-expanded","false");button.setAttribute("aria-controls","compactSiteMenu");button.textContent="☰";

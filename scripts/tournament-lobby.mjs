@@ -9,7 +9,7 @@ const lobbyUrl = tournamentUrl();
 const back = $("tournamentBack");
 if (id) {
   back.href = lobbyUrl;
-  back.textContent = "← Back to tournament lobby";
+  back.textContent = "← Back to lobby";
 }
 const deleteButton = $("tournamentDelete");
 const rulesButton = $("tournamentEditRules");
@@ -183,7 +183,7 @@ function entryControls(tournament) {
     tournament.settings.playMode !== "online" ? `<button type="button" class="tournamentEntryButton tournamentEntryView"
       data-action="${marking ? "leave-marker" : "marker"}" ${busy ? "disabled" : ""}>${marking ? "Leave marker role" : "Join as marker"}</button>` : "";
   let action = "";
-  if (entriesOpen && !marking) {
+  if (entriesOpen && !marking && (!joined || id)) {
     if (user?.status === "Active") {
       action = `<button type="button" class="tournamentEntryButton ${joined ? "tournamentEntryLeave" : "tournamentEntryJoin"}" data-action="${joined ? "leave" : "join"}"
         ${busy || (full && !joined) ? "disabled" : ""}>${joined ? "Leave tournament" : full ? "Tournament full" : "Join tournament"}</button>`;
@@ -206,7 +206,7 @@ function entryControls(tournament) {
     <div class="tournamentEntryLinks">
       ${action}
       ${markerAction}
-      ${tournament.id && !id ? `<a class="tournamentEntryButton tournamentEntryView" href="${url}">View tournament <span aria-hidden="true">→</span></a>` : ""}
+      ${tournament.id && !id ? `<a class="tournamentEntryButton tournamentEntryView tournamentLobbyView" href="${url}" aria-label="View ${escape(tournament.title)}">View <span aria-hidden="true">→</span></a>` : ""}
     </div>
   </div>`;
 }
@@ -717,15 +717,15 @@ function renderDraw(tournament, view) {
     const status = fixtureStatus(fixture);
     const format = result ? result.format : matchSettings(tournament.settings, match);
     const formatLabel = format ? `${format.gameType === "bestOf" ? "Best of" : "First to"} ${Number(format.legsCount)}` : "";
+    const actions = scoreLinks(match);
+    const details = [formatLabel, result?.winnerIndex === -1 ? "Draw" : ""].filter(Boolean).join(" · ");
     return `<article class="tournamentFixture" data-fixture-status="${status}">
-      <div class="tournamentFixtureMeta"><strong>${escape(stage)}</strong>
+      <div class="tournamentFixtureMeta"><div class="tournamentFixtureStage"><strong>${escape(stage)}</strong>
+        ${details ? `<span>${details}</span>` : ""}</div>
         ${statusPill(status, board)}
       </div>
       ${matchCard(match)}
-      <div class="tournamentFixtureFooter">
-        <span>${[formatLabel, result?.winnerIndex === -1 ? "Draw" : ""].filter(Boolean).join(" · ")}</span>
-        <div class="tournamentScoringLinks">${scoreLinks(match)}</div>
-      </div>
+      ${actions ? `<div class="tournamentScoringLinks">${actions}</div>` : ""}
       ${result ? `<details data-section="${match.id}"><summary>Match stats</summary>
         ${table("Match statistics", ["Player", ...statHeaders], [[name(a), ...statValues(result.left)], [name(b), ...statValues(result.right)]])}
       </details>` : ""}
@@ -814,14 +814,15 @@ function renderDraw(tournament, view) {
           const opponent = match.a === user.uid ? match.b : match.a;
           const status = fixtureStatus(fixture);
           const position = queuePositions.get(match.id);
+          const actions = scoreLinks(match);
           return `<li class="${index === 0 ? "tournamentNextFixture" : ""}">
             <div class="tournamentPersonalOpponent">${avatar(opponent, tournament.entries[opponent])}
               <div>${index === 0 ? `<span class="tournamentPersonalLabel">${status === "ready" ? "You’re up" : status === "in-play" ? "Current match" : "Next match"}</span>` : ""}
               <strong>${opponent ? `vs ${name(opponent)}` : "Opponent TBD"}</strong>
               <p>${escape(stage)}</p></div></div>
             <div class="tournamentPersonalPosition">${statusPill(status, board)}
-              ${position ? `<span>Queue position ${position}</span>` : ""}
-              <div class="tournamentScoringLinks">${scoreLinks(match)}</div></div>
+              ${position ? `<span>Queue position ${position}</span>` : ""}</div>
+            ${actions ? `<div class="tournamentScoringLinks">${actions}</div>` : ""}
           </li>`;
         }).join("")}</ol>`
         : `<p>${won || out ? "No remaining matches" : "Awaiting your next fixture"}</p>`}
@@ -881,7 +882,7 @@ function render() {
   document.title = `Oche Ness Monsters | ${current.title}`;
   $("tournamentTitle").textContent = current.title;
   const count = Object.keys(current.entries).length;
-  playerCount.innerHTML = `<span aria-hidden="true">👥</span> ${count}`;
+  playerCount.textContent = `${count} ${count === 1 ? "player" : "players"}`;
   playerCount.setAttribute("aria-label", `View ${count} ${count === 1 ? "player" : "players"}`);
   const status = simulatedResults ? "Simulation preview" : current.status === "complete" ? "Completed" : statusLabels[current.status];
   $("tournamentIntro").textContent = `${testMode ? "Private test · " : ""}${status} · ${settingsLabel(current.settings)}`;

@@ -37,7 +37,7 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Oche Ness Monsters club logo on a dark green background">
-  <link rel="stylesheet" href="styles/tournament.css?v=20261111-tournament-scoring">
+  <link rel="stylesheet" href="styles/tournament.css?v=20261117-compact-lobby">
 </head>
 
 <body>
@@ -77,10 +77,6 @@
   </div>
 
   <main class="wrap tournament">
-    <div class="tournamentToolbar">
-      <a id="tournamentBack" class="tournamentBack tournamentEntryButton tournamentEntryView" href="games.html">← Play</a>
-      <button id="tournamentEditRules" class="tournamentEntryButton tournamentEntryView" type="button" hidden>Tournament settings</button>
-    </div>
     <header class="tournamentHero">
       <svg class="tournamentHeroArt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M8 4h8v5a4 4 0 0 1-8 0V4ZM8 6H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 1v5m-4 2h8m-6-2h4"/>
@@ -94,9 +90,13 @@
         <h1 id="tournamentTitle">Tournament</h1>
         <p id="tournamentIntro">Join an open tournament, follow the draw and browse past results.</p>
         <div id="tournamentWinners" class="tournamentWinners" hidden></div>
-        <div class="tournamentHeroActions">
+      </div>
+      <div class="tournamentHeroActions">
+        <a id="tournamentBack" class="tournamentBack" href="games.html">← Play</a>
+        <div class="tournamentHeroTools">
           <button id="tournamentPlayerCount" class="tournamentPlayerCount tournamentEntryButton" type="button" aria-haspopup="dialog" hidden></button>
-          <button id="tournamentInfo" class="tournamentEntryButton tournamentInfo" type="button" aria-label="Tournament rules and information" aria-haspopup="dialog" hidden>i</button>
+          <button id="tournamentInfo" class="tournamentEntryButton tournamentHeroIcon tournamentInfo" type="button" aria-label="Tournament rules and information" aria-haspopup="dialog" hidden>i</button>
+          <button id="tournamentEditRules" class="tournamentEntryButton tournamentHeroIcon" type="button" aria-label="Tournament settings" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3h4l.7 2.5 2 .9L19 5l2 3.5-1.8 1.9v2.2L21 15l-2 3.5-2.3-.9-2 .9L14 21h-4l-.7-2.5-2-.9L5 18.5 3 15l1.8-2.4v-2.2L3 8.5 5 5l2.3 1.4 2-.9Z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
       </div>
     </header>
@@ -226,12 +226,12 @@
     </div>
   </div>
 
-  <script src="scripts/firebase-client.js?v=20261111-tournament-scoring"></script>
+  <script src="scripts/firebase-client.js?v=20261117-compact-lobby"></script>
   <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
   <script src="scripts/session.js?v=20261028-avatar-fill"></script>
-  <script src="scripts/profile.js?v=20261111-tournament-scoring"></script>
+  <script src="scripts/profile.js?v=20261117-compact-lobby"></script>
   <script type="module" defer src="scripts/firebase-live.js"></script>
-  <script type="module" src="scripts/tournament-lobby.mjs?v=20261111-tournament-scoring"></script>
+  <script type="module" src="scripts/tournament-lobby.mjs?v=20261117-compact-lobby"></script>
 
   <script>
     function toggleSidebar() {
@@ -245,6 +245,6 @@
       });
     });
   </script>
-<script src="/scripts/site-ui.js?v=20261111-tournament-scoring"></script></body>
+<script src="/scripts/site-ui.js?v=20261117-compact-lobby"></script></body>
 
 </html>
