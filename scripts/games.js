@@ -4,7 +4,7 @@ async function loadBotPlayerCount() {
     const { leaderboard } = await window.ONMBotData.fetchCommunity({
       projectId: window.ONMFirebase.config.projectId
     });
-    count.textContent = `${leaderboard.length.toLocaleString("en-GB")} ${leaderboard.length === 1 ? "player" : "players"}`;
+    count.querySelector("strong").textContent = `${leaderboard.length.toLocaleString("en-GB")} ${leaderboard.length === 1 ? "player" : "players"}`;
     count.hidden = false;
   } catch {
     // The game card remains usable when the leaderboard is unavailable.

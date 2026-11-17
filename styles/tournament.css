@@ -505,3 +505,6 @@ html.tournamentPage {
   #tournamentView { padding: 12px; }
 }
 .tournamentMarkerAction { margin-bottom: 10px; }
+
+.tournamentHeroKicker { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.tournamentHeroKicker svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }

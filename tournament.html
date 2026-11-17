@@ -37,7 +37,7 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Oche Ness Monsters club logo on a dark green background">
-  <link rel="stylesheet" href="styles/tournament.css?v=20261117-tournament-polish">
+  <link rel="stylesheet" href="styles/tournament.css?v=20261117-trophy">
 </head>
 
 <body>
@@ -79,7 +79,10 @@
   <main class="wrap tournament">
     <header class="tournamentHero">
       <div class="tournamentHeroActions">
-        <p class="tournamentKicker">Tournament</p>
+        <p class="tournamentKicker tournamentHeroKicker">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0V4ZM8 6H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 1v5m-4 2h8m-6-2h4"/></svg>
+          Tournament
+        </p>
         <div class="tournamentHeroTools">
           <button id="tournamentPlayerCount" class="tournamentEntryButton tournamentHeroIcon" type="button" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m1-15a3 3 0 0 1 0 6m2 2a5 5 0 0 1 3 5v2"/></svg></button>
           <button id="tournamentInfo" class="tournamentEntryButton tournamentHeroIcon tournamentInfo" type="button" aria-label="Tournament rules and information" aria-haspopup="dialog" hidden>i</button>
@@ -224,12 +227,12 @@
     </div>
   </div>
 
-  <script src="scripts/firebase-client.js?v=20261117-tournament-polish"></script>
+  <script src="scripts/firebase-client.js?v=20261117-trophy"></script>
   <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
   <script src="scripts/session.js?v=20261028-avatar-fill"></script>
-  <script src="scripts/profile.js?v=20261117-tournament-polish"></script>
+  <script src="scripts/profile.js?v=20261117-trophy"></script>
   <script type="module" defer src="scripts/firebase-live.js"></script>
-  <script type="module" src="scripts/tournament-lobby.mjs?v=20261117-tournament-polish"></script>
+  <script type="module" src="scripts/tournament-lobby.mjs?v=20261117-trophy"></script>
 
   <script>
     function toggleSidebar() {
@@ -243,6 +246,6 @@
       });
     });
   </script>
-<script src="/scripts/site-ui.js?v=20261117-tournament-polish"></script></body>
+<script src="/scripts/site-ui.js?v=20261117-trophy"></script></body>
 
 </html>

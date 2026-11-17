@@ -448,6 +448,26 @@
       playGame(level,format);
     }
   });
+  const ladder = $("botLevels");
+  let previousTouch;
+  ladder.addEventListener("touchstart", event => {
+    previousTouch = event.touches.length === 1 ? event.touches[0] : null;
+  }, { passive: true });
+  ladder.addEventListener("touchmove", event => {
+    const touch = event.touches.length === 1 ? event.touches[0] : null;
+    const previous = previousTouch;
+    previousTouch = touch;
+    if (!touch || !previous || !event.cancelable) return;
+    const delta = previous.clientY - touch.clientY;
+    if (Math.abs(delta) <= Math.abs(previous.clientX - touch.clientX)) return;
+    const atTop = ladder.scrollTop <= 0;
+    const atBottom = ladder.scrollHeight - ladder.clientHeight - ladder.scrollTop <= 1;
+    if ((delta < 0 && atTop && window.scrollY > 0) || (delta > 0 && atBottom &&
+        window.scrollY + window.innerHeight < document.documentElement.scrollHeight - 1)) {
+      event.preventDefault();
+      window.scrollBy(0, delta);
+    }
+  }, { passive: false });
   $("botLevels").addEventListener("keydown",event=>{
     if (event.key !== "Escape") return;
     const picker = event.target.closest(".modePicker");

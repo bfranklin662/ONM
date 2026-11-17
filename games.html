@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="styles/buttons.css">
   <link rel="stylesheet" href="styles/dart-scorer.css">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link">
-  <link rel="stylesheet" href="styles/games.css?v=20261117-play-cards">
+  <link rel="stylesheet" href="styles/games.css?v=20261117-play-diagrams">
   <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
@@ -88,23 +88,32 @@
         <a href="monster-bot.html" class="gameTile gameTileMonster">
           <div class="gameTileImage monsterTileArt">
             <span class="monsterArtLabel">MEET YOUR MATCH</span>
-            <div class="monsterArtCast"><img src="graphics/bots/billy-bot.png" alt="Billy Bot" width="150" height="190"><img src="graphics/bots/croft-bot.png" alt="Croft Bot" width="150" height="190"></div>
+            <div class="monsterArtCast">
+              <img src="graphics/bots/billy-bot.png" alt="Billy Bot" width="150" height="190">
+              <img src="graphics/bots/croft-bot.png" alt="Croft Bot" width="150" height="190">
+              <img src="graphics/bots/venton-bot.png" alt="Venton Bot" width="150" height="190">
+              <img src="graphics/bots/istan-bot.png" alt="Istan Bot" width="150" height="190">
+            </div>
             <span class="monsterArtCaption">Start with Billy. Uncover the rest.</span>
           </div>
           <div class="gameTileBody">
-            <p class="gameTileKicker">YOUR NEXT RIVAL IS WAITING</p>
             <h2>Monster Bot Game</h2>
+            <p class="gameTileKicker">Online · Ladder · Bull or Bust</p>
             <p>Meet the Monsters. Beat their challenges. Unlock your next rival.</p>
-            <div class="gameTileStats"><span id="botGamePlayers" hidden></span><span>50 challenges</span><span>★ Flawless wins</span><span>🎯 Bull or Bust</span></div>
+            <div class="gameTileStats"><span id="botGamePlayers" hidden>👥 <strong></strong></span><span>50 challenges</span><span>★ Flawless wins</span><span>🎯 Bull or Bust</span></div>
           </div>
           <span class="gameTileAction">Enter the game →</span>
         </a>
 
         <a href="dart-scorer.html?mode=versus" class="gameTile gameTileLeague">
-          <div class="gameTileImage" style="background-image:url('graphics/online-league-card-art.png')"></div>
+          <div class="gameTileImage gameDiagramArt" aria-hidden="true">
+            <svg viewBox="0 0 230 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="19" y="21" width="66" height="57" rx="9"/><rect x="145" y="21" width="66" height="57" rx="9"/><path d="M85 40h60m-60 20h60m-21-28 8 8-8 8m-18 4-8 8 8 8M38 41h28M38 58h28m98-17h28m-28 17h28"/>
+            </svg>
+          </div>
           <div class="gameTileBody">
             <h2>Monsters Versus</h2>
-            <p class="gameTileKicker">Friendly games · Averages tracked</p>
+            <p class="gameTileKicker">Online matches · Averages tracked</p>
             <div class="gameTileStats" id="molGameStats">
               <span>👥 <strong id="molGamePlayers">-</strong></span>
             </div>
@@ -114,7 +123,7 @@
         </a>
 
         <a href="tournament.html" class="gameTile gameTileTournament">
-          <div class="gameTileImage tournamentTileArt" aria-hidden="true">
+          <div class="gameTileImage gameDiagramArt" aria-hidden="true">
             <svg viewBox="0 0 230 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
               <path d="M10 12h32v23h35m-67 23h32V35m-32 30h32v23h35m-67 8h32v-8M77 35v53m0-26h34M220 12h-32v23h-35m67 23h-32V35m32 30h-32v23h-35m67 8h-32v-8m-35-53v53m0-26h-34"/>
               <circle cx="115" cy="62" r="9"/>
@@ -129,11 +138,15 @@
         </a>
 
         <a href="dart-scorer.html?mode=casual&v=20260602" class="gameTile gameTileCasual">
-          <div class="gameTileImage" style="background-image:url('graphics/casual-scorer-card-art.png')"></div>
+          <div class="gameTileImage gameDiagramArt" aria-hidden="true">
+            <svg viewBox="0 0 230 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="92" y="11" width="46" height="78" rx="8"/><path d="M102 24h26v15h-26zM103 50h4m6 0h4m6 0h4m-24 10h4m6 0h4m6 0h4m-24 10h4m6 0h4m6 0h4M30 50h45m80 0h45"/><circle cx="30" cy="50" r="5"/><circle cx="200" cy="50" r="5"/>
+            </svg>
+          </div>
           <div class="gameTileBody">
             <h2>Casual Dart Scorer</h2>
-            <p class="gameTileKicker">Casual darts • Score tracker</p>
-            <p>Local-only darts scorer for casual games.</p>
+            <p class="gameTileKicker">Online scorecard · In-person play</p>
+            <p>Keep score for both players on one device.</p>
           </div>
           <span class="gameTileAction">Open →</span>
         </a>
@@ -161,7 +174,7 @@
   <script src="scripts/profile.js?v=20261111-tournament-scoring"></script>
   <script type="module" defer src="scripts/firebase-live.js"></script>
   <script defer src="scripts/monster-bot-data.js?v=20261027-trophy-backfill"></script>
-  <script defer src="scripts/games.js?v=20261117-play-cards"></script>
+  <script defer src="scripts/games.js?v=20261117-play-diagrams"></script>
 
   <script>
     function toggleSidebar() {
