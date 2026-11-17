@@ -9,7 +9,8 @@ const lobbyUrl = tournamentUrl();
 const back = $("tournamentBack");
 if (id) {
   back.href = lobbyUrl;
-  back.textContent = "← Back to lobby";
+  back.setAttribute("aria-label", "Back to lobby");
+  back.title = "Back to lobby";
 }
 const deleteButton = $("tournamentDelete");
 const rulesButton = $("tournamentEditRules");
@@ -324,6 +325,7 @@ const tabIcons = {
 };
 let selectedTab = params.get("tab") === "mine" ? "fixtures" : params.get("tab");
 let selectedMatches = "fixtures";
+let matchScope = "all";
 let photos = {};
 let photoRequest;
 let openRosterId;
@@ -355,6 +357,22 @@ function avatar(uid, name) {
 
 function findTournament(tournamentId, isTest) {
   return id ? current : (isTest ? testLobby : lobby).find(tournament => tournament.id === tournamentId);
+}
+
+function remainingPlayers(view, total) {
+  if (!view) return { main: total };
+  const survivors = (rounds, entrants) => entrants - rounds.flat().filter(match => match.result).length;
+  if (!view.groups.length) return { main: `${survivors(view.rounds, total)}/${total}` };
+  if (!view.rounds.length) {
+    const remaining = view.groups.reduce((sum, group) =>
+      sum + (group.matches.every(match => match.result) ? 1 : group.rows.length), 0);
+    return { main: `${remaining}/${total}` };
+  }
+  if (!view.groupsDone) return { main: `${total}/${total}` };
+  const main = `${survivors(view.rounds, view.qualified.length)}/${total}`;
+  const plateTotal = total - view.qualified.length;
+  const plate = view.plateRounds.length ? `${survivors(view.plateRounds, plateTotal)}/${plateTotal}` : null;
+  return { main, plate };
 }
 
 function rosterStatuses(view) {
@@ -637,12 +655,6 @@ function renderDraw(tournament, view) {
   const entrant = hasJoined(tournament);
   const isYou = uid => entrant && user.uid === uid;
   const myFixtures = entrant ? fixtures.filter(({ match }) => match.a === user.uid || match.b === user.uid) : [];
-  const myUpcoming = myFixtures.filter(({ match }) => !match.result);
-  const won = entrant && (view.winners.includes(user.uid) || view.plateWinner === user.uid);
-  const out = entrant && !won && (view.complete ||
-    (qualified.size > 0 && !qualified.has(user.uid) && !view.plateRounds.length) ||
-    myFixtures.some(({ match }) => match.roundSize && match.result && match.winner !== user.uid));
-
   function fixtureStatus({ match, available }) {
     if (match.result) return "complete";
     const session = tournament.matchSessions?.[match.id];
@@ -659,7 +671,7 @@ function renderDraw(tournament, view) {
   }
 
   const queuePositions = new Map();
-  if (myUpcoming.length) {
+  if (entrant) {
     const boardQueues = new Map();
     for (const fixture of fixtures) {
       if (!fixture.board || fixtureStatus(fixture) !== "queued") continue;
@@ -718,10 +730,12 @@ function renderDraw(tournament, view) {
     const format = result ? result.format : matchSettings(tournament.settings, match);
     const formatLabel = format ? `${format.gameType === "bestOf" ? "Best of" : "First to"} ${Number(format.legsCount)}` : "";
     const actions = scoreLinks(match);
+    const queuePosition = matchScope === "mine" ? queuePositions.get(match.id) : null;
     const details = [formatLabel, result?.winnerIndex === -1 ? "Draw" : ""].filter(Boolean).join(" · ");
     return `<article class="tournamentFixture" data-fixture-status="${status}">
       <div class="tournamentFixtureMeta"><div class="tournamentFixtureStage"><strong>${escape(stage)}</strong>
-        ${details ? `<span>${details}</span>` : ""}</div>
+        ${details ? `<span>${details}</span>` : ""}
+        ${queuePosition ? `<span>Queue position ${queuePosition}</span>` : ""}</div>
         ${statusPill(status, board)}
       </div>
       ${matchCard(match)}
@@ -746,8 +760,7 @@ function renderDraw(tournament, view) {
     const rounds = plate ? view.plateRounds : view.rounds;
     const mainEntrants = tournament.settings.qualifiers ?? view.players.length;
     const entrantTotal = plate ? view.players.length - mainEntrants : mainEntrants;
-    panel = `<h2>${plate ? "Plate bracket" : "Main knockout bracket"}</h2>
-      ${view.plateRounds.length ? `<div class="tournamentTabs tournamentBracketSwitch" role="group" aria-label="Select bracket">
+    panel = `${view.plateRounds.length ? `<div class="tournamentTabs tournamentBracketSwitch" role="group" aria-label="Select bracket">
         <button type="button" data-bracket="main" aria-pressed="${!plate}"><svg viewBox="0 0 24 24" aria-hidden="true">${tabIcons.bracket}</svg><span>Main tournament</span></button>
         <button type="button" data-bracket="plate" aria-pressed="${plate}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg><span>Plate</span></button>
       </div>` : ""}
@@ -759,10 +772,10 @@ function renderDraw(tournament, view) {
     const showPlate = advancing.size > 0 && hasPlate;
     const mainPlaces = tournament.settings.qualifiers;
     const path = uid => advancing.has(uid) ? "Main" : showPlate ? "Plate" : "";
-    panel = `<div class="tournamentSectionHeading"><h2>Group stage</h2>
-      <button type="button" class="tournamentEntryButton tournamentInfo" data-group-info aria-haspopup="dialog" aria-label="Group qualification rules">i</button></div>
+    panel = `<div class="tournamentSectionHeading">
       ${view.rounds.length ? `<p class="tournamentQualificationCounts"><span class="tournamentProgressMain">${Number(mainPlaces)} to Main</span>
         <span class="tournamentProgressPlate">${hasPlate ? view.players.length - mainPlaces : 0} to Plate</span></p>` : ""}
+      <button type="button" class="tournamentEntryButton tournamentInfo" data-group-info aria-haspopup="dialog" aria-label="Group qualification rules">i</button></div>
       ${projected.size ? `<p class="tournamentHint">${showPlate ? "Main and Plate positions are" : "Main tournament positions are"} provisional until the group stage finishes.</p>` : ""}
       <div class="tournamentGroups">${view.groups.map(group => {
         const draws = matchSettings(tournament.settings, group.matches[0] ?? { id: "g" }).allowDraw ||
@@ -786,17 +799,20 @@ function renderDraw(tournament, view) {
       }).join("")}</div>`;
   } else if (tab === "fixtures") {
     const showResults = selectedMatches === "results";
-    const visibleFixtures = fixtures.filter(fixture => Boolean(fixture.match.result) === showResults);
-    panel = `<h2>Matches</h2>
+    const visibleFixtures = (matchScope === "mine" ? myFixtures : fixtures).filter(fixture => Boolean(fixture.match.result) === showResults);
+    panel = `<div class="tournamentMatchFilters">
       <div class="tournamentTabs tournamentBracketSwitch" role="group" aria-label="Match view">
         <button type="button" data-matches="fixtures" aria-pressed="${!showResults}"><svg viewBox="0 0 24 24" aria-hidden="true">${tabIcons.fixtures}</svg><span>Fixtures</span></button>
         <button type="button" data-matches="results" aria-pressed="${showResults}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="m8 12 2 2 5-5"/></svg><span>Results</span></button>
       </div>
+      <div class="tournamentTabs tournamentBracketSwitch" role="group" aria-label="Which matches to show">
+        <button type="button" data-match-scope="all" aria-pressed="${matchScope === "all"}">All</button>
+        <button type="button" data-match-scope="mine" aria-pressed="${matchScope === "mine"}">My matches</button>
+      </div></div>
       ${visibleFixtures.length ? `<div class="tournamentFixtures">${visibleFixtures.map(fixtureCard).join("")}</div>`
-        : `<p>${showResults ? "No results yet." : "No upcoming fixtures."}</p>`}`;
+        : `<p>${matchScope === "mine" && !user ? "Sign in to see your matches." : showResults ? "No results yet." : "No upcoming fixtures."}</p>`}`;
   } else {
-    panel = `<h2>Player statistics</h2>
-      ${table("Tournament statistics", ["Player", "P", "W", ...statHeaders],
+    panel = `${table("Tournament statistics", ["Player", "P", "W", ...statHeaders],
         [...view.players].sort((a, b) => tournament.entries[a.id].localeCompare(tournament.entries[b.id]))
           .map(row => [name(row.id), row.played, row.wins, ...statValues(row)]))}`;
   }
@@ -805,28 +821,6 @@ function renderDraw(tournament, view) {
     ${waitingForStart ? `<section class="tournamentPanel tournamentCallup"><div>
       <p class="tournamentKicker">Online tournament</p><strong>Starts in <span data-start-countdown>${Number.isFinite(remaining) ? countdownLabel(remaining) : "…"}</span></strong>
     </div></section>` : ""}
-    ${entrant ? `<section class="tournamentPlayerSummary" aria-label="Your tournament status">
-      <div class="tournamentPlayerSummaryHeading">${avatar(user.uid, tournament.entries[user.uid])}<strong>${name(user.uid)}</strong>
-        <span class="tournamentPlayerState${out ? " tournamentPlayerOut" : ""}">${won ? "Winner" : out ? "Out" : "Alive"}</span></div>
-      ${myUpcoming.length ? `<h2>My upcoming matches</h2>
-        <ol class="tournamentPersonalFixtures">${myUpcoming.map((fixture, index) => {
-          const { match, board, stage } = fixture;
-          const opponent = match.a === user.uid ? match.b : match.a;
-          const status = fixtureStatus(fixture);
-          const position = queuePositions.get(match.id);
-          const actions = scoreLinks(match);
-          return `<li class="${index === 0 ? "tournamentNextFixture" : ""}">
-            <div class="tournamentPersonalOpponent">${avatar(opponent, tournament.entries[opponent])}
-              <div>${index === 0 ? `<span class="tournamentPersonalLabel">${status === "ready" ? "You’re up" : status === "in-play" ? "Current match" : "Next match"}</span>` : ""}
-              <strong>${opponent ? `vs ${name(opponent)}` : "Opponent TBD"}</strong>
-              <p>${escape(stage)}</p></div></div>
-            <div class="tournamentPersonalPosition">${statusPill(status, board)}
-              ${position ? `<span>Queue position ${position}</span>` : ""}</div>
-            ${actions ? `<div class="tournamentScoringLinks">${actions}</div>` : ""}
-          </li>`;
-        }).join("")}</ol>`
-        : `<p>${won || out ? "No remaining matches" : "Awaiting your next fixture"}</p>`}
-    </section>` : ""}
     ${inPerson && user?.status === "Active" && !entrant && !view.complete ? `<div class="tournamentMarkerAction">
       <button type="button" class="tournamentEntryButton tournamentEntryView" data-action="${tournament.markers?.[user.uid] ? "leave-marker" : "marker"}">
         ${tournament.markers?.[user.uid] ? "Leave marker role" : "Join as marker"}
@@ -850,6 +844,7 @@ function render() {
   clearTimeout(activityExpiry);
   currentView = null;
   winnerPanel.hidden = true;
+  $("tournamentPlayerTotals").hidden = true;
   const manage = canManage(user);
   deleteButton.hidden = !id || !canDeleteTournament(current, user);
   rulesButton.hidden = !id || !manage || !current || current.status === "complete";
@@ -882,7 +877,6 @@ function render() {
   document.title = `Oche Ness Monsters | ${current.title}`;
   $("tournamentTitle").textContent = current.title;
   const count = Object.keys(current.entries).length;
-  playerCount.textContent = `${count} ${count === 1 ? "player" : "players"}`;
   playerCount.setAttribute("aria-label", `View ${count} ${count === 1 ? "player" : "players"}`);
   const status = simulatedResults ? "Simulation preview" : current.status === "complete" ? "Completed" : statusLabels[current.status];
   $("tournamentIntro").textContent = `${testMode ? "Private test · " : ""}${status} · ${settingsLabel(current.settings)}`;
@@ -890,6 +884,10 @@ function render() {
     ? { ...current, results: { ...current.results, ...simulatedResults } }
     : current;
   currentView = current.status === "open" ? null : tournamentView(tournament);
+  const totals = $("tournamentPlayerTotals");
+  const { main, plate } = remainingPlayers(currentView, count);
+  totals.innerHTML = `<span>Players <strong>${main}</strong></span>${plate ? `<span>Plate players <strong>${plate}</strong></span>` : ""}`;
+  totals.hidden = false;
   if (current.status === "live" && !simulatedResults) {
     const now = Date.now();
     const expiry = Math.min(...Object.entries(current.activeMatches ?? {})
@@ -1000,6 +998,13 @@ content.addEventListener("click", event => {
         <p>Lighter green rows mark main-tournament places.${settings.plate ? " The dotted line separates those places from the Plate." : ""} Positions shown during play are provisional.</p>`
       : "<p>Final group standings determine the group winners.</p>"}`;
     dialog.showModal();
+    return;
+  }
+  const scope = event.target.closest("button[data-match-scope]");
+  if (scope) {
+    matchScope = scope.dataset.matchScope;
+    render();
+    content.querySelector('button[data-match-scope][aria-pressed="true"]')?.focus({ preventScroll: true });
     return;
   }
   const matches = event.target.closest("button[data-matches]");
