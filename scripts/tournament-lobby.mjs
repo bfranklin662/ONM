@@ -297,7 +297,7 @@ function renderRoster(tournament) {
 }
 
 function table(label, headers, rows, compact = false, rowClasses = []) {
-  return `<div class="tournamentTableWrap${compact ? " tournamentStandings" : ""}" ${compact ? "" : 'tabindex="0" role="region"'} aria-label="${label}">
+  return `<div class="tournamentTableWrap${compact ? " tournamentStandings" : " tournamentStatsTable"}" ${compact ? "" : 'tabindex="0" role="region"'} aria-label="${label}">
     <table><thead><tr>${headers.map(heading => `<th scope="col">${heading}</th>`).join("")}</tr></thead>
     <tbody>${rows.map(([name, ...values], index) => `<tr${rowClasses[index] ? ` class="${rowClasses[index]}"` : ""}><th scope="row">${name}</th>${values.map(value => `<td>${escape(value)}</td>`).join("")}</tr>`).join("")}</tbody>
     </table></div>`;
@@ -325,7 +325,6 @@ const tabIcons = {
 };
 let selectedTab = params.get("tab") === "mine" ? "fixtures" : params.get("tab");
 let selectedMatches = "fixtures";
-let matchScope = "all";
 let photos = {};
 let photoRequest;
 let openRosterId;
@@ -655,6 +654,12 @@ function renderDraw(tournament, view) {
   const entrant = hasJoined(tournament);
   const isYou = uid => entrant && user.uid === uid;
   const myFixtures = entrant ? fixtures.filter(({ match }) => match.a === user.uid || match.b === user.uid) : [];
+  const myUpcoming = myFixtures.filter(({ match }) => !match.result);
+  const won = entrant && (view.winners.includes(user.uid) || view.plateWinner === user.uid);
+  const out = entrant && !won && (view.complete ||
+    (qualified.size > 0 && !qualified.has(user.uid) && !view.plateRounds.length) ||
+    myFixtures.some(({ match }) => match.roundSize && match.result && match.winner !== user.uid));
+
   function fixtureStatus({ match, available }) {
     if (match.result) return "complete";
     const session = tournament.matchSessions?.[match.id];
@@ -730,12 +735,10 @@ function renderDraw(tournament, view) {
     const format = result ? result.format : matchSettings(tournament.settings, match);
     const formatLabel = format ? `${format.gameType === "bestOf" ? "Best of" : "First to"} ${Number(format.legsCount)}` : "";
     const actions = scoreLinks(match);
-    const queuePosition = matchScope === "mine" ? queuePositions.get(match.id) : null;
     const details = [formatLabel, result?.winnerIndex === -1 ? "Draw" : ""].filter(Boolean).join(" · ");
     return `<article class="tournamentFixture" data-fixture-status="${status}">
       <div class="tournamentFixtureMeta"><div class="tournamentFixtureStage"><strong>${escape(stage)}</strong>
-        ${details ? `<span>${details}</span>` : ""}
-        ${queuePosition ? `<span>Queue position ${queuePosition}</span>` : ""}</div>
+        ${details ? `<span>${details}</span>` : ""}</div>
         ${statusPill(status, board)}
       </div>
       ${matchCard(match)}
@@ -799,18 +802,15 @@ function renderDraw(tournament, view) {
       }).join("")}</div>`;
   } else if (tab === "fixtures") {
     const showResults = selectedMatches === "results";
-    const visibleFixtures = (matchScope === "mine" ? myFixtures : fixtures).filter(fixture => Boolean(fixture.match.result) === showResults);
+    const visibleFixtures = fixtures.filter(fixture => Boolean(fixture.match.result) === showResults);
     panel = `<div class="tournamentMatchFilters">
       <div class="tournamentTabs tournamentBracketSwitch" role="group" aria-label="Match view">
         <button type="button" data-matches="fixtures" aria-pressed="${!showResults}"><svg viewBox="0 0 24 24" aria-hidden="true">${tabIcons.fixtures}</svg><span>Fixtures</span></button>
         <button type="button" data-matches="results" aria-pressed="${showResults}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="m8 12 2 2 5-5"/></svg><span>Results</span></button>
       </div>
-      <div class="tournamentTabs tournamentBracketSwitch" role="group" aria-label="Which matches to show">
-        <button type="button" data-match-scope="all" aria-pressed="${matchScope === "all"}">All</button>
-        <button type="button" data-match-scope="mine" aria-pressed="${matchScope === "mine"}">My matches</button>
-      </div></div>
+      </div>
       ${visibleFixtures.length ? `<div class="tournamentFixtures">${visibleFixtures.map(fixtureCard).join("")}</div>`
-        : `<p>${matchScope === "mine" && !user ? "Sign in to see your matches." : showResults ? "No results yet." : "No upcoming fixtures."}</p>`}`;
+        : `<p>${showResults ? "No results yet." : "No upcoming fixtures."}</p>`}`;
   } else {
     panel = `${table("Tournament statistics", ["Player", "P", "W", ...statHeaders],
         [...view.players].sort((a, b) => tournament.entries[a.id].localeCompare(tournament.entries[b.id]))
@@ -821,6 +821,33 @@ function renderDraw(tournament, view) {
     ${waitingForStart ? `<section class="tournamentPanel tournamentCallup"><div>
       <p class="tournamentKicker">Online tournament</p><strong>Starts in <span data-start-countdown>${Number.isFinite(remaining) ? countdownLabel(remaining) : "…"}</span></strong>
     </div></section>` : ""}
+    ${entrant ? `<section class="tournamentPlayerSummary" aria-label="Your tournament status">
+      <div class="tournamentPlayerSummaryHeading">${avatar(user.uid, tournament.entries[user.uid])}<strong>${name(user.uid)}</strong>
+        <span class="tournamentPlayerState${out ? " tournamentPlayerOut" : ""}">${won ? "Winner" : out ? "Out" : "Alive"}</span></div>
+      ${myUpcoming.length ? `<h2>My upcoming matches</h2>
+        <ol class="tournamentPersonalFixtures">${myUpcoming.map((fixture, index) => {
+          const { match, board, stage } = fixture;
+          const opponent = match.a === user.uid ? match.b : match.a;
+          const status = fixtureStatus(fixture);
+          const position = queuePositions.get(match.id);
+          const actions = scoreLinks(match);
+          return `<li class="${index === 0 ? "tournamentNextFixture" : ""}">
+            <div class="tournamentPersonalOpponent">${avatar(opponent, tournament.entries[opponent])}
+              <div>${index === 0 ? `<span class="tournamentPersonalLabel">${status === "ready" ? "You’re up" : status === "in-play" ? "Current match" : "Next match"}</span>` : ""}
+              <strong>${opponent ? `vs ${name(opponent)}` : "Opponent TBD"}</strong>
+              <p>${escape(stage)}</p></div></div>
+            <div class="tournamentPersonalPosition">${statusPill(status, board)}
+              ${position ? `<span>Queue position ${position}</span>` : ""}</div>
+            ${actions ? `<div class="tournamentScoringLinks">${actions}</div>` : ""}
+          </li>`;
+        }).join("")}</ol>`
+        : `<p>${won || out ? "No remaining matches" : "Awaiting your next fixture"}</p>`}
+    </section>` : ""}
+    ${testMode && manage && (!view.complete || simulatedResults) ? `<div class="tournamentPanel tournamentSimulation">
+      ${!view.complete ? '<button type="button" class="tournamentEntryButton tournamentEntryView" data-simulation="next">Simulate next match</button><button type="button" class="tournamentEntryButton" data-simulation="run">Simulate remaining matches</button>' : ""}
+      ${simulatedResults ? '<button type="button" class="tournamentEntryButton" data-simulation="undo">Clear last result</button><button type="button" class="tournamentEntryButton" data-simulation="clear">Clear simulated results</button>' : ""}
+      <p class="tournamentHint">${simulatedResults ? `${Object.keys(simulatedResults).length} simulated in this preview.` : "Preview results for every entrant, including yourself. Nothing is saved."}</p>
+    </div>` : ""}
     ${inPerson && user?.status === "Active" && !entrant && !view.complete ? `<div class="tournamentMarkerAction">
       <button type="button" class="tournamentEntryButton tournamentEntryView" data-action="${tournament.markers?.[user.uid] ? "leave-marker" : "marker"}">
         ${tournament.markers?.[user.uid] ? "Leave marker role" : "Join as marker"}
@@ -830,12 +857,7 @@ function renderDraw(tournament, view) {
         aria-selected="${tab === key}" aria-controls="tournamentView" tabindex="${tab === key ? 0 : -1}">
         <svg viewBox="0 0 24 24" aria-hidden="true">${tabIcons[key]}</svg><span>${tabLabels[key]}</span></button>`).join("")}
     </div>
-    <section id="tournamentView" class="tournamentPanel" role="tabpanel" aria-labelledby="tournament-tab-${tab}" tabindex="0">${panel}</section>
-    ${testMode && manage && (!view.complete || simulatedResults) ? `<div class="tournamentPanel tournamentSimulation">
-      ${!view.complete ? '<button type="button" class="tournamentEntryButton tournamentEntryView" data-simulation="next">Simulate next match</button><button type="button" class="tournamentEntryButton" data-simulation="run">Simulate remaining matches</button>' : ""}
-      ${simulatedResults ? '<button type="button" class="tournamentEntryButton" data-simulation="undo">Clear last result</button><button type="button" class="tournamentEntryButton" data-simulation="clear">Clear simulated results</button>' : ""}
-      <p class="tournamentHint">${simulatedResults ? `${Object.keys(simulatedResults).length} simulated in this preview.` : "Preview results for every entrant, including yourself. Nothing is saved."}</p>
-    </div>` : ""}`;
+    <section id="tournamentView" class="tournamentPanel" role="tabpanel" aria-labelledby="tournament-tab-${tab}" tabindex="0">${panel}</section>`;
 }
 
 let activityExpiry;
@@ -998,13 +1020,6 @@ content.addEventListener("click", event => {
         <p>Lighter green rows mark main-tournament places.${settings.plate ? " The dotted line separates those places from the Plate." : ""} Positions shown during play are provisional.</p>`
       : "<p>Final group standings determine the group winners.</p>"}`;
     dialog.showModal();
-    return;
-  }
-  const scope = event.target.closest("button[data-match-scope]");
-  if (scope) {
-    matchScope = scope.dataset.matchScope;
-    render();
-    content.querySelector('button[data-match-scope][aria-pressed="true"]')?.focus({ preventScroll: true });
     return;
   }
   const matches = event.target.closest("button[data-matches]");

@@ -76,7 +76,7 @@ export async function watchTournamentStarts(firebase) {
     if (!document.querySelector('link[href*="styles/tournament.css"]')) {
       const style = document.createElement("link");
       style.rel = "stylesheet";
-      style.href = new URL("../styles/tournament.css?v=20261110-compact-header", import.meta.url);
+      style.href = new URL("../styles/tournament.css?v=20261117-tournament-polish", import.meta.url);
       style.addEventListener("load", nextNotification, { once: true });
       style.addEventListener("error", nextNotification, { once: true });
       document.head.append(style);
@@ -86,12 +86,12 @@ export async function watchTournamentStarts(firebase) {
     dialog = document.createElement("dialog");
     dialog.className = "tournamentDialog tournamentNoticeDialog tournamentStartDialog";
     dialog.setAttribute("aria-labelledby", "tournamentStartTitle");
-    dialog.innerHTML = `<p class="tournamentKicker">🎯 Tournament</p>
+    dialog.innerHTML = `<div class="tournamentDialogHeader"><p class="tournamentKicker">🎯 Tournament</p>
+      <form method="dialog"><button type="submit" class="tournamentDialogClose" aria-label="Close">✕</button></form></div>
       <h2 id="tournamentStartTitle"></h2>
       <p class="tournamentNoticeName"></p>
       <p class="tournamentNoticeInstructions"></p>
       <div class="tournamentNoticeActions">
-        <form method="dialog"><button type="submit" class="tournamentEntryButton">Dismiss</button></form>
         <a class="tournamentEntryButton tournamentEntryView" autofocus>Open Matches <span aria-hidden="true">→</span></a>
       </div>`;
     const activeDialog = dialog;
