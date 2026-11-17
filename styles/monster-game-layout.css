@@ -28,4 +28,17 @@ html{background:#0a1712}body{background:radial-gradient(ellipse at top right,#17
   overscroll-behavior-y: auto;
 }
 .monsterBotPage .ladderScrollFrame { overflow: clip; }
-.monsterBotPage { overflow-x: clip; overflow-y: visible; }
+.monsterBotDocument {
+  overflow-x: clip;
+  scroll-padding-top: var(--header-h);
+}
+.monsterBotPage {
+  padding-top: 0;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+.monsterBotPage > .site-header {
+  position: sticky;
+  top: 0;
+  background: #0c251b;
+}
