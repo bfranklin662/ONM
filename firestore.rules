@@ -289,8 +289,9 @@ service cloud.firestore {
       allow read: if activeMember();
       allow create: if activeMember() &&
         request.resource.data.submittedBy == request.auth.uid;
-      allow update: if activeMember() &&
-        resource.data.submittedBy == request.auth.uid;
+      allow update: if (activeMember() && resource.data.submittedBy == request.auth.uid) ||
+        (admin() && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["playerOneName", "playerTwoName"]));
       allow delete: if admin();
     }
 

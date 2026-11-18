@@ -535,7 +535,7 @@
     </div>
     <div class="adminGrid">
       <label>Full name<input name="fullName" maxlength="120" value="${escapeHtml(player.fullName || player.publicName)}" required></label>
-      <label>Shortened name<input value="${escapeHtml(player.publicName)}" disabled><span class="adminFieldHelp">Used in historical match results.</span></label>
+      <label>Shortened name<input name="publicName" maxlength="80" value="${escapeHtml(player.publicName)}" required><span class="adminFieldHelp">Corrections also update previous match results.</span></label>
       <label>Nickname<input name="nickname" maxlength="80" value="${escapeHtml(player.nickname)}"></label>
       <label>Club role<input name="role" maxlength="50" value="${escapeHtml(player.role)}"></label>
       <label>Highest checkout<input name="highestCheckout" type="number" min="0" max="170" value="${escapeHtml(player.highestCheckout)}"></label>
@@ -677,6 +677,7 @@
     }
     const profile = {
       fullName: clean(data.get("fullName")),
+      publicName: clean(data.get("publicName")),
       nickname: clean(data.get("nickname")),
       photoUrl,
       bio: clean(data.get("bio")),
@@ -695,6 +696,11 @@
           ? [...new Set([...(item.registrationPaidSeasons || []), "26-27"])]
           : (item.registrationPaidSeasons || []).filter(season => season !== "26-27"), gooch: profile.gooch ? "yes" : "" }
       : item);
+    if (profile.publicName !== player.publicName) {
+      state.results = await loadCollection("results");
+      renderResults();
+      renderFines();
+    }
     renderPlayers();
   }
 

@@ -11,6 +11,7 @@
     }
   } catch { /* Standalone and cross-origin pages use their own client below. */ }
 
+  const playerNameUpdatesUrl = new URL("./player-name-updates.mjs?v=20261118-name-corrections", document.currentScript.src);
   const VERSION = "10.12.5";
   const BASE = `https://www.gstatic.com/firebasejs/${VERSION}`;
   // Keep the live site on Apps Script until Firebase services and data have
@@ -356,6 +357,9 @@
     } catch { }
     const byName = new Map(liveProfiles.map(profile => [profile.publicName, profile]));
     Object.entries(legacyProfiles).forEach(([publicName, legacy]) => {
+      const renamed = liveProfiles.find(profile => profile.publicName !== publicName &&
+        (profile.aliases || []).some(alias => normaliseName(alias) === normaliseName(publicName)));
+      if (renamed) return;
       const live = byName.get(publicName) || {};
       byName.set(publicName, {
         ...legacy,
@@ -383,6 +387,24 @@
     const profile = payload.profile || {};
     const changesRegistration = Object.prototype.hasOwnProperty.call(profile, "registrationPaid");
     const changesName = Object.prototype.hasOwnProperty.call(profile, "fullName");
+    const changesPublicName = Object.prototype.hasOwnProperty.call(profile, "publicName");
+    let previousNames = [];
+    if (changesPublicName) {
+      const account = await loadOwnUser();
+      if (!["admin", "owner"].includes(account?.role) || account.status !== "Active") throw new Error("Only administrators can edit player names.");
+      const name = clean(profile.publicName);
+      if (!name || name.length > 80) throw new Error("Enter a shortened name of up to 80 characters.");
+      const { normalisePlayerName } = await import(playerNameUpdatesUrl);
+      const roster = await firestoreSdk.getDocs(firestoreSdk.collection(db, "players"));
+      const player = roster.docs.find(item => item.id === key);
+      if (!player) throw new Error("Player not found.");
+      if (roster.docs.some(item => item.id !== key &&
+          [item.data().publicName, ...(item.data().aliases || [])].some(value =>
+            normalisePlayerName(value) === normalisePlayerName(name)))) {
+        throw new Error("That shortened name belongs to another player.");
+      }
+      previousNames = [...new Set([player.data().publicName, ...(player.data().aliases || [])].filter(Boolean))];
+    }
     if (changesName) {
       const account = await loadOwnUser();
       if (!["admin", "owner"].includes(account?.role) || account.status !== "Active") throw new Error("Only administrators can edit player names.");
@@ -406,6 +428,10 @@
       profileVisible: profile.profileVisible !== false,
       updatedAt: firestoreSdk.serverTimestamp()
     };
+    if (changesPublicName) {
+      publicData.publicName = clean(profile.publicName);
+      publicData.aliases = firestoreSdk.arrayUnion(...previousNames);
+    }
     if (changesRegistration) {
       publicData.registrationPaidSeasons = profile.registrationPaid
         ? firestoreSdk.arrayUnion("26-27") : firestoreSdk.arrayRemove("26-27");
@@ -417,7 +443,45 @@
       ...(changesName ? { fullName: clean(profile.fullName) } : {})
     }, { merge: true });
     await batch.commit();
+    if (changesPublicName) {
+      try {
+        await correctHistoricalPlayerNames(key, previousNames, clean(profile.publicName));
+      } catch (error) {
+        throw new Error("The name was saved, but updating previous results did not finish. Save this player again to retry. " + (error.message || ""));
+      }
+    }
     return { success: true, profile: publicData };
+  }
+
+  async function correctHistoricalPlayerNames(key, names, publicName) {
+    const { db, firestoreSdk: sdk } = await ready;
+    const { playerResultNamePatch } = await import(playerNameUpdatesUrl);
+    const [results, darts, accounts] = await Promise.all([
+      sdk.getDocs(sdk.collection(db, "results")),
+      sdk.getDocs(sdk.collection(db, "dartMatches")),
+      sdk.getDocs(sdk.query(sdk.collection(db, "users"), sdk.where("linkedPlayerKey", "==", key)))
+    ]);
+    const documents = [...results.docs, ...darts.docs].filter(doc =>
+      Object.keys(playerResultNamePatch(doc.data(), names, publicName, key)).length);
+    // Re-read each record inside the transaction so another admin's edits are preserved.
+    for (let offset = 0; offset < documents.length; offset += 400) {
+      await sdk.runTransaction(db, async transaction => {
+        const profile = await transaction.get(sdk.doc(db, "players", key));
+        if (profile.data()?.publicName !== publicName) throw new Error("The player's name changed again. Reload and save the latest correction.");
+        const records = await Promise.all(documents.slice(offset, offset + 400).map(doc => transaction.get(doc.ref)));
+        for (const doc of records) {
+          if (!doc.exists()) continue;
+          const patch = playerResultNamePatch(doc.data(), names, publicName, key);
+          if (Object.keys(patch).length) transaction.update(doc.ref, patch);
+        }
+      });
+    }
+    for (const account of accounts.docs) {
+      await sdk.runTransaction(db, async transaction => {
+        const saved = await transaction.get(account.ref);
+        if (saved.data()?.linkedPlayerKey === key) transaction.update(account.ref, { linkedPlayerName: publicName });
+      });
+    }
   }
 
   async function getCollectionRows(collectionName, fieldName, season = "") {
