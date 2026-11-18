@@ -33,7 +33,11 @@ html{background:#0a1712}body{background:radial-gradient(ellipse at top right,#17
   overscroll-behavior-y: none;
   scroll-padding-top: var(--header-h);
 }
-.monsterGamePage {
+html.monsterGameDocument body.monsterGamePage {
+  margin: 0;
+  height: auto;
+  min-height: 100dvh;
+  display: block;
   padding-top: 0;
   overflow-x: clip;
   overflow-y: visible;
