@@ -2347,3 +2347,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   gap: 10px;
   align-items: center;
 }
+
+
+.sameDayFixtures { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); gap: 7px; margin-bottom: 10px; }
+.sameDayFixtures[hidden] { display: none; }
+.sameDayFixtures button { display: grid; gap: 4px; min-height: 54px; padding: 9px 11px; border: 1px solid #466b59; border-radius: 9px; background: #102b22; color: #c6dbce; text-align: left; font: inherit; cursor: pointer; }
+.sameDayFixtures button strong { color: #ffdc3d; font-size: .85rem; }
+.sameDayFixtures button span { font-size: .75rem; line-height: 1.3; }
+.sameDayFixtures button[aria-pressed="true"] { border-color: #8fdec2; background: #214838; }
+.sameDayFixtures button:focus-visible { outline: 2px solid #ffdc3d; outline-offset: 2px; }
+#matchFixture { padding-right: 32px; }

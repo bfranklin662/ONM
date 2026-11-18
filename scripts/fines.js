@@ -478,6 +478,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const expectedAway = fixture.homeAway === "Away" ? onmTeam : fixture.opponent;
 
     return (Array.isArray(results) ? results : []).some(result =>
+      normaliseMatchTeam(result.Competition || result.league || result.League) === normaliseMatchTeam(fixture.league) &&
+      /^(yes|true|1)$/i.test(String(result["Cup?"] ?? result.cup ?? "")) === Boolean(fixture.cup) &&
       resultDateValue(result.Date || result.date) === fixture.dateValue &&
       normaliseMatchTeam(result.HomeTeam || result.homeTeam || result.Home) === normaliseMatchTeam(expectedHome) &&
       normaliseMatchTeam(result.AwayTeam || result.awayTeam || result.Away) === normaliseMatchTeam(expectedAway)
@@ -567,11 +569,15 @@ document.addEventListener("DOMContentLoaded", () => {
       if (resultEl) resultEl.value = "";
     }
 
+    renderSameDayFixtures(fixture);
     updateFixtureSummary(fixture);
     updateResultFromScore();
 
     if (fixtureAutofillStatus) {
-      fixtureAutofillStatus.textContent = "Selected automatically from the 2026/27 fixtures. Change it only if needed.";
+      const count = availableFixtures().filter(item => item.dateValue === fixture.dateValue).length;
+      fixtureAutofillStatus.textContent = count > 1
+        ? `${count} matches on this date. Choose the match you’re submitting above.`
+        : "Use Choose match to switch to another fixture.";
       fixtureAutofillStatus.classList.remove("error");
     }
 
@@ -580,6 +586,27 @@ document.addEventListener("DOMContentLoaded", () => {
       saveGameSnapshot();
     }
   }
+
+  function availableFixtures() {
+    return seasonFixtures.filter(fixture => !submittedFixtureKeys.has(fixture.key));
+  }
+
+  function renderSameDayFixtures(selected) {
+    const picker = document.getElementById("sameDayFixtures");
+    if (!picker) return;
+    const fixtures = availableFixtures().filter(fixture => fixture.dateValue === selected.dateValue);
+    picker.hidden = fixtures.length < 2;
+    picker.innerHTML = fixtures.map(fixture => `<button type="button" data-fixture-key="${escapeHtml(fixture.key)}"
+      aria-pressed="${fixture.key === selected.key}"><strong>${escapeHtml(fixture.league.replace(" League", "") + (fixture.cup ? " Cup" : ""))}</strong>
+      <span>${escapeHtml(fixture.opponent)} · ${fixture.homeAway}</span></button>`).join("");
+  }
+
+  document.getElementById("sameDayFixtures")?.addEventListener("click", event => {
+    const button = event.target.closest("button[data-fixture-key]");
+    if (!button || button.getAttribute("aria-pressed") === "true") return;
+    matchFixture.value = button.dataset.fixtureKey;
+    matchFixture.dispatchEvent(new Event("change"));
+  });
 
   function populateFixtureSelector({ preferredKey = "", storedMatch = resultSubmitData.match, clearScores = false } = {}) {
     if (!matchFixture) return;
@@ -592,6 +619,8 @@ document.addEventListener("DOMContentLoaded", () => {
       matchFixture.innerHTML = '<option value="">No unsubmitted fixtures</option>';
       matchFixture.value = "";
       matchFixture.disabled = true;
+      const picker = document.getElementById("sameDayFixtures");
+      if (picker) { picker.hidden = true; picker.replaceChildren(); }
       if (fixtureAutofillStatus) {
         fixtureAutofillStatus.textContent = "There are no unsubmitted Banks or Trafalgar league or cup fixtures up to today.";
         fixtureAutofillStatus.classList.remove("error");
