@@ -4318,3 +4318,29 @@
     grid-column: auto;
   }
 }
+
+/* Keep view descriptions visible on narrow screens and keyboard focus. */
+.profile-view-btn[data-tooltip] { cursor: pointer; }
+.profile-view-btn[data-tooltip]:is(:hover, :focus)::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 10px);
+  bottom: auto;
+  left: auto;
+  right: 0;
+  transform: none;
+  width: 200px;
+  max-width: calc(100vw - 40px);
+  padding: 8px 10px;
+  border: 1px solid #426a54;
+  border-radius: 8px;
+  background: #10291f;
+  color: #eff8f1;
+  font-size: .75rem;
+  line-height: 1.4;
+  white-space: normal;
+  text-align: left;
+  pointer-events: none;
+  z-index: 100000;
+}
+.profile-view-btn[data-tooltip]:is(:hover, :focus)::before { display: none; }

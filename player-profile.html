@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
   <link rel="stylesheet" href="styles/index.css">
-  <link rel="stylesheet" href="styles/player-profile.css?v=20261014-profile-editor">
+  <link rel="stylesheet" href="styles/player-profile.css?v=20261120-profile-views">
   <link rel="stylesheet" href="styles/players-landing.css">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261028-payment-link">
@@ -174,10 +174,6 @@
                       <div id="playerFormGraph" class="form-dots"></div>
                     </div>
 
-                    <div class="outstanding-fines-card" id="outstandingFinesCard" role="button" tabindex="0">
-                      <div class="outstanding-label">Outstanding fines</div>
-                      <div id="playerOutstandingFines" class="outstanding-value loading-dots">...</div>
-                    </div>
                   </div>
 
                   <div class="medals-title">Medals</div>
@@ -203,12 +199,12 @@
                 </div>
 
                 <div class="stats-title" id="statsTitle">
-                  Player Stats – <span id="statsPlayerName"></span>
+                  Individual performances – <span id="statsPlayerName"></span>
                 </div>
 
                 <div class="profile-view-tabs" aria-label="Profile data view">
-                  <button class="profile-view-btn active" data-profile-view="stats" aria-label="Stats">📊</button>
-                  <button class="profile-view-btn" data-profile-view="appearances" aria-label="Appearances">🧾</button>
+                  <button type="button" class="profile-view-btn" data-profile-view="stats" aria-label="Season stats" aria-pressed="false" data-tooltip="Season stats · Totals and averages by competition">📊</button>
+                  <button type="button" class="profile-view-btn active" data-profile-view="appearances" aria-label="Individual performances" aria-pressed="true" data-tooltip="Individual performances · Match-by-match results and stats">🧾</button>
                 </div>
               </div>
 
@@ -217,7 +213,7 @@
               </div>
 
               <!-- STATS TABLE -->
-              <section class="player-stats-section" id="profileStatsPanel">
+              <section class="player-stats-section" id="profileStatsPanel" hidden>
 
 
                 <div class="player-stats-table">
@@ -244,7 +240,7 @@
               </section>
 
               <!-- APPEARANCES -->
-              <section class="player-appearances" id="profileAppearancesPanel" hidden>
+              <section class="player-appearances" id="profileAppearancesPanel">
                 <div id="playerAppearancesWrapper">
                   <div id="playerAppearances" class="appearances-grid"></div>
                 </div>
@@ -360,7 +356,7 @@
   <script src="scripts/firebase-client.js?v=20261111-tournament-scoring"></script>
   <script src="scripts/season-data.js?v=20261014-admin"></script>
   <script src="scripts/player-data.js?v=20261016-registration"></script>
-  <script src="scripts/player-profile.js?v=20261016-registration"></script>
+  <script src="scripts/player-profile.js?v=20261120-profile-views"></script>
   <script>
     function toggleSidebar() {
       const sidebar = document.getElementById("sidebar");

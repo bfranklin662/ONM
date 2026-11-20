@@ -2,7 +2,7 @@
 let playerName = "";
 let selectedSeason = "all";
 let selectedLeague = "all";
-let selectedProfileView = "stats";
+let selectedProfileView = "appearances";
 let overallTotals = null;
 let playerStatsRows = [];
 
@@ -52,7 +52,7 @@ function updateProfileDataTitle() {
   const title = document.getElementById("statsTitle");
   if (!title) return;
 
-  const viewText = selectedProfileView === "appearances" ? "Appearances" : "Player Stats";
+  const viewText = selectedProfileView === "appearances" ? "Individual performances" : "Season stats";
   const seasonText = selectedSeasonLabel();
   title.textContent = `${viewText}${seasonText ? ` ${seasonText}` : ""} – ${playerName}`;
 }
@@ -66,6 +66,7 @@ function updateProfileDataPanels() {
 
   document.querySelectorAll(".profile-view-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.profileView === selectedProfileView);
+    btn.setAttribute("aria-pressed", String(btn.dataset.profileView === selectedProfileView));
   });
 
   updateProfileDataTitle();
@@ -204,44 +205,6 @@ function makeProfileAccoladesHtml(profile) {
       return `<span class="acc-emoji" data-tooltip="${a.tip}">${a.icon}</span>`;
     })
     .join("");
-}
-
-async function loadOutstandingFines() {
-  const el = document.getElementById("playerOutstandingFines");
-  const card = document.querySelector(".outstanding-fines-card");
-
-  if (!el || !playerName) return;
-
-  // Loading state
-  el.textContent = "";
-  el.classList.add("loading-dots");
-  card?.classList.remove("has-outstanding", "no-outstanding");
-
-  try {
-    const rows = await fetchCSV(SHEETS.appearances["26-27"]);
-    const amount = rows
-      .filter(row => playerAppearsInRow(row, playerName))
-      .reduce((total, row) => total + extractPlayerMatchStatsFromRow(row, playerName).fines, 0);
-
-    el.classList.remove("loading-dots");
-    el.textContent = `£${amount.toFixed(2)}`;
-
-    if (card) {
-      card.classList.toggle("has-outstanding", amount > 0);
-      card.classList.toggle("no-outstanding", amount <= 0);
-    }
-
-  } catch (err) {
-    console.warn("Could not load outstanding fines", err);
-
-    el.classList.remove("loading-dots");
-    el.textContent = "Unavailable";
-
-    if (card) {
-      card.classList.remove("has-outstanding");
-      card.classList.add("no-outstanding");
-    }
-  }
 }
 
 function formatCurrencyText(value) {
@@ -1354,7 +1317,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (isProfileMode) {
     await loadOverallTotals();
     await loadSeasonData("all");
-    await loadOutstandingFines();
     await updateMedals(overallTotals);
     updateProfileDataPanels();
   }
@@ -1377,7 +1339,7 @@ document.addEventListener("click", (e) => {
   if (profileViewBtn) {
     document.querySelectorAll(".profile-view-btn").forEach(b => b.classList.remove("active"));
     profileViewBtn.classList.add("active");
-    selectedProfileView = profileViewBtn.dataset.profileView || "stats";
+    selectedProfileView = profileViewBtn.dataset.profileView || "appearances";
     updateProfileDataPanels();
     return;
   }
