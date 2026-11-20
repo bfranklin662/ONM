@@ -63,11 +63,13 @@ function statsPwlHtml(stats = {}) {
   `;
 }
 
-function getLeagueMeta(competition) {
-  return LEAGUE_META[competition] || {
+function getLeagueMeta(competition, season) {
+  const meta = LEAGUE_META[competition] || {
     key: normalizeName(competition).replace(/\s+/g, "-"),
     label: String(competition || "LEAGUE").replace(" League", "").toUpperCase()
   };
+  const label = window.ONMLeagueDivisions?.label(competition, season);
+  return label && label !== competition ? { ...meta, label: label.toUpperCase() } : meta;
 }
 
 function renderLeagueFilter(matches) {
@@ -480,7 +482,7 @@ document.addEventListener("keydown", (e) => {
 function updateLeagueHeadings(season) {
   document.querySelectorAll(".league-tab, .league-heading").forEach(el => {
     if (el.textContent.includes("Banks")) {
-      el.textContent = `Banks League ${formatSeason(season)}`;
+      el.textContent = `${window.ONMLeagueDivisions?.label("Banks League", season) || "Banks League"} ${formatSeason(season)}`;
     } else if (el.textContent.includes("Trafalgar")) {
       el.textContent = `Trafalgar League ${formatSeason(season)}`;
     }
@@ -633,7 +635,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
         visibleGalleryMatches.map(async match => {
           const images = await fetchMatchImages(match);
 
-          const meta = getLeagueMeta(match.Competition);
+          const meta = getLeagueMeta(match.Competition, window.ONMLeagueDivisions?.seasonFromDate(match.Date));
           const homePoints = getMatchField(match, "HomePoints", "Home Points", "homePoints");
           const awayPoints = getMatchField(match, "AwayPoints", "Away Points", "awayPoints");
           const pointsHtml = isColdaCompetition(match.Competition) && homePoints !== "" && awayPoints !== ""
@@ -765,7 +767,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
         const ha = onmSide.ha;
         const cardKey = `${isoDate}|${normalizeName(opp)}|${ha.toLowerCase()}`;
 
-        const meta = getLeagueMeta(match.Competition);
+        const meta = getLeagueMeta(match.Competition, window.ONMLeagueDivisions?.seasonFromDate(match.Date));
         const homePoints = getMatchField(match, "HomePoints", "Home Points", "homePoints");
         const awayPoints = getMatchField(match, "AwayPoints", "Away Points", "awayPoints");
         const pointsHtml = isColdaCompetition(match.Competition) && homePoints !== "" && awayPoints !== ""
@@ -1582,7 +1584,7 @@ async function fetchStats(season) {
     return `
           <div class="league-box league-${meta.key} ${meta.key}-league active">
             <div class="league-header">
-              <h2>${league.name} ${formattedSeason}</h2>
+              <h2>${window.ONMLeagueDivisions?.label(league.name, season) || league.name} ${formattedSeason}</h2>
               ${statsPwlHtml(stats)}
             </div>
 

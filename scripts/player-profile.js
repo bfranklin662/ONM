@@ -712,7 +712,7 @@ function formatAppearanceDate(raw) {
 async function buildRowsOnly(apps) {
   return apps.map((r, index) => {
     const league = leagueInfoFromRow(r);
-    const leagueText = leagueLabelFromId(league.name).toUpperCase();
+    const leagueText = (window.ONMLeagueDivisions?.label(r.Competition || leagueLabelFromId(league.name), window.ONMLeagueDivisions.seasonFromDate(r["Date Played"] || r["Match Date"] || r.Date)) || leagueLabelFromId(league.name)).toUpperCase();
     const rowClass = `row-${league.name}`;
 
     const home = (r.HomeTeam || "").trim();
@@ -1519,7 +1519,7 @@ async function loadSeasonData(season) {
       return {
         ...stats,
         ...makeRates(stats),
-        label: `${table.league.label} ${table.season.replace("-", "/")}`,
+        label: `${window.ONMLeagueDivisions?.label(table.league.label, table.season) || table.league.label} ${table.season.replace("-", "/")}`,
         season: table.season,
         league: table.league.id,
         className: `row-${table.league.id}`,

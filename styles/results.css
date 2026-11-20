@@ -2239,3 +2239,6 @@ td:first-child {
   .result-card-wide > .resultPlayedBadge { top: 9px; right: 10px; }
   .result-card-wide:has(.cup-icon) > .resultPlayedBadge { right: 38px; }
 }
+
+.view-selector .view-btn[data-tooltip] { position:relative; }
+.view-selector .view-btn[data-tooltip]:is(:hover,:focus)::after { content:attr(data-tooltip); position:absolute; top:calc(100% + 9px); right:0; width:max-content; max-width:min(230px,75vw); padding:7px 10px; border:1px solid #48755b; border-radius:8px; background:#0b2419; color:#dbede0; font:500 12px/1.4 system-ui,sans-serif; white-space:normal; z-index:100; pointer-events:none; }

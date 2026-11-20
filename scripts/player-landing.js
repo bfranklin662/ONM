@@ -338,7 +338,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       return `
       <article class="player-card" style="animation-delay:${i * 0.05}s"
-               data-player-key="${escapeHtml(key)}">
+               data-player-key="${escapeHtml(key)}" data-linked-player-key="${escapeHtml(profile.playerKey || "")}">
         <div class="player-card-photo-wrap">
           <div class="player-card-photo-frame">
             <img
@@ -359,7 +359,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         <h3 class="player-card-name" data-name="${escapeHtml(name)}">
           ${escapeHtml(name)}
-          ${window.PlayerData.registrationBadge(profile)}
           ${profile.nickname ? `<div class="player-card-nickname">"${escapeHtml(profile.nickname)}"</div>` : ""}
         </h3>
 

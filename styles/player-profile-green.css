@@ -48,3 +48,23 @@
 #playerProfileSection .profileLinkedBadge { cursor:help; }
 #playerProfileSection .profileLinkedBadge:is(:hover,:focus)::after { content:attr(data-tooltip); position:absolute; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%); background:#0b2117; border:1px solid #49775c; border-radius:6px; padding:6px 9px; color:#d6eddf; font:500 12px/1.4 system-ui,sans-serif; white-space:nowrap; z-index:20; }
 #playerProfileSection .profileLinkedBadge::before { display:none; }
+
+/* Keep the identity, details and totals compact beside the portrait. */
+#playerProfileSection .player-header-card { gap:18px; padding:18px; align-items:flex-start; }
+#playerProfileSection .profile-name-row { margin-bottom:8px; }
+#playerProfileSection .player-info-grid { gap:5px; margin-block:0; }
+#playerProfileSection #playerQuickStats { margin-top:12px; }
+#playerProfileSection .profile-stat-box { padding:6px 8px; }
+#playerProfileSection .profile-stat-box .label { font-size:.65rem; }
+#playerProfileSection .form-medals-bottom { margin-top:8px; gap:6px; }
+@media (min-width:1111px) {
+  #playerProfileSection .player-header-card { min-height:0; }
+  #playerProfileSection .profile-photo-shell { width:260px; }
+  #playerProfileSection .profile-photo-frame { width:260px; height:260px; }
+  #playerProfileSection .header-info { align-self:flex-start; }
+  #playerProfileSection .player-name { font-size:1.8rem; }
+  #playerProfileSection .header-form { flex:0 0 230px; max-width:230px; gap:8px; }
+  #playerProfileSection .walkout-wrap { margin:0; }
+  #playerProfileSection #playerWalkout iframe { height:80px !important; min-height:0 !important; }
+  #playerProfileSection .medals-row img { width:32px; height:32px; object-fit:contain; }
+}
