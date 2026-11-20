@@ -1,10 +1,10 @@
 .addResultPhotos { display:inline-flex; justify-content:center; align-items:center; min-height:40px; margin:12px 0; padding:8px 16px; border:1px solid #168f79; border-radius:9px; background:#123d32; color:#fff; font:inherit; font-size:14px; font-weight:800; cursor:pointer; }
 .addResultPhotos:hover { background:#175741; }
-.resultPhotoDialog { position:fixed; inset:0; margin:auto; box-sizing:border-box; width:min(700px,calc(100% - 28px)); height:fit-content; max-height:85vh; padding:22px; border:1px solid #356048; border-radius:16px; background:#101a20; color:#f4f6fb; font-family:system-ui,sans-serif; overflow-y:auto; }
+.resultPhotoDialog { position:fixed; inset:0; margin:auto; box-sizing:border-box; width:min(700px,calc(100% - 28px)); height:fit-content; max-height:85vh; padding:22px; border:1px solid #356048; border-radius:16px; background:#10291f; color:#f4f6fb; font-family:system-ui,sans-serif; overflow-y:auto; }
 .resultPhotoDialog::backdrop { background:rgba(0,0,0,.8); }
 .resultPhotoHeading { display:flex; justify-content:space-between; align-items:center; gap:20px; }
 .resultPhotoHeading h2 { margin:0; }
-.resultPhotoHeading button { width:42px; height:42px; border:1px solid #53606c; border-radius:50%; background:#14242c; color:#fff; font-size:26px; cursor:pointer; }
+.resultPhotoHeading button { width:42px; height:42px; border:1px solid #53606c; border-radius:50%; background:#183c2d; color:#fff; font-size:26px; cursor:pointer; }
 .resultPhotoDialog p { color:#b8c4cc; line-height:1.5; }
 .resultPhotoDialog a { color:#ffd740; }
 .resultPhotoPicker { display:flex; flex-direction:column; gap:10px; margin:14px 0; font-weight:800; }
@@ -25,3 +25,16 @@
 .resultPhotoProgress progress::-webkit-progress-value { background:#ffd740; border-radius:8px; }
 .resultPhotoProgress progress::-moz-progress-bar { background:#ffd740; border-radius:8px; }
 .resultPhotoProgress span { display:block; margin-top:6px; color:#b8c4cc; font-size:12px; }
+
+.resultPhotoDropzone { border:1px dashed #558574; border-radius:12px; padding:14px; background:#0c2119; }
+.resultPhotoDragging { outline:2px solid #ffd740; outline-offset:3px; background:#24533c !important; }
+.resultPhotoDropzone>strong { font-size:14px; }
+#resultPhotoPending { margin-top:14px; }
+#resultPhotoPending figcaption { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:#b8cec0; }
+#resultPhotoSubmit { margin-top:14px; min-height:42px; padding:10px 18px; border:0; border-radius:8px; background:#ffd740; color:#102117; font:inherit; font-weight:800; cursor:pointer; }
+#resultPhotoSubmit[hidden] { display:none; }
+.resultPhotoDialog .resultPhotoSuccess { padding:10px 12px; border:1px solid #448967; border-radius:9px; background:#19462f; color:#b9f2d0; }
+#resultPhotoSubmit { margin-top:14px; min-height:42px; padding:10px 18px; border:0; border-radius:9px; background:#ffd740; color:#142018; font:inherit; font-weight:800; cursor:pointer; }
+#resultPhotoSubmit:disabled { opacity:.55; cursor:wait; }
+#resultPhotoSubmit[hidden] { display:none; }
+#resultPhotoPending figcaption { margin-top:5px; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

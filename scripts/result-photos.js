@@ -4,6 +4,7 @@
   const thumbnails = new Map();
   const existingPhotos = new Map();
   let dialog, currentResultId, currentUser, changed = false, busy = false;
+  let pendingPhotos = [];
   const escape = value => String(value || "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
 
   async function list(resultId, force = false) {
@@ -23,7 +24,7 @@
     dialog.setAttribute("aria-labelledby", "resultPhotoTitle");
     dialog.innerHTML = `<div class="resultPhotoHeading"><h2 id="resultPhotoTitle">Match photos</h2><button type="button" data-close-photos aria-label="Close match photos">×</button></div>
       <p>Add your photos to this result. Photos are resized for the website and visible to everyone.</p>
-      <div id="resultPhotoUploadControls"><label class="resultPhotoPicker">Choose photos<input id="resultPhotoFiles" type="file" multiple accept="image/jpeg,image/png,image/webp"></label><span>Up to 10 photos at a time · JPG, PNG or WebP</span></div>
+      <div id="resultPhotoUploadControls" class="resultPhotoDropzone"><strong>Drop photos here or choose files</strong><label class="resultPhotoPicker">Choose photos<input id="resultPhotoFiles" type="file" multiple accept="image/jpeg,image/png,image/webp"></label><span>Up to 10 photos at a time · JPG, PNG or WebP</span><div id="resultPhotoPending" class="resultPhotoList"></div><button id="resultPhotoSubmit" type="button" disabled>Upload photos</button></div>
       <div id="resultPhotoProgress" class="resultPhotoProgress" hidden>
         <label id="resultPhotoProgressLabel" for="resultPhotoProgressBar">Preparing photos…</label>
         <progress id="resultPhotoProgressBar" max="100" value="0" aria-labelledby="resultPhotoProgressLabel"></progress>
@@ -36,9 +37,22 @@
     dialog.querySelector("[data-close-photos]").addEventListener("click", () => { if (!busy) dialog.close(); });
     dialog.addEventListener("cancel", event => { if (busy) event.preventDefault(); });
     dialog.addEventListener("close", () => {
+      clearPending();
       if (changed) document.dispatchEvent(new CustomEvent("onm-result-photos-changed", { detail: { resultId: currentResultId } }));
     });
-    dialog.querySelector("#resultPhotoFiles").addEventListener("change", upload);
+    dialog.querySelector("#resultPhotoFiles").addEventListener("change", event => {
+      stagePhotos(Array.from(event.target.files || []));
+      event.target.value = "";
+    });
+    dialog.querySelector("#resultPhotoSubmit").addEventListener("click", upload);
+    dialog.querySelector("#resultPhotoPending").addEventListener("click", event => {
+      const button = event.target.closest("[data-remove-pending]");
+      if (!button || busy) return;
+      const index = Number(button.dataset.removePending);
+      URL.revokeObjectURL(pendingPhotos[index].url);
+      pendingPhotos.splice(index, 1);
+      renderPending();
+    });
     dialog.querySelector("#resultPhotoList").addEventListener("click", async event => {
       const button = event.target.closest("button[data-remove-photo]");
       if (!button || busy || !window.confirm("Remove this photo from the match gallery?")) return;
@@ -53,7 +67,36 @@
     });
   }
 
-  function status(message) { dialog.querySelector("#resultPhotoStatus").textContent = message; }
+  function status(message, success = false) {
+    const element = dialog.querySelector("#resultPhotoStatus");
+    element.textContent = message;
+    element.classList.toggle("resultPhotoSuccess", success);
+  }
+  function clearPending() {
+    pendingPhotos.forEach(photo => URL.revokeObjectURL(photo.url));
+    pendingPhotos = [];
+    renderPending();
+  }
+  function renderPending() {
+    dialog.querySelector("#resultPhotoPending").innerHTML = pendingPhotos.map((photo, index) => `<figure><img src="${escape(photo.url)}" alt="${escape(photo.file.name)}"><figcaption>${escape(photo.file.name)}</figcaption><button type="button" data-remove-pending="${index}"${busy ? " disabled" : ""}>Remove</button></figure>`).join("");
+    const submit = dialog.querySelector("#resultPhotoSubmit");
+    submit.disabled = busy || !pendingPhotos.length;
+    submit.hidden = !pendingPhotos.length;
+    submit.textContent = `Upload ${pendingPhotos.length} ${pendingPhotos.length === 1 ? "photo" : "photos"}`;
+  }
+  function stagePhotos(files) {
+    if (busy || !currentUser || !files.length) return;
+    if (files.length + pendingPhotos.length > 10) { status("Choose up to 10 photos at a time. Remove some before adding more."); return; }
+    let rejected = 0;
+    for (const file of files) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 20 * 1024 * 1024 || !file.size) { rejected++; continue; }
+      if (pendingPhotos.some(photo => photo.file.name === file.name && photo.file.size === file.size && photo.file.lastModified === file.lastModified)) continue;
+      pendingPhotos.push({ file, url: URL.createObjectURL(file) });
+    }
+    dialog.querySelector("#resultPhotoProgress").hidden = true;
+    renderPending();
+    status(rejected ? `${rejected} files were not added. Use JPG, PNG or WebP under 20 MB.` : "Preview your photos, then select Upload photos to save them.");
+  }
   function progress(value, label) {
     dialog.querySelector("#resultPhotoProgress").hidden = false;
     const percent = Math.max(0, Math.min(100, Math.round(value)));
@@ -64,6 +107,7 @@
   function setBusy(value) {
     busy = value;
     dialog.querySelectorAll("button,input").forEach(input => { input.disabled = value; });
+    renderPending();
   }
   async function render(force = false) {
     const oldPhotos = (existingPhotos.get(currentResultId) || []).map(url => ({ url, thumbnailUrl: thumbnails.get(url) || url }));
@@ -87,9 +131,10 @@
     }
   }
 
-  async function open(resultId) {
+  async function open(resultId, files = []) {
     if (busy) return;
     setup();
+    clearPending();
     currentResultId = resultId;
     currentUser = null;
     changed = false;
@@ -115,6 +160,7 @@
       }
     } catch { status("Could not check your sign-in. Please close and try again."); }
     finally { setBusy(false); }
+    if (files.length) stagePhotos(files);
   }
 
   async function compress(file) {
@@ -142,11 +188,10 @@
     finally { image.close(); }
   }
 
-  async function upload(event) {
-    const files = Array.from(event.target.files || []);
-    event.target.value = "";
-    if (!files.length || busy) return;
-    if (files.length > 10) { status("Choose up to 10 photos at a time."); return; }
+  async function upload() {
+    const batch = [...pendingPhotos];
+    const files = batch.map(photo => photo.file);
+    if (!files.length || busy || !currentUser) return;
     setBusy(true);
     progress(0, "Preparing photos…");
     let added = 0, failed = 0, firstError = "";
@@ -162,12 +207,16 @@
             progress((index + fraction) / files.length * 100, `${label}: ${update.phase === "saving" ? "saving…" : "uploading…"}`);
           });
           added++;
+          const saved = batch[index];
+          URL.revokeObjectURL(saved.url);
+          pendingPhotos = pendingPhotos.filter(photo => photo !== saved);
         } catch (error) { failed++; firstError ||= error.message; console.warn("Match photo upload failed:", error.message); }
         progress((index + 1) / files.length * 100, `${index + 1} of ${files.length} processed`);
       }
-      changed = true;
+      changed = changed || added > 0;
+      renderPending();
       await render(true);
-      status(`${added} ${added === 1 ? "photo added" : "photos added"}.${failed ? ` ${failed} could not be uploaded. ${firstError}` : " Close to see the updated result gallery."}`);
+      status(`${added} ${added === 1 ? "photo added" : "photos added"}.${failed ? ` ${failed} could not be uploaded. ${firstError}` : " ✓ Upload complete. Your photos are saved."}`, failed === 0);
     } catch { status("Could not refresh the gallery. Close and reopen to check which photos were saved."); }
     finally { setBusy(false); }
   }
@@ -186,6 +235,31 @@
     });
   }).catch(() => { canAddPhotos = false; updatePhotoButtons(); });
   updatePhotoButtons();
+
+  const dropTarget = event => event.target.closest?.("[data-add-result-photos], #resultPhotoUploadControls");
+  document.addEventListener("dragover", event => {
+    const target = dropTarget(event);
+    if (!target || !canAddPhotos || target.hidden || busy) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "copy";
+    target.classList.add("resultPhotoDragging");
+  });
+  document.addEventListener("dragleave", event => {
+    const target = dropTarget(event);
+    if (target && !target.contains(event.relatedTarget)) target.classList.remove("resultPhotoDragging");
+  });
+  document.addEventListener("drop", async event => {
+    const target = dropTarget(event);
+    if (!target) return;
+    event.preventDefault();
+    event.stopPropagation();
+    target.classList.remove("resultPhotoDragging");
+    if (!canAddPhotos || target.hidden || busy) return;
+    const files = Array.from(event.dataTransfer.files || []);
+    if (target.matches("[data-add-result-photos]")) await open(decodeURIComponent(target.dataset.addResultPhotos), files);
+    else stagePhotos(files);
+  });
 
   document.addEventListener("click", event => {
     const button = event.target.closest("[data-add-result-photos]");
