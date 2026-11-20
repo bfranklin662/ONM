@@ -2327,6 +2327,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentScreen = "setup"; // "setup" | "tracker" | "results" | "final"
 
   function hardResetAll() {
+    document.getElementById("resultSubmittedBanner")?.remove();
     submittedResultRow = null;
     store = { totalsByName: {}, history: [], game: null, setupNames: [] };
     saveStore(store);
@@ -3404,15 +3405,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     reviewResultBody.insertAdjacentHTML("afterend", `
       <div id="resultSubmittedBanner" class="resultSubmittedSuccess">
-        <div class="linkSuccessIcon">✓</div>
-        <div>
+        <span class="resultSubmittedTick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg></span>
+        <div class="resultSubmittedCopy">
           <div class="linkSuccessTitle">
             ${isResubmit ? "Result re-submitted" : "Result submitted"}
           </div>
           <div class="mutedSmall">You can amend details and re-submit to overwrite this row.</div>
         </div>
+        <button id="resetSubmittedResult" type="button" class="btn btnGhost">Reset</button>
       </div>
     `);
+    document.getElementById("resetSubmittedResult")?.addEventListener("click", () => {
+      hardResetAll();
+      void refreshMatchFixtures();
+    });
   }
 
   reviewSubmitBtn?.addEventListener("click", async () => {

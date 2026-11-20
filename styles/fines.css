@@ -2337,9 +2337,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .resultSubmittedSuccess {
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 14px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
   background: rgba(0, 160, 75, 0.16);
   border: 1px solid rgba(0, 210, 100, 0.45);
   color: #fff;
@@ -2347,6 +2347,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   gap: 10px;
   align-items: center;
 }
+.resultSubmittedTick { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%; background: #245d42; color: #a7edc4; }
+.resultSubmittedTick svg { display: block; width: 20px; height: 20px; }
+.resultSubmittedCopy { flex: 1; min-width: 0; }
+.resultSubmittedSuccess .linkSuccessTitle { font-size: .9rem; line-height: 1.25; }
+.resultSubmittedSuccess .mutedSmall { font-size: .73rem; line-height: 1.4; margin-top: 3px; }
+.resultSubmittedSuccess > .btn { flex: 0 0 auto; width: auto; min-height: 38px; margin: 0; padding: 8px 12px; font-size: .8rem; }
 
 
 .sameDayFixtures { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); gap: 7px; margin-bottom: 10px; }
