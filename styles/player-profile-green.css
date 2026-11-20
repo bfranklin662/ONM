@@ -33,4 +33,18 @@
 #playerProfileSection #playerSelect { appearance:none; -webkit-appearance:none; padding-right:34px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23b9e8cd' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 7 5 5 5-5'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; background-size:16px; cursor:pointer; }
 #playerProfileSection .profile-stat-box .value,
 #playerProfileSection .profile-stat-box .value span,
-#playerProfileSection .stat-value { font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-weight:500; font-variant-numeric:tabular-nums; letter-spacing:0; }
+#playerProfileSection .stat-value { font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-weight:650; font-variant-numeric:tabular-nums; letter-spacing:0; }
+
+#playerProfileSection .profileOweLink[hidden] { display:none !important; }
+#playerProfileSection .profile-name-row { gap:8px 12px; }
+#playerProfileSection .profile-card-actions { margin:0 0 0 auto; justify-content:flex-end; }
+#playerProfileSection .player-info-grid { display:flex; flex-direction:column; align-items:stretch; gap:9px; }
+#playerProfileSection .player-info-grid > .info-item { grid-area:auto; width:100%; }
+#playerProfileSection #playerBioRow { margin-bottom:12px; }
+#playerProfileSection #playerQuickStats { margin-top:12px; }
+#playerProfileSection .appearance-row[data-appearance-url] { cursor:pointer; }
+#playerProfileSection .appearance-row[data-appearance-url]:hover { background:#214b35; }
+#playerProfileSection .appearance-row[data-appearance-url]:focus-visible { outline:2px solid #91c9a8; outline-offset:-2px; }
+#playerProfileSection .profileLinkedBadge { cursor:help; }
+#playerProfileSection .profileLinkedBadge:is(:hover,:focus)::after { content:attr(data-tooltip); position:absolute; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%); background:#0b2117; border:1px solid #49775c; border-radius:6px; padding:6px 9px; color:#d6eddf; font:500 12px/1.4 system-ui,sans-serif; white-space:nowrap; z-index:20; }
+#playerProfileSection .profileLinkedBadge::before { display:none; }

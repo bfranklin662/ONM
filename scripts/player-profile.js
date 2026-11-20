@@ -72,8 +72,54 @@ function updateProfileDataPanels() {
   updateProfileDataTitle();
 }
 
-function initPlayerProfileEditor(name, profileData) {
-  const user = window.ONMSession?.getUser?.();
+
+function initProfileAccountDetails(name, profileData) {
+  const owe = document.querySelector(".profileOweLink");
+  const heading = document.getElementById("playerName");
+  let revision = 0;
+  window.ONMFirebase?.ready.then(({ auth, authSdk }) => {
+    authSdk.onAuthStateChanged(auth, async user => {
+      const current = ++revision;
+      if (owe) owe.hidden = true;
+      heading?.querySelector(".profileLinkedBadge")?.remove();
+      if (!user || !profileData.playerKey) return;
+      try {
+        const account = await window.ONMFirebase.loadOwnUser();
+        if (current !== revision || account?.status !== "Active") return;
+        const isOwnPage = account.linkedPlayerKey === profileData.playerKey;
+        if (owe) owe.hidden = !isOwnPage;
+        initPlayerProfileEditor(name, profileData, account);
+        let linked = isOwnPage;
+        if (!linked) {
+          const directory = await window.ONMFirebase.post({ action: "getLinkedPlayers" });
+          linked = (directory.players || []).some(player => (player.linkedPlayerKey || player.playerKey) === profileData.playerKey);
+        }
+        if (current !== revision || !linked) return;
+        const badge = document.createElement("span");
+        badge.className = "registrationBadge profileLinkedBadge";
+        badge.setAttribute("role", "img");
+        badge.setAttribute("aria-label", "Account linked");
+        badge.setAttribute("data-tooltip", "Account linked");
+        badge.tabIndex = 0;
+        badge.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>';
+        heading?.appendChild(badge);
+      } catch (error) { console.warn("Could not check linked player account", error); }
+    });
+  }).catch(() => { if (owe) owe.hidden = true; });
+}
+
+function followAppearance(event) {
+  const row = event.target.closest?.("[data-appearance-url]");
+  if (!row || event.target.closest("a, button") || (event.type === "keydown" && !["Enter", " "].includes(event.key))) return;
+  event.preventDefault();
+  if (event.ctrlKey || event.metaKey) window.open(row.dataset.appearanceUrl, "_blank", "noopener");
+  else window.location.assign(row.dataset.appearanceUrl);
+}
+document.addEventListener("click", followAppearance);
+document.addEventListener("keydown", followAppearance);
+
+function initPlayerProfileEditor(name, profileData, account = null) {
+  const user = account || window.ONMSession?.getUser?.();
   if (!user || !profileData?.playerKey || typeof updatePublicPlayerProfile !== "function") return;
   const canEdit = ["admin", "owner"].includes(user.role) || user.linkedPlayerKey === profileData.playerKey;
   if (!canEdit) return;
@@ -86,7 +132,7 @@ function initPlayerProfileEditor(name, profileData) {
   editButton.id = "editPlayerProfileBtn";
   editButton.type = "button";
   editButton.className = "profile-edit-button";
-  editButton.textContent = "Edit player";
+  editButton.textContent = "Edit details";
   buttonWrap.appendChild(editButton);
 
   const overlay = document.createElement("div");
@@ -643,7 +689,7 @@ function updateStatsVisibility() {
   }
 }
 
-function formatPrettyDateNoYear(raw) {
+function formatAppearanceDate(raw) {
   const d = safeParseDate(raw);
   if (!(d instanceof Date) || isNaN(d)) return "";
 
@@ -656,7 +702,7 @@ function formatPrettyDateNoYear(raw) {
 
   const month = d.toLocaleString("en-GB", { month: "short" });
 
-  return `${day}${suffix} ${month}`;
+  return `${day}${suffix} ${month} ${String(d.getFullYear()).slice(-2)}`;
 }
 
 
@@ -681,7 +727,18 @@ async function buildRowsOnly(apps) {
       r["Date"] ||
       r.Date ||
       "";
-    const date = escapeHtml(formatPrettyDateNoYear(rawDate));
+    const date = escapeHtml(formatAppearanceDate(rawDate));
+    const playedOn = safeParseDate(rawDate);
+    const appearanceUrl = new URL("results.html", window.location.href);
+    if (playedOn && !isNaN(playedOn)) {
+      const year = playedOn.getFullYear();
+      const startYear = playedOn.getMonth() >= 6 ? year : year - 1;
+      appearanceUrl.search = new URLSearchParams({
+        date: `${year}-${String(playedOn.getMonth() + 1).padStart(2, "0")}-${String(playedOn.getDate()).padStart(2, "0")}`,
+        opp: opponent, ha: loc.toLowerCase(), competition: r.Competition || "",
+        season: `${String(startYear).slice(-2)}-${String(startYear + 1).slice(-2)}`
+      });
+    }
 
 
     const hsRaw = r.HomeScore ?? r.HS ?? r["Home Score"] ?? "";
@@ -711,7 +768,7 @@ async function buildRowsOnly(apps) {
       specials = `<span class="no-specials">—</span>`;
 
     return `
-      <tr class="appearance-row ${rowClass}"
+      <tr class="appearance-row ${rowClass}" data-appearance-url="${escapeHtml(appearanceUrl.href)}" tabindex="0" role="link" aria-label="View result against ${escapeHtml(opponent)} on ${date}"
           style="animation: slideIn 0.35s ease-out forwards; animation-delay:${index * 0.05}s; opacity:0">
 
         <td><span class="league-col ${league.name}">${leagueText}</span></td>
@@ -732,7 +789,7 @@ async function buildRowsOnly(apps) {
         </td>
 
         <td>
-          ${p.checkouts}
+          ${p.checkouts === 0 ? `<span class="bagel" data-tooltip="Bagel (0 checkouts)" aria-label="0 checkouts">🥯</span>` : p.checkouts}
         </td>
 
         <td class="fine-cell ${p.doubleFine ? "double-fine" : ""}">
@@ -1132,9 +1189,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.playerProfiles[playerName] ||
       { nickname: "", bio: "", photo: "images/default.jpg", accolades: [], role: "" };
 
-    headerNameEl?.insertAdjacentHTML("beforeend", window.PlayerData.registrationBadge(profileData));
-    const registrationTick = headerNameEl?.querySelector(".registrationBadge");
-    if (registrationTick) registrationTick.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>';
+    initProfileAccountDetails(playerName, profileData);
     const highestEl = document.getElementById("playerHighestCheckout");
     if (highestEl) {
       const hc = (profileData.highestCheckout || "").trim();
