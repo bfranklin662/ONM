@@ -2270,3 +2270,19 @@ td:first-child {
 .results-container .stats-grid table,.results-container .stats-grid tbody td { background:#102d20; }
 .results-container .stats-grid tbody tr:nth-child(even) td { background:#193b2b; }
 .results-container .stats-grid thead th { background:#214934; }
+
+/* Gallery cards use the same side accent and upload tile as Results. */
+.gallery-card:is(.league-banks,.league-trafalgar,.league-smithfield,.league-colda-a,.league-colda-b,.league-colda) { border-top-width:0; border-left:5px solid; }
+.gallery-card > .resultPlayedBadge { position:absolute; top:14px; right:14px; margin:0; }
+.gallery-card .league-pill { max-width:calc(100% - 100px); }
+.gallery-card .gallery-header { padding:4px 0 10px; }
+.gallery-teams-line { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+.gallery-card .gallery-teams-line h3 { margin:0; font-size:1rem; line-height:1.35; }
+.gallery-card .gallery-result-label { position:static; display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; flex-direction:column; min-width:54px; min-height:36px; padding:5px 9px; box-sizing:border-box; font-size:1.1rem; line-height:1.2; }
+.gallery-card .gallery-meta { margin:5px 0 0; }
+.gallery-card .gallery-grid .result-photo-frame { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:7px; width:100%; height:140px; min-height:0; box-sizing:border-box; margin:0; padding:10px; border:1px dashed #558574; border-radius:6px; background:#0d281f; color:#abc9bb; font-size:.75rem; font-weight:600; }
+.gallery-card .gallery-grid .result-photo-frame:hover { background:#173e30; border-color:#8fbaa5; color:white; }
+.gallery-card .result-photo-plus { font:300 40px/1 system-ui,sans-serif; }
+.gallery-card .gallery-grid:has(.result-photo-frame:not([hidden])) + .no-images { display:none; }
+.gallery-card .addResultPhotos[hidden] { display:none !important; }
+@media(max-width:550px) { .gallery-card > .resultPlayedBadge { top:12px; right:12px; } .gallery-card .gallery-teams-line h3 { font-size:.9rem; } }

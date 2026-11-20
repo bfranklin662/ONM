@@ -653,30 +653,24 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
             .replace(/</g, "\\u003c")
             .replace(/'/g, "\\u0027");
 
-          const galleryImages = images.length
-            ? `<div class="gallery-grid">${images.map((src, i) => `
+          const uploadTile = match._resultId ? `<button type="button" class="addResultPhotos result-photo-frame" hidden data-add-result-photos="${encodeURIComponent(match._resultId)}" aria-label="${images.length ? "Add more match photos" : "Add match photos"}"><span class="result-photo-plus" aria-hidden="true">+</span><span>${images.length ? "Add more" : "Add photos"}</span></button>` : "";
+          const galleryImages = `<div class="gallery-grid">${images.map((src, i) => `
             <img src="${window.ONMResultPhotos?.thumbnail(src) || src}"
-              data-drive-thumb="1"
-              loading="lazy"
-              decoding="async"
-              alt="Match ${i + 1}"
-              class="gallery-thumb"
+              data-drive-thumb="1" loading="lazy" decoding="async"
+              alt="Match photo ${i + 1}" class="gallery-thumb"
               onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'>
-          `).join("")}</div>`
-            : `<div class="no-images">No photos available.</div>`;
+          `).join("")}${uploadTile}</div>${images.length ? "" : '<div class="no-images">No photos available.</div>'}`;
 
           return `
         <div class="gallery-card ${(match.Result || "").toLowerCase()} league-${meta.key}" data-result-lineup="${encodeURIComponent(JSON.stringify(Array.from({length:12},(_,i)=>getMatchValue(match,`Player${i+1}`)).filter(Boolean)))}">
           <div class="league-pill league-pill-${meta.key}">${window.ONMLeagueDivisions?.isCup(match) ? `<svg class="league-cup-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 3h8v6a4 4 0 0 1-8 0V3Zm0 2H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 1v7m-4 1h8"/></svg>` : ""}${meta.label}</div>
 
           <div class="gallery-header">
-            <h3>${match.HomeTeam} vs ${match.AwayTeam}</h3>
+            <div class="gallery-teams-line"><h3>${match.HomeTeam} vs ${match.AwayTeam}</h3><span class="gallery-result-label">${match.HomeScore} – ${match.AwayScore}${pointsHtml}</span></div>
             <p class="gallery-meta">${match.Date} • ${match.Venue || "Venue TBA"}</p>
-            <span class="gallery-result-label">${match.HomeScore} – ${match.AwayScore}${pointsHtml}</span>
           </div>
 
           ${galleryImages}
-          ${match._resultId ? `<button type="button" class="addResultPhotos" hidden data-add-result-photos="${encodeURIComponent(match._resultId)}">Add photos</button>` : ""}
         </div>
       `;
         })
