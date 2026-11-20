@@ -2188,3 +2188,21 @@ td:first-child {
   animation: spin .8s linear infinite;
   vertical-align: -2px;
 }
+
+/* Compact the public result summary while keeping its corner badges clear. */
+.result-card-wide { padding: 12px 14px 26px; }
+.result-card-wide > .resultPlayedBadge {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  margin: 0;
+}
+.result-card-wide:has(.cup-icon) > .resultPlayedBadge { right: 42px; margin: 0; }
+.result-card-wide .teams { padding-top: 0; margin-inline: 100px; }
+.result-card-wide > .player-data:not(.expanded) { padding-bottom: 0; }
+.result-card-wide > .addResultPhotos { margin: 6px 0 4px; }
+@media (max-width: 700px) {
+  .result-card-wide .teams { padding-top: 24px; margin-inline: 0; }
+  .result-card-wide > .resultPlayedBadge { top: 9px; right: 10px; }
+  .result-card-wide:has(.cup-icon) > .resultPlayedBadge { right: 38px; }
+}
