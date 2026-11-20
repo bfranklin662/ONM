@@ -63,12 +63,12 @@ function statsPwlHtml(stats = {}) {
   `;
 }
 
-function getLeagueMeta(competition, season) {
+function getLeagueMeta(competition, season, cup = false) {
   const meta = LEAGUE_META[competition] || {
     key: normalizeName(competition).replace(/\s+/g, "-"),
     label: String(competition || "LEAGUE").replace(" League", "").toUpperCase()
   };
-  const label = window.ONMLeagueDivisions?.label(competition, season);
+  const label = cup ? String(competition).replace(/ league/i, "").replace(/ cup/i, "") + " Cup" : window.ONMLeagueDivisions?.label(competition, season);
   return label && label !== competition ? { ...meta, label: label.toUpperCase() } : meta;
 }
 
@@ -635,7 +635,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
         visibleGalleryMatches.map(async match => {
           const images = await fetchMatchImages(match);
 
-          const meta = getLeagueMeta(match.Competition, window.ONMLeagueDivisions?.seasonFromDate(match.Date));
+          const meta = getLeagueMeta(match.Competition, window.ONMLeagueDivisions?.seasonFromDate(match.Date), window.ONMLeagueDivisions?.isCup(match));
           const homePoints = getMatchField(match, "HomePoints", "Home Points", "homePoints");
           const awayPoints = getMatchField(match, "AwayPoints", "Away Points", "awayPoints");
           const pointsHtml = isColdaCompetition(match.Competition) && homePoints !== "" && awayPoints !== ""
@@ -667,7 +667,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
           return `
         <div class="gallery-card ${(match.Result || "").toLowerCase()} league-${meta.key}" data-result-lineup="${encodeURIComponent(JSON.stringify(Array.from({length:12},(_,i)=>getMatchValue(match,`Player${i+1}`)).filter(Boolean)))}">
-          <div class="league-pill league-pill-${meta.key}">${meta.label}</div>
+          <div class="league-pill league-pill-${meta.key}">${window.ONMLeagueDivisions?.isCup(match) ? `<svg class="league-cup-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 3h8v6a4 4 0 0 1-8 0V3Zm0 2H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 1v7m-4 1h8"/></svg>` : ""}${meta.label}</div>
 
           <div class="gallery-header">
             <h3>${match.HomeTeam} vs ${match.AwayTeam}</h3>
@@ -767,7 +767,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
         const ha = onmSide.ha;
         const cardKey = `${isoDate}|${normalizeName(opp)}|${ha.toLowerCase()}`;
 
-        const meta = getLeagueMeta(match.Competition, window.ONMLeagueDivisions?.seasonFromDate(match.Date));
+        const meta = getLeagueMeta(match.Competition, window.ONMLeagueDivisions?.seasonFromDate(match.Date), window.ONMLeagueDivisions?.isCup(match));
         const homePoints = getMatchField(match, "HomePoints", "Home Points", "homePoints");
         const awayPoints = getMatchField(match, "AwayPoints", "Away Points", "awayPoints");
         const pointsHtml = isColdaCompetition(match.Competition) && homePoints !== "" && awayPoints !== ""
@@ -776,10 +776,8 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
         const images = await fetchMatchImages(match);
 
-        const visibleCount = window.innerWidth >= 1100 ? 8 : 4;
-        const visible = images.slice(0, visibleCount);
+        const visible = images.slice(0, 8);
         const extraCount = Math.max(0, images.length - visible.length);
-
         const matchInfo = {
           homeTeam: match.HomeTeam || "",
           awayTeam: match.AwayTeam || "",
@@ -793,21 +791,19 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
 
         const imageGrid = images.length
           ? `
-        <div class="match-image-grid">
+        <div class="match-image-grid" data-photo-count="${images.length}">
           ${visible.map((src, i) => `
-            <div class="${i === visible.length - 1 && extraCount > 0 ? "image-count-overlay" : ""}"
+            <div data-photo-index="${i}" class="photo-slot ${i === visible.length - 1 && extraCount > 0 ? "image-count-overlay" : ""}"
               data-extra="${i === visible.length - 1 && extraCount > 0 ? "+" + extraCount : ""}"
-              ${i === visible.length - 1 && extraCount > 0
-              ? `onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'`
-              : ""}>
+              onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'>
               <img src="${window.ONMResultPhotos?.thumbnail(src) || src}"
                 data-drive-thumb="1"
                 loading="lazy"
                 decoding="async"
-                alt="Match photo ${i + 1}"
-                onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'>
+                alt="Match photo ${i + 1}">
             </div>
           `).join("")}
+          ${match._resultId ? `<button type="button" class="addResultPhotos result-photo-frame" data-add-result-photos="${encodeURIComponent(match._resultId)}" aria-label="Add more match photos" hidden><span class="result-photo-plus" aria-hidden="true">+</span><span>Add more</span></button>` : ""}
         </div>`
           : "";
 
@@ -848,7 +844,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           </div>
 
           <div class="player-images">
-            ${match._resultId ? `<button type="button" class="addResultPhotos result-photo-frame" data-add-result-photos="${encodeURIComponent(match._resultId)}" aria-label="Add match photos" hidden><span class="result-photo-plus" aria-hidden="true">+</span><span>Add photos</span></button>` : ""}
+            ${!images.length && match._resultId ? `<button type="button" class="addResultPhotos result-photo-frame" data-add-result-photos="${encodeURIComponent(match._resultId)}" aria-label="Add match photos" hidden><span class="result-photo-plus" aria-hidden="true">+</span><span>Add photos</span></button>` : ""}
             ${imageGrid}
           </div>
         </div>
@@ -871,11 +867,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
         data-opp="${normalizeName(opp)}"
         data-ha="${ha.toLowerCase()}">
 
-        <div class="league-pill league-pill-${meta.key}">${meta.label}</div>
-
-        ${["true", "yes"].includes(String(match["Cup?"] || "").toLowerCase())
-            ? `<img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/trophy.svg" alt="Cup Match" class="cup-icon" title="Cup Match">`
-            : ""}
+        <div class="league-pill league-pill-${meta.key}">${window.ONMLeagueDivisions?.isCup(match) ? `<svg class="league-cup-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 3h8v6a4 4 0 0 1-8 0V3Zm0 2H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 1v7m-4 1h8"/></svg>` : ""}${meta.label}</div>
 
         <div class="teams">
           <span class="team home">${match.HomeTeam}</span>

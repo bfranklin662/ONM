@@ -540,7 +540,7 @@
       <label>Club role<input name="role" maxlength="50" value="${escapeHtml(player.role)}"></label>
       <label>Highest checkout<input name="highestCheckout" type="number" min="0" max="170" value="${escapeHtml(player.highestCheckout)}"></label>
       <label>Walkout song link<input name="song" type="url" maxlength="500" value="${escapeHtml(player.song)}"></label>
-      <label class="wide">Accolades<input name="accolades" value="${escapeHtml((player.accolades || []).join(", "))}" placeholder="Comma-separated accolade keys"></label>
+      <fieldset class="wide"><legend>Accolades</legend>${Object.entries({guthrie_cup_winner_25_26:"Guthrie Cup winner 2025/26",banks_winner_24_25:"Banks Div 2 winner 2024/25",alex_beckett_winner_25:"Alex Beckett winner 2024/25",mpl_winner_25:"MPL winner 2025"}).map(([key,label])=>`<label class="adminCheckbox"><input type="checkbox" name="accoladeKey" value="${key}"${(player.accolades||[]).includes(key)?" checked":""}>${label}</label>`).join("")}</fieldset>
       <label class="wide">Bio<textarea name="bio" rows="5" maxlength="1000">${escapeHtml(player.bio)}</textarea></label>
       <label class="adminCheckbox">Gooch<input name="gooch" type="checkbox"${[true, "yes", "true"].includes(player.gooch) ? " checked" : ""}></label>
       <label class="adminCheckbox">Visible on website<input name="profileVisible" type="checkbox"${player.profileVisible !== false ? " checked" : ""}></label>
@@ -681,7 +681,7 @@
       nickname: clean(data.get("nickname")),
       photoUrl,
       bio: clean(data.get("bio")),
-      accolades: clean(data.get("accolades")).split(",").map(value => value.trim()).filter(Boolean),
+      accolades: [...new Set([...data.getAll("accoladeKey"), ...(player.accolades || []).filter(key => !["guthrie_cup_winner_25_26", "banks_winner_24_25", "alex_beckett_winner_25", "mpl_winner_25"].includes(key))])],
       role: clean(data.get("role")),
       song: clean(data.get("song")),
       highestCheckout: clean(data.get("highestCheckout")),

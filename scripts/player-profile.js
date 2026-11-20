@@ -2,6 +2,7 @@
 let playerName = "";
 let selectedSeason = "all";
 let selectedLeague = "all";
+let selectedBanksFilter = "all";
 let selectedProfileView = "appearances";
 let overallTotals = null;
 let playerStatsRows = [];
@@ -58,6 +59,7 @@ function updateProfileDataTitle() {
 }
 
 function updateProfileDataPanels() {
+  renderBanksFilters();
   const statsPanel = document.getElementById("profileStatsPanel");
   const appearancesPanel = document.getElementById("profileAppearancesPanel");
 
@@ -82,12 +84,15 @@ function initProfileAccountDetails(name, profileData) {
       const current = ++revision;
       if (owe) owe.hidden = true;
       heading?.querySelector(".profileLinkedBadge")?.remove();
+      const imageButton = document.getElementById("editOwnPlayerImage");
+      if (imageButton) imageButton.hidden = true;
       if (!user || !profileData.playerKey) return;
       try {
         const account = await window.ONMFirebase.loadOwnUser();
         if (current !== revision || account?.status !== "Active") return;
         const isOwnPage = account.linkedPlayerKey === profileData.playerKey;
         if (owe) owe.hidden = !isOwnPage;
+        if (imageButton) imageButton.hidden = !isOwnPage;
         initPlayerProfileEditor(name, profileData, account);
         let linked = isOwnPage;
         if (!linked) {
@@ -149,6 +154,7 @@ function initPlayerProfileEditor(name, profileData, account = null) {
       </div>
       <form id="playerProfileEditForm" class="profile-edit-form">
         <label>Nickname<input name="nickname" type="text" maxlength="80"></label>
+        <label>Upload image<input name="photoFile" type="file" accept="image/jpeg,image/png,image/webp"></label>
         <label>Photo link<input name="photoUrl" type="text" maxlength="500" placeholder="Drive link or images/players/photo.jpg"></label>
         <label class="profile-edit-wide">Bio<textarea name="bio" rows="4" maxlength="1000"></textarea></label>
         <label>Role<input name="role" type="text" maxlength="50" placeholder="Captain, vice-captain…"></label>
@@ -205,6 +211,21 @@ function initPlayerProfileEditor(name, profileData, account = null) {
     status.textContent = "";
 
     try {
+      const file = form.elements.namedItem("photoFile")?.files?.[0];
+      if (file) {
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error("Choose a JPG, PNG or WebP image under 5 MB.");
+        status.textContent = "Uploading image…";
+        const imageBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result).split(",")[1]);
+          reader.onerror = () => reject(new Error("Could not read this image."));
+          reader.readAsDataURL(file);
+        });
+        const ownImage = user.linkedPlayerKey === profileData.playerKey;
+        const result = await window.ONMFirebase.post({ action: ownImage ? "uploadProfilePhoto" : "uploadPlayerPhoto", playerKey: profileData.playerKey, fileName: file.name, mimeType: file.type, imageBase64 });
+        if (!result.success) throw new Error(result.error || "Could not upload this image.");
+        form.elements.namedItem("photoUrl").value = result.photoUrl;
+      }
       await updatePublicPlayerProfile({
         user,
         playerKey: profileData.playerKey,
@@ -237,6 +258,7 @@ function makeProfileAccoladesHtml(profile) {
   if (!keys.length) return "";
 
   const accoladeMap = {
+    guthrie_cup_winner_25_26: { icon: "🏆", tip: "Guthrie Cup Winner 2025/26" },
     banks_winner_24_25: { icon: "⭐", tip: "Banks League Div 2 Winner 2024/25" },
     alex_beckett_winner_25: { icon: "🏆", tip: "Alex Beckett League Winner 2024/25" },
     mpl_winner_25: { icon: "🏅", tip: "Monsters Premier League Winner 2025" }
@@ -244,9 +266,12 @@ function makeProfileAccoladesHtml(profile) {
 
   return keys
     .map(k => {
-      const a = accoladeMap[k];
+      let a = accoladeMap[k];
+      if (!a && k.startsWith("custom:")) {
+        try { a = { icon: "🏆", tip: decodeURIComponent(k.slice(7)) }; } catch (_) {}
+      }
       if (!a) return "";
-      return `<span class="acc-emoji" data-tooltip="${a.tip}">${a.icon}</span>`;
+      return `<span class="acc-emoji" data-tooltip="${escapeHtml(a.tip)}">${a.icon}</span>`;
     })
     .join("");
 }
@@ -712,7 +737,7 @@ function formatAppearanceDate(raw) {
 async function buildRowsOnly(apps) {
   return apps.map((r, index) => {
     const league = leagueInfoFromRow(r);
-    const leagueText = (window.ONMLeagueDivisions?.label(r.Competition || leagueLabelFromId(league.name), window.ONMLeagueDivisions.seasonFromDate(r["Date Played"] || r["Match Date"] || r.Date)) || leagueLabelFromId(league.name)).toUpperCase();
+    const leagueText = escapeHtml(window.ONMLeagueDivisions.shortLabel(r.Competition || leagueLabelFromId(league.name), window.ONMLeagueDivisions.seasonFromDate(r["Date Played"] || r["Match Date"] || r.Date), window.ONMLeagueDivisions.isCup(r))).toUpperCase();
     const rowClass = `row-${league.name}`;
 
     const home = (r.HomeTeam || "").trim();
@@ -831,7 +856,27 @@ function formatSeasonLabel(season) {
 }
 
 
+function banksAppearanceMatches(row, season) {
+  if (selectedLeague !== "banks" || selectedBanksFilter === "all") return true;
+  const cup = window.ONMLeagueDivisions.isCup(row);
+  return selectedBanksFilter === "cup" ? cup : !cup && season === selectedBanksFilter;
+}
+function renderBanksFilters() {
+  let bar = document.getElementById("profileBanksFilter");
+  if (!bar) { bar = document.createElement("div"); bar.id = "profileBanksFilter"; bar.className = "profile-banks-filter"; document.getElementById("profileLeagueFilter")?.after(bar); }
+  bar.hidden = selectedLeague !== "banks" || selectedProfileView !== "appearances";
+  const options = [["all", "All"], ["26-27", "Prem"], ["25-26", "Div 1"], ["24-25", "Div 2"], ["cup", "Cup"]];
+  bar.innerHTML = options.filter(([value]) => ["all", "cup"].includes(value) || selectedSeason === "all" || selectedSeason === value).map(([value, text]) => `<button type="button" data-banks-filter="${value}" aria-pressed="${value === selectedBanksFilter}" class="${value === selectedBanksFilter ? "active" : ""}">${text}</button>`).join("");
+}
+document.addEventListener("click", event => {
+  const button = event.target.closest("[data-banks-filter]");
+  if (!button) return;
+  selectedBanksFilter = button.dataset.banksFilter;
+  renderFilteredAppearances();
+});
+
 async function renderFilteredAppearances() {
+  renderBanksFilters();
   const apps2726 = await fetchCSV(SHEETS.appearances["26-27"]);
   const apps2625 = await fetchCSV(SHEETS.appearances["25-26"]);
   const apps2425 = await fetchCSV(SHEETS.appearances["24-25"]);
@@ -888,7 +933,7 @@ async function renderFilteredAppearances() {
 
   let html = "";
   for (const season of seasonsToRender) {
-    const seasonRows = groups[season];
+    const seasonRows = groups[season].filter(row => banksAppearanceMatches(row, season));
     if (!seasonRows || !seasonRows.length) continue;
 
     seasonRows.sort((a, b) => {
@@ -1190,6 +1235,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       { nickname: "", bio: "", photo: "images/default.jpg", accolades: [], role: "" };
 
     initProfileAccountDetails(playerName, profileData);
+    const editImage = document.getElementById("editOwnPlayerImage");
+    editImage?.addEventListener("click", () => {
+      document.getElementById("editPlayerProfileBtn")?.click();
+      document.querySelector('.profile-edit-form input[name="photoFile"]')?.click();
+    });
     const highestEl = document.getElementById("playerHighestCheckout");
     if (highestEl) {
       const hc = (profileData.highestCheckout || "").trim();
@@ -1388,6 +1438,7 @@ document.addEventListener("click", (e) => {
     document.querySelectorAll(".league-btn").forEach(b => b.classList.remove("active"));
     leagueBtn.classList.add("active");
     selectedLeague = leagueBtn.dataset.league;
+    selectedBanksFilter = "all";
     updateStatsVisibility();
     renderFilteredAppearances();
     updateProfileDataPanels();
@@ -1397,6 +1448,7 @@ document.addEventListener("click", (e) => {
 
 document.getElementById("profileSeasonSelect")?.addEventListener("change", e => {
   selectedSeason = e.target.value;
+  selectedBanksFilter = "all";
   updateStatsVisibility();
   updateProfileDataPanels();
   renderFilteredAppearances();
@@ -1519,7 +1571,7 @@ async function loadSeasonData(season) {
       return {
         ...stats,
         ...makeRates(stats),
-        label: `${window.ONMLeagueDivisions?.label(table.league.label, table.season) || table.league.label} ${table.season.replace("-", "/")}`,
+        label: `${window.ONMLeagueDivisions?.shortLabel(table.league.label, table.season) || table.league.label} ${table.season.replace("-", "/")}`,
         season: table.season,
         league: table.league.id,
         className: `row-${table.league.id}`,

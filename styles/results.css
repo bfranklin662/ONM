@@ -2242,3 +2242,10 @@ td:first-child {
 
 .view-selector .view-btn[data-tooltip] { position:relative; }
 .view-selector .view-btn[data-tooltip]:is(:hover,:focus)::after { content:attr(data-tooltip); position:absolute; top:calc(100% + 9px); right:0; width:max-content; max-width:min(230px,75vw); padding:7px 10px; border:1px solid #48755b; border-radius:8px; background:#0b2419; color:#dbede0; font:500 12px/1.4 system-ui,sans-serif; white-space:normal; z-index:100; pointer-events:none; }
+
+.league-cup-symbol { display:inline-block; width:13px; height:13px; vertical-align:-2px; margin-right:5px; }
+.result-card-wide .player-images { flex-direction:column; }
+.result-card-wide .match-image-grid { align-self:center; }
+.result-card-wide .match-image-grid .result-photo-frame { width:100%; min-width:0; min-height:0; height:auto; aspect-ratio:1.15/1; margin:0; padding:6px; border:1px dashed #558574; border-radius:5px; display:flex; flex-direction:column; gap:4px; font-size:.7rem; }
+.result-card-wide .match-image-grid .result-photo-plus { font:300 34px/1 system-ui,sans-serif; }
+.match-image-grid [hidden] { display:none !important; }

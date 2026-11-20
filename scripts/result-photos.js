@@ -260,6 +260,18 @@
 
   let canAddPhotos = false;
   function updatePhotoButtons() {
+    document.querySelectorAll(".match-image-grid[data-photo-count]").forEach(grid => {
+      const canUpload = canAddPhotos && Boolean(grid.querySelector("[data-add-result-photos]"));
+      const limit = canUpload ? 7 : 8;
+      const count = Number(grid.dataset.photoCount);
+      grid.querySelectorAll("[data-photo-index]").forEach(slot => {
+        const index = Number(slot.dataset.photoIndex);
+        slot.hidden = index >= limit;
+        const extra = Math.max(0, count - limit);
+        slot.classList.toggle("image-count-overlay", index === Math.min(count, limit) - 1 && extra > 0);
+        slot.dataset.extra = index === limit - 1 && extra > 0 ? `+${extra}` : "";
+      });
+    });
     document.querySelectorAll("[data-add-result-photos]").forEach(button => {
       button.hidden = !canAddPhotos;
     });

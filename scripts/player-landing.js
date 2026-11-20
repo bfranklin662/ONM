@@ -126,6 +126,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const accoladeMap = {
+    guthrie_cup_winner_25_26: { emoji: "🏆", tooltip: "Guthrie Cup Winner 2025/26" },
     banks_winner_24_25: {
       emoji: "⭐",
       tooltip: "Banks League 2024/25"
@@ -143,7 +144,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function makeAccoladesOverlayHtml(profile = {}) {
     const keys = Array.isArray(profile.accolades) ? profile.accolades : [];
-    const items = keys.map(k => accoladeMap[k]).filter(Boolean);
+    const items = keys.map(k => {
+      if (accoladeMap[k]) return accoladeMap[k];
+      if (k.startsWith("custom:")) { try { return { emoji: "🏆", tooltip: decodeURIComponent(k.slice(7)) }; } catch (_) {} }
+      return null;
+    }).filter(Boolean);
 
     if (!items.length) return "";
 
@@ -151,7 +156,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     <div class="player-card-accolades" aria-label="Accolades">
       ${items.map(a => `
         <span class="acc-emoji"
-              data-tooltip="${a.tooltip}">
+              data-tooltip="${escapeHtml(a.tooltip)}">
           ${a.emoji}
         </span>
       `).join("")}
