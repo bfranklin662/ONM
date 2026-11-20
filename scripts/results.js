@@ -846,7 +846,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           </div>
 
           <div class="player-images">
-            ${match._resultId ? `<button type="button" class="addResultPhotos" data-add-result-photos="${encodeURIComponent(match._resultId)}">Add photos</button>` : ""}
+            ${match._resultId ? `<button type="button" class="addResultPhotos result-photo-frame" data-add-result-photos="${encodeURIComponent(match._resultId)}" aria-label="Add match photos"><span class="result-photo-plus" aria-hidden="true">+</span><span>Add photos</span></button>` : ""}
             ${imageGrid}
           </div>
         </div>

@@ -2203,10 +2203,30 @@ td:first-child {
 .result-card-wide .teams .score { display: flex; flex-direction: column; justify-content: center; align-items: center; flex: 0 0 auto; min-width: 70px; min-height: 44px; font-size: 1.5rem; line-height: 1.15; padding: 6px 10px; }
 .result-card-wide > .date { margin: 5px 0 2px; font-size: .85rem; line-height: 1.3; }
 .result-card-wide > .player-data:not(.expanded) { padding-bottom: 0; }
-.result-card-wide .player-images > .addResultPhotos { margin: 0 0 10px; }
+.result-card-wide .player-images > .result-photo-frame {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 136px;
+  max-width: 100%;
+  box-sizing: border-box;
+  height: 112px;
+  flex: 0 0 auto;
+  margin: 0 0 10px;
+  padding: 12px;
+  border: 1px dashed #558574;
+  border-radius: 12px;
+  background: #0d281f;
+  color: #abc9bb;
+  font-size: .75rem;
+  font-weight: 600;
+  transition: background .15s, border-color .15s;
+}
+.result-card-wide .player-images > .result-photo-frame:hover { background: #173e30; border-color: #8fbaa5; color: #fff; }
+.result-photo-frame .result-photo-plus { font: 300 44px/1 system-ui, sans-serif; }
 .result-card-wide .flex-layout.no-match-images { display: grid; grid-template-columns: minmax(0, 3fr) minmax(110px, 1fr); gap: 16px; }
 .result-card-wide .flex-layout.no-match-images .player-images { display: flex; align-items: flex-start; justify-content: flex-end; }
-.result-card-wide .flex-layout.no-match-images .addResultPhotos { margin-top: 10px; }
+.result-card-wide .flex-layout.no-match-images .addResultPhotos { margin-top: 0; }
 @media (max-width: 700px) {
   .result-card-wide .flex-layout.no-match-images { display: flex; flex-direction: column; gap: 6px; }
   .result-card-wide .flex-layout.no-match-images .player-images { justify-content: flex-end; }
