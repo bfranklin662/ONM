@@ -338,6 +338,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let seasonFixtures = [];
   const submittedFixtureKeys = new Set();
   const completedFixtureKeys = new Set();
+  let fixtureLoadState = "loading";
+  let fixtureLoadError = "";
+  let fixtureLoadPromise = null;
 
   async function loadLiveMatchRows(action, field) {
     if (!window.ONMFirebase?.post) throw new Error("Live match data is unavailable.");
@@ -349,18 +352,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function loadLeagueTeamsData() {
+    fixtureLoadState = "loading";
+    fixtureLoadError = "";
+    populateFixtureSelector();
     try {
       const [teamsRes, fixtures, results] = await Promise.all([
-        fetch(`data/league-teams.json?v=${Date.now()}`, { cache: "no-store" }),
+        fetch(`data/league-teams.json?v=${Date.now()}`, { cache: "no-store" }).catch(() => null),
         loadLiveMatchRows("getPublicSeasonFixtures", "fixtures"),
         loadLiveMatchRows("getPublicSeasonResults", "results")
       ]);
 
-      if (!teamsRes.ok) {
-        throw new Error("Fixture data could not be loaded");
-      }
-
-      leagueTeamsData = await teamsRes.json();
+      if (teamsRes?.ok) leagueTeamsData = await teamsRes.json();
       completedFixtureKeys.clear();
       const today = todayInputValue();
       seasonFixtures = (Array.isArray(fixtures) ? fixtures : [])
@@ -375,15 +377,16 @@ document.addEventListener("DOMContentLoaded", () => {
             Boolean(findStoredFixture(store.game.resultSubmitData?.match, [fixture]));
         })
         .sort((a, b) => a.dateValue.localeCompare(b.dateValue));
+      fixtureLoadState = "ready";
+      return true;
     } catch (err) {
       console.warn("Could not load league or fixture data", err);
       leagueTeamsData = null;
       seasonFixtures = [];
+      fixtureLoadState = "error";
+      fixtureLoadError = "Could not load the live fixture list. Your saved players, fines and match details are kept. Tap Retry fixtures.";
       populateFixtureSelector();
-      if (fixtureAutofillStatus) {
-        fixtureAutofillStatus.textContent = "Could not check live fixtures and submitted results. Refresh to try again.";
-        fixtureAutofillStatus.classList.add("error");
-      }
+      return false;
     }
   }
 
@@ -621,6 +624,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function populateFixtureSelector({ preferredKey = "", storedMatch = resultSubmitData.match, clearScores = false } = {}) {
     if (!matchFixture) return;
+    const retry = document.getElementById("retryMatchFixtures");
+    if (retry) { retry.hidden = fixtureLoadState !== "error"; retry.disabled = fixtureLoadState === "loading"; }
+    if (fixtureLoadState !== "ready") {
+      const loading = fixtureLoadState === "loading";
+      matchFixture.innerHTML = loading ? '<option value="">Loading fixtures…</option>' : '<option value="">Fixtures could not be loaded</option>';
+      matchFixture.disabled = true;
+      const picker = document.getElementById("sameDayFixtures");
+      if (picker) { picker.hidden = true; picker.replaceChildren(); }
+      if (fixtureAutofillStatus) {
+        fixtureAutofillStatus.textContent = loading ? "Checking live fixtures and submitted results…" : fixtureLoadError;
+        fixtureAutofillStatus.classList.toggle("error", !loading);
+      }
+      return;
+    }
 
     const savedFixtureKey = submittedResultRow
       ? findStoredFixture(resultSubmitData.match)?.key : "";
@@ -886,6 +903,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function readMatchInfo() {
+    if (fixtureLoadState !== "ready" || !matchFixture?.value) return;
     const isColda = isColdaLeague();
     const homePoints = isColda ? Number(document.getElementById("matchHomePoints")?.value || 0) : "";
     const awayPoints = isColda ? Number(document.getElementById("matchAwayPoints")?.value || 0) : "";
@@ -3639,19 +3657,23 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 
-  loadLeagueTeamsData().then(() => {
-    setDefaultLeague();
-    populateLeagueTeamSuggestions({ applyDefaults: false });
-    populateFixtureSelector({
-      preferredKey: resultSubmitData.match?.fixtureKey || "",
-      storedMatch: resultSubmitData.match,
-      clearScores: false
-    });
-
-    if (!store.game?.players?.length) {
-      hydrateMatchInfoDefaults();
-    }
-  });
+  function refreshMatchFixtures() {
+    if (fixtureLoadPromise) return fixtureLoadPromise;
+    fixtureLoadPromise = loadLeagueTeamsData().then(loaded => {
+      if (!loaded) return;
+      setDefaultLeague();
+      populateLeagueTeamSuggestions({ applyDefaults: false });
+      if (players.length && resultSubmitData.match?.date) {
+        hydrateMatchInfoFromStore();
+        if (currentScreen === "reviewResult") renderReviewResult();
+      } else {
+        hydrateMatchInfoDefaults();
+      }
+    }).finally(() => { fixtureLoadPromise = null; });
+    return fixtureLoadPromise;
+  }
+  document.getElementById("retryMatchFixtures")?.addEventListener("click", refreshMatchFixtures);
+  void refreshMatchFixtures();
 
   renderSetupInputs();
   loadSignedInPlayerDirectory();

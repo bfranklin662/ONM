@@ -485,7 +485,32 @@
   }
 
   async function getCollectionRows(collectionName, fieldName, season = "", fresh = false) {
-    const { db, firestoreSdk } = await ready;
+    if (fresh && ["fixtures", "results"].includes(collectionName)) {
+      const rows = [];
+      let pageToken = "";
+      do {
+        const url = new URL(`https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/${collectionName}`);
+        url.searchParams.set("pageSize", "1000");
+        if (pageToken) url.searchParams.set("pageToken", pageToken);
+        const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(15000) });
+        if (!response.ok) throw new Error("Could not check live match data. Please retry.");
+        const page = await response.json();
+        for (const document of page.documents || []) {
+          const fields = document.fields || {};
+          if (season && season !== "all" && fields.season?.stringValue !== season) continue;
+          const rowFields = fields[fieldName]?.mapValue?.fields || fields;
+          const row = Object.fromEntries(Object.entries(rowFields).map(([name, value]) => [
+            name, value.stringValue ?? value.integerValue ?? value.doubleValue ??
+              value.booleanValue ?? value.timestampValue ?? null
+          ]));
+          if (collectionName === "results") row._resultId = document.name.split("/").pop();
+          rows.push(row);
+        }
+        pageToken = page.nextPageToken || "";
+      } while (pageToken);
+      return rows;
+    }
+    const { db, firestoreSdk } = await firestoreReady;
     const collection = firestoreSdk.collection(db, collectionName);
     const snapshot = await (fresh ? firestoreSdk.getDocsFromServer(collection) : firestoreSdk.getDocs(collection));
     return snapshot.docs
