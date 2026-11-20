@@ -337,6 +337,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let leagueTeamsData = null;
   let seasonFixtures = [];
   const submittedFixtureKeys = new Set();
+  const completedFixtureKeys = new Set();
 
   async function loadLeagueTeamsData() {
     try {
@@ -367,7 +368,12 @@ document.addEventListener("DOMContentLoaded", () => {
         .map(normaliseSeasonFixture)
         .filter(fixture => fixture.dateValue)
         .filter(fixture => fixture.dateValue <= today)
-        .filter(fixture => !fixtureHasSubmittedResult(fixture, results))
+        .filter(fixture => {
+          if (!fixtureHasSubmittedResult(fixture, results)) return true;
+          completedFixtureKeys.add(fixture.key);
+          return Boolean(store.game?.submittedResultRow) &&
+            Boolean(findStoredFixture(store.game.resultSubmitData?.match, [fixture]));
+        })
         .sort((a, b) => a.dateValue.localeCompare(b.dateValue));
     } catch (err) {
       console.warn("Could not load league or fixture data", err);
@@ -578,7 +584,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (fixtureAutofillStatus) {
       const count = availableFixtures().length;
-      fixtureAutofillStatus.textContent = `${count} unsubmitted ${count === 1 ? "fixture" : "fixtures"}. Past matches stay here until their results are submitted.`;
+      fixtureAutofillStatus.textContent = submittedResultRow &&
+        (completedFixtureKeys.has(fixture.key) || submittedFixtureKeys.has(fixture.key))
+        ? "Saved submitted result. You can review it and re-submit corrections."
+        : `${count} unsubmitted ${count === 1 ? "fixture" : "fixtures"}. Past matches stay here until their results are submitted.`;
       fixtureAutofillStatus.classList.remove("error");
     }
 
@@ -589,7 +598,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function availableFixtures() {
-    return seasonFixtures.filter(fixture => !submittedFixtureKeys.has(fixture.key));
+    return seasonFixtures.filter(fixture => !submittedFixtureKeys.has(fixture.key) && !completedFixtureKeys.has(fixture.key));
   }
 
   function renderOutstandingFixtures(selected) {
@@ -613,8 +622,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function populateFixtureSelector({ preferredKey = "", storedMatch = resultSubmitData.match, clearScores = false } = {}) {
     if (!matchFixture) return;
 
+    const savedFixtureKey = store.game?.submittedResultRow
+      ? findStoredFixture(store.game.resultSubmitData?.match)?.key : "";
     const visibleFixtures = seasonFixtures.filter(fixture =>
-      !submittedFixtureKeys.has(fixture.key) || fixture.key === preferredKey
+      (!submittedFixtureKeys.has(fixture.key) && !completedFixtureKeys.has(fixture.key)) ||
+        fixture.key === preferredKey || fixture.key === savedFixtureKey
     );
 
     if (!visibleFixtures.length) {
@@ -635,7 +647,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const currentKey = preferredKey || matchFixture.value;
     matchFixture.innerHTML = visibleFixtures.map(fixture => {
       const leagueName = (fixture.league === "Banks League" ? "Banks" : "Trafalgar") + (fixture.cup ? " Cup" : "");
-      return `<option value="${escapeHtml(fixture.key)}">${escapeHtml(fixtureDateLabel(fixture.dateValue))} · ${leagueName} · ${escapeHtml(fixture.opponent)} · ${fixture.homeAway}</option>`;
+      const submitted = completedFixtureKeys.has(fixture.key) || submittedFixtureKeys.has(fixture.key);
+      return `<option value="${escapeHtml(fixture.key)}">${escapeHtml(fixtureDateLabel(fixture.dateValue))} · ${leagueName} · ${escapeHtml(fixture.opponent)} · ${fixture.homeAway}${submitted ? " · Submitted" : ""}</option>`;
     }).join("");
 
     const selected = visibleFixtures.find(fixture => fixture.key === currentKey)
@@ -1987,6 +2000,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   matchFixture?.addEventListener("change", () => {
     const fixture = seasonFixtures.find(item => item.key === matchFixture.value);
+    if (!fixture) return;
+    const saved = store.game;
+    if (saved?.submittedResultRow && fixture.key === saved.resultSubmitData?.match?.fixtureKey) {
+      submittedResultRow = saved.submittedResultRow;
+      resultSubmitData.match = { ...saved.resultSubmitData.match };
+      hydrateMatchInfoFromStore();
+      return;
+    }
+    submittedResultRow = null;
+    document.getElementById("resultSubmittedBanner")?.remove();
     applyFixture(fixture, { clearScores: true });
   });
 

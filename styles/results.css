@@ -2190,7 +2190,7 @@ td:first-child {
 }
 
 /* Compact the public result summary while keeping its corner badges clear. */
-.result-card-wide { padding: 6px 14px 18px; }
+.result-card-wide { padding: 14px 14px 28px; }
 .result-card-wide > .resultPlayedBadge {
   position: absolute;
   top: 12px;
@@ -2200,12 +2200,19 @@ td:first-child {
 .result-card-wide:has(.cup-icon) > .resultPlayedBadge { right: 42px; margin: 0; }
 .result-card-wide .teams { padding-top: 0; margin: 0 100px; }
 .result-card-wide .teams .team { font-size: 1rem; line-height: 1.2; font-weight: 600; }
-.result-card-wide .teams .score { font-size: 1.5rem; line-height: 1.15; padding: 6px 10px; }
-.result-card-wide > .date { margin: 2px 0; font-size: .85rem; line-height: 1.3; }
+.result-card-wide .teams .score { display: flex; flex-direction: column; justify-content: center; align-items: center; flex: 0 0 auto; min-width: 70px; min-height: 44px; font-size: 1.5rem; line-height: 1.15; padding: 6px 10px; }
+.result-card-wide > .date { margin: 5px 0 2px; font-size: .85rem; line-height: 1.3; }
 .result-card-wide > .player-data:not(.expanded) { padding-bottom: 0; }
-.result-card-wide > .addResultPhotos { margin: 2px 0 0; }
+.result-card-wide .player-images > .addResultPhotos { margin: 0 0 10px; }
+.result-card-wide .flex-layout.no-match-images { display: grid; grid-template-columns: minmax(0, 3fr) minmax(110px, 1fr); gap: 16px; }
+.result-card-wide .flex-layout.no-match-images .player-images { display: flex; align-items: flex-start; justify-content: flex-end; }
+.result-card-wide .flex-layout.no-match-images .addResultPhotos { margin-top: 10px; }
 @media (max-width: 700px) {
-  .result-card-wide .teams { padding-top: 20px; margin-inline: 0; }
+  .result-card-wide .flex-layout.no-match-images { display: flex; flex-direction: column; gap: 6px; }
+  .result-card-wide .flex-layout.no-match-images .player-images { justify-content: flex-end; }
+}
+@media (max-width: 700px) {
+  .result-card-wide .teams { padding-top: 24px; margin-inline: 0; }
   .result-card-wide > .resultPlayedBadge { top: 9px; right: 10px; }
   .result-card-wide:has(.cup-icon) > .resultPlayedBadge { right: 38px; }
 }

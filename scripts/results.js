@@ -845,7 +845,10 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
             </table>
           </div>
 
-          <div class="player-images">${imageGrid}</div>
+          <div class="player-images">
+            ${match._resultId ? `<button type="button" class="addResultPhotos" data-add-result-photos="${encodeURIComponent(match._resultId)}">Add photos</button>` : ""}
+            ${imageGrid}
+          </div>
         </div>
 
         ${match.Venue ? `
@@ -896,7 +899,6 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
         </div>
 
         ${playerHTML}
-        ${match._resultId ? `<button type="button" class="addResultPhotos" data-add-result-photos="${encodeURIComponent(match._resultId)}">Add photos</button>` : ""}
         <button class="toggle-players" title="Match details">▽</button>
       </div>
     `;
