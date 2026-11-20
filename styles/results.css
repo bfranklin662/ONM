@@ -2265,7 +2265,8 @@ td:first-child {
  .results-header-bar .season-selector { grid-column:1; grid-row:2; }
  .results-header-bar .view-selector { grid-column:2; grid-row:2; }
 }
-.results-container .league-box,.results-container .stats-container,.results-container .stats-content,.results-container .stats-table-wrapper { background:#123324; border-color:#3c654d; }
+.results-container .league-box { background:#123324; border-color:#3c654d; }
+.results-container .stats-container,.results-container .stats-content,.results-container .stats-table-wrapper { background:transparent; border:0; box-shadow:none; }
 .results-container .stats-grid table,.results-container .stats-grid tbody td { background:#102d20; }
 .results-container .stats-grid tbody tr:nth-child(even) td { background:#193b2b; }
 .results-container .stats-grid thead th { background:#214934; }
