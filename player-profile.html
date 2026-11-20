@@ -8,10 +8,10 @@
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
   <link rel="stylesheet" href="styles/index.css">
-  <link rel="stylesheet" href="styles/player-profile.css?v=20261120-profile-views">
+  <link rel="stylesheet" href="styles/player-profile.css?v=20261120-profile-cleanup">
   <link rel="stylesheet" href="styles/players-landing.css">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
-  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261028-payment-link">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261120-profile-cleanup">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
   <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
@@ -91,12 +91,11 @@
           <h2 class="profile-title only-desktop">
             Player Profile
           </h2>
-          <a class="profileOweLink" href="fines.html">What I owe →</a>
         </div>
 
         <!-- RIGHT: Tabs -->
         <div class="stats-header-right title-left">
-          <select id="playerSelect" class="player-selector-inline"></select>
+          <select id="playerSelect" class="player-selector-inline" aria-label="Choose player"></select>
         </div>
 
       </div>
@@ -133,7 +132,11 @@
 
 
               <div class="header-col header-info">
-                <h1 id="playerName" class="player-name"></h1>
+                <div class="profile-name-row">
+                  <h1 id="playerName" class="player-name"></h1>
+                  <a class="profileOweLink" href="fines.html">What I owe →</a>
+                </div>
+                <div id="playerProfileActions" class="profile-card-actions"></div>
 
                 <div class="player-info-grid">
                   <!-- Row 1 -->
@@ -146,7 +149,6 @@
                     <span id="playerDateJoined" class="meta-value">...</span>
                   </div>
 
-                  <div id="playerGooch" class="info-item"></div>
 
                   <!-- Row 3 -->
                   <div id="playerBioRow" class="info-item info-bio"></div>
@@ -229,7 +231,6 @@
                           <th>CO/Game</th>
                           <th>Fines</th>
                           <th>Fines/Game</th>
-                          <th>Bagels</th>
                           <th>Specials</th>
                         </tr>
                       </thead>
@@ -356,7 +357,7 @@
   <script src="scripts/firebase-client.js?v=20261111-tournament-scoring"></script>
   <script src="scripts/season-data.js?v=20261014-admin"></script>
   <script src="scripts/player-data.js?v=20261016-registration"></script>
-  <script src="scripts/player-profile.js?v=20261120-profile-views"></script>
+  <script src="scripts/player-profile.js?v=20261120-profile-cleanup"></script>
   <script>
     function toggleSidebar() {
       const sidebar = document.getElementById("sidebar");

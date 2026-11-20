@@ -79,7 +79,7 @@ function initPlayerProfileEditor(name, profileData) {
   if (!canEdit) return;
   if (document.getElementById("editPlayerProfileBtn")) return;
 
-  const buttonWrap = document.querySelector(".main-profile-header .stats-header-right");
+  const buttonWrap = document.getElementById("playerProfileActions");
   if (!buttonWrap) return;
 
   const editButton = document.createElement("button");
@@ -109,7 +109,6 @@ function initPlayerProfileEditor(name, profileData) {
         <label>Highest checkout<input name="highestCheckout" type="number" min="0" max="170"></label>
         <label class="profile-edit-wide">Walkout song link<input name="song" type="url" maxlength="500" placeholder="Spotify link"></label>
         <label class="profile-edit-wide">Accolades<input name="accolades" type="text" maxlength="500" placeholder="Comma-separated accolade keys"></label>
-        <label class="profile-edit-check"><input name="gooch" type="checkbox"> Gooch</label>
         <div class="profile-edit-status" role="status"></div>
         <div class="profile-edit-actions">
           <button class="profile-edit-cancel" type="button">Cancel</button>
@@ -133,7 +132,6 @@ function initPlayerProfileEditor(name, profileData) {
   setValue("highestCheckout", profileData.highestCheckout);
   setValue("song", profileData.song);
   setValue("accolades", (profileData.accolades || []).join(", "));
-  form.elements.namedItem("gooch").checked = profileData.gooch === "yes" || profileData.gooch === "true";
 
   const closeEditor = () => {
     overlay.classList.add("hidden");
@@ -172,7 +170,7 @@ function initPlayerProfileEditor(name, profileData) {
           highestCheckout: form.elements.namedItem("highestCheckout").value,
           song: form.elements.namedItem("song").value,
           accolades: form.elements.namedItem("accolades").value.split(",").map(value => value.trim()).filter(Boolean),
-          gooch: form.elements.namedItem("gooch").checked,
+          gooch: profileData.gooch === "yes" || profileData.gooch === "true",
           profileVisible: profileData.profileVisible !== false
         }
       });
@@ -602,7 +600,6 @@ function statsRowHtml(row, index) {
       <td>${fmt2(row.CheckoutsPerGame)}</td>
       <td>${fmtGBP(row.Fines)}</td>
       <td>${fmtGBP(row.FinesPerGame)}</td>
-      <td>${row.Bagels}</td>
       <td>${row.specialsHtml}</td>
     </tr>
   `;
@@ -641,7 +638,7 @@ function updateStatsVisibility() {
   if (!visibleCount) {
     document.getElementById("playerStatsBody")?.insertAdjacentHTML(
       "beforeend",
-      `<tr class="no-data"><td colspan="10">No player stats available for this filter yet.</td></tr>`
+      `<tr class="no-data"><td colspan="9">No player stats available for this filter yet.</td></tr>`
     );
   }
 }
@@ -735,10 +732,7 @@ async function buildRowsOnly(apps) {
         </td>
 
         <td>
-          ${p.checkouts === 0
-        ? `<span class="bagel" data-tooltip="Bagel (0 Checkouts)">🥯</span>`
-        : p.checkouts
-      }
+          ${p.checkouts}
         </td>
 
         <td class="fine-cell ${p.doubleFine ? "double-fine" : ""}">
@@ -1139,6 +1133,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       { nickname: "", bio: "", photo: "images/default.jpg", accolades: [], role: "" };
 
     headerNameEl?.insertAdjacentHTML("beforeend", window.PlayerData.registrationBadge(profileData));
+    const registrationTick = headerNameEl?.querySelector(".registrationBadge");
+    if (registrationTick) registrationTick.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>';
     const highestEl = document.getElementById("playerHighestCheckout");
     if (highestEl) {
       const hc = (profileData.highestCheckout || "").trim();
@@ -1147,27 +1143,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     <span class="meta-value">${hc ? escapeHtml(hc) : "No ton+ outs"}</span>
   `;
     }
-
-    const goochEl = document.getElementById("playerGooch");
-    if (goochEl) {
-      const isYes = profileData.gooch === "yes" || profileData.gooch === "true";
-
-      goochEl.innerHTML = `
-    <div class="gooch-wrap">
-      <div class="gooch-item">
-        <span class="meta-label">Gooch:</span>
-        <span class="gooch-checkbox ${isYes ? "is-yes" : ""}" aria-label="Gooch"></span>
-      </div>
-
-      <div class="bagel-item">
-        <span class="meta-label">Bagels:</span>
-        <span class="meta-value" id="playerBagels">—</span>
-      </div>
-    </div>
-  `;
-    }
-
-
 
     function toSpotifyEmbedUrl(url) {
       if (!url) return "";
