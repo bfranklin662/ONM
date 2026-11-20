@@ -5,6 +5,35 @@
   const existingPhotos = new Map();
   let dialog, currentResultId, currentUser, changed = false, busy = false;
   let pendingPhotos = [];
+  const heicConverterUrl = new URL("vendor/heic-to/heic-to.mjs", document.currentScript.src).href;
+  let heicConverter;
+  const isHeicPhoto = file => /^image\/(heic|heif)(-sequence)?$/i.test(file.type) || /\.(heic|heif)$/i.test(file.name || "");
+
+  async function preparePhoto(file) {
+    if (!isHeicPhoto(file)) return file;
+    // Prefer the phone's decoder before loading the fallback converter.
+    let bitmap;
+    try { bitmap = await createImageBitmap(file, { imageOrientation: "from-image" }); } catch (_) {}
+    if (bitmap) {
+      try {
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+        canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+        canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#fff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        const jpeg = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", .9));
+        if (jpeg) return jpeg;
+      } finally { bitmap.close(); }
+    }
+    try {
+      heicConverter ||= import(heicConverterUrl).catch(error => { heicConverter = null; throw error; });
+      const { heicTo } = await heicConverter;
+      return await heicTo({ blob: file, type: "image/jpeg", quality: .9 });
+    } catch (_) { throw new Error("This HEIC photo could not be converted. Try another photo or export it as JPG."); }
+  }
   const escape = value => String(value || "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
 
   async function list(resultId, force = false) {
@@ -24,7 +53,7 @@
     dialog.setAttribute("aria-labelledby", "resultPhotoTitle");
     dialog.innerHTML = `<div class="resultPhotoHeading"><h2 id="resultPhotoTitle">Match photos</h2><button type="button" data-close-photos aria-label="Close match photos">×</button></div>
       <p>Add your photos to this result. Photos are resized for the website and visible to everyone.</p>
-      <div id="resultPhotoUploadControls" class="resultPhotoDropzone"><strong>Drop photos here or choose files</strong><label class="resultPhotoPicker">Choose photos<input id="resultPhotoFiles" type="file" multiple accept="image/jpeg,image/png,image/webp"></label><span>Up to 10 photos at a time · JPG, PNG or WebP</span><div id="resultPhotoPending" class="resultPhotoList"></div><button id="resultPhotoSubmit" type="button" disabled>Upload photos</button></div>
+      <div id="resultPhotoUploadControls" class="resultPhotoDropzone"><strong>Drop photos here or choose files</strong><label class="resultPhotoPicker">Choose photos<input id="resultPhotoFiles" type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"></label><span>Up to 10 photos at a time · JPG, PNG, WebP or HEIC</span><div id="resultPhotoPending" class="resultPhotoList"></div><button id="resultPhotoSubmit" type="button" disabled>Upload photos</button></div>
       <div id="resultPhotoProgress" class="resultPhotoProgress" hidden>
         <label id="resultPhotoProgressLabel" for="resultPhotoProgressBar">Preparing photos…</label>
         <progress id="resultPhotoProgressBar" max="100" value="0" aria-labelledby="resultPhotoProgressLabel"></progress>
@@ -84,18 +113,26 @@
     submit.hidden = !pendingPhotos.length;
     submit.textContent = `Upload ${pendingPhotos.length} ${pendingPhotos.length === 1 ? "photo" : "photos"}`;
   }
-  function stagePhotos(files) {
+  async function stagePhotos(files) {
     if (busy || !currentUser || !files.length) return;
     if (files.length + pendingPhotos.length > 10) { status("Choose up to 10 photos at a time. Remove some before adding more."); return; }
-    let rejected = 0;
-    for (const file of files) {
-      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 20 * 1024 * 1024 || !file.size) { rejected++; continue; }
-      if (pendingPhotos.some(photo => photo.file.name === file.name && photo.file.size === file.size && photo.file.lastModified === file.lastModified)) continue;
-      pendingPhotos.push({ file, url: URL.createObjectURL(file) });
-    }
+    let rejected = 0, conversionError = "";
+    setBusy(true);
+    try {
+      for (const [index, file] of files.entries()) {
+        if ((!isHeicPhoto(file) && !["image/jpeg", "image/png", "image/webp"].includes(file.type)) || file.size > 20 * 1024 * 1024 || !file.size) { rejected++; continue; }
+        if (pendingPhotos.some(photo => photo.file.name === file.name && photo.file.size === file.size && photo.file.lastModified === file.lastModified)) continue;
+        try {
+          if (isHeicPhoto(file)) { status(`Converting iPhone photo ${index + 1} of ${files.length}…`); progress(index / files.length * 100, "Preparing HEIC preview…"); }
+          const prepared = await preparePhoto(file);
+          pendingPhotos.push({ file, prepared, url: URL.createObjectURL(prepared) });
+          renderPending();
+        } catch (error) { rejected++; conversionError ||= error.message; }
+      }
+    } finally { setBusy(false); }
     dialog.querySelector("#resultPhotoProgress").hidden = true;
     renderPending();
-    status(rejected ? `${rejected} files were not added. Use JPG, PNG or WebP under 20 MB.` : "Preview your photos, then select Upload photos to save them.");
+    status(rejected ? `${rejected} files were not added. ${conversionError || "Use JPG, PNG, WebP or HEIC under 20 MB."}` : "Preview your photos, then select Upload photos to save them.");
   }
   function progress(value, label) {
     dialog.querySelector("#resultPhotoProgress").hidden = false;
@@ -201,7 +238,7 @@
         progress(index / files.length * 100, `${label}: preparing…`);
         status(`Uploading ${files.length} ${files.length === 1 ? "photo" : "photos"}…`);
         try {
-          const [image, thumbnail] = await compress(file);
+          const [image, thumbnail] = await compress(batch[index].prepared || file);
           await window.ONMFirebase.resultPhotos.upload(currentResultId, image, thumbnail, update => {
             const fraction = update.phase === "complete" ? 1 : update.phase === "saving" ? 0.95 : 0.1 + 0.85 * update.bytesTransferred / update.totalBytes;
             progress((index + fraction) / files.length * 100, `${label}: ${update.phase === "saving" ? "saving…" : "uploading…"}`);
