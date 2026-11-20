@@ -79,13 +79,13 @@ function renderLeagueFilter(matches) {
 
   return `
     <div class="resultsLeagueFilter">
-      <button class="${currentLeagueFilter === "all" ? "active" : ""}" data-league-filter="all">
+      <button class="${currentLeagueFilter === "all" ? "active" : ""}" data-league-filter="all" data-tooltip="All leagues and competitions">
         All
       </button>
       ${leagues.map(league => {
     const meta = getLeagueMeta(league);
     return `
-          <button class="${currentLeagueFilter === league ? "active" : ""}" data-league-filter="${league}">
+          <button class="${currentLeagueFilter === league ? "active" : ""}" data-league-filter="${league}" data-tooltip="${window.ONMLeagueDivisions?.label(league, currentSeason) || league}">
             ${meta.label}
           </button>
         `;

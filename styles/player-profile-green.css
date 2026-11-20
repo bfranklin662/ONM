@@ -87,3 +87,21 @@
 #playerProfileSection #playerMedals .medal { width:45px; height:45px; flex:0 0 45px; }
 #playerProfileSection #playerMedals .medal img { width:100%; height:100%; object-fit:contain; }
 #editOwnPlayerImage { top:10px; bottom:auto; }
+
+#playerProfileSection > .main-profile-header { box-sizing:border-box; width:100%; max-width:none; margin-inline:0; }
+#playerProfileSection .main-container,#playerProfileSection .player-page-container { width:100%; max-width:none; box-sizing:border-box; margin-inline:0; padding-inline:0; }
+#playerProfileSection .profile-detail-actions { display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:12px; margin-top:4px; }
+#playerProfileSection .profile-detail-actions .profile-card-actions { margin:0; }
+#playerProfileSection .profile-detail-actions .profileOweLink { margin:0; }
+.profile-edit-image { display:flex; align-items:center; gap:16px; }
+.profile-edit-image img { width:100px; height:100px; object-fit:cover; border-radius:12px; border:1px solid #557b61; }
+.profile-edit-image button { padding:9px 13px; border:1px solid #557b61; border-radius:8px; background:#204531; color:#e5f2e8; font:600 13px system-ui,sans-serif; cursor:pointer; }
+.profile-edit-image input[hidden] { display:none; }
+.profile-game-progress { padding:16px; margin-top:14px; border:1px solid #3c654d; border-radius:12px; background:#143324; }
+.profile-game-progress[hidden] { display:none; }
+.profile-game-progress h3 { margin:0 0 10px; font-size:.95rem; }
+.profile-game-progress .game-progress-stats { display:flex; flex-wrap:wrap; gap:12px; font:500 13px system-ui,sans-serif; }
+.profile-game-progress .game-progress-stats strong { color:#ffdc3d; font-weight:700; }
+.profile-tournament-awards { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.profile-tournament-awards a { display:inline-flex; align-items:center; gap:6px; border:1px solid #8c7740; border-radius:8px; background:#343419; color:#f5d65f; padding:7px 10px; text-decoration:none; font:600 12px system-ui,sans-serif; }
+#playerProfileSection .player-page-container { min-width:0; }

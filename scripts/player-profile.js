@@ -76,6 +76,8 @@ function updateProfileDataPanels() {
 
 
 function initProfileAccountDetails(name, profileData) {
+  window.ONMProfilePlayer = { name, playerKey: profileData.playerKey };
+  document.dispatchEvent(new Event("onm-profile-ready"));
   const owe = document.querySelector(".profileOweLink");
   const heading = document.getElementById("playerName");
   let revision = 0;
@@ -154,7 +156,7 @@ function initPlayerProfileEditor(name, profileData, account = null) {
       </div>
       <form id="playerProfileEditForm" class="profile-edit-form">
         <label>Nickname<input name="nickname" type="text" maxlength="80"></label>
-        <label>Upload image<input name="photoFile" type="file" accept="image/jpeg,image/png,image/webp"></label>
+        <div class="profile-edit-image profile-edit-wide"><img id="profileEditImagePreview" src="${escapeHtml(profileData.photo || "images/default.jpg")}" alt="${escapeHtml(name)}"><button type="button" id="profileChooseImage">Add new image</button><input name="photoFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div>
         <label>Photo link<input name="photoUrl" type="text" maxlength="500" placeholder="Drive link or images/players/photo.jpg"></label>
         <label class="profile-edit-wide">Bio<textarea name="bio" rows="4" maxlength="1000"></textarea></label>
         <label>Role<input name="role" type="text" maxlength="50" placeholder="Captain, vice-captain…"></label>
@@ -172,6 +174,15 @@ function initPlayerProfileEditor(name, profileData, account = null) {
   document.body.appendChild(overlay);
 
   const form = overlay.querySelector("#playerProfileEditForm");
+  let imagePreviewUrl = "";
+  overlay.querySelector("#profileChooseImage").addEventListener("click", () => form.elements.namedItem("photoFile").click());
+  form.elements.namedItem("photoFile").addEventListener("change", event => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    imagePreviewUrl = URL.createObjectURL(file);
+    overlay.querySelector("#profileEditImagePreview").src = imagePreviewUrl;
+  });
   const status = overlay.querySelector(".profile-edit-status");
   const setValue = (field, value) => {
     const control = form.elements.namedItem(field);
