@@ -484,9 +484,10 @@
     }
   }
 
-  async function getCollectionRows(collectionName, fieldName, season = "") {
+  async function getCollectionRows(collectionName, fieldName, season = "", fresh = false) {
     const { db, firestoreSdk } = await ready;
-    const snapshot = await firestoreSdk.getDocs(firestoreSdk.collection(db, collectionName));
+    const collection = firestoreSdk.collection(db, collectionName);
+    const snapshot = await (fresh ? firestoreSdk.getDocsFromServer(collection) : firestoreSdk.getDocs(collection));
     return snapshot.docs
       .map(item => ({ ...item.data(), _documentId: item.id }))
       .filter(item => !season || season === "all" || item.season === season)
@@ -571,11 +572,11 @@
   }
 
   async function getPublicSeasonResults(payload = {}) {
-    return { success: true, results: await getCollectionRows("results", "sheetRow", clean(payload.season) || "26-27") };
+    return { success: true, results: await getCollectionRows("results", "sheetRow", clean(payload.season) || "26-27", payload.fresh === true) };
   }
 
   async function getPublicSeasonFixtures(payload = {}) {
-    return { success: true, fixtures: await getCollectionRows("fixtures", "sheetRow", clean(payload.season) || "26-27") };
+    return { success: true, fixtures: await getCollectionRows("fixtures", "sheetRow", clean(payload.season) || "26-27", payload.fresh === true) };
   }
 
   function resultSheetRow(payload, imageUrls) {

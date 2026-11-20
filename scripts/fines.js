@@ -339,22 +339,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const submittedFixtureKeys = new Set();
   const completedFixtureKeys = new Set();
 
+  async function loadLiveMatchRows(action, field) {
+    if (!window.ONMFirebase?.post) throw new Error("Live match data is unavailable.");
+    const result = await window.ONMFirebase.post({ action, season: "26-27", fresh: true });
+    if (!result.success || !Array.isArray(result[field])) {
+      throw new Error(result.error || "Live match data could not be checked.");
+    }
+    return result[field];
+  }
+
   async function loadLeagueTeamsData() {
     try {
       const [teamsRes, fixtures, results] = await Promise.all([
         fetch(`data/league-teams.json?v=${Date.now()}`, { cache: "no-store" }),
-        window.ONMSeasonData?.fetchFixtures
-          ? window.ONMSeasonData.fetchFixtures()
-          : fetch(`data/fixtures-26-27.json?v=${Date.now()}`, { cache: "no-store" }).then(response => {
-            if (!response.ok) throw new Error("Fixture data could not be loaded");
-            return response.json();
-          }),
-        window.ONMSeasonData?.fetchResults
-          ? window.ONMSeasonData.fetchResults()
-          : fetch(`data/result-data-26-27.json?v=${Date.now()}`, { cache: "no-store" }).then(response => {
-            if (!response.ok) throw new Error("Result data could not be loaded");
-            return response.json();
-          })
+        loadLiveMatchRows("getPublicSeasonFixtures", "fixtures"),
+        loadLiveMatchRows("getPublicSeasonResults", "results")
       ]);
 
       if (!teamsRes.ok) {
@@ -362,6 +361,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       leagueTeamsData = await teamsRes.json();
+      completedFixtureKeys.clear();
       const today = todayInputValue();
       seasonFixtures = (Array.isArray(fixtures) ? fixtures : [])
         .filter(isResultTeamFixture)
@@ -379,9 +379,9 @@ document.addEventListener("DOMContentLoaded", () => {
       console.warn("Could not load league or fixture data", err);
       leagueTeamsData = null;
       seasonFixtures = [];
-
+      populateFixtureSelector();
       if (fixtureAutofillStatus) {
-        fixtureAutofillStatus.textContent = "Fixtures could not be loaded. Refresh and try again.";
+        fixtureAutofillStatus.textContent = "Could not check live fixtures and submitted results. Refresh to try again.";
         fixtureAutofillStatus.classList.add("error");
       }
     }
@@ -622,11 +622,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function populateFixtureSelector({ preferredKey = "", storedMatch = resultSubmitData.match, clearScores = false } = {}) {
     if (!matchFixture) return;
 
-    const savedFixtureKey = store.game?.submittedResultRow
-      ? findStoredFixture(store.game.resultSubmitData?.match)?.key : "";
+    const savedFixtureKey = submittedResultRow
+      ? findStoredFixture(resultSubmitData.match)?.key : "";
     const visibleFixtures = seasonFixtures.filter(fixture =>
       (!submittedFixtureKeys.has(fixture.key) && !completedFixtureKeys.has(fixture.key)) ||
-        fixture.key === preferredKey || fixture.key === savedFixtureKey
+        (submittedResultRow && (fixture.key === preferredKey || fixture.key === savedFixtureKey))
     );
 
     if (!visibleFixtures.length) {
