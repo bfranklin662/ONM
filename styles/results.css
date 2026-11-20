@@ -2250,5 +2250,22 @@ td:first-child {
 .result-card-wide .match-image-grid .result-photo-plus { font:300 34px/1 system-ui,sans-serif; }
 .match-image-grid [hidden] { display:none !important; }
 
-.resultsLeagueFilter [data-tooltip],.results-header-bar .season-selector { position:relative; }
-.resultsLeagueFilter [data-tooltip]:is(:hover,:focus)::after,.results-header-bar .season-selector:is(:hover,:focus-within,:focus)::after { content:attr(data-tooltip); position:absolute; top:calc(100% + 7px); left:0; width:max-content; max-width:min(230px,75vw); padding:7px 10px; border:1px solid #48755b; border-radius:8px; background:#0b2419; color:#dbede0; font:500 12px/1.4 system-ui,sans-serif; white-space:normal; z-index:100; pointer-events:none; }
+.resultsLeagueFilter [data-tooltip] { position:relative; }
+.resultsLeagueFilter [data-tooltip]:is(:hover,:focus)::after { content:attr(data-tooltip); position:absolute; top:calc(100% + 7px); left:0; width:max-content; max-width:min(230px,75vw); padding:7px 10px; border:1px solid #48755b; border-radius:8px; background:#0b2419; color:#dbede0; font:500 12px/1.4 system-ui,sans-serif; white-space:normal; z-index:100; pointer-events:none; }
+
+/* Equal-width side columns centre the title against the whole header. */
+.results-header-bar { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; }
+.results-header-bar .season-selector { grid-column:1; justify-self:start; }
+.results-header-bar h2.results-title { grid-column:2; justify-self:center; margin:0; }
+.results-header-bar .view-selector { grid-column:3; justify-self:end; }
+.results-header-bar h2.results-title2 { display:none; }
+@media(max-width:600px) {
+ .results-header-bar { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px; }
+ .results-header-bar h2.results-title { display:block; grid-column:1/-1; grid-row:1; }
+ .results-header-bar .season-selector { grid-column:1; grid-row:2; }
+ .results-header-bar .view-selector { grid-column:2; grid-row:2; }
+}
+.results-container .league-box,.results-container .stats-container,.results-container .stats-content,.results-container .stats-table-wrapper { background:#123324; border-color:#3c654d; }
+.results-container .stats-grid table,.results-container .stats-grid tbody td { background:#102d20; }
+.results-container .stats-grid tbody tr:nth-child(even) td { background:#193b2b; }
+.results-container .stats-grid thead th { background:#214934; }

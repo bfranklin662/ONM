@@ -105,3 +105,8 @@
 .profile-tournament-awards { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
 .profile-tournament-awards a { display:inline-flex; align-items:center; gap:6px; border:1px solid #8c7740; border-radius:8px; background:#343419; color:#f5d65f; padding:7px 10px; text-decoration:none; font:600 12px system-ui,sans-serif; }
 #playerProfileSection .player-page-container { min-width:0; }
+
+#playerProfileSection .profile-season-dropdown { appearance:none; -webkit-appearance:none; min-width:112px; padding:.48rem 2rem .48rem .75rem; border:1px solid #00b894; border-radius:6px; background:rgba(0,184,148,.18) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right .65rem center; color:white; font:inherit; font-weight:600; cursor:pointer; }
+#playerProfileSection .profile-stat-box { background:#19412d; border-color:#416b4f; }
+#playerProfileSection .stats-and-appearances-wrapper { background:#143b29; border-color:#416b4f; }
+#playerProfileSection .player-stats-table table,#playerProfileSection .player-stats-table .table-container { background:#102f21; }

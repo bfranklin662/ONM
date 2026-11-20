@@ -10,8 +10,8 @@ const RESULTS_URLS = {
   "25-26": "onm-live:results:25-26",
   "24-25": "onm-live:results:24-25"
 };
-let resultsVisibleCount = 10;
-const RESULTS_PAGE_SIZE = 10;
+let resultsVisibleCount = 30;
+const RESULTS_PAGE_SIZE = 30;
 let currentLeagueFilter = localStorage.getItem("resultsLeagueFilter") || "all";
 const statsPwlCache = {};
 
