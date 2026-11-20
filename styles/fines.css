@@ -2382,7 +2382,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 6px;
+  margin-top: 3px;
 }
 .review-submit-card .reviewResultFooter .match-venue {
   position: static;
@@ -2401,4 +2401,5 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .review-submit-card .match-image-grid { margin-bottom: 0; }
 
 .review-submit-card > .date { margin: 3px 0 8px; font-size: .85rem; }
-.review-submit-card .review-player-table { margin-top: 8px; margin-bottom: 8px; }
+.review-submit-card .review-player-table { margin-top: 8px; margin-bottom: 6px; }
+.review-submit-card { padding-bottom: 6px; }
