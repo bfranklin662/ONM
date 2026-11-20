@@ -172,6 +172,21 @@
     finally { setBusy(false); }
   }
 
+  let canAddPhotos = false;
+  function updatePhotoButtons() {
+    document.querySelectorAll("[data-add-result-photos]").forEach(button => {
+      button.hidden = !canAddPhotos;
+    });
+  }
+  new MutationObserver(updatePhotoButtons).observe(document.getElementById("resultsGrid") || document.body, { childList: true, subtree: true });
+  window.ONMFirebase?.ready.then(({ auth, authSdk }) => {
+    authSdk.onAuthStateChanged(auth, user => {
+      canAddPhotos = Boolean(user);
+      updatePhotoButtons();
+    });
+  }).catch(() => { canAddPhotos = false; updatePhotoButtons(); });
+  updatePhotoButtons();
+
   document.addEventListener("click", event => {
     const button = event.target.closest("[data-add-result-photos]");
     if (!button) return;

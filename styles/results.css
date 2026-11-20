@@ -2224,12 +2224,15 @@ td:first-child {
 }
 .result-card-wide .player-images > .result-photo-frame:hover { background: #173e30; border-color: #8fbaa5; color: #fff; }
 .result-photo-frame .result-photo-plus { font: 300 44px/1 system-ui, sans-serif; }
-.result-card-wide .flex-layout.no-match-images { display: grid; grid-template-columns: minmax(0, 3fr) minmax(110px, 1fr); gap: 16px; }
-.result-card-wide .flex-layout.no-match-images .player-images { display: flex; align-items: flex-start; justify-content: flex-end; }
+.result-card-wide .flex-layout.no-match-images { display: grid; grid-template-columns: minmax(0, 720px) 136px; justify-content: center; gap: 24px; max-width: 880px; margin-inline: auto; }
+.result-card-wide .flex-layout.no-match-images .player-images { display: flex; align-items: flex-start; justify-content: flex-start; }
+.result-card-wide .flex-layout.no-match-images:not(:has(.result-photo-frame:not([hidden]))) { grid-template-columns: minmax(0, 720px); }
+.result-card-wide .flex-layout.no-match-images:not(:has(.result-photo-frame:not([hidden]))) .player-images { display: none; }
+.addResultPhotos[hidden] { display: none !important; }
 .result-card-wide .flex-layout.no-match-images .addResultPhotos { margin-top: 0; }
 @media (max-width: 700px) {
   .result-card-wide .flex-layout.no-match-images { display: flex; flex-direction: column; gap: 6px; }
-  .result-card-wide .flex-layout.no-match-images .player-images { justify-content: flex-end; }
+  .result-card-wide .flex-layout.no-match-images .player-images { justify-content: center; }
 }
 @media (max-width: 700px) {
   .result-card-wide .teams { padding-top: 24px; margin-inline: 0; }
