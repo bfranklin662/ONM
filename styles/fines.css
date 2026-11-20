@@ -2373,3 +2373,5 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .matchPage .modalClose:hover { background: #28513c; }
 .matchPage .modalBody .btnGhost { background: #1b3b2c; border-color: #406650; color: #e6f4eb; }
 .matchPage .modalBody .pill { background: #1b3b2c; border-color: #406650; }
+
+.sameDayFixtures small { color: #afc8ba; font-size: .7rem; font-weight: 500; }
