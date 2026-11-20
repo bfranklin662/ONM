@@ -38,3 +38,15 @@
 #resultPhotoSubmit:disabled { opacity:.55; cursor:wait; }
 #resultPhotoSubmit[hidden] { display:none; }
 #resultPhotoPending figcaption { margin-top:5px; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Reserve photo space while lazy-loaded thumbnails arrive. */
+.photo-loading-frame { position:relative; display:block; min-width:0; overflow:hidden; border-radius:6px; background:#0a2018; aspect-ratio:1.15/1; }
+.photo-loading-frame-fixed { height:140px; aspect-ratio:auto; }
+.photo-loading-frame > img { display:block; opacity:0; transition:opacity .2s ease; }
+.photo-loading-frame.photo-loaded > img { opacity:1; }
+.photo-loading-label { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:7px; color:#7b9c89; pointer-events:none; font:500 10px/1.3 system-ui,sans-serif; text-align:center; padding:8px; }
+.photo-loading-label svg { width:28px; height:28px; }
+.photo-loading.photo-loading-frame { background:linear-gradient(110deg,#0a2018 20%,#17392a 45%,#0a2018 70%); background-size:220% 100%; animation:photoPlaceholderPulse 1.8s ease-in-out infinite; }
+.photo-loaded > .photo-loading-label { display:none; }
+.photo-failed .photo-loading-label { color:#8fa194; }
+@keyframes photoPlaceholderPulse { from { background-position:100% 0; } to { background-position:-100% 0; } }
+@media(prefers-reduced-motion:reduce) { .photo-loading.photo-loading-frame { animation:none; } .photo-loading-frame > img { transition:none; } }
