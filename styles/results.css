@@ -2190,7 +2190,7 @@ td:first-child {
 }
 
 /* Compact the public result summary while keeping its corner badges clear. */
-.result-card-wide { padding: 10px 14px 22px; }
+.result-card-wide { padding: 6px 14px 18px; }
 .result-card-wide > .resultPlayedBadge {
   position: absolute;
   top: 12px;
@@ -2201,11 +2201,11 @@ td:first-child {
 .result-card-wide .teams { padding-top: 0; margin: 0 100px; }
 .result-card-wide .teams .team { font-size: 1rem; line-height: 1.2; font-weight: 600; }
 .result-card-wide .teams .score { font-size: 1.5rem; line-height: 1.15; padding: 6px 10px; }
-.result-card-wide > .date { margin: 3px 0; font-size: .85rem; line-height: 1.3; }
+.result-card-wide > .date { margin: 2px 0; font-size: .85rem; line-height: 1.3; }
 .result-card-wide > .player-data:not(.expanded) { padding-bottom: 0; }
-.result-card-wide > .addResultPhotos { margin: 4px 0 2px; }
+.result-card-wide > .addResultPhotos { margin: 2px 0 0; }
 @media (max-width: 700px) {
-  .result-card-wide .teams { padding-top: 24px; margin-inline: 0; }
+  .result-card-wide .teams { padding-top: 20px; margin-inline: 0; }
   .result-card-wide > .resultPlayedBadge { top: 9px; right: 10px; }
   .result-card-wide:has(.cup-icon) > .resultPlayedBadge { right: 38px; }
 }
