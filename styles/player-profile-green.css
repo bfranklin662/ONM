@@ -110,3 +110,5 @@
 #playerProfileSection .profile-stat-box { background:#19412d; border-color:#416b4f; }
 #playerProfileSection .stats-and-appearances-wrapper { background:#143b29; border-color:#416b4f; }
 #playerProfileSection .player-stats-table table,#playerProfileSection .player-stats-table .table-container { background:#102f21; }
+#playerProfileSection .profile-game-progress { background:#143b29; border-color:#416b4f; }
+#playerProfileSection .profile-game-progress .game-progress-stats { padding:12px; border-radius:9px; background:#19412d; }
