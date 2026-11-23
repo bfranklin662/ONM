@@ -161,8 +161,13 @@ test("completed fixture details show participation once and keep score and resul
   assert(content.innerHTML.includes("Your checkouts</span><strong>3</strong>"));
   assert(content.innerHTML.includes("Your fines</span><strong>£12.50</strong>"));
   assert(!content.innerHTML.includes("£99.00"));
-  assert(content.innerHTML.includes("View result ↗"));
+  assert(content.innerHTML.includes("View full result ↗"));
+  assert(!content.innerHTML.includes("<dt>Time</dt>"));
+  assert(content.innerHTML.includes("Our team"));
+  assert(content.innerHTML.includes("player-profile.html?name=Nick%20B"));
+  assert(content.innerHTML.indexOf("fixtureDetailsFooter") > content.innerHTML.indexOf("fixtureMatchPhotos"));
   assert(dialog.open);
   h.context.openFixtureDetails(h.fixture);
   assert(content.innerHTML.includes("fixtureAvailabilityForm"));
+  assert(content.innerHTML.includes("<dt>Time</dt>"));
 });

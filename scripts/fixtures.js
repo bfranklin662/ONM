@@ -106,21 +106,31 @@
     return `<div class="fixturePersonalStats" aria-label="Your match statistics"><div><span>Your checkouts</span><strong>${escapeFixtureText(String(checkouts ?? "").trim() || "—")}</strong></div><div><span>Your fines</span><strong>${escapeFixtureText(fineText)}</strong></div></div>`;
   }
 
+  function fixtureLineup(fixture) {
+    if (!fixture.completed) return "";
+    const row = fixture.resultRow;
+    const names = [...new Set(row ? Array.from({ length: 12 }, (_, i) => row[`Player${i + 1}`] ?? row[`Player ${i + 1}`] ?? "").filter(Boolean) : fixture.playerNames || [])];
+    if (!names.length) return "";
+    return `<section class="fixtureLineup" aria-label="Submitted team lineup"><h4>Our team</h4><ul>${names.map(name => `<li><a href="player-profile.html?name=${encodeURIComponent(name)}">${escapeFixtureText(name)}</a></li>`).join("")}</ul></section>`;
+  }
+
   function openFixtureDetails(fixture) {
     openedFixture = fixture;
     const confirmedOpponent = fixture.Opponent && fixture.Opponent !== "TBC";
     el("#fixtureDetailsContent").innerHTML = `
-      <div class="fixtureDetailsHeader"><span class="fixtureCategory ${fixture.leagueClass}">${escapeFixtureText(fixture.League)}</span>${fixture.completed ? `<a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View result ↗</a>` : ""}</div>
+      <div class="fixtureDetailsHeader"><span class="fixtureCategory ${fixture.leagueClass}">${escapeFixtureText(fixture.League)}</span></div>
       <h3 id="fixtureDetailsTitle">${confirmedOpponent ? `vs ${escapeFixtureText(fixture.Opponent)}` : "Opponent to be confirmed"}</h3>
       <p class="fixtureDetailsTeam">${escapeFixtureText(getOnmTeamForFixture(fixture))}</p>
       ${fixture.completed && Number.isFinite(fixture.homeScore) && Number.isFinite(fixture.awayScore) ? `<div class="fixtureDetailsScore ${fixture.outcome}"><span>${escapeFixtureText(fixture.homeTeam)}</span><strong>${fixture.homeScore} – ${fixture.awayScore}</strong><span>${escapeFixtureText(fixture.awayTeam)}</span></div>` : ""}
-      <dl><div class="fixtureDetailsDate"><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div>
-      <div><dt>Time</dt><dd>${escapeFixtureText(fixture.Time || "18:30")}</dd></div>
+      <dl class="${fixture.completed ? "fixtureDetailsCompleted" : ""}"><div class="fixtureDetailsDate"><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div>
+      ${!fixture.completed ? `<div><dt>Time</dt><dd>${escapeFixtureText(fixture.Time || "18:30")}</dd></div>` : ""}
       <div><dt>Home / Away</dt><dd>${escapeFixtureText(fixture.HA === "TBC" ? "To be confirmed" : fixture.HA)}</dd></div>
       <div class="fixtureDetailsLocation"><dt>Location</dt><dd>${escapeFixtureText(fixture.Location || "To be confirmed")}</dd></div></dl>
       ${personalBadge(fixture)}${personalMatchStats(fixture)}${availabilityDetails(fixture)}
+      ${fixtureLineup(fixture)}
       ${fixture.completed && fixture.resultRow ? `<section id="fixtureMatchPhotos" aria-label="Match photos"><p class="fixturePhotosNotice" role="status">Loading photos…</p></section>` : ""}
       <p id="fixtureAvailabilityMessage" role="status" aria-live="polite"></p>
+      ${fixture.completed ? `<div class="fixtureDetailsFooter"><a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View full result ↗</a></div>` : ""}
       `;
     const dialog = el("#fixtureDetails");
     if (!dialog.open) dialog.showModal();
@@ -668,7 +678,7 @@
 
       <div class="fxTopRow">
         <div class="fxLeaguePill ${pillClass}">
-          ${String(fx.leagueTitle || "").toUpperCase()}
+          ${escapeFixtureText(fixtureLeagueLabel(fx).toUpperCase())}
         </div>
         <div class="fxCardMeta">
           <span class="fxSeasonPill">${formatFixtureSeason(fx.season)}</span>
@@ -914,6 +924,14 @@
     return [...combined, ...resultsByMatch.values()].sort((a, b) => a.dateObj - b.dateObj);
   }
 
+  function fixtureLeagueLabel(fixture) {
+    const normalized = normalizeLeague(fixture.League || fixture.leagueTitle);
+    const league = normalized === "Competition" ? String(fixture.League || fixture.leagueTitle || "").replace(/\bLeague\b/gi, "").trim() : normalized;
+    const divisions = window.ONMLeagueDivisions;
+    if (!divisions) return league;
+    return divisions.shortLabel(league, fixture.season || divisions.seasonFromDate(fixture.dateObj || fixture.dateISO));
+  }
+
   function calendarDateState(dateISO, today = toISODate(todayNoon())) {
     return dateISO < today ? "isPast" : dateISO === today ? "isToday" : "isFuture";
   }
@@ -929,7 +947,7 @@
     const content = `<span class="fixtureEventSummary">
       <span class="fixtureEventOpponent">${escape(fixture.Opponent)}</span>
       ${fixture.completed ? `<span class="fixtureEventResult ${fixture.outcome}">${escape(resultText)}</span>` : ""}
-      </span><span class="fixtureEventLeague">${escape(fixture.League)}</span><span class="fixtureEventFooter"><span class="fixtureEventSide">${escape(fixture.HA === "TBC" ? "H/A TBC" : fixture.HA)}</span>${personalBadge(fixture)}</span>`;
+      </span><span class="fixtureEventLeague">${escape(fixtureLeagueLabel(fixture))}</span><span class="fixtureEventFooter"><span class="fixtureEventSide">${escape(fixture.HA === "TBC" ? "H/A TBC" : fixture.HA)}</span>${personalBadge(fixture)}</span>`;
     return `<button type="button" ${attrs} aria-label="${label}" data-fixture-index="${index}" aria-haspopup="dialog">${content}</button>`;
   }
 

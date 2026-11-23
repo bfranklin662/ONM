@@ -1540,7 +1540,7 @@
 .fixtureCalendarTable .fixtureCalendarDay.isPast { background:#06160f; }
 .fixtureCalendarTable .fixtureCalendarDay.isFuture { background:#10251b; }
 .fixtureCalendarDay.isPast .fixtureDayNumber,.fixtureCalendarDay.isPast .fixtureMobileWeekday { color:#83958a; }
-.fixtureCalendarTable .fixtureCalendarDay.isToday { background:#173c2b; box-shadow:inset 0 0 0 1px #4f9e77; }
+.fixtureCalendarTable .fixtureCalendarDay.isToday { background:#173c2b; box-shadow:none; }
 .fixtureCalendarEvent.isPast { filter:saturate(.7); opacity:.78; }
 .fixtureCalendarEvent.isPast:is(:hover,:focus-visible) { filter:none; opacity:1; }
 .fixtureDetails { padding:22px; background:#112d20; border-color:#3e6951; }
@@ -1591,3 +1591,12 @@
 .fixturePhotoViewer > div button { min-width:40px; min-height:36px; border:1px solid #486f56; border-radius:7px; background:#153724; color:white; cursor:pointer; }
 .fixturePhotoViewer button:disabled { opacity:.4; cursor:default; }
 @media(max-width:420px) { .fixtureDetails { padding:16px; } .fixtureDetailsHeader { gap:6px; padding-right:38px; } .fixtureDetails .fixtureDetailsHeader .fixtureCategory { font-size:.64rem; max-width:65%; } .fixtureDetails .fixtureDetailsHeader .fxResultLink { font-size:.7rem; } .fixturePersonalStats > div { padding:9px; } }
+
+.fixtureDetailsFooter { display:flex; justify-content:flex-end; margin-top:16px; }
+.fixtureDetails .fixtureDetailsFooter .fxResultLink { margin:0; padding:8px 12px; border:1px solid #50735b; border-radius:8px; background:#173c28; font-size:.8rem; }
+.fixtureDetails dl.fixtureDetailsCompleted > .fixtureDetailsLocation { grid-column:auto; }
+.fixtureLineup { margin-top:16px; padding-top:14px; border-top:1px solid #ffffff16; }
+.fixtureLineup h4 { margin:0 0 9px; font-size:.9rem; }
+.fixtureLineup ul { display:flex; flex-wrap:wrap; gap:7px; list-style:none; padding:0; margin:0; }
+.fixtureLineup a { display:block; padding:6px 10px; border:1px solid #375d47; border-radius:7px; background:#0d251a; color:#d0e6d7; font:500 .78rem/1.3 system-ui,sans-serif; text-decoration:none; }
+.fixtureLineup a:hover { background:#214a33; color:#fff; }
