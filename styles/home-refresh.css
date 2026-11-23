@@ -61,3 +61,20 @@
 #fixtures .fixtureCalendarEvent .fixtureEventFooter .fxPersonalBadge { grid-column:2; grid-row:2 / 4; align-self:end; margin:1px 0 0; line-height:1.1; padding:2px 4px; }
 .fixtureDetails .fixtureLineupStats > .fixtureLineupStat { display:inline-flex; align-items:center; gap:5px; font-family:system-ui,sans-serif; font-size:.72rem; font-weight:500; line-height:1.3; color:#9fbea9; }
 @media(max-width:650px) { #fixtures .fixtureViewBar { display:none; } #fixtures #fixturesCarousel { display:none!important; } #fixtures #fixtureCalendar { display:block!important; } }
+
+#fixtures .fixtureCalendarEvent .fixtureEventResult { display:inline-flex; align-items:center; justify-content:center; justify-self:end; align-self:start; width:max-content; min-width:0; max-width:100%; height:auto; min-height:0; margin:0; padding:2px 5px; font:700 10px/1.15 system-ui,sans-serif; white-space:nowrap; border-radius:20px; box-sizing:border-box; }
+#fixtures .fixtureEventLeague { margin-block:2px; }
+#fixtureCalendar[aria-busy="true"] #fixtureCalendarCount { display:inline-flex; align-items:center; gap:7px; }
+#fixtureCalendar[aria-busy="true"] #fixtureCalendarCount::before { content:""; display:inline-block; width:12px; height:12px; border:2px solid #426c51; border-top-color:#c1eed2; border-radius:50%; animation:fixtureLoadingSpin .8s linear infinite; }
+@keyframes fixtureLoadingSpin { to { transform:rotate(360deg); } }
+.fixtureDetails .fixtureDetailsResult .fixtureDetailsScore { display:inline-flex; width:max-content; min-height:0; padding:0; margin:0; }
+.fixtureDetails .fixtureDetailsResult .fixtureDetailsScore strong { display:inline-flex; align-items:center; justify-content:center; width:max-content; min-width:0; min-height:0; padding:4px 8px; border-radius:20px; font:700 .8rem/1.15 system-ui,sans-serif; background:#243e30; }
+.fixtureDetails .fixtureDetailsResult .fixtureDetailsScore.win strong { background:#194d31; border-color:#4a9469; color:#c3f8d8; }
+.fixtureDetails .fixtureDetailsResult .fixtureDetailsScore.loss strong { background:#602b35; border-color:#c87986; color:#ffdae1; }
+@media(max-width:650px) {
+ #fixtures .home-section-heading { gap:2px; margin-bottom:9px; }
+ #fixtures .home-section-heading p { font-size:10px; line-height:1.2; margin:0 0 3px; letter-spacing:.09em; }
+ #fixtures .home-section-heading h2 { font-size:19px; line-height:1.15; margin:0; }
+ #fixtures .fixtureCalendarEvent .fixtureEventResult { font-size:9px; }
+}
+@media(prefers-reduced-motion:reduce) { #fixtureCalendar[aria-busy="true"] #fixtureCalendarCount::before { animation:none; } }
