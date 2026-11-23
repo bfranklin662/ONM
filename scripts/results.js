@@ -512,6 +512,7 @@ async function fetchDriveImages(folderId) {
 }
 
 async function fetchMatchImages(match) {
+  if (window.ONMResultPhotos?.loadMatchPhotos) return (await window.ONMResultPhotos.loadMatchPhotos(match)).urls;
   const membersRequest = Promise.resolve().then(() => window.ONMResultPhotos?.list(match._resultId) || []).catch(error => {
     console.warn("Shared match photos unavailable", error.message);
     return [];

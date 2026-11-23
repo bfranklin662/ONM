@@ -154,11 +154,14 @@ test("completed fixture details show participation once and keep score and resul
   const start = source.indexOf("  function availabilityDetails(");
   const end = source.indexOf("  const RESULTS_PAGE_URL", start);
   vm.runInContext(source.slice(start, end), h.context);
-  h.context.openFixtureDetails({ ...h.fixture, completed: true, playerNames: ["Nick", "Rob"], homeTeam: "Oche Ness Monsters", awayTeam: "Silverbacks", homeScore: 6, awayScore: 3, outcome: "win", Day: "Wednesday", Date: "21st Oct 2026" });
+  h.context.openFixtureDetails({ ...h.fixture, completed: true, playerNames: ["Nick", "Rob"], homeTeam: "Oche Ness Monsters", awayTeam: "Silverbacks", homeScore: 6, awayScore: 3, resultRow: { Player1: "Nick B", C1: "99", F1: "£99.00", Player2: "Nick", C2: "3", F2: "£12.50" }, outcome: "win", Day: "Wednesday", Date: "21st Oct 2026" });
   assert.equal((content.innerHTML.match(/You played/g) || []).length, 1);
   assert(!content.innerHTML.includes("fixtureAvailabilityForm"));
   assert(content.innerHTML.includes("6 – 3"));
-  assert(content.innerHTML.includes("View result →"));
+  assert(content.innerHTML.includes("Your checkouts</span><strong>3</strong>"));
+  assert(content.innerHTML.includes("Your fines</span><strong>£12.50</strong>"));
+  assert(!content.innerHTML.includes("£99.00"));
+  assert(content.innerHTML.includes("View result ↗"));
   assert(dialog.open);
   h.context.openFixtureDetails(h.fixture);
   assert(content.innerHTML.includes("fixtureAvailabilityForm"));

@@ -194,7 +194,7 @@ function dialogHarness(galleryFailure = false) {
   const nodes = new Map(), documentEvents = {}, uploads = [], percentages = [];
   const get = selector => {
     if (!nodes.has(selector)) {
-      const node = { innerHTML: "", textContent: "", hidden: false, events: {}, setAttribute() {},
+      const node = { innerHTML: "", textContent: "", hidden: false, events: {}, classList: { toggle() {} }, setAttribute() {},
         addEventListener(name, fn) { this.events[name] = fn; }, appendChild() {} };
       let value = 0;
       Object.defineProperty(node, "value", { get: () => value, set(next) { value = next; if (selector === "#resultPhotoProgressBar") percentages.push(next); } });
@@ -205,13 +205,15 @@ function dialogHarness(galleryFailure = false) {
   const dialog = { setAttribute() {}, innerHTML: "", events: {}, querySelector: get,
     querySelectorAll: () => [], addEventListener(name, fn) { this.events[name] = fn; }, showModal() {}, close() {} };
   const photos = [{ id: "new-photo", url: "https://example.test/new.jpg", thumbnailUrl: "https://example.test/new-thumb.jpg", uploaderUid: "u" }];
-  const context = { Blob, console: { warn() {} }, location: { pathname: "/results.html", search: "" },
+  class BrowserURL extends URL { static createObjectURL() { return "blob:preview"; } static revokeObjectURL() {} }
+  const context = { Blob, URL: BrowserURL, MutationObserver: class { observe() {} }, console: { warn() {} }, location: { pathname: "/results.html", search: "" },
     document: {
+      currentScript: { src: "https://example.test/scripts/result-photos.js" }, getElementById: () => null, querySelectorAll: () => [],
       addEventListener(name, fn) { documentEvents[name] = fn; }, body: { appendChild() {} },
       createElement(tag) { return tag === "dialog" ? dialog : tag === "canvas" ? { getContext: () => ({ fillRect() {}, drawImage() {} }), toBlob: callback => callback(new Blob(["jpeg"], { type: "image/jpeg" })) } : {}; }
     },
     createImageBitmap: async () => ({ width: 3000, height: 2000, close() {} }),
-    window: { ONMFirebase: { loadOwnUser: async () => ({ uid: "u", status: "Active", role: "member" }), resultPhotos: {
+    window: { ONMFirebase: { ready: Promise.resolve({ auth: {}, authSdk: { onAuthStateChanged(auth, callback) { callback({ uid: "u" }); } } }), loadOwnUser: async () => ({ uid: "u", status: "Active", role: "member" }), resultPhotos: {
       list: async () => { if (galleryFailure) throw new Error("Missing or insufficient permissions."); return photos; },
       upload: async (id, image, thumb, progress) => {
         uploads.push(id);
@@ -223,7 +225,7 @@ function dialogHarness(galleryFailure = false) {
   vm.runInContext(ui, context);
   context.window.ONMResultPhotos.setExisting("match-one", ["https://example.test/drive.jpg"]);
   function open() { documentEvents.click({ target: { closest: () => ({ dataset: { addResultPhotos: "match-one" } }) }, preventDefault() {}, stopPropagation() {} }); }
-  return { get, uploads, percentages, open };
+  return { get, uploads, percentages, open, api: context.window.ONMResultPhotos };
 }
 
 test("opening the dialog shows legacy thumbnails even when member photo reads fail", async () => {
@@ -245,10 +247,26 @@ test("the dialog combines old and new thumbnails and shows a live upload bar", a
   const html = h.get("#resultPhotoList").innerHTML;
   assert(html.includes("drive.jpg") && html.includes("new-thumb.jpg"));
   assert(h.get("#resultPhotoProgress").hidden);
-  await h.get("#resultPhotoFiles").events.change({ target: { files: [{ type: "image/jpeg", size: 3000000 }], value: "photo.jpg" } });
+  h.get("#resultPhotoFiles").events.change({ target: { files: [{ name: "photo.jpg", type: "image/jpeg", size: 3000000, lastModified: 1 }], value: "photo.jpg" } });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.uploads.length, 0);
+  assert(h.get("#resultPhotoPending").innerHTML.includes("photo.jpg"));
+  await h.get("#resultPhotoSubmit").events.click();
   assert.equal(h.uploads.length, 1);
   assert(!h.get("#resultPhotoProgress").hidden);
   assert(h.percentages.some(value => value > 0 && value < 100));
   assert.equal(h.get("#resultPhotoProgressBar").value, 100);
   assert(h.get("#resultPhotoStatus").textContent.includes("1 photo added"));
+});
+
+
+test("calendar and results share deduplicated existing and uploaded match photos", async () => {
+  const h = dialogHarness();
+  const result = await h.api.loadMatchPhotos({ _resultId: "match-one", IMGFOLDER: "https://example.test/old.jpg\nhttps://example.test/new.jpg" });
+  assert.deepEqual(Array.from(result.urls), ["https://example.test/old.jpg", "https://example.test/new.jpg"]);
+  assert.equal(result.partial, false);
+  const unavailable = dialogHarness(true);
+  const partial = await unavailable.api.loadMatchPhotos({ _resultId: "match-one", IMGFOLDER: "https://example.test/old.jpg" });
+  assert.deepEqual(Array.from(partial.urls), ["https://example.test/old.jpg"]);
+  assert.equal(partial.partial, true);
 });

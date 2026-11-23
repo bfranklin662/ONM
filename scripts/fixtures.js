@@ -93,11 +93,24 @@
     </form>`;
   }
 
+  function personalMatchStats(fixture) {
+    if (!fixture.completed || personalFixture(fixture)?.state !== "played" || !fixture.resultRow) return "";
+    const row = fixture.resultRow;
+    const names = [personal.user.linkedPlayerName, personal.user.linkedPlayerKey.replace(/-/g, " ")].map(normalizeName).filter(Boolean);
+    const slot = Array.from({ length: 12 }, (_, i) => i + 1).find(i => names.includes(normalizeName(row[`Player${i}`] ?? row[`Player ${i}`])));
+    if (!slot) return "";
+    const checkouts = row[`C${slot}`] ?? row[`C ${slot}`];
+    const fine = row[`F${slot}`] ?? row[`F ${slot}`];
+    const fineValue = Number(String(fine ?? "").replace(/[£,\s]/g, ""));
+    const fineText = String(fine ?? "").trim() && Number.isFinite(fineValue) ? `£${fineValue.toFixed(2)}` : "—";
+    return `<div class="fixturePersonalStats" aria-label="Your match statistics"><div><span>Your checkouts</span><strong>${escapeFixtureText(String(checkouts ?? "").trim() || "—")}</strong></div><div><span>Your fines</span><strong>${escapeFixtureText(fineText)}</strong></div></div>`;
+  }
+
   function openFixtureDetails(fixture) {
     openedFixture = fixture;
     const confirmedOpponent = fixture.Opponent && fixture.Opponent !== "TBC";
     el("#fixtureDetailsContent").innerHTML = `
-      <span class="fixtureCategory ${fixture.leagueClass}">${escapeFixtureText(fixture.League)}</span>
+      <div class="fixtureDetailsHeader"><span class="fixtureCategory ${fixture.leagueClass}">${escapeFixtureText(fixture.League)}</span>${fixture.completed ? `<a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View result ↗</a>` : ""}</div>
       <h3 id="fixtureDetailsTitle">${confirmedOpponent ? `vs ${escapeFixtureText(fixture.Opponent)}` : "Opponent to be confirmed"}</h3>
       <p class="fixtureDetailsTeam">${escapeFixtureText(getOnmTeamForFixture(fixture))}</p>
       ${fixture.completed && Number.isFinite(fixture.homeScore) && Number.isFinite(fixture.awayScore) ? `<div class="fixtureDetailsScore ${fixture.outcome}"><span>${escapeFixtureText(fixture.homeTeam)}</span><strong>${fixture.homeScore} – ${fixture.awayScore}</strong><span>${escapeFixtureText(fixture.awayTeam)}</span></div>` : ""}
@@ -105,11 +118,13 @@
       <div><dt>Time</dt><dd>${escapeFixtureText(fixture.Time || "18:30")}</dd></div>
       <div><dt>Home / Away</dt><dd>${escapeFixtureText(fixture.HA === "TBC" ? "To be confirmed" : fixture.HA)}</dd></div>
       <div class="fixtureDetailsLocation"><dt>Location</dt><dd>${escapeFixtureText(fixture.Location || "To be confirmed")}</dd></div></dl>
-      ${personalBadge(fixture)}${availabilityDetails(fixture)}
+      ${personalBadge(fixture)}${personalMatchStats(fixture)}${availabilityDetails(fixture)}
+      ${fixture.completed && fixture.resultRow ? `<section id="fixtureMatchPhotos" aria-label="Match photos"><p class="fixturePhotosNotice" role="status">Loading photos…</p></section>` : ""}
       <p id="fixtureAvailabilityMessage" role="status" aria-live="polite"></p>
-      ${fixture.completed ? `<a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View result →</a>` : ""}`;
+      `;
     const dialog = el("#fixtureDetails");
     if (!dialog.open) dialog.showModal();
+    window.ONMFixturePhotos?.show(fixture);
   }
 
   const RESULTS_PAGE_URL = (fx) =>
@@ -344,6 +359,7 @@
         awayScore: getResultField(r, "AwayScore", "awayScore", "Away Score"),
         homePoints: getResultField(r, "HomePoints", "Home Points", "homePoints"),
         awayPoints: getResultField(r, "AwayPoints", "Away Points", "awayPoints"),
+        resultRow: r,
         playerNames: Array.from({ length: 12 }, (_, i) => r[`Player${i + 1}`] ?? r[`Player ${i + 1}`] ?? "").filter(Boolean)
       });
     }
@@ -395,6 +411,7 @@
       return {
         ...fx,
         completed: isCompleted,
+        resultRow: isCompleted ? res.resultRow : undefined,
         pendingResult: !isCompleted && (fx.dateObj < today),
         playerNames: isCompleted ? res.playerNames : undefined,
         homeScore: isCompleted ? displayHomeScore : null,
@@ -507,6 +524,8 @@
         awayScore,
         homePoints,
         awayPoints,
+        resultRow: r,
+        playerNames: Array.from({ length: 12 }, (_, i) => r[`Player${i + 1}`] ?? r[`Player ${i + 1}`] ?? "").filter(Boolean),
         resultText: getResultField(r, "Result", "result")
       });
     }
@@ -582,6 +601,7 @@
         homeTeam: teams.home,
         awayTeam: teams.away,
         completed: isCompleted,
+        resultRow: isCompleted ? res.resultRow : undefined,
         homeScore: isCompleted ? displayHomeScore : null,
         awayScore: isCompleted ? displayAwayScore : null,
         homePoints: isCompleted ? displayHomePoints : null,
@@ -872,6 +892,7 @@
         homeScore: Number(homeScore),
         awayScore: Number(awayScore),
         completed: true,
+        resultRow: row,
         playerNames: Array.from({ length: 12 }, (_, i) => row[`Player${i + 1}`] ?? row[`Player ${i + 1}`] ?? "").filter(Boolean),
         outcome,
         season
@@ -908,7 +929,7 @@
     const content = `<span class="fixtureEventSummary">
       <span class="fixtureEventOpponent">${escape(fixture.Opponent)}</span>
       ${fixture.completed ? `<span class="fixtureEventResult ${fixture.outcome}">${escape(resultText)}</span>` : ""}
-      </span><span class="fixtureEventFooter"><span class="fixtureEventSide">${escape(fixture.HA === "TBC" ? "H/A TBC" : fixture.HA)}</span>${personalBadge(fixture)}</span>`;
+      </span><span class="fixtureEventLeague">${escape(fixture.League)}</span><span class="fixtureEventFooter"><span class="fixtureEventSide">${escape(fixture.HA === "TBC" ? "H/A TBC" : fixture.HA)}</span>${personalBadge(fixture)}</span>`;
     return `<button type="button" ${attrs} aria-label="${label}" data-fixture-index="${index}" aria-haspopup="dialog">${content}</button>`;
   }
 

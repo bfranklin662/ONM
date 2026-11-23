@@ -46,6 +46,33 @@
     return cache.get(resultId);
   }
 
+  const legacyPhotoCache = new Map();
+  async function legacyPhotos(value, force = false) {
+    if (!value) return [];
+    if (force) legacyPhotoCache.delete(value);
+    if (!legacyPhotoCache.has(value)) legacyPhotoCache.set(value, (async () => {
+      const folder = value.match(/(?:[?&]id=|\/folders\/)([a-zA-Z0-9_-]+)/);
+      if (!/drive\.google\.com\/drive\/folders/i.test(value) || !folder) return value.split(/\r?\n/).map(url => url.trim()).filter(url => /^https?:\/\//i.test(url));
+      const query = new URLSearchParams({ q: `'${folder[1]}' in parents and mimeType contains 'image/'`, key: "AIzaSyDlAZ7wv_8BNA1Nes1uBMrbZWhL0aaz1xw", fields: "files(id,name,mimeType)", pageSize: "1000" });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
+      try {
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files?${query}`, { signal: controller.signal });
+        if (!response.ok) throw new Error("Older match photos are temporarily unavailable.");
+        const data = await response.json();
+        return (data.files || []).map(file => `https://drive.google.com/thumbnail?id=${file.id}&sz=w400`);
+      } finally { clearTimeout(timer); }
+    })().catch(error => { legacyPhotoCache.delete(value); throw error; }));
+    return legacyPhotoCache.get(value);
+  }
+  async function loadMatchPhotos(row, force = false) {
+    const [existing, shared] = await Promise.allSettled([legacyPhotos(String(row.IMGFOLDER || "").trim(), force), list(row._resultId, force)]);
+    const original = existing.status === "fulfilled" ? existing.value : [];
+    if (row._resultId) existingPhotos.set(row._resultId, original);
+    const member = shared.status === "fulfilled" ? shared.value.map(photo => photo.url) : [];
+    return { urls: [...new Set([...original, ...member])], partial: existing.status === "rejected" || shared.status === "rejected" };
+  }
+
   function setup() {
     if (dialog) return;
     dialog = document.createElement("dialog");
@@ -319,6 +346,7 @@
   });
   window.ONMResultPhotos = {
     list,
+    loadMatchPhotos,
     thumbnail: url => thumbnails.get(url) || url,
     setExisting(resultId, urls) { if (resultId) existingPhotos.set(resultId, urls); }
   };
