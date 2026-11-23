@@ -143,3 +143,23 @@ test("clicking a card shows the response and saving refreshes both views", async
   assert(!get("#fixturesStage").innerHTML.includes("fxPersonal-unanswered"));
   assert(get("#fixtureDetailsContent").innerHTML.includes("Refresh availability"));
 });
+
+test("completed fixture details show participation once and keep score and result link", () => {
+  const h = harness();
+  const content = { innerHTML: "" };
+  const dialog = { open: false, showModal() { this.open = true; } };
+  h.context.el = selector => selector === "#fixtureDetailsContent" ? content : dialog;
+  h.context.getOnmTeamForFixture = () => "Oche Ness Monsters";
+  h.context.RESULTS_PAGE_URL = () => "results.html?date=2026-10-21";
+  const start = source.indexOf("  function availabilityDetails(");
+  const end = source.indexOf("  const RESULTS_PAGE_URL", start);
+  vm.runInContext(source.slice(start, end), h.context);
+  h.context.openFixtureDetails({ ...h.fixture, completed: true, playerNames: ["Nick", "Rob"], homeTeam: "Oche Ness Monsters", awayTeam: "Silverbacks", homeScore: 6, awayScore: 3, outcome: "win", Day: "Wednesday", Date: "21st Oct 2026" });
+  assert.equal((content.innerHTML.match(/You played/g) || []).length, 1);
+  assert(!content.innerHTML.includes("fixtureAvailabilityForm"));
+  assert(content.innerHTML.includes("6 – 3"));
+  assert(content.innerHTML.includes("View result →"));
+  assert(dialog.open);
+  h.context.openFixtureDetails(h.fixture);
+  assert(content.innerHTML.includes("fixtureAvailabilityForm"));
+});

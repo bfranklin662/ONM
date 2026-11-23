@@ -76,10 +76,10 @@
   }
 
   function availabilityDetails(fixture) {
+    if (fixture.completed) return "";
     const item = personalFixture(fixture);
     if (!personal.user) return '<p class="fxAvailabilityHelp"><a href="auth.html?mode=login&redirect=index.html">Sign in</a> to view your availability.</p>';
     if (!item) return '<p class="fxAvailabilityHelp">Link your player account to set availability. <a href="account.html">My account →</a></p>';
-    if (fixture.completed) return `<p class="fxAvailabilityHelp">${escapeFixtureText(item.label)} in this match.</p>`;
     const response = item.response;
     if (!response) return `<p class="fxAvailabilityHelp">${escapeFixtureText(personal.error || item.label)}. Use Refresh to try again, or open availability in <a href="account.html">My account</a>.</p><button type="button" class="fxAvailabilityRefresh">Refresh availability</button>`;
     return `<form id="fixtureAvailabilityForm" class="fxAvailabilityForm">
@@ -100,10 +100,11 @@
       <span class="fixtureCategory ${fixture.leagueClass}">${escapeFixtureText(fixture.League)}</span>
       <h3 id="fixtureDetailsTitle">${confirmedOpponent ? `vs ${escapeFixtureText(fixture.Opponent)}` : "Opponent to be confirmed"}</h3>
       <p class="fixtureDetailsTeam">${escapeFixtureText(getOnmTeamForFixture(fixture))}</p>
-      <dl><div><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div>
+      ${fixture.completed && Number.isFinite(fixture.homeScore) && Number.isFinite(fixture.awayScore) ? `<div class="fixtureDetailsScore ${fixture.outcome}"><span>${escapeFixtureText(fixture.homeTeam)}</span><strong>${fixture.homeScore} – ${fixture.awayScore}</strong><span>${escapeFixtureText(fixture.awayTeam)}</span></div>` : ""}
+      <dl><div class="fixtureDetailsDate"><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div>
       <div><dt>Time</dt><dd>${escapeFixtureText(fixture.Time || "18:30")}</dd></div>
       <div><dt>Home / Away</dt><dd>${escapeFixtureText(fixture.HA === "TBC" ? "To be confirmed" : fixture.HA)}</dd></div>
-      <div><dt>Location</dt><dd>${escapeFixtureText(fixture.Location || "To be confirmed")}</dd></div></dl>
+      <div class="fixtureDetailsLocation"><dt>Location</dt><dd>${escapeFixtureText(fixture.Location || "To be confirmed")}</dd></div></dl>
       ${personalBadge(fixture)}${availabilityDetails(fixture)}
       <p id="fixtureAvailabilityMessage" role="status" aria-live="polite"></p>
       ${fixture.completed ? `<a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View result →</a>` : ""}`;
@@ -892,6 +893,10 @@
     return [...combined, ...resultsByMatch.values()].sort((a, b) => a.dateObj - b.dateObj);
   }
 
+  function calendarDateState(dateISO, today = toISODate(todayNoon())) {
+    return dateISO < today ? "isPast" : dateISO === today ? "isToday" : "isFuture";
+  }
+
   function renderCalendarEvent(fixture, index) {
     const escape = escapeFixtureText;
     const resultCode = fixture.outcome === "win" ? "W" : fixture.outcome === "loss" ? "L" : "D";
@@ -899,7 +904,7 @@
     const theirScore = fixture.HA === "Home" ? fixture.awayScore : fixture.homeScore;
     const resultText = fixture.completed ? `${ourScore}-${theirScore} ${resultCode}` : "";
     const label = escape(`${fixture.Opponent}, ${fixture.HA}, ${fixture.League}, ${fixture.Date}. ${fixture.completed ? resultText : ""} ${personalFixture(fixture)?.label || ""}. View match details`);
-    const attrs = `class="fixtureCalendarEvent ${fixture.leagueClass}${personalClass(fixture)}"`;
+    const attrs = `class="fixtureCalendarEvent ${fixture.leagueClass} ${calendarDateState(fixture.dateISO)}${personalClass(fixture)}"`;
     const content = `<span class="fixtureEventSummary">
       <span class="fixtureEventOpponent">${escape(fixture.Opponent)}</span>
       ${fixture.completed ? `<span class="fixtureEventResult ${fixture.outcome}">${escape(resultText)}</span>` : ""}
@@ -954,7 +959,7 @@
           const iso = toISODate(cellDate);
           const events = fixtures.map((fixture, index) => ({ fixture, index })).filter(({ fixture }) => fixture.dateISO === iso);
           const isToday = iso === today;
-          cells += `<td class="fixtureCalendarDay ${events.length ? "hasFixtures" : "noFixtures"} ${isToday ? "isToday" : ""}">
+          cells += `<td class="fixtureCalendarDay ${events.length ? "hasFixtures" : "noFixtures"} ${calendarDateState(iso, today)}">
             <time datetime="${iso}" ${isToday ? 'aria-current="date"' : ""}>
               <span class="fixtureDayNumber">${day}</span>
               <span class="fixtureMobileWeekday">${cellDate.toLocaleDateString("en-GB", { weekday: "short" })}</span>

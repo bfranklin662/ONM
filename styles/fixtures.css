@@ -1535,3 +1535,27 @@
 @media (min-width: 601px) {
   .fixtureLegend { justify-content: flex-end; max-width: 75%; }
 }
+
+/* Past dates remain readable, with a quieter surface than upcoming fixtures. */
+.fixtureCalendarTable .fixtureCalendarDay.isPast { background:#06160f; }
+.fixtureCalendarTable .fixtureCalendarDay.isFuture { background:#10251b; }
+.fixtureCalendarDay.isPast .fixtureDayNumber,.fixtureCalendarDay.isPast .fixtureMobileWeekday { color:#83958a; }
+.fixtureCalendarTable .fixtureCalendarDay.isToday { background:#173c2b; box-shadow:inset 0 0 0 1px #4f9e77; }
+.fixtureCalendarEvent.isPast { filter:saturate(.7); opacity:.78; }
+.fixtureCalendarEvent.isPast:is(:hover,:focus-visible) { filter:none; opacity:1; }
+.fixtureDetails { padding:22px; background:#112d20; border-color:#3e6951; }
+.fixtureDetailsClose { margin:-8px -8px 6px auto; width:36px; height:36px; }
+.fixtureDetails h3 { margin:14px 0 5px; font-size:1.4rem; }
+.fixtureDetailsTeam { margin-bottom:14px; color:#a7c2b0; }
+.fixtureDetails dl { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 16px; }
+.fixtureDetails dl > div { padding:10px 0; min-width:0; }
+.fixtureDetails .fixtureDetailsDate,.fixtureDetails .fixtureDetailsLocation { grid-column:1/-1; }
+.fixtureDetails dt { margin-bottom:3px; color:#a7c2b0; font-size:.72rem; }
+.fixtureDetails dd { font-size:.87rem; overflow-wrap:anywhere; }
+.fixtureDetails .fxPersonalBadge { margin-top:12px; }
+.fixtureDetails #fixtureAvailabilityMessage:empty { display:none; }
+.fixtureDetails .fxResultLink { display:inline-flex; align-items:center; margin-top:14px; }
+.fixtureDetailsScore { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px 12px; padding:12px; margin-bottom:12px; border-radius:10px; background:#0a2117; font-size:.8rem; text-align:center; }
+.fixtureDetailsScore strong { padding:6px 10px; border:1px solid #50765e; border-radius:6px; font:700 1.2rem/1.2 system-ui,sans-serif; white-space:nowrap; }
+.fixtureDetailsScore.win strong { color:#c3f8d8; border-color:#3fb976; }
+.fixtureDetailsScore.loss strong { color:#ffdbdf; border-color:#bc5f6b; }
