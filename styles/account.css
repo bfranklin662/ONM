@@ -76,3 +76,36 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
   .accountPhotoWrap img { width:80px; height:80px; }
 }
 .accountShell [hidden]{display:none!important}
+
+/* Keep profile identity and actions compact without squeezing the name column. */
+.accountHero { display:grid; grid-template-columns:auto minmax(0,1fr); gap:10px 24px; }
+.accountHero .accountPhotoWrap { grid-column:1; grid-row:1 / 3; }
+.accountHeroInfo { grid-column:2; min-width:0; }
+.accountHeroActions { grid-column:2; margin-top:0; }
+.accountHeroActions:empty { display:none; }
+@media(max-width:600px) {
+ .accountShell { width:calc(100% - 24px); margin:14px auto 36px; }
+ .accountHero { grid-template-columns:64px minmax(0,1fr); align-items:center; gap:11px 12px; padding:13px; margin-bottom:12px; border-radius:13px; }
+ .accountHero .accountPhotoWrap { grid-row:1; align-self:center; }
+ .accountHero .accountPhotoWrap img { width:64px; height:64px; border-width:2px; border-radius:15px; }
+ .accountHero .accountPhotoButton { width:27px; height:27px; top:-4px; left:-4px; }
+ .accountHero .accountPhotoButton svg { width:13px; height:13px; }
+ .accountHero .accountEyebrow { font-size:9px; letter-spacing:.1em; }
+ .accountHero h1 { margin:4px 0; font-size:24px; line-height:1.1; overflow-wrap:anywhere; }
+ .accountHero .accountLinkedPlayer { font-size:12px; line-height:1.3; }
+ .accountHero .accountHeroActions { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0; }
+ .accountHero .accountHeroActions:empty { display:none; }
+ .accountHeroActions .btn,.accountHeroActions .accountProfileLink { display:flex; align-items:center; justify-content:center; min-height:36px; padding:7px 8px; border-radius:8px; font-size:12px; font-weight:650; line-height:1.25; text-align:center; }
+ .accountHeroActions .accountProfileLink { border:1px solid #426d53; background:#0e271a; text-decoration:none; color:#c1dfcb; }
+ .accountTabs { gap:4px; padding:5px; margin-bottom:12px; }
+ .accountTab { min-height:38px; padding:7px; font-size:12px; }
+ .accountCard { padding:14px; border-radius:12px; }
+ .accountCardHeading { flex-direction:row; align-items:center; gap:10px; padding-bottom:12px; margin-bottom:12px; }
+ .accountCardHeading h2 { font-size:18px; line-height:1.2; }
+ .accountCardHeading .btn { min-height:36px; padding:7px 10px; font-size:12px; flex-shrink:0; }
+ .accountGrid { gap:11px; }
+ .accountGrid label { gap:5px; font-weight:650; }
+ .accountGrid input,.accountGrid textarea { padding:9px 10px; }
+ .accountAvailabilityFixture { gap:10px; padding:12px; }
+ .accountAvailabilityList { gap:9px; margin-top:12px; }
+}
