@@ -163,6 +163,8 @@ test("completed fixture details show participation once and keep score and resul
   assert.equal((content.innerHTML.match(/>Played</g) || []).length, 1);
   assert(!content.innerHTML.includes("fixtureAvailabilityForm"));
   assert(content.innerHTML.includes("6 – 3"));
+  assert(content.innerHTML.indexOf("fixtureDetailsResult") < content.innerHTML.indexOf("fixtureDetailsMeta"));
+  assert(content.innerHTML.includes("fixtureDetailsSide"));
   assert(!content.innerHTML.includes("fixturePersonalStats"));
   assert(content.innerHTML.includes("Fines: £12.50"));
   assert(content.innerHTML.includes("Bull ×1"));
@@ -179,7 +181,9 @@ test("completed fixture details show participation once and keep score and resul
   assert(dialog.open);
   h.context.openFixtureDetails(h.fixture);
   assert(content.innerHTML.includes("fixtureAvailabilityForm"));
-  assert(content.innerHTML.includes("<dt>Time</dt>"));
+  assert(!content.innerHTML.includes("<dt>Time</dt>"));
+  assert(content.innerHTML.includes("fixtureDetailsMeta"));
+  assert(!content.innerHTML.includes("<dt>Home / Away</dt>"));
 });
 
 

@@ -176,14 +176,12 @@
     const confirmedOpponent = fixture.Opponent && fixture.Opponent !== "TBC";
     el("#fixtureDetailsContent").innerHTML = `
       <div class="fixtureDetailsHeader"><span class="fixtureCategory ${fixture.leagueClass}">${escapeFixtureText(fixture.League)}</span></div>
-      <h3 id="fixtureDetailsTitle">${confirmedOpponent ? `vs ${escapeFixtureText(fixture.Opponent)}` : "Opponent to be confirmed"}</h3>
-      <p class="fixtureDetailsTeam">${escapeFixtureText(getOnmTeamForFixture(fixture))}</p>
-      ${fixture.completed && Number.isFinite(fixture.homeScore) && Number.isFinite(fixture.awayScore) ? `<div class="fixtureDetailsScore ${fixture.outcome}"><span>${escapeFixtureText(fixture.homeTeam)}</span><strong>${fixture.homeScore} – ${fixture.awayScore}</strong><span>${escapeFixtureText(fixture.awayTeam)}</span></div>` : ""}
-      <dl class="${fixture.completed ? "fixtureDetailsCompleted" : ""}"><div class="fixtureDetailsDate"><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div>
-      ${!fixture.completed ? `<div><dt>Time</dt><dd>${escapeFixtureText(fixture.Time || "18:30")}</dd></div>` : ""}
-      <div><dt>Home / Away</dt><dd>${escapeFixtureText(fixture.HA === "TBC" ? "To be confirmed" : fixture.HA)}</dd></div>
+      <div class="fixtureDetailsMatch"><div class="fixtureDetailsIdentity"><h3 id="fixtureDetailsTitle">${confirmedOpponent ? `vs ${escapeFixtureText(fixture.Opponent)}${["Home", "Away", "Neutral"].includes(fixture.HA) ? ` <span class="fixtureDetailsSide">(${fixture.HA[0]})</span>` : ""}` : "Opponent to be confirmed"}</h3>
+      <p class="fixtureDetailsTeam">${escapeFixtureText(getOnmTeamForFixture(fixture))}</p></div>
+      <div class="fixtureDetailsResult">${fixture.completed && Number.isFinite(fixture.homeScore) && Number.isFinite(fixture.awayScore) ? `<div class="fixtureDetailsScore ${fixture.outcome}" aria-label="${escapeFixtureText(fixture.homeTeam)} ${fixture.homeScore}, ${escapeFixtureText(fixture.awayTeam)} ${fixture.awayScore}"><strong>${fixture.homeScore} – ${fixture.awayScore}</strong></div>` : ""}${personalBadge(fixture)}</div></div>
+      <dl class="fixtureDetailsMeta"><div class="fixtureDetailsDate"><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div>
       <div class="fixtureDetailsLocation"><dt>Location</dt><dd>${escapeFixtureText(fixture.Location || "To be confirmed")}</dd></div></dl>
-      ${personalBadge(fixture)}${availabilityDetails(fixture)}
+      ${availabilityDetails(fixture)}
       ${fixtureLineup(fixture)}
       ${fixture.completed && fixture.resultRow ? `<section id="fixtureMatchPhotos" aria-label="Match photos"><p class="fixturePhotosNotice" role="status">Loading photos…</p></section>` : ""}
       <p id="fixtureAvailabilityMessage" role="status" aria-live="polite"></p>
