@@ -2286,3 +2286,25 @@ td:first-child {
 .gallery-card .gallery-grid:has(.result-photo-frame:not([hidden])) + .no-images { display:none; }
 .gallery-card .addResultPhotos[hidden] { display:none !important; }
 @media(max-width:550px) { .gallery-card > .resultPlayedBadge { top:12px; right:12px; } .gallery-card .gallery-teams-line h3 { font-size:.9rem; } }
+
+/* Keep mobile view controls together and give scores room without dominating names. */
+.result-view-name { display:none; }
+@media(max-width:600px) {
+ .results-container .results-header-bar { grid-template-columns:auto minmax(0,1fr); gap:9px 12px; padding:11px 12px; background:#123324; border:1px solid #315c43; border-radius:12px; }
+ .results-container .results-header-bar h2.results-title { grid-column:1/-1; font-size:.9rem; line-height:1.2; margin:0; }
+ .results-header-bar .season-dropdown { width:100px; min-width:0; min-height:40px; padding:7px 25px 7px 10px; font-size:.82rem; line-height:1.2; }
+ .results-container .results-header-bar .view-selector { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); justify-self:end; width:min(100%,195px); gap:3px; padding:3px; border:1px solid #3c6951; border-radius:9px; background:#0a2318; box-sizing:border-box; }
+ .results-container .results-header-bar .view-btn { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:2px; min-width:0; min-height:37px; margin:0; padding:3px 4px; border:1px solid transparent; border-radius:6px; background:transparent; line-height:1; }
+ .results-container .results-header-bar .view-btn.active { background:#24503a; border-color:#5a9d78; }
+ .result-view-icon { font-size:14px; }
+ .result-view-name { display:block; font:600 9px/1.2 system-ui,sans-serif; color:#c8e1d2; }
+ .result-card-wide { padding:11px 11px 26px; }
+ .result-card-wide .teams { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:8px; padding-top:25px; margin:0; }
+ .result-card-wide .teams .team { min-width:0; width:auto; font-size:.8rem; font-weight:600; line-height:1.2; overflow-wrap:anywhere; }
+ .result-card-wide .teams .team.home { text-align:right; }
+ .result-card-wide .teams .team.away { text-align:left; }
+ .result-card-wide .teams .score { min-width:56px; min-height:35px; padding:5px 7px; box-sizing:border-box; font-size:1.16rem; line-height:1.1; border-radius:6px; letter-spacing:0; }
+ .result-card-wide .teams .points-score { font-size:.6rem; line-height:1.2; margin-top:3px; }
+ .result-card-wide > .date { margin:5px 0 2px; font-size:.72rem; line-height:1.25; }
+ .result-card-wide .league-pill { font-size:.58rem; line-height:1.2; padding:4px 7px; }
+}
