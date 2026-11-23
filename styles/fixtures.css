@@ -1604,17 +1604,13 @@
 .fixtureEventFooter { flex-wrap:wrap; }
 .fixtureEventVenue { flex:1 1 72px; max-width:100%; }
 
-.fixtureCalendarEvent.fxPersonal-missed,.fxCard.fxPersonal-missed { opacity:.58; filter:saturate(.45); }
+.fixtureCalendarEvent.fxPersonal-missed,.fxCard.fxPersonal-missed { opacity:.82; filter:saturate(.8); }
 .fixtureCalendarEvent.fxPersonal-missed:is(:hover,:focus-visible),.fxCard.fxPersonal-missed:is(:hover,:focus-visible) { opacity:1; filter:none; }
 .fxPersonalBadge-missed { border-color:#6c8275; background:#21352a; color:#c4d3c9; }
-.fixturePersonalStats { display:table; table-layout:fixed; width:100%; margin-top:12px; border-collapse:separate; border-spacing:0; border:1px solid #385e48; border-radius:9px; overflow:hidden; background:#102f20; font:500 .83rem/1.4 system-ui,sans-serif; }
-.fixturePersonalStats th { padding:9px 6px; background:#1c432f; color:#c9dfd0; font-size:.7rem; font-weight:650; text-align:center; text-transform:uppercase; }
-.fixturePersonalStats td { padding:10px 6px; border-top:1px solid #355b44; color:#e9f3ec; text-align:center; vertical-align:middle; }
 .fixtureSpecials { display:flex; flex-wrap:wrap; justify-content:center; gap:4px; }
 .fixtureSpecial { display:inline-flex; align-items:center; padding:3px 6px; border:1px solid #32875b; border-radius:5px; background:#145734; color:#d8f4e2; font-size:.68rem; font-weight:650; white-space:nowrap; }
 .fixtureSpecial-one-eighty { border-color:#ad963f; background:#534a1a; color:#f4e5a7; }
 .fixtureSpecial-ton { border-color:#629cc2; background:#20495c; color:#d3edff; }
-.fixtureNoSpecials { color:#8da797; }
 .fixtureBagel { font-size:1.1rem; line-height:1; }
 .fixtureLineup ul { display:grid; grid-template-columns:minmax(0,1fr); gap:7px; }
 .fixtureLineup li { min-width:0; }
@@ -1624,3 +1620,7 @@
 .fixtureLineupName { font-size:.85rem; font-weight:650; }
 .fixtureLineupCheckouts { display:inline-flex; align-items:center; gap:5px; font-size:.72rem; color:#9fbea9; }
 .fixtureLineupArrow { margin-left:auto; color:#98b9a3; }
+
+.fixtureLineupStats { display:flex; align-items:center; flex-wrap:wrap; gap:5px 12px; color:#9fbea9; font-size:.72rem; }
+.fixtureLineupSpecials { display:inline-flex; flex-wrap:wrap; gap:4px; }
+.fixtureLineup a.fixtureLineupSelf { background:#204e35; border-color:#62aa7c; box-shadow:inset 3px 0 #81d69b; }

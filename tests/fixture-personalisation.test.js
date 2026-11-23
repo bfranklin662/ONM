@@ -163,13 +163,14 @@ test("completed fixture details show participation once and keep score and resul
   assert.equal((content.innerHTML.match(/>Played</g) || []).length, 1);
   assert(!content.innerHTML.includes("fixtureAvailabilityForm"));
   assert(content.innerHTML.includes("6 – 3"));
-  assert(content.innerHTML.includes("<td>3</td>"));
-  assert(content.innerHTML.includes("<td>£12.50</td>"));
+  assert(!content.innerHTML.includes("fixturePersonalStats"));
+  assert(content.innerHTML.includes("Fines: £12.50"));
   assert(content.innerHTML.includes("Bull ×1"));
   assert(content.innerHTML.includes("Ton+ ×2"));
   assert(content.innerHTML.includes("Checkouts: 3"));
   assert(content.innerHTML.includes("data-fixture-avatar=\"Nick\""));
-  assert(!content.innerHTML.includes("£99.00"));
+  assert(content.innerHTML.includes("Fines: £99.00"));
+  assert.equal((content.innerHTML.match(/class="fixtureLineupSelf"/g) || []).length, 1);
   assert(content.innerHTML.includes("View full result ↗"));
   assert(!content.innerHTML.includes("<dt>Time</dt>"));
   assert(content.innerHTML.includes("Our team"));
@@ -198,15 +199,15 @@ test("match editing links are only offered to active administrators", () => {
 
 test("zero checkouts show a bagel and missing statistics remain unknown", () => {
   const h = harness();
-  const start = source.indexOf("  function personalMatchStats(");
+  const start = source.indexOf("  function fixturePlayerStats(");
   const end = source.indexOf("  function fixtureAdminEditLink(",start);
   vm.runInContext(source.slice(start,end),h.context);
   const fixture = { ...h.fixture, completed:true, playerNames:["Nick"], resultRow:{Player1:"Nick",C1:"0",F1:"£2.00",B1:"1"} };
-  const html = h.context.personalMatchStats(fixture);
+  const html = h.context.fixturePlayerStats(fixture.resultRow,1) + h.context.fixtureCheckoutMarkup("0");
   assert(html.includes("🥯"));
   assert(html.includes("aria-label=\"0 checkouts\""));
   assert(html.includes("Bull ×1"));
   assert(html.includes("£2.00"));
   assert(!h.context.fixtureCheckoutMarkup("").includes("🥯"));
-  assert.equal(h.context.personalMatchStats({...fixture,playerNames:["Nick B"]}), "");
+  assert(!h.context.fixturePlayerStats({},1).includes("fixtureSpecial"));
 });

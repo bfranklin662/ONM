@@ -95,21 +95,15 @@
     </form>`;
   }
 
-  function personalMatchStats(fixture) {
-    if (!fixture.completed || personalFixture(fixture)?.state !== "played" || !fixture.resultRow) return "";
-    const row = fixture.resultRow;
-    const names = [personal.user.linkedPlayerName, personal.user.linkedPlayerKey.replace(/-/g, " ")].map(normalizeName).filter(Boolean);
-    const slot = Array.from({ length: 12 }, (_, i) => i + 1).find(i => names.includes(normalizeName(row[`Player${i}`] ?? row[`Player ${i}`])));
-    if (!slot) return "";
-    const checkouts = row[`C${slot}`] ?? row[`C ${slot}`];
-    const fine = row[`F${slot}`] ?? row[`F ${slot}`];
-    const fineValue = Number(String(fine ?? "").replace(/[£,\s]/g, ""));
-    const fineText = String(fine ?? "").trim() && Number.isFinite(fineValue) ? `£${fineValue.toFixed(2)}` : "—";
-    const specials = [["O", "180", "one-eighty"], ["B", "Bull", "bull"], ["T", "Ton+", "ton"]].map(([prefix, label, type]) => {
-      const count = Number(row[`${prefix}${slot}`] ?? row[`${prefix} ${slot}`]);
+  function fixturePlayerStats(row, slot) {
+    const fine = row?.[`F${slot}`] ?? row?.[`F ${slot}`];
+    const amount = Number(String(fine ?? "").replace(/[£,\s]/g, ""));
+    const fines = String(fine ?? "").trim() && Number.isFinite(amount) ? `£${amount.toFixed(2)}` : "—";
+    const specials = [["O", "180", "one-eighty"], ["B", "Bull", "bull"], ["T", "Ton+", "ton"]].map(([prefix,label,type]) => {
+      const count = Number(row?.[`${prefix}${slot}`] ?? row?.[`${prefix} ${slot}`]);
       return Number.isFinite(count) && count > 0 ? `<span class="fixtureSpecial fixtureSpecial-${type}">${label} ×${count}</span>` : "";
-    }).filter(Boolean).join(" ") || '<span class="fixtureNoSpecials">—</span>';
-    return `<table class="fixturePersonalStats" aria-label="Your match statistics"><thead><tr><th scope="col">Checkouts</th><th scope="col">Fines</th><th scope="col">Specials</th></tr></thead><tbody><tr><td>${fixtureCheckoutMarkup(checkouts)}</td><td>${escapeFixtureText(fineText)}</td><td><div class="fixtureSpecials">${specials}</div></td></tr></tbody></table>`;
+    }).filter(Boolean).join(" ");
+    return `<span>Fines: ${escapeFixtureText(fines)}</span>${specials ? `<span class="fixtureLineupSpecials">${specials}</span>` : ""}`;
   }
 
   function fixtureCheckoutMarkup(value) {
@@ -159,12 +153,14 @@
   function fixtureLineup(fixture) {
     if (!fixture.completed) return "";
     const row = fixture.resultRow;
-    let entries = row ? Array.from({ length: 12 }, (_, i) => ({ name: row[`Player${i + 1}`] ?? row[`Player ${i + 1}`], checkouts: row[`C${i + 1}`] ?? row[`C ${i + 1}`] })).filter(entry => entry.name) : [];
+    let entries = row ? Array.from({ length: 12 }, (_, i) => ({ slot: i + 1, name: row[`Player${i + 1}`] ?? row[`Player ${i + 1}`], checkouts: row[`C${i + 1}`] ?? row[`C ${i + 1}`] })).filter(entry => entry.name) : [];
     if (!entries.length) entries = (fixture.playerNames || []).map(name => ({ name }));
     const seen = new Set();
     entries = entries.filter(entry => { const key = normalizeName(entry.name); if (seen.has(key)) return false; seen.add(key); return true; });
     if (!entries.length) return "";
-    return `<section class="fixtureLineup" aria-label="Submitted team lineup"><h4>Our team</h4><ul>${entries.map(({name,checkouts}) => `<li><a href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupName">${escapeFixtureText(name)}</span><span class="fixtureLineupCheckouts">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span></span><span class="fixtureLineupArrow" aria-hidden="true">↗</span></a></li>`).join("")}</ul></section>`;
+    return `<section class="fixtureLineup" aria-label="Submitted team lineup"><h4>Our team</h4><ul>${entries.map(({name,checkouts,slot}) => {
+      const mine = personal.user?.accountType !== "supporter" && [personal.user?.linkedPlayerName, personal.user?.linkedPlayerKey?.replace(/-/g," ")].filter(Boolean).some(value => normalizeName(value) === normalizeName(name));
+      return `<li><a class="${mine ? "fixtureLineupSelf" : ""}"${mine ? ' aria-label="Your player profile"' : ""} href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupName">${escapeFixtureText(name)}</span><span class="fixtureLineupStats"><span class="fixtureLineupCheckouts">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span>${fixturePlayerStats(row,slot)}</span></span><span class="fixtureLineupArrow" aria-hidden="true">↗</span></a></li>`; }).join("")}</ul></section>`;
   }
 
   document.addEventListener("error", event => {
@@ -187,7 +183,7 @@
       ${!fixture.completed ? `<div><dt>Time</dt><dd>${escapeFixtureText(fixture.Time || "18:30")}</dd></div>` : ""}
       <div><dt>Home / Away</dt><dd>${escapeFixtureText(fixture.HA === "TBC" ? "To be confirmed" : fixture.HA)}</dd></div>
       <div class="fixtureDetailsLocation"><dt>Location</dt><dd>${escapeFixtureText(fixture.Location || "To be confirmed")}</dd></div></dl>
-      ${personalBadge(fixture)}${personalMatchStats(fixture)}${availabilityDetails(fixture)}
+      ${personalBadge(fixture)}${availabilityDetails(fixture)}
       ${fixtureLineup(fixture)}
       ${fixture.completed && fixture.resultRow ? `<section id="fixtureMatchPhotos" aria-label="Match photos"><p class="fixturePhotosNotice" role="status">Loading photos…</p></section>` : ""}
       <p id="fixtureAvailabilityMessage" role="status" aria-live="polite"></p>
