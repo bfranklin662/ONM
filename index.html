@@ -7,11 +7,12 @@
   <meta name="viewport" content="width=device-width initial-scale=1">
   <link rel="stylesheet" href="styles/index.css?v=20261023-home-bot">
   <link rel="stylesheet" href="styles/header.css">
+  <link rel="stylesheet" href="styles/games.css?v=20261123-home-games">
   <link rel="stylesheet" href="styles/result-photos.css?v=20261123-fixture-photos">
-  <link rel="stylesheet" href="styles/fixtures.css?v=20261123-fixture-pill-refinement">
+  <link rel="stylesheet" href="styles/fixtures.css?v=20261123-home-menu">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/home-refresh.css?v=20261123-fixture-pill-refinement">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/home-refresh.css?v=20261123-home-menu">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
   <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
@@ -39,7 +40,7 @@
   <meta property="og:image:alt" content="Oche Ness Monsters club logo on a dark green background">
 </head>
 
-<body>
+<body class="homePage">
   <header class="site-header">
     <a href="/" class="brand-left">
       <img class="top-left-logo" src="graphics/logoWText.png" alt="Oche Ness Monsters">
@@ -76,18 +77,14 @@
   </div>
 
   <main class="home-shell">
+    <nav class="homeSectionMenu" aria-label="Home sections">
+      <a href="#fixtures" aria-current="location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2"/></svg><span>Fixtures &amp; results</span></a>
+      <a href="#home-play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="m12 12 8-8m-3 0h3v3"/></svg><span>Play darts</span></a>
+      <a href="#merch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 4-5 3 3 5 2-1v10h8V11l2 1 3-5-5-3a4 4 0 0 1-8 0Z"/></svg><span>Merch</span></a>
+      <a href="#competitions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8v6a4 4 0 0 1-8 0V3Zm0 2H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 1v7m-4 1h8"/></svg><span>Competitions</span></a>
+      <a href="#team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-16a3 3 0 0 1 0 6m3 10v-3a6 6 0 0 0-3-5"/></svg><span>About</span></a>
+    </nav>
 
-    <section class="home-section home-bot-feature" aria-labelledby="home-bot-title">
-      <div class="home-bot-copy">
-        <h2 id="home-bot-title">Play the Monster Bot Game</h2>
-        <p>Can you beat our Monster Bots?</p>
-        <a class="home-btn primary" href="monster-bot.html">Play now <span aria-hidden="true">→</span></a>
-      </div>
-      <div class="home-bot-avatars" aria-hidden="true">
-        <img src="graphics/bots/billy-bot.png" alt="" width="140" height="140">
-        <img src="graphics/bots/croft-bot.png" alt="" width="140" height="140">
-      </div>
-    </section>
 
     <section id="fixtures" class="home-section fixturesContainer">
       <div class="home-section-heading">
@@ -135,6 +132,81 @@
         <button id="fixtureDetailsClose" type="button" class="fixtureDetailsClose" aria-label="Close fixture details" autofocus>×</button>
         <div id="fixtureDetailsContent"></div>
       </dialog>
+    </section>
+
+    <section id="home-play" class="home-section home-play" aria-labelledby="home-play-title">
+      <div class="home-section-heading"><p>Step up to the oche</p><h2 id="home-play-title">Play darts</h2></div>
+      <div class="scorerSetupCard playGameList" aria-label="Games">
+      <div class="setupGrid">
+
+        <a href="monster-bot.html" class="gameTile gameTileMonster">
+          <div class="gameTileImage monsterTileArt">
+            <span class="monsterArtLabel">MEET YOUR MATCH</span>
+            <div class="monsterArtCast">
+              <img src="graphics/bots/billy-bot.png" alt="Billy Bot" width="150" height="190">
+              <img src="graphics/bots/croft-bot.png" alt="Croft Bot" width="150" height="190">
+              <img src="graphics/bots/venton-bot.png" alt="Venton Bot" width="150" height="190">
+              <img src="graphics/bots/istan-bot.png" alt="Istan Bot" width="150" height="190">
+            </div>
+            <span class="monsterArtCaption">Start with Billy. Uncover the rest.</span>
+          </div>
+          <div class="gameTileBody">
+            <h2>Monster Bot Game</h2>
+            <p class="gameTileKicker">Online · Ladder · Bull or Bust</p>
+            <p>Meet the Monsters. Beat their challenges. Unlock your next rival.</p>
+            <div class="gameTileStats"><span id="botGamePlayers" hidden>👥 <strong></strong></span><span>50 challenges</span><span>★ Flawless wins</span><span>🎯 Bull or Bust</span></div>
+          </div>
+          <span class="gameTileAction">Enter the game →</span>
+        </a>
+
+        <a href="dart-scorer.html?mode=versus" class="gameTile gameTileLeague">
+          <div class="gameTileImage gameDiagramArt" aria-hidden="true">
+            <svg viewBox="0 0 230 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="19" y="21" width="66" height="57" rx="9"/><rect x="145" y="21" width="66" height="57" rx="9"/><path d="M85 40h60m-60 20h60m-21-28 8 8-8 8m-18 4-8 8 8 8M38 41h28M38 58h28m98-17h28m-28 17h28"/>
+            </svg>
+          </div>
+          <div class="gameTileBody">
+            <h2>Monsters Versus</h2>
+            <p class="gameTileKicker">Online matches · Averages tracked</p>
+            <div class="gameTileStats" id="molGameStats">
+              <span>👥 <strong id="molGamePlayers">-</strong></span>
+            </div>
+            <p>Play online 501 games with friends. See player photos, flags and averages—no rankings or league table.</p>
+          </div>
+          <span class="gameTileAction">Play →</span>
+        </a>
+
+        <a href="tournament.html" class="gameTile gameTileTournament">
+          <div class="gameTileImage gameDiagramArt" aria-hidden="true">
+            <svg viewBox="0 0 230 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+              <path d="M10 12h32v23h35m-67 23h32V35m-32 30h32v23h35m-67 8h32v-8M77 35v53m0-26h34M220 12h-32v23h-35m67 23h-32V35m32 30h-32v23h-35m67 8h-32v-8m-35-53v53m0-26h-34"/>
+              <circle cx="115" cy="62" r="9"/>
+            </svg>
+          </div>
+          <div class="gameTileBody">
+            <h2>Tournament</h2>
+            <p class="gameTileKicker">Groups · Knockouts · Live standings</p>
+            <p>Join the draw, follow the bracket and see how every player scores.</p>
+          </div>
+          <span class="gameTileAction">Open lobby →</span>
+        </a>
+
+        <a href="dart-scorer.html?mode=casual&v=20260602" class="gameTile gameTileCasual">
+          <div class="gameTileImage gameDiagramArt" aria-hidden="true">
+            <svg viewBox="0 0 230 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="92" y="11" width="46" height="78" rx="8"/><path d="M102 24h26v15h-26zM103 50h4m6 0h4m6 0h4m-24 10h4m6 0h4m6 0h4m-24 10h4m6 0h4m6 0h4M30 50h45m80 0h45"/><circle cx="30" cy="50" r="5"/><circle cx="200" cy="50" r="5"/>
+            </svg>
+          </div>
+          <div class="gameTileBody">
+            <h2>Casual Dart Scorer</h2>
+            <p class="gameTileKicker">Online scorecard · In-person play</p>
+            <p>Keep score for both players on one device.</p>
+          </div>
+          <span class="gameTileAction">Open →</span>
+        </a>
+
+      </div>
+      </div>
     </section>
 
     <section id="merch" class="home-section home-merch">
@@ -361,8 +433,13 @@
 <script src="scripts/photo-placeholders.js?v=20261123-fixture-photos"></script>
 <script src="scripts/fixture-photos.js?v=20261123-fixture-photos"></script>
 <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
-<script src="scripts/fixtures.js?v=20261123-fixture-pill-refinement"></script>
+<script src="scripts/fixtures.js?v=20261123-home-menu"></script>
 <script src="scripts/comps.js"></script>
 <script src="scripts/merch.js?v=20261028-both-ranges"></script>
 
+
+<script src="scripts/home-sections.js?v=20261123-home-menu" defer></script>
+<script type="module" src="scripts/firebase-live.js"></script>
+<script src="scripts/monster-bot-data.js?v=20261027-trophy-backfill" defer></script>
+<script src="scripts/games.js?v=20261117-play-diagrams" defer></script>
 </html>

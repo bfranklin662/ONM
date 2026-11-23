@@ -78,3 +78,29 @@
  #fixtures .fixtureCalendarEvent .fixtureEventResult { font-size:9px; }
 }
 @media(prefers-reduced-motion:reduce) { #fixtureCalendar[aria-busy="true"] #fixtureCalendarCount::before { animation:none; } }
+
+.homeSectionMenu { position:sticky; top:calc(var(--header-h,92px) + 6px); z-index:40; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:5px; margin:0 0 16px; padding:5px; border:1px solid #365a47; border-radius:11px; background:#0a1c20f5; backdrop-filter:blur(12px); }
+.homeSectionMenu a { display:flex; align-items:center; justify-content:center; gap:8px; min-height:43px; padding:7px; border:1px solid transparent; border-radius:7px; color:#a5bfb1; text-decoration:none; font:650 12px/1.2 system-ui,sans-serif; text-align:center; }
+.homeSectionMenu svg { width:19px; height:19px; flex-shrink:0; }
+.homeSectionMenu a[aria-current="location"] { background:#244b37; border-color:#5c9572; color:#e4f5e9; }
+.homeSectionMenu a:hover { background:#1b3d2c; color:#e4f5e9; }
+.homeSectionMenu a:focus-visible { outline:2px solid #a1e6b6; outline-offset:2px; }
+.home-shell > section[id] { scroll-margin-top:calc(var(--header-h,92px) + 80px); }
+.home-play { --yellow:#ffdf78; --muted:#bdd0c4; }
+.home-play .scorerSetupCard { width:100%; margin:0; padding:0; }
+.home-play .setupGrid { display:grid; grid-template-columns:minmax(0,1fr); }
+.home-play .gameTile { box-sizing:border-box; text-align:left; }
+.home-play .gameTileBody { min-width:0; }
+.home-play .gameTileStats { flex-wrap:wrap; }
+.home-play .gameTileImage { border:0; }
+@media(max-width:650px) {
+ .homeSectionMenu { gap:2px; padding:4px; margin-bottom:10px; }
+ .homeSectionMenu a { flex-direction:column; gap:4px; min-height:48px; padding:4px 2px; font-size:9px; }
+ .homeSectionMenu svg { width:17px; height:17px; }
+ .home-play .home-section-heading { margin-top:0; margin-bottom:11px; gap:3px; }
+ .home-play .home-section-heading h2 { font-size:19px; }
+ .home-play .home-section-heading p { font-size:10px; margin:0; }
+}
+
+html:has(.homeSectionMenu) { scroll-padding-top:0; }
+.home-shell > .homeSectionMenu + .home-section { margin-top:0; }
