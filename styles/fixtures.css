@@ -1567,10 +1567,6 @@
 .fixtureDetailsHeader { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding-right:44px; }
 .fixtureDetails .fixtureDetailsHeader .fixtureCategory { padding:6px 9px; }
 .fixtureDetails .fixtureDetailsHeader .fxResultLink { margin:0; padding:5px 0; flex-shrink:0; font-size:.78rem; white-space:nowrap; }
-.fixturePersonalStats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
-.fixturePersonalStats > div { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px; border:1px solid #385e48; border-radius:9px; background:#0d251a; }
-.fixturePersonalStats span { font-size:.76rem; color:#b1ccb9; }
-.fixturePersonalStats strong { color:#f4db63; font:650 1.05rem/1.3 system-ui,sans-serif; }
 #fixtureMatchPhotos { margin-top:18px; border-top:1px solid #ffffff16; padding-top:14px; }
 #fixtureMatchPhotos h4 { font-size:.9rem; margin:0 0 10px; }
 .fixturePhotoGrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
@@ -1588,7 +1584,7 @@
 .fixturePhotoViewer > div { display:flex; align-items:center; justify-content:center; gap:20px; margin-top:12px; font-size:.8rem; }
 .fixturePhotoViewer > div button { min-width:40px; min-height:36px; border:1px solid #486f56; border-radius:7px; background:#153724; color:white; cursor:pointer; }
 .fixturePhotoViewer button:disabled { opacity:.4; cursor:default; }
-@media(max-width:420px) { .fixtureDetails { padding:16px; } .fixtureDetailsHeader { gap:6px; padding-right:38px; } .fixtureDetails .fixtureDetailsHeader .fixtureCategory { font-size:.64rem; max-width:65%; } .fixtureDetails .fixtureDetailsHeader .fxResultLink { font-size:.7rem; } .fixturePersonalStats > div { padding:9px; } }
+@media(max-width:420px) { .fixtureDetails { padding:16px; } .fixtureDetailsHeader { gap:6px; padding-right:38px; } .fixtureDetails .fixtureDetailsHeader .fixtureCategory { font-size:.64rem; max-width:65%; } .fixtureDetails .fixtureDetailsHeader .fxResultLink { font-size:.7rem; } }
 
 .fixtureDetailsFooter { display:flex; justify-content:flex-end; margin-top:16px; }
 .fixtureDetails .fixtureDetailsFooter .fxResultLink { margin:0; padding:8px 12px; border:1px solid #50735b; border-radius:8px; background:#173c28; font-size:.8rem; }
@@ -1607,3 +1603,24 @@
 .fixtureDetailsFooter .fxAdminEditLink { margin-right:auto; padding:8px 12px; border:1px solid #476c54; border-radius:8px; color:#c6e6d1; background:#102b1e; text-decoration:none; font-size:.8rem; }
 .fixtureEventFooter { flex-wrap:wrap; }
 .fixtureEventVenue { flex:1 1 72px; max-width:100%; }
+
+.fixtureCalendarEvent.fxPersonal-missed,.fxCard.fxPersonal-missed { opacity:.58; filter:saturate(.45); }
+.fixtureCalendarEvent.fxPersonal-missed:is(:hover,:focus-visible),.fxCard.fxPersonal-missed:is(:hover,:focus-visible) { opacity:1; filter:none; }
+.fxPersonalBadge-missed { border-color:#6c8275; background:#21352a; color:#c4d3c9; }
+.fixturePersonalStats { display:table; table-layout:fixed; width:100%; margin-top:12px; border-collapse:separate; border-spacing:0; border:1px solid #385e48; border-radius:9px; overflow:hidden; background:#102f20; font:500 .83rem/1.4 system-ui,sans-serif; }
+.fixturePersonalStats th { padding:9px 6px; background:#1c432f; color:#c9dfd0; font-size:.7rem; font-weight:650; text-align:center; text-transform:uppercase; }
+.fixturePersonalStats td { padding:10px 6px; border-top:1px solid #355b44; color:#e9f3ec; text-align:center; vertical-align:middle; }
+.fixtureSpecials { display:flex; flex-wrap:wrap; justify-content:center; gap:4px; }
+.fixtureSpecial { display:inline-flex; align-items:center; padding:3px 6px; border:1px solid #32875b; border-radius:5px; background:#145734; color:#d8f4e2; font-size:.68rem; font-weight:650; white-space:nowrap; }
+.fixtureSpecial-one-eighty { border-color:#ad963f; background:#534a1a; color:#f4e5a7; }
+.fixtureSpecial-ton { border-color:#629cc2; background:#20495c; color:#d3edff; }
+.fixtureNoSpecials { color:#8da797; }
+.fixtureBagel { font-size:1.1rem; line-height:1; }
+.fixtureLineup ul { display:grid; grid-template-columns:minmax(0,1fr); gap:7px; }
+.fixtureLineup li { min-width:0; }
+.fixtureLineup a { display:flex; align-items:center; gap:11px; padding:9px 11px; width:100%; box-sizing:border-box; }
+.fixtureLineup img { display:block; width:42px; height:42px; flex:0 0 42px; border-radius:50%; object-fit:cover; background:#173b29; border:1px solid #42644e; }
+.fixtureLineupInfo { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.fixtureLineupName { font-size:.85rem; font-weight:650; }
+.fixtureLineupCheckouts { display:inline-flex; align-items:center; gap:5px; font-size:.72rem; color:#9fbea9; }
+.fixtureLineupArrow { margin-left:auto; color:#98b9a3; }

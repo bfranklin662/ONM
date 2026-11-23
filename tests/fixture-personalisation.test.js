@@ -6,7 +6,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const source = fs.readFileSync(path.join(__dirname, "../scripts/fixtures.js"), "utf8");
 function harness() {
-  const context = { window: {}, document: {}, console };
+  const context = { window: {}, document: { addEventListener() {} }, console };
   vm.createContext(context);
   const state = source.slice(source.indexOf("  const personal ="), source.indexOf("  async function loadPersonalAvailability("));
   const normalise = source.slice(source.indexOf("  function normalizeName("), source.indexOf("  function isOnmTeam("));
@@ -32,8 +32,13 @@ test("every response has the correct pill state and unanswered says not recorded
   for (const [status, state] of [["Available", "available"], ["Unavailable", "unavailable"], ["Not sure", "unsure"], ["", "unanswered"]]) {
     h.response.status = status;
     assert.equal(h.context.personalFixture(h.fixture).state, state);
-    assert(h.context.personalClass(h.fixture).includes(`fxPersonal-${state}`));
-    assert(h.context.personalBadge(h.fixture).includes(status || "not recorded"));
+    if (["available", "unavailable"].includes(state)) {
+      assert(h.context.personalClass(h.fixture).includes(`fxPersonal-${state}`));
+      assert(h.context.personalBadge(h.fixture).includes(status));
+    } else {
+      assert.equal(h.context.personalClass(h.fixture), "");
+      assert.equal(h.context.personalBadge(h.fixture), "");
+    }
   }
 });
 
@@ -53,7 +58,7 @@ test("completed match participation comes from submitted lineups, not availabili
   const played = { ...h.fixture, completed: true, playerNames: ["Nick", "Rob"] };
   h.response.status = "Unavailable";
   assert.equal(h.context.personalFixture(played).state, "played");
-  assert.equal(h.context.personalFixture({ ...played, playerNames: ["Nick B"] }).state, "not-played");
+  assert.equal(h.context.personalFixture({ ...played, playerNames: ["Nick B"] }).state, "missed");
   assert.equal(h.context.personalFixture({ ...played, playerNames: [] }).state, "unknown");
 });
 
@@ -123,7 +128,7 @@ test("clicking a card shows the response and saving refreshes both views", async
   assert(get("#fixtureCalendarEmpty").hidden);
   releaseFixtures();
   await new Promise(resolve => setImmediate(resolve));
-  assert(get("#fixturesStage").innerHTML.includes("You: Available"));
+  assert(get("#fixturesStage").innerHTML.includes("Available"));
   get("#fixturesStage").events.click({ target: { closest: selector => selector === "a" ? null : { dataset: { cardFixtureIndex: "0" } } } });
   assert(get("#fixtureDetails").open);
   assert(get("#fixtureDetailsContent").innerHTML.includes('value="Available" selected'));
@@ -133,13 +138,13 @@ test("clicking a card shows the response and saving refreshes both views", async
   assert.equal(saved.data.fixtureId, "sheet-21-oct");
   assert.equal(saved.data.previousStatus, "Available");
   assert.equal(saved.data.status, "Unavailable");
-  assert(get("#fixturesStage").innerHTML.includes("You: Unavailable"));
-  assert(get("#fixtureCalendarGrid").innerHTML.includes("You: Unavailable"));
+  assert(get("#fixturesStage").innerHTML.includes("Unavailable"));
+  assert(get("#fixtureCalendarGrid").innerHTML.includes("Unavailable"));
   assert.equal(get("#fixtureAvailabilityMessage").textContent, "Saved to the availability sheet.");
   failSave = true;
   get("#fixtureAvailabilityChoice").value = "Not sure";
   await get("#fixtureDetails").events.submit({ target: { id: "fixtureAvailabilityForm" }, preventDefault() {} });
-  assert(get("#fixturesStage").innerHTML.includes("Availability unavailable"));
+  assert(!get("#fixturesStage").innerHTML.includes("fxPersonal-unavailable"));
   assert(!get("#fixturesStage").innerHTML.includes("fxPersonal-unanswered"));
   assert(get("#fixtureDetailsContent").innerHTML.includes("Refresh availability"));
 });
@@ -154,12 +159,16 @@ test("completed fixture details show participation once and keep score and resul
   const start = source.indexOf("  function availabilityDetails(");
   const end = source.indexOf("  const RESULTS_PAGE_URL", start);
   vm.runInContext(source.slice(start, end), h.context);
-  h.context.openFixtureDetails({ ...h.fixture, completed: true, playerNames: ["Nick", "Rob"], homeTeam: "Oche Ness Monsters", awayTeam: "Silverbacks", homeScore: 6, awayScore: 3, resultRow: { Player1: "Nick B", C1: "99", F1: "£99.00", Player2: "Nick", C2: "3", F2: "£12.50" }, outcome: "win", Day: "Wednesday", Date: "21st Oct 2026" });
-  assert.equal((content.innerHTML.match(/You played/g) || []).length, 1);
+  h.context.openFixtureDetails({ ...h.fixture, completed: true, playerNames: ["Nick", "Rob"], homeTeam: "Oche Ness Monsters", awayTeam: "Silverbacks", homeScore: 6, awayScore: 3, resultRow: { Player1: "Nick B", C1: "99", F1: "£99.00", Player2: "Nick", C2: "3", F2: "£12.50", B2: "1", T2: "2" }, outcome: "win", Day: "Wednesday", Date: "21st Oct 2026" });
+  assert.equal((content.innerHTML.match(/>Played</g) || []).length, 1);
   assert(!content.innerHTML.includes("fixtureAvailabilityForm"));
   assert(content.innerHTML.includes("6 – 3"));
-  assert(content.innerHTML.includes("Your checkouts</span><strong>3</strong>"));
-  assert(content.innerHTML.includes("Your fines</span><strong>£12.50</strong>"));
+  assert(content.innerHTML.includes("<td>3</td>"));
+  assert(content.innerHTML.includes("<td>£12.50</td>"));
+  assert(content.innerHTML.includes("Bull ×1"));
+  assert(content.innerHTML.includes("Ton+ ×2"));
+  assert(content.innerHTML.includes("Checkouts: 3"));
+  assert(content.innerHTML.includes("data-fixture-avatar=\"Nick\""));
   assert(!content.innerHTML.includes("£99.00"));
   assert(content.innerHTML.includes("View full result ↗"));
   assert(!content.innerHTML.includes("<dt>Time</dt>"));
@@ -184,4 +193,20 @@ test("match editing links are only offered to active administrators", () => {
   assert(h.context.fixtureAdminEditLink({ ...h.fixture, completed:true, resultRow:{_resultId:"submitted-one"} }).includes("id=submitted-one"));
   h.personal.user.status = "Inactive";
   assert.equal(h.context.fixtureAdminEditLink(h.fixture), "");
+});
+
+
+test("zero checkouts show a bagel and missing statistics remain unknown", () => {
+  const h = harness();
+  const start = source.indexOf("  function personalMatchStats(");
+  const end = source.indexOf("  function fixtureAdminEditLink(",start);
+  vm.runInContext(source.slice(start,end),h.context);
+  const fixture = { ...h.fixture, completed:true, playerNames:["Nick"], resultRow:{Player1:"Nick",C1:"0",F1:"£2.00",B1:"1"} };
+  const html = h.context.personalMatchStats(fixture);
+  assert(html.includes("🥯"));
+  assert(html.includes("aria-label=\"0 checkouts\""));
+  assert(html.includes("Bull ×1"));
+  assert(html.includes("£2.00"));
+  assert(!h.context.fixtureCheckoutMarkup("").includes("🥯"));
+  assert.equal(h.context.personalMatchStats({...fixture,playerNames:["Nick B"]}), "");
 });
