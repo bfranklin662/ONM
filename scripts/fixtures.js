@@ -106,6 +106,15 @@
     return `<div class="fixturePersonalStats" aria-label="Your match statistics"><div><span>Your checkouts</span><strong>${escapeFixtureText(String(checkouts ?? "").trim() || "—")}</strong></div><div><span>Your fines</span><strong>${escapeFixtureText(fineText)}</strong></div></div>`;
   }
 
+  function fixtureAdminEditLink(fixture) {
+    if (personal.user?.status !== "Active" || !["owner", "admin"].includes(personal.user.role)) return "";
+    const type = fixture.completed ? "result" : "fixture";
+    const fields = { edit: type, date: fixture.dateISO, league: fixture.Competition || fixture.League, opponent: fixture.Opponent, side: fixture.HA, season: fixture.season || "26-27" };
+    if (type === "result" && fixture.resultRow?._resultId) fields.id = fixture.resultRow._resultId;
+    const query = Object.entries(fields).map(([key,value]) => `${key}=${encodeURIComponent(value || "")}`).join("&");
+    return `<a class="fxAdminEditLink" href="admin.html?${escapeFixtureText(query)}">Edit ${type}</a>`;
+  }
+
   function fixtureLineup(fixture) {
     if (!fixture.completed) return "";
     const row = fixture.resultRow;
@@ -130,7 +139,7 @@
       ${fixtureLineup(fixture)}
       ${fixture.completed && fixture.resultRow ? `<section id="fixtureMatchPhotos" aria-label="Match photos"><p class="fixturePhotosNotice" role="status">Loading photos…</p></section>` : ""}
       <p id="fixtureAvailabilityMessage" role="status" aria-live="polite"></p>
-      ${fixture.completed ? `<div class="fixtureDetailsFooter"><a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View full result ↗</a></div>` : ""}
+      ${fixture.completed || fixtureAdminEditLink(fixture) ? `<div class="fixtureDetailsFooter">${fixtureAdminEditLink(fixture)}${fixture.completed ? `<a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View full result ↗</a>` : ""}</div>` : ""}
       `;
     const dialog = el("#fixtureDetails");
     if (!dialog.open) dialog.showModal();
@@ -945,9 +954,9 @@
     const label = escape(`${fixture.Opponent}, ${fixture.HA}, ${fixture.League}, ${fixture.Date}. ${fixture.completed ? resultText : ""} ${personalFixture(fixture)?.label || ""}. View match details`);
     const attrs = `class="fixtureCalendarEvent ${fixture.leagueClass} ${calendarDateState(fixture.dateISO)}${personalClass(fixture)}"`;
     const content = `<span class="fixtureEventSummary">
-      <span class="fixtureEventOpponent">${escape(fixture.Opponent)}</span>
+      <span class="fixtureEventOpponent">${escape(fixture.Opponent)}${["Home", "Away", "Neutral"].includes(fixture.HA) ? ` <span class="fixtureEventSideInline">(${fixture.HA[0]})</span>` : ""}</span>
       ${fixture.completed ? `<span class="fixtureEventResult ${fixture.outcome}">${escape(resultText)}</span>` : ""}
-      </span><span class="fixtureEventLeague">${escape(fixtureLeagueLabel(fixture))}</span><span class="fixtureEventFooter"><span class="fixtureEventSide">${escape(fixture.HA === "TBC" ? "H/A TBC" : fixture.HA)}</span>${personalBadge(fixture)}</span>`;
+      </span><span class="fixtureEventLeague">${escape(fixtureLeagueLabel(fixture))}</span><span class="fixtureEventFooter">${personalBadge(fixture)}${fixture.Location && fixture.Location !== "TBC" ? `<span class="fixtureEventVenue" title="${escape(fixture.Location)}">${escape(fixture.Location)}</span>` : ""}</span>`;
     return `<button type="button" ${attrs} aria-label="${label}" data-fixture-index="${index}" aria-haspopup="dialog">${content}</button>`;
   }
 

@@ -171,3 +171,17 @@ test("completed fixture details show participation once and keep score and resul
   assert(content.innerHTML.includes("fixtureAvailabilityForm"));
   assert(content.innerHTML.includes("<dt>Time</dt>"));
 });
+
+
+test("match editing links are only offered to active administrators", () => {
+  const h = harness();
+  const start = source.indexOf("  function fixtureAdminEditLink(");
+  const end = source.indexOf("  function fixtureLineup(", start);
+  vm.runInContext(source.slice(start,end),h.context);
+  assert.equal(h.context.fixtureAdminEditLink(h.fixture), "");
+  h.personal.user.role = "owner";
+  assert(h.context.fixtureAdminEditLink(h.fixture).includes("edit=fixture"));
+  assert(h.context.fixtureAdminEditLink({ ...h.fixture, completed:true, resultRow:{_resultId:"submitted-one"} }).includes("id=submitted-one"));
+  h.personal.user.status = "Inactive";
+  assert.equal(h.context.fixtureAdminEditLink(h.fixture), "");
+});

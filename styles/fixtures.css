@@ -1541,8 +1541,6 @@
 .fixtureCalendarTable .fixtureCalendarDay.isFuture { background:#10251b; }
 .fixtureCalendarDay.isPast .fixtureDayNumber,.fixtureCalendarDay.isPast .fixtureMobileWeekday { color:#83958a; }
 .fixtureCalendarTable .fixtureCalendarDay.isToday { background:#173c2b; box-shadow:none; }
-.fixtureCalendarEvent.isPast { filter:saturate(.7); opacity:.78; }
-.fixtureCalendarEvent.isPast:is(:hover,:focus-visible) { filter:none; opacity:1; }
 .fixtureDetails { padding:22px; background:#112d20; border-color:#3e6951; }
 .fixtureDetailsClose { margin:-8px -8px 6px auto; width:36px; height:36px; }
 .fixtureDetails h3 { margin:14px 0 5px; font-size:1.4rem; }
@@ -1600,3 +1598,12 @@
 .fixtureLineup ul { display:flex; flex-wrap:wrap; gap:7px; list-style:none; padding:0; margin:0; }
 .fixtureLineup a { display:block; padding:6px 10px; border:1px solid #375d47; border-radius:7px; background:#0d251a; color:#d0e6d7; font:500 .78rem/1.3 system-ui,sans-serif; text-decoration:none; }
 .fixtureLineup a:hover { background:#214a33; color:#fff; }
+
+.fixtureEventSideInline { opacity:.8; white-space:nowrap; font-size:.7rem; }
+.fixtureEventFooter { display:flex; align-items:center; justify-content:space-between; gap:6px; width:100%; min-width:0; }
+.fixtureEventVenue { display:block; min-width:0; margin-left:auto; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:right; color:#c2d2c8; font-size:.62rem; }
+.fixtureEventFooter .fxPersonalBadge { flex:0 1 auto; min-width:0; }
+.fixtureDetailsFooter { gap:10px; flex-wrap:wrap; }
+.fixtureDetailsFooter .fxAdminEditLink { margin-right:auto; padding:8px 12px; border:1px solid #476c54; border-radius:8px; color:#c6e6d1; background:#102b1e; text-decoration:none; font-size:.8rem; }
+.fixtureEventFooter { flex-wrap:wrap; }
+.fixtureEventVenue { flex:1 1 72px; max-width:100%; }

@@ -905,6 +905,34 @@
     return snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
   }
 
+  function requestedMatchCandidates(items, params, type) {
+    const id = params.get("id");
+    if (id) return items.filter(item => item.id === id);
+    const normalise = value => clean(value).toLowerCase().replace(/\s+/g, " ");
+    return items.filter(item => {
+      const row = rowFor(item);
+      if (params.get("season") && item.season !== params.get("season")) return false;
+      if (inputDate(row.Date) !== params.get("date")) return false;
+      const league = type === "result" ? row.Competition : row.League;
+      if (normalise(league) !== normalise(params.get("league"))) return false;
+      if (type === "fixture") return normalise(row.Opponent) === normalise(params.get("opponent")) && normalise(row.HA) === normalise(params.get("side"));
+      const home = /^oche ness monsters(?: [ab])?$/i.test(clean(row.HomeTeam));
+      return normalise(home ? row.AwayTeam : row.HomeTeam) === normalise(params.get("opponent")) && (home ? "home" : "away") === normalise(params.get("side"));
+    });
+  }
+
+  function openRequestedMatchEditor() {
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get("edit");
+    if (!["fixture", "result"].includes(type)) return;
+    const tab = type === "fixture" ? "fixtures" : "results";
+    document.querySelector(`[data-admin-tab="${tab}"]`)?.click();
+    const matches = requestedMatchCandidates(type === "fixture" ? state.fixtures : state.results, params, type);
+    if (matches.length !== 1) { showToast(matches.length ? "More than one match fits this link. Choose the correct match in the list." : "This match could not be found. Refresh and choose it from the list.", true); return; }
+    if (type === "fixture") openFixtureEditor(matches[0]);
+    else openResultEditor(matches[0]);
+  }
+
   function attachListeners() {
     document.querySelectorAll("[data-admin-tab]").forEach(button => button.addEventListener("click", () => {
       state.activeTab = button.dataset.adminTab;
@@ -1011,6 +1039,7 @@
       renderResults();
       renderPlayers();
       renderFines();
+      openRequestedMatchEditor();
       if (["owner", "admin"].includes(state.user.role)) {
         document.getElementById("adminRequestsTab").classList.remove("hidden");
         await loadAdminRequests();
