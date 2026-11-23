@@ -9,10 +9,10 @@
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/games.css?v=20261123-home-games">
   <link rel="stylesheet" href="styles/result-photos.css?v=20261123-fixture-photos">
-  <link rel="stylesheet" href="styles/fixtures.css?v=20261123-unified-home-headings">
+  <link rel="stylesheet" href="styles/fixtures.css?v=20261123-club-about">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/home-refresh.css?v=20261123-unified-home-headings">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/home-refresh.css?v=20261123-club-about">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
   <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
@@ -378,27 +378,40 @@
       </div>
     </section>
 
-    <section id="team" class="home-section home-story">
+    <section id="team" class="home-section home-story" aria-labelledby="club-about-title">
       <div class="home-section-heading">
-        <p>The team</p>
-        <h2>Bull or Bust</h2>
+        <p>Est. 2023 · London darts</p>
+        <h2 id="club-about-title">Welcome to the Oche Ness Monsters</h2>
       </div>
-      <div class="home-story-grid">
-        <img src="images/team1.jpg" alt="Oche Ness Monsters team">
-        <div class="home-story-copy">
-          <p>
-            The Oche Ness Monsters are a London darts team built around competitive nights, sharp stats, dubious fines
-            and very sincere belief in the bullseye.
-          </p>
-          <p>
-            We track the matches, celebrate the specials, punish the nonsense, and occasionally throw something
-            beautiful enough to justify all of it.
-          </p>
+      <div class="clubIntro">
+        <img src="images/team1.jpg" alt="The Oche Ness Monsters together as a team" loading="lazy" width="720" height="480">
+        <div class="clubIntroCopy">
+          <span class="clubStamp">Good darts. Questionable decisions.</span>
+          <h3>A club with a taste for bull glory.</h3>
+          <p>Founded by Nick Horne and Ricky Plows in 2023, we’re a London darts club built on competitive nights, good company and the belief that the next dart will definitely be better.</p>
+          <p>We’ve taken to the oche in the Banks, Trafalgar, Smithfield and COLDA leagues, as well as the Alex Beckett competition. Our own Monsters Premier League keeps the rivalries going when the regular season takes a breather.</p>
           <div class="home-story-actions">
-            <a class="home-btn" href="players-landing.html">Meet the players</a>
-            <a class="home-btn" href="results.html">Results & stats</a>
+            <a class="home-btn" href="players-landing.html">Meet the Monsters →</a>
+            <a class="home-btn" href="results.html">Our results →</a>
           </div>
         </div>
+      </div>
+      <div class="clubHonours" aria-label="Club honours">
+        <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8v6a4 4 0 0 1-8 0V3Zm0 2H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 1v7m-4 1h8"/></svg><span><strong>Banks Division 2 champions</strong><small>2024/25</small></span></div>
+        <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8v6a4 4 0 0 1-8 0V3Zm0 2H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 1v7m-4 1h8"/></svg><span><strong>Alex Beckett champions</strong><small>2024/25</small></span></div>
+        <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8v6a4 4 0 0 1-8 0V3Zm0 2H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 1v7m-4 1h8"/></svg><span><strong>Guthrie Cup winners</strong><small>2025/26</small></span></div>
+      </div>
+      <div class="clubTraditions">
+        <article>
+          <div class="clubTraditionTitle"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg><h3>Bull or Bust</h3></div>
+          <p>Left yourself 50? You must attempt the bull glory checkout. No sneaking down to a comfortable double. Take aim, embrace the pressure and give the team something to shout about.</p>
+          <span class="clubMotto">50 left. One glorious target.</span>
+        </article>
+        <article>
+          <div class="clubTraditionTitle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6m-6 4h3"/></svg><h3>The notorious fines system</h3></div>
+          <p>Our scorebook isn’t the only thing keeping tabs. The fines system makes sure the night’s misdemeanours get their own place in club history. Your darts might be forgotten. Your fines probably won’t be.</p>
+          <span class="clubMotto">Every legend has a running total.</span>
+        </article>
       </div>
     </section>
 
@@ -435,12 +448,12 @@
 <script src="scripts/photo-placeholders.js?v=20261123-fixture-photos"></script>
 <script src="scripts/fixture-photos.js?v=20261123-fixture-photos"></script>
 <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
-<script src="scripts/fixtures.js?v=20261123-unified-home-headings"></script>
+<script src="scripts/fixtures.js?v=20261123-club-about"></script>
 <script src="scripts/comps.js"></script>
 <script src="scripts/merch.js?v=20261028-both-ranges"></script>
 
 
-<script src="scripts/home-sections.js?v=20261123-unified-home-headings" defer></script>
+<script src="scripts/home-sections.js?v=20261123-club-about" defer></script>
 <script type="module" src="scripts/firebase-live.js"></script>
 <script src="scripts/monster-bot-data.js?v=20261027-trophy-backfill" defer></script>
 <script src="scripts/games.js?v=20261117-play-diagrams" defer></script>
