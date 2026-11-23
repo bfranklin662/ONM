@@ -104,7 +104,7 @@
       const count = Number(row?.[`${prefix}${slot}`] ?? row?.[`${prefix} ${slot}`]);
       return Number.isFinite(count) && count > 0 ? `<span class="fixtureSpecial fixtureSpecial-${type}">${label} ×${count}</span>` : "";
     }).filter(Boolean).join(" ");
-    return `<span>Fines: ${escapeFixtureText(fines)}</span>${specials ? `<span class="fixtureLineupSpecials">${specials}</span>` : ""}`;
+    return `<span class="fixtureLineupStat">Fines: ${escapeFixtureText(fines)}</span>${specials ? `<span class="fixtureLineupSpecials">${specials}</span>` : ""}`;
   }
 
   function fixtureCheckoutMarkup(value) {
@@ -161,7 +161,7 @@
     if (!entries.length) return "";
     return `<section class="fixtureLineup" aria-label="Submitted team lineup"><h4>Our team</h4><ul>${entries.map(({name,checkouts,slot}) => {
       const mine = personal.user?.accountType !== "supporter" && [personal.user?.linkedPlayerName, personal.user?.linkedPlayerKey?.replace(/-/g," ")].filter(Boolean).some(value => normalizeName(value) === normalizeName(name));
-      return `<li><a class="${mine ? "fixtureLineupSelf" : ""}"${mine ? ' aria-label="Your player profile"' : ""} href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupName">${escapeFixtureText(name)}</span><span class="fixtureLineupStats"><span class="fixtureLineupCheckouts">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span>${fixturePlayerStats(row,slot)}</span></span><span class="fixtureLineupArrow" aria-hidden="true">↗</span></a></li>`; }).join("")}</ul></section>`;
+      return `<li><a class="${mine ? "fixtureLineupSelf" : ""}"${mine ? ' aria-label="Your player profile"' : ""} href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupName">${escapeFixtureText(name)}</span><span class="fixtureLineupStats"><span class="fixtureLineupCheckouts fixtureLineupStat">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span>${fixturePlayerStats(row,slot)}</span></span><span class="fixtureLineupArrow" aria-hidden="true">↗</span></a></li>`; }).join("")}</ul></section>`;
   }
 
   document.addEventListener("error", event => {
@@ -981,8 +981,8 @@
       calendarResultEvents(source.rows, source.season)
     );
     const matchKey = fixture => [
-      fixture.dateISO, normalizeName(fixture.Competition || fixture.League),
-      normalizeName(fixture.Opponent), fixture.HA.toLowerCase()
+      fixture.dateISO, normalizeName(normalizeLeague(fixture.League || fixture.Competition)),
+      personalTeam(fixture.Opponent), personalSide(fixture.HA)
     ].join("|");
     const resultsByMatch = new Map(results.map(result => [matchKey(result), result]));
     // A fixture that is already in the schedule appears once, with its result.

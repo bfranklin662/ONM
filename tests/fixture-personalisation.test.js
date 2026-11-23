@@ -233,3 +233,21 @@ test("social events show details without match participation or result controls"
   assert(content.innerHTML.includes("Bring a &lt;hat&gt;"));
   for(const unwanted of ["vs Christmas", "fixtureAvailabilityForm", "fixtureLineup", "View full result", "Missed"]) assert(!content.innerHTML.includes(unwanted));
 });
+
+
+test("cup fixtures merge with results despite round and league label differences", () => {
+  const h=harness();
+  const leagueStart=source.indexOf("  function normalizeLeague(");
+  vm.runInContext(source.slice(leagueStart,source.indexOf("  function leagueClass(",leagueStart)),h.context);
+  const start=source.indexOf("  function mergeCalendarResults(");
+  vm.runInContext(source.slice(start,source.indexOf("  function fixtureLeagueLabel(",start)),h.context);
+  h.context.calendarResultEvents=rows=>rows;
+  const base={dateISO:"2026-10-29",dateObj:new Date("2026-10-29"),Opponent:"Natwest Allsorts",HA:"Away"};
+  const fixture={...base,League:"BANKS CUP - FIRST ROUND"};
+  const result={...base,League:"Banks Cup",Competition:"Banks League",completed:true};
+  let merged=h.context.mergeCalendarResults([fixture],[{rows:[result],season:"26-27"}]);
+  assert.equal(merged.length,1);
+  assert.equal(merged[0].completed,true);
+  merged=h.context.mergeCalendarResults([{...fixture,League:"Banks League"},fixture],[{rows:[result]}]);
+  assert.equal(merged.length,2); // A separate league fixture must remain separate.
+});
