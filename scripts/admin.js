@@ -122,6 +122,7 @@
 
   function fixtureHasResult(item) {
     const fixture = rowFor(item);
+    if (fixture.EventType === "social") return false;
     const fixtureDate = inputDate(fixture.Date);
     const away = clean(fixture.HA).toLowerCase() === "away";
     const expectedHome = away ? fixture.Opponent : "Oche Ness Monsters";
@@ -135,6 +136,7 @@
   }
 
   function fixtureTitle(row) {
+    if (row.EventType === "social") return row.Opponent || "Social event";
     const side = clean(row.HA).toLowerCase() === "away" ? "A" : clean(row.HA).toLowerCase() === "neutral" ? "N" : "H";
     return `${row.Opponent || "Opponent TBA"} (${side})`;
   }
@@ -463,19 +465,31 @@
     typeLabel.textContent = "Fixture";
     title.textContent = item ? "Edit fixture" : "Add fixture";
     form.innerHTML = `<div class="adminGrid">
+      <label>Type<select name="eventType"><option value="fixture">Match fixture</option><option value="social"${row.EventType === "social" ? " selected" : ""}>Social event</option></select></label>
       <label>Season<select name="season" required>${selectOptions(item?.season || document.getElementById("fixtureSeasonFilter").value || "26-27")}</select></label>
       <label>Date<input name="date" type="date" required value="${escapeHtml(inputDate(row.Date))}"></label>
-      <label>Competition<input name="league" required value="${escapeHtml(row.League)}" placeholder="Banks League"></label>
-      <label>Opponent<input name="opponent" required value="${escapeHtml(row.Opponent)}"></label>
-      <label>Home or away<select name="ha"><option${row.HA === "Home" ? " selected" : ""}>Home</option><option${row.HA === "Away" ? " selected" : ""}>Away</option><option${row.HA === "Neutral" ? " selected" : ""}>Neutral</option></select></label>
+      <label data-match-field>Competition<input name="league" required value="${escapeHtml(row.League)}" placeholder="Banks League"></label>
+      <label><span id="fixtureNameLabel">Opponent</span><input name="opponent" required value="${escapeHtml(row.Opponent)}"></label>
+      <label data-match-field>Home or away<select name="ha"><option${row.HA === "Home" ? " selected" : ""}>Home</option><option${row.HA === "Away" ? " selected" : ""}>Away</option><option${row.HA === "Neutral" ? " selected" : ""}>Neutral</option></select></label>
       <label>Time<input name="time" type="time" value="${escapeHtml(clean(row.Time) || DEFAULT_MATCH_TIME)}"></label>
       <label class="wide">Venue<input name="location" value="${escapeHtml(row.Location)}"></label>
+      <label class="wide" data-social-field>Details<textarea name="eventDetails" maxlength="2000">${escapeHtml(row.EventDetails || "")}</textarea></label>
     </div>
     <div class="adminFormActions">
       ${item?.id ? `<button class="btn btnGhost adminDeleteFixture" type="button" data-delete-fixture="${escapeHtml(item.id)}">Delete fixture</button>` : ""}
       <button class="btn btnGhost" type="button" data-cancel-editor>Cancel</button>
       <button class="btn btnPrimary" type="submit">Save fixture</button>
     </div>`;
+    const updateEventFields = () => {
+      const social = form.elements.eventType.value === "social";
+      form.querySelectorAll("[data-match-field]").forEach(label => { label.style.display = social ? "none" : ""; });
+      form.querySelector("[data-social-field]").style.display = social ? "" : "none";
+      form.elements.league.required = !social;
+      document.getElementById("fixtureNameLabel").textContent = social ? "Event name" : "Opponent";
+      title.textContent = `${item ? "Edit" : "Add"} ${social ? "social event" : "fixture"}`;
+    };
+    form.elements.eventType.addEventListener("change", updateEventFields);
+    updateEventFields();
     showEditor();
   }
 
@@ -580,12 +594,14 @@
     const date = clean(data.get("date"));
     const sheetRow = {
       ...rowFor(existing),
-      League: clean(data.get("league")),
+      EventType: data.get("eventType") === "social" ? "social" : "fixture",
+      EventDetails: data.get("eventType") === "social" ? clean(data.get("eventDetails")) : "",
+      League: data.get("eventType") === "social" ? "Social" : clean(data.get("league")),
       Day: dayName(date),
       Date: fixtureDate(date),
-      Time: clean(data.get("time")) || DEFAULT_MATCH_TIME,
+      Time: clean(data.get("time")) || (data.get("eventType") === "social" ? "" : DEFAULT_MATCH_TIME),
       Opponent: clean(data.get("opponent")),
-      HA: clean(data.get("ha")),
+      HA: data.get("eventType") === "social" ? "" : clean(data.get("ha")),
       Location: clean(data.get("location"))
     };
     const saved = {

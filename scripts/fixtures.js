@@ -29,6 +29,7 @@
   }
 
   function personalFixture(fixture) {
+    if (fixture.EventType === "social") return null;
     if (!personal.user?.linkedPlayerKey || personal.user.accountType === "supporter") return null;
     if (fixture.completed) {
       if (!Array.isArray(fixture.playerNames) || !fixture.playerNames.length) return { label: "Line-up unavailable", state: "unknown" };
@@ -173,6 +174,12 @@
 
   function openFixtureDetails(fixture) {
     openedFixture = fixture;
+    if (fixture.EventType === "social") {
+      el("#fixtureDetailsContent").innerHTML = `<div class="fixtureDetailsHeader"><span class="fixtureCategory social">Social event</span></div><div class="fixtureDetailsMatch"><div class="fixtureDetailsIdentity"><h3 id="fixtureDetailsTitle">${escapeFixtureText(fixture.Opponent)}</h3></div></div><dl class="fixtureDetailsMeta"><div><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div><div><dt>Time</dt><dd>${escapeFixtureText(fixture.Time || "To be confirmed")}</dd></div><div class="fixtureDetailsLocation"><dt>Location</dt><dd>${escapeFixtureText(fixture.Location || "To be confirmed")}</dd></div></dl>${fixture.EventDetails ? `<p class="fixtureSocialDescription">${escapeFixtureText(fixture.EventDetails)}</p>` : ""}<div class="fixtureDetailsFooter">${fixtureAdminEditLink(fixture)}</div>`;
+      const dialog = el("#fixtureDetails");
+      if (!dialog.open) dialog.showModal();
+      return;
+    }
     const confirmedOpponent = fixture.Opponent && fixture.Opponent !== "TBC";
     el("#fixtureDetailsContent").innerHTML = `
       <div class="fixtureDetailsHeader"><span class="fixtureCategory ${fixture.leagueClass}">${escapeFixtureText(fixture.League)}</span></div>
@@ -280,6 +287,7 @@
 
   function normalizeLeague(raw) {
     const s = String(raw || "").trim().toLowerCase();
+    if (s === "social") return "Social";
     if (s === "colda a") return "COLDA A";
     if (s === "colda b") return "COLDA B";
     if (s.includes("smithfield")) return "Smithfield";
@@ -293,6 +301,7 @@
 
   function leagueClass(league) {
     const l = String(league || "").toLowerCase();
+    if (l === "social") return "social";
     if (l === "colda a") return "colda-a";
     if (l === "colda b") return "colda-b";
     if (l === "smithfield") return "smithfield";
@@ -433,6 +442,7 @@
     const today = todayNoon();
 
     return fixtures.map(fx => {
+      if (fx.EventType === "social") return fx;
       const d = fx.dateObj;
       const res = findBestResultMatchByOpponent(resultsArr, d, fx.Opponent, fx.HA);
 
@@ -903,7 +913,7 @@
         // BEFORE results load:
         // - past fixtures = pending result (show spinner in score box, style like completed)
         // - future fixtures = upcoming (VS)
-        pendingResult: isPast,          // ✅ new
+        pendingResult: isPast && fx.EventType !== "social",          // ✅ new
         completed: false,
         homeScore: null,
         awayScore: null,
@@ -1030,10 +1040,12 @@
       const monthFixtures = fixtures.filter(fixture => monthNumber(fixture.dateObj) === month);
       el("#fixtureCalendarMonth").textContent = title;
       const resultsCount = monthFixtures.filter(fixture => fixture.completed).length;
-      const fixturesCount = monthFixtures.length - resultsCount;
+      const socialCount = monthFixtures.filter(fixture => fixture.EventType === "social").length;
+      const fixturesCount = monthFixtures.length - resultsCount - socialCount;
       el("#fixtureCalendarCount").textContent = loading ? "Loading fixtures…" : [
         resultsCount ? `${resultsCount} ${resultsCount === 1 ? "result" : "results"}` : "",
-        fixturesCount ? `${fixturesCount} ${fixturesCount === 1 ? "fixture" : "fixtures"}` : ""
+        fixturesCount ? `${fixturesCount} ${fixturesCount === 1 ? "fixture" : "fixtures"}` : "",
+        socialCount ? `${socialCount} ${socialCount === 1 ? "social event" : "social events"}` : ""
       ].filter(Boolean).join(" · ") || "No matches";
       previous.disabled = month <= firstMonth();
       next.disabled = month >= lastMonth();
@@ -1158,7 +1170,7 @@
     const fixturesOnly = normalizeFixturesOnly(fixturesRaw);
 
     // Mount carousel immediately with JSON-only data
-    const carousel = mountCarousel(fixturesOnly);
+    const carousel = mountCarousel(fixturesOnly.filter(fixture => fixture.EventType !== "social"));
     calendar.setFixtures(fixturesOnly);
     refreshPersonalViews = () => {
       carousel.refresh();
@@ -1197,7 +1209,7 @@
         { rows, season: "26-27" }
       ]);
       calendar.setFixtures(allMatches);
-      carousel.setFixtures(allMatches);
+      carousel.setFixtures(allMatches.filter(fixture => fixture.EventType !== "social"));
       if (openedFixture && el("#fixtureDetails").open) {
         openedFixture = allMatches.find(fixture => fixture.dateISO === openedFixture.dateISO &&
           personalTeam(fixture.Opponent) === personalTeam(openedFixture.Opponent) &&

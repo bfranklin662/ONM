@@ -601,7 +601,8 @@
   }
 
   async function getPublicSeasonFixtures(payload = {}) {
-    return { success: true, fixtures: await getCollectionRows("fixtures", "sheetRow", clean(payload.season) || "26-27", payload.fresh === true) };
+    const fixtures = await getCollectionRows("fixtures", "sheetRow", clean(payload.season) || "26-27", payload.fresh === true);
+    return { success: true, fixtures: payload.includeSocial === true ? fixtures : fixtures.filter(row => row.EventType !== "social") };
   }
 
   function resultSheetRow(payload, imageUrls) {

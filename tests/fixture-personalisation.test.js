@@ -215,3 +215,21 @@ test("zero checkouts show a bagel and missing statistics remain unknown", () => 
   assert(!h.context.fixtureCheckoutMarkup("").includes("🥯"));
   assert(!h.context.fixturePlayerStats({},1).includes("fixtureSpecial"));
 });
+
+
+test("social events show details without match participation or result controls", () => {
+  const h = harness();
+  const content = {innerHTML:""};
+  const dialog = {open:false,showModal(){this.open=true;}};
+  h.context.el = selector => selector === "#fixtureDetailsContent" ? content : dialog;
+  const start=source.indexOf("  function availabilityDetails(");
+  vm.runInContext(source.slice(start,source.indexOf("  const RESULTS_PAGE_URL",start)),h.context);
+  const event={...h.fixture,EventType:"social",League:"Social",Opponent:"Christmas party",Day:"Friday",Date:"18th Dec 2026",Time:"19:00",Location:"The pub",EventDetails:"Bring a <hat>"};
+  assert.equal(h.context.personalFixture(event),null);
+  h.context.openFixtureDetails(event);
+  assert(dialog.open);
+  assert(content.innerHTML.includes("Christmas party"));
+  assert(content.innerHTML.includes("19:00"));
+  assert(content.innerHTML.includes("Bring a &lt;hat&gt;"));
+  for(const unwanted of ["vs Christmas", "fixtureAvailabilityForm", "fixtureLineup", "View full result", "Missed"]) assert(!content.innerHTML.includes(unwanted));
+});

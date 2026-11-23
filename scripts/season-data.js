@@ -51,7 +51,7 @@
     const promise = (async () => {
       try {
         if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
-        const payload = await window.ONMFirebase.post({ action: "getPublicSeasonFixtures", season });
+        const payload = await window.ONMFirebase.post({ action: "getPublicSeasonFixtures", season, includeSocial: true });
         if (!payload.success || !Array.isArray(payload.fixtures)) {
           throw new Error(payload.error || "Live fixtures are unavailable.");
         }
