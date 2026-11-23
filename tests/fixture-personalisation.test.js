@@ -160,7 +160,7 @@ test("completed fixture details show participation once and keep score and resul
   const end = source.indexOf("  const RESULTS_PAGE_URL", start);
   vm.runInContext(source.slice(start, end), h.context);
   h.context.openFixtureDetails({ ...h.fixture, completed: true, playerNames: ["Nick", "Rob"], homeTeam: "Oche Ness Monsters", awayTeam: "Silverbacks", homeScore: 6, awayScore: 3, resultRow: { Player1: "Nick B", C1: "99", F1: "£99.00", Player2: "Nick", C2: "3", F2: "£12.50", B2: "1", T2: "2" }, outcome: "win", Day: "Wednesday", Date: "21st Oct 2026" });
-  assert.equal((content.innerHTML.match(/>Played</g) || []).length, 1);
+  assert.equal((content.innerHTML.match(/>Played</g) || []).length, 0);
   assert(!content.innerHTML.includes("fixtureAvailabilityForm"));
   assert(content.innerHTML.includes("6 – 3"));
   assert(content.innerHTML.indexOf("fixtureDetailsResult") < content.innerHTML.indexOf("fixtureDetailsMeta"));

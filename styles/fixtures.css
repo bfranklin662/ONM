@@ -1639,3 +1639,9 @@
 .fixtureLineupStats,.fixtureLineupStats > span { font:500 .72rem/1.3 system-ui,sans-serif; }
 .fixtureLineupStats .fixtureSpecial { font-size:.68rem; font-weight:650; }
 @media(max-width:420px) { .fixtureDetailsIdentity h3 { font-size:1.08rem; } .fixtureDetailsMatch { gap:9px; } .fixtureDetailsMeta dd { font-size:.8rem; } }
+
+.fixtureCalendarEvent { flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:2px; padding:7px 9px; }
+.fixtureEventLeague { margin:0; }
+.fixtureEventFooter { align-items:center; min-height:0; line-height:1.3; }
+.fixtureCalendarEvent .fixtureEventFooter .fxPersonalBadge { margin:0 0 0 auto; padding:2px 5px; }
+.fixtureEventVenue { line-height:1.3; }
