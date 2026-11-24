@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow">
   <title>Club admin | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
-  <link rel="stylesheet" href="styles/admin.css?v=20261124-team-grid">
+  <link rel="stylesheet" href="styles/admin.css?v=20261124-admin-matches">
   <link rel="stylesheet" href="styles/club-bank.css?v=20261030-owed">
 <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
@@ -61,9 +61,8 @@
       </div>
 
       <div class="adminTabs" role="tablist">
-        <button class="adminTab active" type="button" data-admin-tab="fixtures">Fixtures</button>
+        <button class="adminTab active" type="button" data-admin-tab="fixtures">Fixtures &amp; results</button>
         <button class="adminTab" type="button" data-admin-tab="pickTeam">Pick team</button>
-        <button class="adminTab" type="button" data-admin-tab="results">Results</button>
         <button class="adminTab" type="button" data-admin-tab="players">Players</button>
         <button id="adminRequestsTab" class="adminTab hidden" type="button" data-admin-tab="requests">Accounts</button>
         <button class="adminTab" type="button" data-admin-tab="bank">Bank</button>
@@ -76,16 +75,27 @@
               <select id="fixtureSeasonFilter">
                 <option value="26-27">2026/27</option>
                 <option value="25-26">2025/26</option>
+                <option value="24-25">2024/25</option>
                 <option value="all">All seasons</option>
               </select>
             </label>
             <label>Search
-              <input id="fixtureSearch" type="search" placeholder="Opponent, league or venue">
+              <input id="fixtureSearch" type="search" placeholder="Opponent, league, venue or player">
             </label>
           </div>
-          <button id="addFixtureBtn" class="btn btnPrimary" type="button">Add fixture</button>
+          <div class="adminRowActions">
+            <button id="addFixtureBtn" class="btn btnPrimary" type="button">Add fixture</button>
+            <button id="addResultBtn" class="btn btnGhost" type="button">Add result</button>
+          </div>
         </div>
-        <div id="fixturesList" class="adminList"></div>
+        <section aria-labelledby="adminFixturesHeading">
+          <h2 id="adminFixturesHeading" class="adminMatchHeading">Fixtures</h2>
+          <div id="fixturesList" class="adminList"></div>
+        </section>
+        <section aria-labelledby="adminResultsHeading">
+          <h2 id="adminResultsHeading" class="adminMatchHeading">Results</h2>
+          <div id="resultsList" class="adminList"></div>
+        </section>
       </section>
 
       <section id="pickTeamPanel" class="adminPanel hidden" aria-labelledby="pickTeamHeading">
@@ -105,26 +115,6 @@
           <summary>Archived players (<span id="pickTeamArchiveCount">0</span>)</summary>
           <div id="pickTeamArchiveCards" class="pickTeamCards"></div>
         </details>
-      </section>
-
-      <section id="resultsPanel" class="adminPanel hidden">
-        <div class="adminToolbar">
-          <div class="adminFilters">
-            <label>Season
-              <select id="resultSeasonFilter">
-                <option value="26-27">2026/27</option>
-                <option value="25-26">2025/26</option>
-                <option value="24-25">2024/25</option>
-                <option value="all">All seasons</option>
-              </select>
-            </label>
-            <label>Search
-              <input id="resultSearch" type="search" placeholder="Team, player or competition">
-            </label>
-          </div>
-          <button id="addResultBtn" class="btn btnPrimary" type="button">Add result</button>
-        </div>
-        <div id="resultsList" class="adminList"></div>
       </section>
 
       <section id="finesPanel" class="adminPanel hidden">
@@ -223,8 +213,8 @@
   <script src="scripts/player-data.js?v=20261016-registration"></script>
   <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
   <script src="scripts/admin-accolades.js?v=20261120-cups-awards"></script>
-  <script src="scripts/pick-team.js?v=20261124-team-grid"></script>
-  <script src="scripts/admin.js?v=20261124-player-nicknames"></script>
+  <script src="scripts/pick-team.js?v=20261124-admin-matches"></script>
+  <script src="scripts/admin.js?v=20261124-admin-matches"></script>
   <script src="scripts/club-bank-engine.js?v=20261030-owed"></script>
   <script src="scripts/club-bank.js?v=20261030-owed"></script>
 <script src="/scripts/site-ui.js?v=20261028-avatar-fill"></script></body>

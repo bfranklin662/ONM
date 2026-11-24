@@ -188,11 +188,19 @@
       </article>`;
     }
 
+    function requiredPlayers(fixture) {
+      return ["banks league", "trafalgar league"].includes(leagueKey(rowFor(fixture).League)) ? 6 : 0;
+    }
+
     function renderSelection(fixture) {
       const names = chosen(fixture);
+      const row = rowFor(fixture);
+      const minimum = requiredPlayers(fixture);
+      const emptySlots = Array.from({ length: Math.max(0, minimum - names.length) }, (_, i) =>
+        `<li class="pickTeamSelectedName pickTeamEmptySlot">Slot ${names.length + i + 1}</li>`).join("");
       selection.innerHTML = `<div class="pickTeamSelectionHeader"><strong>Selected team · ${names.length}/${LIMIT}</strong>
-        <button type="button" class="btn btnPrimary" data-pick-team-save${saving || !drafts.has(fixture.id) ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button></div>
-        ${names.length ? `<ol class="pickTeamSelectedNames">${names.map(name => {
+        <span>${escape(row.Opponent || "Opponent TBA")} · ${escape(row.League || "")}</span></div>
+        <ol class="pickTeamSelectedNames">${names.map(name => {
           const player = roster().find(item => item.publicName === name) || { publicName: name };
           const label = escape(displayName(player));
           const nickname = String(player.nickname || "").trim().replace(/^["“]|["”]$/g, "");
@@ -203,7 +211,11 @@
             </a>
             <button type="button" data-pick-remove="${escape(name)}" aria-label="Remove ${label} from team"${saving ? " disabled" : ""}>×</button>
           </li>`;
-        }).join("")}</ol>` : '<span>Select players below in playing order.</span>'}`;
+        }).join("")}${emptySlots}</ol>
+        <div class="pickTeamSelectionFooter">
+          ${minimum && names.length < minimum ? `<small>Choose at least ${minimum} players.</small>` : ""}
+          <button type="button" class="btn btnPrimary" data-pick-team-save${saving || !drafts.has(fixture.id) || names.length < minimum ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button>
+        </div>`;
     }
 
     const responded = match => RESPONSE_ACTIONS.reduce((total, status) => total + match.counts[status], 0);
@@ -460,7 +472,7 @@
           .find(card => card.dataset.pickPlayer === remove.dataset.pickRemove)?.focus({ preventScroll: true });
         return;
       }
-      if (!event.target.closest("[data-pick-team-save]") || !drafts.has(fixture.id)) return;
+      if (!event.target.closest("[data-pick-team-save]") || !drafts.has(fixture.id) || chosen(fixture).length < requiredPlayers(fixture)) return;
       saving = true;
       render();
       try {

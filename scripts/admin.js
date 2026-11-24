@@ -207,7 +207,7 @@
 
   function renderResults() {
     const list = document.getElementById("resultsList");
-    const results = filtered(state.results, "resultSeasonFilter", "resultSearch", item => {
+    const results = filtered(state.results, "fixtureSeasonFilter", "fixtureSearch", item => {
       const row = rowFor(item);
       return `${row.HomeTeam || ""} ${row.AwayTeam || ""} ${row.Competition || ""} ${Array.from({ length: 12 }, (_, index) => playerValue(row, index + 1)).join(" ")}`;
     }).sort((a, b) => dateValue(rowFor(b).Date) - dateValue(rowFor(a).Date));
@@ -583,7 +583,7 @@
     typeLabel.textContent = "Result";
     title.textContent = item ? "Edit result" : "Add result";
     form.innerHTML = `<div class="adminGrid">
-      <label>Season<select name="season" required>${selectOptions(item?.season || document.getElementById("resultSeasonFilter").value || "26-27")}</select></label>
+      <label>Season<select name="season" required>${selectOptions(item?.season || document.getElementById("fixtureSeasonFilter").value || "26-27")}</select></label>
       <label>Date<input name="date" type="date" required value="${escapeHtml(inputDate(row.Date))}"></label>
       <label class="wide">Competition<input name="competition" required value="${escapeHtml(row.Competition)}"></label>
       <label>Home team<input name="homeTeam" required value="${escapeHtml(row.HomeTeam)}"></label>
@@ -1028,7 +1028,7 @@
     const params = new URLSearchParams(window.location.search);
     const type = params.get("edit");
     if (!["fixture", "result"].includes(type)) return;
-    const tab = type === "fixture" ? "fixtures" : "results";
+    const tab = "fixtures";
     document.querySelector(`[data-admin-tab="${tab}"]`)?.click();
     const matches = requestedMatchCandidates(type === "fixture" ? state.fixtures : state.results, params, type);
     if (matches.length !== 1) { showToast(matches.length ? "More than one match fits this link. Choose the correct match in the list." : "This match could not be found. Refresh and choose it from the list.", true); return; }
@@ -1087,16 +1087,13 @@
       document.getElementById("fixturesPanel").classList.toggle("hidden", state.activeTab !== "fixtures");
       document.getElementById("pickTeamPanel").classList.toggle("hidden", state.activeTab !== "pickTeam");
       if (state.activeTab === "pickTeam") pickTeam.open();
-      document.getElementById("resultsPanel").classList.toggle("hidden", state.activeTab !== "results");
       document.getElementById("playersPanel").classList.toggle("hidden", state.activeTab !== "players");
       document.getElementById("finesPanel").classList.toggle("hidden", state.activeTab !== "fines");
       document.getElementById("requestsPanel").classList.toggle("hidden", state.activeTab !== "requests");
       document.getElementById("bankPanel").classList.toggle("hidden", state.activeTab !== "bank");
     }));
-    document.getElementById("fixtureSeasonFilter").addEventListener("change", renderFixtures);
-    document.getElementById("fixtureSearch").addEventListener("input", renderFixtures);
-    document.getElementById("resultSeasonFilter").addEventListener("change", renderResults);
-    document.getElementById("resultSearch").addEventListener("input", renderResults);
+    document.getElementById("fixtureSeasonFilter").addEventListener("change", () => { renderFixtures(); renderResults(); });
+    document.getElementById("fixtureSearch").addEventListener("input", () => { renderFixtures(); renderResults(); });
     document.getElementById("playerSearch").addEventListener("input", renderPlayers);
     document.getElementById("playerListView").addEventListener("change", renderPlayers);
     ["playerRegistrationFilter", "playerAccountFilter", "playerFinesFilter"].forEach(id => document.getElementById(id).addEventListener("change", renderPlayers));

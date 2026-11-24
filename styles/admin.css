@@ -442,3 +442,9 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .pickTeamSummary [data-label="Available"] dd { color: #80daa0; }
 .pickTeamSummary [data-label="Unavailable"] dd { color: #ff8989; }
 .pickTeamSummary [data-label="Not sure"] dd { color: #f4d264; }
+
+.adminMatchHeading { margin: 16px 16px 0; font-size: 1rem; }
+.pickTeamSelectionHeader { display: grid; gap: 2px; }
+.pickTeamSelectionFooter { display: flex; align-items: center; gap: 10px; }
+.pickTeamSelectionFooter button { margin-inline-start: auto; }
+.pickTeamEmptySlot { min-height: 48px; padding-inline: 10px; border-style: dashed; color: #b4ccbf; font-size: .85rem; }
