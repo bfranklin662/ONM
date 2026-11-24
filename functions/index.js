@@ -116,7 +116,7 @@ exports.getPlayerAvailability = callable(uid => service.get(uid));
 exports.getTeamAvailability = callable(uid => service.getTeamSheet(uid));
 exports.syncAvailabilityRoster = callable((uid, data) => service.syncRoster(uid, data));
 exports.addResultPlayersToAvailability = onDocumentWritten({
-  ...options, document: "results/{resultId}", retry: true
+  ...options, document: "results/{resultId}"
 }, event => service.addResultPlayers(event.data?.before.data(), event.data?.after.data()));
 exports.archiveTeamAvailabilityPlayer = callable((uid, data) => service.archiveTeamPlayer(uid, data));
 exports.selectTeamAvailability = callable((uid, data) => service.selectTeamOnSheet(uid, data));
