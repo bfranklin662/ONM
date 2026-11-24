@@ -139,12 +139,22 @@
     return nickname && normalizeName(nickname) !== normalizeName(name) ? `“${nickname}”` : "";
   }
 
+  function fixturePlayerNameMarkup(name) {
+    const fullName = fixturePictures.names?.get(normalizeName(name)) || String(name).replace(/\s+[A-Z]$/, "");
+    const [first, ...surname] = fullName.trim().split(/\s+/);
+    const nickname = fixturePlayerNickname(name);
+    return [escapeFixtureText(first), nickname ? `<em class="fixtureLineupNickname">${escapeFixtureText(nickname)}</em>` : "", escapeFixtureText(surname.join(" "))].filter(Boolean).join(" ");
+  }
+
   async function loadFixturePlayerPictures() {
     if (!window.PlayerData) return;
     fixturePicturesPromise ||= Promise.allSettled([
       window.PlayerData.fetchPublicPlayerProfiles?.() || {},
-      window.PlayerData.fetchPlayerPhotosFromDrive?.() || {}
-    ]).then(([profiles, photos]) => {
+      window.PlayerData.fetchPlayerPhotosFromDrive?.() || {},
+      window.ONMFirebase?.post?.({ action: "getMatchPlayerDirectory" })
+    ]).then(([profiles, photos, directory]) => {
+      fixturePictures.names = new Map((directory.status === "fulfilled" ? directory.value?.players || [] : []).flatMap(player =>
+        [player.publicName, ...(player.aliases || [])].filter(Boolean).map(name => [normalizeName(name), player.fullName])));
       const live = profiles.status === "fulfilled" ? profiles.value : {};
       const drive = photos.status === "fulfilled" ? photos.value : {};
       for (const name of new Set([...Object.keys(live), ...(openedFixture?.playerNames || [])])) {
@@ -157,8 +167,7 @@
     });
     await fixturePicturesPromise;
     document.querySelectorAll("#fixtureDetails [data-fixture-nickname]").forEach(label => {
-      label.textContent = fixturePlayerNickname(label.dataset.fixtureNickname);
-      label.hidden = !label.textContent;
+      label.innerHTML = fixturePlayerNameMarkup(label.dataset.fixtureNickname);
     });
     document.querySelectorAll("#fixtureDetails [data-fixture-avatar]").forEach(image => {
       const name = image.dataset.fixtureAvatar;
@@ -178,8 +187,7 @@
     if (!entries.length) return "";
     return `<section class="fixtureLineup" aria-label="${fixture.completed ? "Submitted team lineup" : "Selected team lineup"}"><h4>Our team</h4><ul>${entries.map(({name,checkouts,slot}) => {
       const mine = personal.user?.accountType !== "supporter" && [personal.user?.linkedPlayerName, personal.user?.linkedPlayerKey?.replace(/-/g," ")].filter(Boolean).some(value => normalizeName(value) === normalizeName(name));
-      const nickname = fixturePlayerNickname(name);
-      return `<li><a class="${mine ? "fixtureLineupSelf" : ""}"${mine ? ' aria-label="Your player profile"' : ""} href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupName">${escapeFixtureText(name)} <em class="fixtureLineupNickname" data-fixture-nickname="${escapeFixtureText(name)}"${nickname ? "" : " hidden"}>${escapeFixtureText(nickname)}</em></span>${fixture.completed ? `<span class="fixtureLineupStats"><span class="fixtureLineupCheckouts fixtureLineupStat">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span>${fixturePlayerStats(row,slot)}</span>` : ""}</span><span class="fixtureLineupArrow" aria-hidden="true">↗</span></a></li>`; }).join("")}</ul></section>`;
+      return `<li><a class="${mine ? "fixtureLineupSelf" : ""}"${mine ? ' aria-label="Your player profile"' : ""} href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupName" data-fixture-nickname="${escapeFixtureText(name)}">${fixturePlayerNameMarkup(name)}</span>${fixture.completed ? `<span class="fixtureLineupStats"><span class="fixtureLineupCheckouts fixtureLineupStat">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span>${fixturePlayerStats(row,slot)}</span>` : ""}</span><span class="fixtureLineupArrow" aria-hidden="true">↗</span></a></li>`; }).join("")}</ul></section>`;
   }
 
   document.addEventListener("error", event => {
@@ -207,11 +215,11 @@
       <div class="fixtureDetailsResult">${fixture.completed && Number.isFinite(fixture.homeScore) && Number.isFinite(fixture.awayScore) ? `<div class="fixtureDetailsScore ${fixture.outcome}" aria-label="${escapeFixtureText(fixture.homeTeam)} ${fixture.homeScore}, ${escapeFixtureText(fixture.awayTeam)} ${fixture.awayScore}"><strong>${fixture.HA === "Home" ? fixture.homeScore : fixture.awayScore} – ${fixture.HA === "Home" ? fixture.awayScore : fixture.homeScore} ${fixture.outcome === "win" ? "W" : fixture.outcome === "loss" ? "L" : "D"}</strong></div>` : ""}${fixture.completed ? "" : personalBadge(fixture)}</div></div>
       <dl class="fixtureDetailsMeta"><div class="fixtureDetailsDate"><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div>
       <div class="fixtureDetailsLocation"><dt>Location</dt><dd>${escapeFixtureText(fixture.Location || "To be confirmed")}</dd></div></dl>
-      ${availabilityDetails(fixture)}
       ${lineup}
       ${fixture.completed && fixture.resultRow ? `<section id="fixtureMatchPhotos" aria-label="Match photos"><p class="fixturePhotosNotice" role="status">Loading photos…</p></section>` : ""}
-      <p id="fixtureAvailabilityMessage" role="status" aria-live="polite"></p>
       ${fixture.completed || fixtureAdminEditLink(fixture) ? `<div class="fixtureDetailsFooter">${fixtureAdminEditLink(fixture)}${fixture.completed ? `<a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View full result ↗</a>` : ""}</div>` : ""}
+      ${availabilityDetails(fixture)}
+      <p id="fixtureAvailabilityMessage" role="status" aria-live="polite"></p>
       `;
     const dialog = el("#fixtureDetails");
     if (!dialog.open) dialog.showModal();

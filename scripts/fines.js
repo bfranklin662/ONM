@@ -148,6 +148,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     return findPlayerDirectoryEntry(value)?.fullName || value;
   }
 
+  function matchPlayerLabel(player) {
+    const name = player.fullName || findPlayerDirectoryEntry(player.name)?.fullName || player.name;
+    return String(name || "").replace(/\s+[A-Z]$/, "");
+  }
+
   async function loadSignedInPlayerDirectory() {
     const help = document.getElementById("playerNameHelp");
     if (playerDirectoryLoading) return;
@@ -794,7 +799,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     resultStatsList.innerHTML = resultSubmitData.players.map((p, i) => `
     <div class="resultRow result-submit-row">
       <div class="name">
-        ${escapeHtml(p.name)}
+        ${escapeHtml(matchPlayerLabel(p))}
         ${p.doubleFine ? '<span class="x2-badge">X2</span>' : ''}
       </div>
 
@@ -1082,7 +1087,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       return `
         <tr>
-          <td>${escapeHtml(p.name)}</td>
+          <td>${escapeHtml(matchPlayerLabel(p))}</td>
           <td>${p.checkouts === 0 ? "🥯" : p.checkouts}</td>
           <td class="${p.doubleFine ? "fine-highlight" : ""}">${fmtGBP(p.finesPence)}</td>
           <td>
@@ -2563,7 +2568,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         (isWinner ? " winner" : "");
 
       box.innerHTML = `
-      <div class="playerName">${escapeHtml(p.name)}</div>
+      <div class="playerName">${escapeHtml(matchPlayerLabel(p))}</div>
       <div class="playerTotal"><strong>${fmtGBP(p.totalPence)}</strong></div>
 
     `;
@@ -3694,7 +3699,7 @@ document.addEventListener("DOMContentLoaded", async () => {
            data-name="${escapeHtml(p.name)}"
            role="button"
            aria-pressed="${excluded ? "true" : "false"}">
-        <div class="playerName">${escapeHtml(p.name)}</div>
+        <div class="playerName">${escapeHtml(matchPlayerLabel(p))}</div>
         <div class="playerTotal"><strong>${fmtGBP(p.totalPence)}</strong></div>
       </div>
     `;
@@ -3731,7 +3736,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       return `
       <div class="resultRow">
-        <div class="name">${escapeHtml(p.name)}</div>
+        <div class="name">${escapeHtml(matchPlayerLabel(p))}</div>
         ${amountHtml}
       </div>
     `;
