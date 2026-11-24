@@ -237,6 +237,47 @@
     return results.filter(item => item.season === "26-27").some(item => Array.from({ length: 12 }, (_, index) => playerValue(rowFor(item), index + 1)).some(name => names.has(normal(name))));
   }
 
+  const appearanceNameKey = value => clean(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  function seasonAppearances(season) {
+    const appearances = new Map();
+    state.results.filter(item => item.season === season).forEach(item => {
+      const names = new Set(Array.from({ length: 12 }, (_, index) =>
+        appearanceNameKey(playerValue(rowFor(item), index + 1))).filter(Boolean));
+      names.forEach(name => appearances.set(name, (appearances.get(name) || 0) + 1));
+    });
+    return appearances;
+  }
+
+  function upcomingTeamFixtures() {
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit"
+    }).format(new Date());
+    return state.fixtures.filter(item => {
+      const row = rowFor(item);
+      const date = inputDate(row.Date);
+      return date && date >= today && row.EventType !== "social" &&
+        !/cancelled|canceled|postponed/i.test(`${row.League} ${row.Opponent} ${row.Location}`) && !fixtureHasResult(item);
+    }).sort((a, b) => {
+      const first = rowFor(a);
+      const second = rowFor(b);
+      return inputDate(first.Date).localeCompare(inputDate(second.Date)) ||
+        clean(first.Time).localeCompare(clean(second.Time)) || clean(first.Opponent).localeCompare(clean(second.Opponent));
+    });
+  }
+
+  async function savePickedTeam(fixture, names) {
+    const { db, firestoreSdk } = await window.ONMFirebase.ready;
+    const lineup = Object.fromEntries(Array.from({ length: 12 }, (_, index) =>
+      [`Player${index + 1}`, names[index] || ""]));
+    const updates = Object.fromEntries(Object.entries(lineup).map(([slot, name]) => [`sheetRow.${slot}`, name]));
+    await firestoreSdk.updateDoc(firestoreSdk.doc(db, "fixtures", fixture.id), {
+      ...updates, updatedBy: state.user.uid, updatedAt: firestoreSdk.serverTimestamp()
+    });
+    const local = state.fixtures.find(item => item.id === fixture.id);
+    if (local) local.sheetRow = { ...rowFor(local), ...lineup };
+  }
+
   function renderPlayers() {
     const accounts = state.players.map(player => playerFineAccount(player));
     document.getElementById("totalFinesCollected").textContent = currencyForToast(
@@ -248,13 +289,8 @@
     document.getElementById("totalActivePlayers").textContent = state.players.filter(player => hasPlayedMatch(player)).length;
     const list = document.getElementById("playersList");
     const query = clean(document.getElementById("playerSearch").value).toLowerCase();
-    const appearances = new Map();
-    const nameKey = value => clean(value).toLowerCase().replace(/[^a-z0-9]/g, "");
-    state.results.filter(item => item.season === "26-27").forEach(item => {
-      const names = new Set(Array.from({ length: 12 }, (_, index) => nameKey(playerValue(rowFor(item), index + 1))).filter(Boolean));
-      names.forEach(name => appearances.set(name, (appearances.get(name) || 0) + 1));
-    });
-    const played = player => appearances.get(nameKey(player.publicName)) || 0;
+    const appearances = seasonAppearances("26-27");
+    const played = player => appearances.get(appearanceNameKey(player.publicName)) || 0;
     const registration = document.getElementById("playerRegistrationFilter").value;
     const account = document.getElementById("playerAccountFilter").value;
     const fines = document.getElementById("playerFinesFilter").value;
@@ -987,10 +1023,31 @@
   }
 
   function attachListeners() {
+    let countSeason;
+    let counts;
+    const pickTeam = window.ONMPickTeam.init({
+      upcoming: upcomingTeamFixtures,
+      roster: () => state.players,
+      appearances(player, season) {
+        if (season !== countSeason) {
+          countSeason = season;
+          counts = seasonAppearances(season);
+        }
+        return counts?.get(appearanceNameKey(player.publicName)) || 0;
+      },
+      dateKey: inputDate,
+      rowFor,
+      photo: playerPhoto,
+      escape: escapeHtml,
+      save: savePickedTeam,
+      toast: showToast
+    });
     document.querySelectorAll("[data-admin-tab]").forEach(button => button.addEventListener("click", () => {
       state.activeTab = button.dataset.adminTab;
       document.querySelectorAll("[data-admin-tab]").forEach(item => item.classList.toggle("active", item === button));
       document.getElementById("fixturesPanel").classList.toggle("hidden", state.activeTab !== "fixtures");
+      document.getElementById("pickTeamPanel").classList.toggle("hidden", state.activeTab !== "pickTeam");
+      if (state.activeTab === "pickTeam") pickTeam.open();
       document.getElementById("resultsPanel").classList.toggle("hidden", state.activeTab !== "results");
       document.getElementById("playersPanel").classList.toggle("hidden", state.activeTab !== "players");
       document.getElementById("finesPanel").classList.toggle("hidden", state.activeTab !== "fines");

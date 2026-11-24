@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow">
   <title>Club admin | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
-  <link rel="stylesheet" href="styles/admin.css?v=20261124-fixture-lineup">
+  <link rel="stylesheet" href="styles/admin.css?v=20261124-pick-team">
   <link rel="stylesheet" href="styles/club-bank.css?v=20261030-owed">
 <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
@@ -62,6 +62,7 @@
 
       <div class="adminTabs" role="tablist">
         <button class="adminTab active" type="button" data-admin-tab="fixtures">Fixtures</button>
+        <button class="adminTab" type="button" data-admin-tab="pickTeam">Pick team</button>
         <button class="adminTab" type="button" data-admin-tab="results">Results</button>
         <button class="adminTab" type="button" data-admin-tab="players">Players</button>
         <button id="adminRequestsTab" class="adminTab hidden" type="button" data-admin-tab="requests">Accounts</button>
@@ -85,6 +86,26 @@
           <button id="addFixtureBtn" class="btn btnPrimary" type="button">Add fixture</button>
         </div>
         <div id="fixturesList" class="adminList"></div>
+      </section>
+
+      <section id="pickTeamPanel" class="adminPanel hidden" aria-labelledby="pickTeamHeading">
+        <div class="adminToolbar">
+          <div class="adminFilters">
+            <label id="pickTeamHeading">Upcoming match
+              <select id="pickTeamFixture"></select>
+            </label>
+          </div>
+          <div class="pickTeamSources">
+            <button class="btn btnGhost" type="button" id="pickTeamRefresh">Refresh availability</button>
+            <a class="btn btnGhost" href="https://docs.google.com/spreadsheets/d/1jrh1Ij_H2sidOam3mZY_lCwT-KC5qVp1QNUxxgrUzqQ/export?format=csv&amp;gid=1717914264" target="_blank" rel="noopener">Download sheet CSV</a>
+            <label class="pickTeamImport">Import availability CSV
+              <input id="pickTeamCsv" type="file" accept=".csv,text/csv">
+            </label>
+          </div>
+        </div>
+        <p id="pickTeamStatus" class="pickTeamStatus" role="status"></p>
+        <div id="pickTeamSelection" class="pickTeamSelection"></div>
+        <div id="pickTeamGroups"></div>
       </section>
 
       <section id="resultsPanel" class="adminPanel hidden">
@@ -203,7 +224,8 @@
   <script src="scripts/player-data.js?v=20261016-registration"></script>
   <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
   <script src="scripts/admin-accolades.js?v=20261120-cups-awards"></script>
-  <script src="scripts/admin.js?v=20261124-fixture-lineup"></script>
+  <script src="scripts/pick-team.js?v=20261124-pick-team"></script>
+  <script src="scripts/admin.js?v=20261124-pick-team"></script>
   <script src="scripts/club-bank-engine.js?v=20261030-owed"></script>
   <script src="scripts/club-bank.js?v=20261030-owed"></script>
 <script src="/scripts/site-ui.js?v=20261028-avatar-fill"></script></body>
