@@ -699,6 +699,29 @@
     return String(season || "26-27").replace("-", "/");
   }
 
+  function fixtureSide(fixture, className = "") {
+    const side = ["Home", "Away", "Neutral"].includes(fixture.HA)
+      ? `<span class="${className}">(${fixture.HA[0]})</span>`
+      : "";
+    const marker = fixture.completed && fixture.resultRow
+      ? '<span class="match-photo-mark" data-fixture-photo-mark hidden title="Match photos" role="img" aria-label="Match photos"></span>'
+      : "";
+    return side || marker ? ` <span class="match-card-side">${side}${marker}</span>` : "";
+  }
+
+  function updateFixturePhotoMarks(container, fixtures, resultId) {
+    if (!window.ONMResultPhotos?.loadMatchPhotos) return;
+    container.querySelectorAll("[data-fixture-photo-mark]").forEach(async marker => {
+      const card = marker.closest("[data-fixture-index], [data-card-fixture-index]");
+      const fixture = fixtures[Number(card.dataset.fixtureIndex ?? card.dataset.cardFixtureIndex)];
+      if (resultId && fixture.resultRow._resultId !== resultId) return;
+      const { urls } = await window.ONMResultPhotos.loadMatchPhotos(fixture.resultRow);
+      marker.hidden = urls.length === 0;
+      const label = card.getAttribute("aria-label")?.replace(/ Match photos available\.$/, "");
+      if (label) card.setAttribute("aria-label", urls.length ? `${label} Match photos available.` : label);
+    });
+  }
+
   function renderCard(fx, showSeasonDivider, isNextFixture, index) {
     const pillClass = fx.leagueClass; // banks/trafalgar/cup/competition
     const nextBadgeHtml = isNextFixture ? `<div class="nextFixtureBadge">Next Fixture</div>` : "";
@@ -758,7 +781,7 @@
         <div class="fxTeam fxTeamRight" title="${fx.awayTeam}">${fx.awayTeam}</div>
       </div>
 
-      <div class="fxDate">${fx.Date}</div>
+      <div class="fxDate">${fx.Date}${fixtureSide(fx)}</div>
 
       <div class="fxBottomRow">
         ${venueHtml}
@@ -839,6 +862,7 @@
       }
 
       stage.innerHTML = html;
+      updateFixturePhotoMarks(stage, fixtures);
 
       prevBtn.disabled = anchor <= 0;
       nextBtn.disabled = anchor >= max;
@@ -847,6 +871,10 @@
     prevBtn.addEventListener("click", () => {
       anchor = Math.max(0, anchor - 1);
       update();
+    });
+
+    document.addEventListener("onm-result-photos-changed", event => {
+      updateFixturePhotoMarks(stage, fixtures, event.detail?.resultId);
     });
 
     nextBtn.addEventListener("click", () => {
@@ -1011,7 +1039,7 @@
     const label = escape(`${fixture.Opponent}, ${fixture.HA}, ${fixture.League}, ${fixture.Date}. ${fixture.completed ? resultText : ""} ${personalFixture(fixture)?.label || ""}. View match details`);
     const attrs = `class="fixtureCalendarEvent ${fixture.leagueClass} ${calendarDateState(fixture.dateISO)}${personalClass(fixture)}"`;
     const content = `<span class="fixtureEventSummary">
-      <span class="fixtureEventOpponent">${escape(fixture.Opponent)}${["Home", "Away", "Neutral"].includes(fixture.HA) ? ` <span class="fixtureEventSideInline">(${fixture.HA[0]})</span>` : ""}</span>
+      <span class="fixtureEventOpponent">${escape(fixture.Opponent)}${fixtureSide(fixture, "fixtureEventSideInline")}</span>
       ${fixture.completed ? `<span class="fixtureEventResult ${fixture.outcome}">${escape(resultText)}</span>` : ""}
       </span><span class="fixtureEventLeague">${escape(fixtureLeagueLabel(fixture))}</span><span class="fixtureEventFooter">${personalBadge(fixture)}${fixture.Location && fixture.Location !== "TBC" ? `<span class="fixtureEventVenue" title="${escape(fixture.Location)}">${escape(fixture.Location)}</span>` : ""}</span>`;
     return `<button type="button" ${attrs} aria-label="${label}" data-fixture-index="${index}" aria-haspopup="dialog">${content}</button>`;
@@ -1077,12 +1105,16 @@
         if (i % 7 === 6) cells += "</tr>";
       }
       grid.innerHTML = cells;
+      updateFixturePhotoMarks(grid, fixtures);
       el("#fixtureCalendarEmpty").hidden = loading || monthFixtures.length > 0;
     }
 
     previous.addEventListener("click", () => { if (month > firstMonth()) { month--; render(); } });
     next.addEventListener("click", () => { if (month < lastMonth()) { month++; render(); } });
     el("#fixtureNextMatch").addEventListener("click", () => { month = nextMonth(); render(); });
+    document.addEventListener("onm-result-photos-changed", event => {
+      updateFixturePhotoMarks(grid, fixtures, event.detail?.resultId);
+    });
     grid.addEventListener("click", event => {
       const button = event.target.closest("[data-fixture-index]");
       if (button) openDetails(fixtures[Number(button.dataset.fixtureIndex)]);

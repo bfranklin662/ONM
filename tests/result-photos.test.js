@@ -160,15 +160,17 @@ test("a partially removed photo remains manageable and removal can be retried", 
   assert(!h.documents.has(`results/match-one/photos/${id}`));
 });
 
-test("existing Drive photos and direct images are combined with shared uploads", async () => {
+test("results use the shared match photo loader", async () => {
   const resultSource = fs.readFileSync(path.join(__dirname, "../scripts/results.js"), "utf8");
-  const context = { window: { ONMResultPhotos: { list: async () => [{ url: "https://example.test/shared.jpg" }] } },
-    fetchDriveImages: async () => ["https://example.test/drive.jpg"], console };
+  const urls = ["https://example.test/drive.jpg", "https://example.test/shared.jpg"];
+  const match = { _resultId: "match-one", IMGFOLDER: "https://drive.google.com/drive/folders/abc" };
+  const context = { window: { ONMResultPhotos: { loadMatchPhotos: async row => {
+    assert.equal(row, match);
+    return { urls };
+  } } } };
   vm.createContext(context);
   vm.runInContext(resultSource.slice(resultSource.indexOf("async function fetchMatchImages("), resultSource.indexOf("// 🔹 Restore saved preferences")), context);
-  assert.equal((await context.fetchMatchImages({ _resultId: "match-one" })).length, 1);
-  assert.deepEqual(Array.from(await context.fetchMatchImages({ IMGFOLDER: "https://drive.google.com/drive/folders/abc" })), ["https://example.test/drive.jpg", "https://example.test/shared.jpg"]);
-  assert.equal((await context.fetchMatchImages({ IMGFOLDER: "https://example.test/shared.jpg" })).length, 1);
+  assert.deepEqual(await context.fetchMatchImages(match), urls);
 });
 
 test("compression limits dimensions, produces thumbnails and rejects unsupported files", async () => {

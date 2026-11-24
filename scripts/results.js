@@ -490,45 +490,9 @@ function updateLeagueHeadings(season) {
 }
 
 
-// ✅ Shared image fetcher (works for both seasons)
-async function fetchDriveImages(folderId) {
-  const apiKey = "AIzaSyDlAZ7wv_8BNA1Nes1uBMrbZWhL0aaz1xw";
-  const q = encodeURIComponent(`'${folderId}' in parents and mimeType contains 'image/'`);
-  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&key=${apiKey}&fields=files(id,name,mimeType)`;
-
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.warn("Drive API returned", res.status);
-      return [];
-    }
-    const data = await res.json();
-    if (!data.files || !data.files.length) return [];
-    return data.files.map((f) => `https://drive.google.com/thumbnail?id=${f.id}&sz=w400`);
-  } catch (err) {
-    console.error("fetchDriveImages error", err);
-    return [];
-  }
-}
-
 async function fetchMatchImages(match) {
-  if (window.ONMResultPhotos?.loadMatchPhotos) return (await window.ONMResultPhotos.loadMatchPhotos(match)).urls;
-  const membersRequest = Promise.resolve().then(() => window.ONMResultPhotos?.list(match._resultId) || []).catch(error => {
-    console.warn("Shared match photos unavailable", error.message);
-    return [];
-  });
-  const value = String(match?.IMGFOLDER || "").trim();
-  const directUrls = value
-    .split(/\r?\n/)
-    .map(item => item.trim())
-    .filter(item => /^https?:\/\//i.test(item));
-
-  const folderMatch = value.match(/(?:[?&]id=|\/folders\/)([a-zA-Z0-9_-]+)/);
-  const isFolder = /drive\.google\.com\/drive\/folders/i.test(value);
-  const existing = isFolder && folderMatch ? await fetchDriveImages(folderMatch[1]) : directUrls;
-  window.ONMResultPhotos?.setExisting?.(match._resultId, existing);
-  const memberPhotos = await membersRequest;
-  return [...new Set([...existing, ...memberPhotos.map(photo => photo.url)])];
+  const gallery = await window.ONMResultPhotos?.loadMatchPhotos(match);
+  return gallery?.urls ?? [];
 }
 // 🔹 Restore saved preferences before DOM ready
 let currentSeason = localStorage.getItem("resultsSeason") || "26-27";
@@ -784,6 +748,9 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           .replace(/</g, "\\u003c")
           .replace(/'/g, "\\u0027");
 
+        const photoClick = `openLightbox(${JSON.stringify(images)}, 0, event, ${matchInfoJson})`
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/'/g, "&#39;");
+
         const imageGrid = images.length
           ? `
         <div class="match-image-grid" data-photo-count="${images.length}">
@@ -872,18 +839,19 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           <span class="team away">${match.AwayTeam}</span>
         </div>
 
-        <p class="date">${match.Date}</p>
+        <div class="date">${match.Date}
+          <span class="match-card-side">
+            <span title="${ha}">(${ha[0]})</span>
+            ${images.length ? `
+              <button type="button" class="result-photo-button" aria-label="View match photos" title="Match photos"
+                onclick='${photoClick}'>
+                <span class="match-photo-mark" aria-hidden="true"></span>
+              </button>
+            ` : ""}
+          </span>
+        </div>
 
         <div class="result-label-wrapper">
-          ${images.length ? `
-            <div class="result-images-corner"
-              onclick='event.stopPropagation(); openLightbox(${JSON.stringify(images)}, 0, event, ${matchInfoJson})'
-              title="Match photos">
-              <img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/image.svg" alt="Images" class="result-has-images">
-              <span class="image-count">${images.length}</span>
-            </div>
-          ` : ""}
-
           <span class="result-label">${match.Result}</span>
         </div>
 
@@ -1785,7 +1753,7 @@ function cancelAndGetCurrentHeight(el) {
 
 document.addEventListener("click", (e) => {
   // ✅ if user clicked an image (or image icon), don't toggle the card
-  if (e.target.closest(".result-images-corner, .match-image-grid, .gallery-thumb, .addResultPhotos")) {
+  if (e.target.closest(".result-photo-button, .match-image-grid, .gallery-thumb, .addResultPhotos")) {
     return;
   }
 
@@ -1794,18 +1762,12 @@ document.addEventListener("click", (e) => {
 
   const btn = card.querySelector(".toggle-players");
   const playerData = card.querySelector(".player-data");
-  const imageIcon = card.querySelector(".result-images-corner"); // ✅ ADD THIS
 
   if (!playerData || !btn || btn.disabled) return;
 
   btn.disabled = true;
 
   const isHidden = window.getComputedStyle(playerData).display === "none";
-
-  // ✅ Hide image icon when opening, show when closing
-  if (imageIcon) {
-    imageIcon.style.display = isHidden ? "none" : "flex";
-  }
 
   const promise = isHidden ? animateOpen(playerData) : animateClose(playerData);
 
@@ -1932,9 +1894,6 @@ function openResultFromQuery() {
   const isHidden = playerData && window.getComputedStyle(playerData).display === "none";
 
   if (isHidden) {
-    const imageIcon = card.querySelector(".result-images-corner");
-    if (imageIcon) imageIcon.style.display = "none";
-
     animateOpen(playerData).then(() => {
       if (!btn) return;
       btn.textContent = "△";
