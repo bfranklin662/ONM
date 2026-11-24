@@ -1,6 +1,6 @@
 #playerProfileSection {
   --profile-panel: #132820;
-  --profile-panel-border: #3b5b4b;
+  --profile-panel-border: rgb(255 255 255 / 22%);
 }
 #playerProfileSection .stats-header,
 #playerProfileSection .player-header-card,
