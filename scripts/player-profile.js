@@ -77,15 +77,13 @@ function updateProfileDataPanels() {
 
 
 function initProfileAccountDetails(name, profileData) {
-  window.ONMProfilePlayer = { name, playerKey: profileData.playerKey };
+  window.ONMProfilePlayer = { name, playerKey: profileData.playerKey, photo: profileData.photo };
   document.dispatchEvent(new Event("onm-profile-ready"));
-  const owe = document.querySelector(".profileOweLink");
   const heading = document.getElementById("playerName");
   let revision = 0;
   window.ONMFirebase?.ready.then(({ auth, authSdk, db, firestoreSdk }) => {
     authSdk.onAuthStateChanged(auth, async user => {
       const current = ++revision;
-      if (owe) owe.hidden = true;
       showPlayerAccountLink(false);
       if (heading) heading.textContent = name;
       document.title = `Player Profile - ${name}`;
@@ -103,7 +101,6 @@ function initProfileAccountDetails(name, profileData) {
           if (nameText) nameText.textContent = fullName;
           document.title = `Player Profile - ${fullName}`;
         }).catch(() => {});
-        if (owe) owe.hidden = !isOwnPage;
         if (imageButton) imageButton.hidden = !isOwnPage;
         showPlayerAccountLink(isOwnPage);
         let linked = isOwnPage;
@@ -122,7 +119,7 @@ function initProfileAccountDetails(name, profileData) {
         heading?.appendChild(badge);
       } catch (error) { console.warn("Could not check linked player account", error); }
     });
-  }).catch(() => { if (owe) owe.hidden = true; });
+  }).catch(error => console.warn("Could not load profile account controls", error));
 }
 
 function followAppearance(event) {

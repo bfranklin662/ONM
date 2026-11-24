@@ -19,12 +19,10 @@
 #playerProfileSection .outstanding-fines-card{background:#183d29;border-color:#4d785b}
 .profile-edit-dialog,.payment-modal-card,.payment-details-panel{background:#122f21;border-color:#41674f}
 .profile-edit-form input,.profile-edit-form textarea{background:#0b2117;border-color:#41674f}
-.profileOweLink{display:inline-block;font-size:12px;color:#b9e8cd;text-decoration:underline;text-underline-offset:3px;margin:5px 0}
 
 /* Compact player identity and actions. */
 #playerProfileSection .profile-name-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; margin-bottom:8px; }
 #playerProfileSection .profile-name-row .player-name { margin:0; display:flex; align-items:center; gap:8px; }
-#playerProfileSection .profile-name-row .profileOweLink { margin:0; font:500 12px/1.4 system-ui,sans-serif; white-space:nowrap; }
 #playerProfileSection .profile-card-actions { display:flex; justify-content:flex-start; margin-bottom:10px; }
 #playerProfileSection .profile-card-actions:empty { display:none; }
 #playerProfileSection .profile-edit-button { padding:6px 11px; min-height:34px; font:500 12px/1.3 system-ui,sans-serif; border-radius:8px; }
@@ -35,7 +33,6 @@
 #playerProfileSection .profile-stat-box .value span,
 #playerProfileSection .stat-value { font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:0; }
 
-#playerProfileSection .profileOweLink[hidden] { display:none !important; }
 #playerProfileSection .profile-name-row { gap:8px 12px; }
 #playerProfileSection .profile-card-actions { margin:0 0 0 auto; justify-content:flex-end; }
 #playerProfileSection .player-info-grid { display:flex; flex-direction:column; align-items:stretch; gap:9px; }
@@ -92,7 +89,6 @@
 #playerProfileSection .main-container,#playerProfileSection .player-page-container { width:100%; max-width:none; box-sizing:border-box; margin-inline:0; padding-inline:0; }
 #playerProfileSection .profile-detail-actions { display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:12px; margin-top:4px; }
 #playerProfileSection .profile-detail-actions .profile-card-actions { margin:0; }
-#playerProfileSection .profile-detail-actions .profileOweLink { margin:0; }
 .profile-edit-image { display:flex; align-items:center; gap:16px; }
 .profile-edit-image img { width:100px; height:100px; object-fit:cover; border-radius:12px; border:1px solid #557b61; }
 .profile-edit-image button { padding:9px 13px; border:1px solid #557b61; border-radius:8px; background:#204531; color:#e5f2e8; font:600 13px system-ui,sans-serif; cursor:pointer; }
@@ -100,15 +96,19 @@
 .profile-game-progress { padding:16px; margin-top:14px; border:1px solid #3c654d; border-radius:12px; background:#143324; }
 .profile-game-progress[hidden] { display:none; }
 .profile-game-progress h3 { margin:0 0 10px; font-size:.95rem; }
-.profile-game-progress .game-progress-stats { display:grid; gap:9px; font:500 12px system-ui,sans-serif; }
-.profile-bot-badges { display:flex; flex-wrap:wrap; gap:5px; }
-.profile-bot-badges > span { border:1px solid currentColor; border-radius:999px; padding:3px 8px; font-weight:700; }
-.profile-bot-wins { background:#113d2d; color:#8ce8bd; }
-.profile-bot-flawless { background:#3a3017; color:#ffdb69; }
-.profile-bot-trophies { background:#283931; color:#dbefe4; }
-.profile-bot-completion { display:flex; align-items:center; gap:8px; }
-.profile-bot-completion progress { flex:1; min-width:0; height:8px; accent-color:#73dbaa; }
-.profile-game-progress .game-progress-stats + .profile-tournament-heading { margin-top:14px; }
+.profile-bot-card h3 { font-size:clamp(1rem, 3vw, 1.3rem); }
+.profile-bot-card h3 a { color:inherit; text-decoration:none; }
+.profile-bot-card h3 a:hover { text-decoration:underline; }
+.profile-bot-identity { display:grid; grid-template-columns:clamp(35px, 9vw, 56px) minmax(0, 1fr); align-items:center; gap:10px; }
+.profile-bot-identity img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:50%; }
+.profile-bot-name { display:block; margin-bottom:5px; font:700 clamp(.85rem, 2.6vw, 1.08rem) system-ui,sans-serif; }
+.profile-bot-badges { display:flex; flex-wrap:wrap; gap:3px 10px; font:700 clamp(.68rem, 2.3vw, .9rem) system-ui,sans-serif; }
+.profile-bot-badges > span { display:inline-flex; align-items:center; gap:4px; }
+.profile-bot-wins { color:#70ddc4; }
+.profile-bot-flawless { color:#ffdb58; }
+.profile-bot-trophies { color:#d9eaf1; }
+.profile-bot-trophies svg { width:1em; height:1em; }
+.profile-bot-card + .profile-tournament-heading { margin-top:14px; }
 .profile-tournament-awards { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
 .profile-tournament-awards a { display:inline-flex; align-items:center; gap:6px; border:1px solid #8c7740; border-radius:8px; background:#343419; color:#f5d65f; padding:7px 10px; text-decoration:none; font:600 12px system-ui,sans-serif; }
 #playerProfileSection .player-page-container { min-width:0; }
@@ -117,8 +117,7 @@
 #playerProfileSection .profile-stat-box { background:#19412d; border-color:#416b4f; }
 #playerProfileSection .stats-and-appearances-wrapper { background:#143b29; border-color:#416b4f; }
 #playerProfileSection .player-stats-table table,#playerProfileSection .player-stats-table .table-container { background:#102f21; }
-#playerProfileSection .profile-game-progress { background:#143b29; border-color:#416b4f; }
-#playerProfileSection .profile-game-progress .game-progress-stats { padding:12px; border-radius:9px; background:#19412d; }
+#playerProfileSection .profile-game-progress { background:#132820; border-color:#3b5b4b; }
 
 @media (max-width: 700px) {
   #playerProfileSection .player-header-card {
@@ -289,7 +288,7 @@
   #playerProfileSection .appearance-table-container { margin-top: 2px; }
   #playerProfileSection .appearance-season-title { margin-block: 4px 3px; }
 }
-#playerProfileSection .profile-accolades-row:not([hidden]) { display: contents; }
+#playerProfileSection .profile-accolades-row:not([hidden]) { grid-column: 1 / -1; display: grid; gap: 4px; }
 #playerProfileSection .profile-accolade-pills {
   display: flex; flex-wrap: wrap; gap: 3px;
 }

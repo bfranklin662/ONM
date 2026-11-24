@@ -29,19 +29,21 @@
   let progress = null, awards = [];
   function render() {
     section.hidden = !progress && !awards.length;
+    const player = window.ONMProfilePlayer;
     const ladder = progress ? `
-      <h3>Monster Bot</h3>
-      <div class="game-progress-stats">
-        <div class="profile-bot-badges">
-          <span class="profile-bot-wins"><span aria-hidden="true">✓</span> Wins ${progress.challenges}/100</span>
-          <span class="profile-bot-flawless"><span aria-hidden="true">⭐</span> Flawless ${progress.flawless}</span>
-          <span class="profile-bot-trophies"><span aria-hidden="true">🏆</span> Mastery trophies ${progress.trophies}</span>
+      <div class="profile-bot-card">
+        <h3><a href="monster-bot.html">Monster Bot Ladder</a></h3>
+        <div class="profile-bot-identity">
+          <img src="${escape(player.photo || "images/default.jpg")}" alt="" loading="lazy">
+          <div>
+            <strong class="profile-bot-name">${escape(player.name)}</strong>
+            <div class="profile-bot-badges">
+              <span class="profile-bot-wins"><span aria-hidden="true">✓</span> Wins ${progress.challenges}/100</span>
+              <span class="profile-bot-flawless"><span aria-hidden="true">★</span> Flawless ${progress.flawless}</span>
+              <span class="profile-bot-trophies"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8v5a4 4 0 0 1-8 0V3Zm0 2H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 1v5m-4 4h8m-7 0v-4h6v4"/></svg> Trophies ${progress.trophies}</span>
+            </div>
+          </div>
         </div>
-        <div class="profile-bot-completion">
-          <progress max="100" value="${progress.challenges}" aria-label="Monster Bot challenge completion"></progress>
-          <span>${progress.challenges}% complete</span>
-        </div>
-        <a href="monster-bot.html">Play Monster Bot ↗</a>
       </div>` : "";
     const tournaments = awards.length ? `
       <h3 class="profile-tournament-heading">Tournament accolades</h3>
