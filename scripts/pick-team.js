@@ -190,13 +190,8 @@
 
     function renderSelection(fixture) {
       const names = chosen(fixture);
-      const match = matchSheet(sheet, rowFor(fixture), dateKey);
-      const needsSheetSync = sheetTeamSync && match?.id && names.some(name => {
-        const player = roster().find(item => item.publicName === name);
-        return player && playerStatus(player, match) !== "Selected";
-      });
       selection.innerHTML = `<div class="pickTeamSelectionHeader"><strong>Selected team · ${names.length}/${LIMIT}</strong>
-        <button type="button" class="btn btnPrimary" data-pick-team-save${saving || (!drafts.has(fixture.id) && !needsSheetSync) ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button></div>
+        <button type="button" class="btn btnPrimary" data-pick-team-save${saving || !drafts.has(fixture.id) ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button></div>
         ${names.length ? `<ol class="pickTeamSelectedNames">${names.map(name => {
           const player = roster().find(item => item.publicName === name) || { publicName: name };
           const label = escape(displayName(player));
@@ -465,7 +460,7 @@
           .find(card => card.dataset.pickPlayer === remove.dataset.pickRemove)?.focus({ preventScroll: true });
         return;
       }
-      if (!event.target.closest("[data-pick-team-save]")) return;
+      if (!event.target.closest("[data-pick-team-save]") || !drafts.has(fixture.id)) return;
       saving = true;
       render();
       try {

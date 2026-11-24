@@ -236,6 +236,7 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .pickTeamGroup { margin-top: 16px; }
 .pickTeamGroup h3 { font-size: 1rem; margin: 0 0 8px; }
 .pickTeamGroup h3 span { font-size: .75rem; color: #b4ccbf; margin-left: 4px; }
+#pickTeamPanel { padding: clamp(12px, 2.5vw, 26px); }
 #pickTeamPanel .adminToolbar { flex-direction: row; align-items: center; padding: 0 0 12px; border: 0; gap: 8px; }
 #pickTeamHeading { margin: 0; font-size: clamp(1rem, 4vw, 1.3rem); }
 #pickTeamRefresh { padding: 7px 9px; font-size: .78rem; }
@@ -386,6 +387,7 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .pickTeamSelectionHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .pickTeamSelectedNames { display: grid; gap: 6px; list-style: none; padding: 0; margin: 0; }
 .pickTeamSelectedName {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -401,12 +403,16 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
   min-width: 0;
   padding: 6px 9px;
   text-decoration: none;
-  color: #edf7ff;
+  color: #d0e6d7;
+  font: 650 .85rem/1.3 system-ui, sans-serif;
 }
 .pickTeamSelectedName a:hover { background: #23483b; }
-.pickTeamSelectedName img { border-radius: 50%; object-fit: cover; }
+.pickTeamSelectedName img { flex: 0 0 40px; border-radius: 50%; object-fit: cover; }
 .pickTeamSelectedName span { display: inline; margin: 0; color: inherit; overflow-wrap: anywhere; }
-.pickTeamSelectedName em { color: #adccba; }
+.pickTeamSelectedName em { margin-inline-start: .35em; color: #adccba; font-weight: 500; }
+@media (min-width: 960px) {
+  .pickTeamSelectedNames { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 .pickTeamSelectedName button {
   margin-right: 7px;
   min-width: 30px;
