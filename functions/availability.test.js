@@ -24,7 +24,8 @@ function harness(overrides = {}) {
       metadata: async () => ({ sheets: [{ properties: { sheetId: SHEET_ID, title: "Availability 2026-27", gridProperties: { rowCount: 93, columnCount: 50 } } }] }),
       values: async () => grid,
       cell: async () => ({ userEnteredValue: data.formula ? { formulaValue: "=1" } : { stringValue: data.current }, dataValidation: data.valid ? { condition: { type: "ONE_OF_LIST", values: ["Available", "Unavailable", "Not sure"].map(userEnteredValue => ({ userEnteredValue })) } } : undefined }),
-      overrideSelection: async (row, column, rule) => writes.push({ row, column, rule }),
+      overrideSelections: async entries => writes.push(...entries.map(({ rowIndex, columnIndex, rule }) => ({ row: rowIndex, column: columnIndex, rule }))),
+      setRowHidden: async (row, hidden) => writes.push({ row, hidden }),
       update: async (range, value) => writes.push({ range, value })
     }
   });
@@ -101,7 +102,7 @@ test("matching handles captain labels and public names but refuses ambiguous nam
   assert.equal(findPlayerRow(h.grid, { fullName: "Michael Williams", publicName: "Billiams" }), 7);
   h.grid[7][0] = "Gary Hamshere";
   assert.equal(findPlayerRow(h.grid, { fullName: "Gary Hampshire", availabilitySheetName: "Gary Hamshere" }), 7);
-  assert.throws(() => findPlayerRow(h.grid, { fullName: "Gary Hampshire" }), { code: "failed-precondition" });
+  assert.equal(findPlayerRow(h.grid, { fullName: "Gary Hampshire" }), 7);
   h.grid[8][0] = "Gary Hamshere";
   assert.throws(() => findPlayerRow(h.grid, { fullName: "Gary Hamshere" }), { code: "failed-precondition" });
 });
@@ -150,4 +151,26 @@ test("only admins can mark a matching response Selected, without adding a dropdo
   assert(!choices.includes("Selected"));
   await member.service.set("signed-in-user", { ...payload, status: "Not sure", previousStatus: "Selected" });
   assert.deepEqual(member.writes, [{ range: "'Availability 2026-27'!C8", value: "Not sure" }]);
+});
+
+test("team sync matches exact roster aliases and hides or restores the sheet row", async () => {
+  const h = harness({ user: { role: "owner" }, player: { publicName: "George M", fullName: "George M" } });
+  h.grid[7][0] = "George Mills";
+  await h.service.archiveTeamPlayer("signed-in-user", { playerKey: "george-m", archived: true });
+  await h.service.archiveTeamPlayer("signed-in-user", { playerKey: "george-m", archived: false });
+  assert.deepEqual(h.writes, [{ row: 7, hidden: true }, { row: 7, hidden: false }]);
+  h.grid[7][0] = "Gary Hampshere";
+  assert.equal(findPlayerRow(h.grid, { fullName: "Gary Hampshire" }), 7);
+});
+
+test("saving a team writes Selected for the requested fixture and rejects ordinary players", async () => {
+  const admin = harness({ user: { role: "admin" } });
+  const { fixtureIds } = await admin.service.getTeamSheet("signed-in-user");
+  const payload = { fixtureId: fixtureIds[2], playerKeys: ["nick"] };
+  const member = harness();
+  await assert.rejects(member.service.selectTeamOnSheet("signed-in-user", payload), { code: "permission-denied" });
+  await assert.rejects(member.service.archiveTeamPlayer("signed-in-user", { playerKey: "nick", archived: true }), { code: "permission-denied" });
+  assert.deepEqual(await admin.service.selectTeamOnSheet("signed-in-user", payload), { selected: 1 });
+  assert.equal(admin.writes[0].row, 7);
+  assert.equal(admin.writes[0].column, 2);
 });

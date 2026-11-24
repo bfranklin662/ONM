@@ -42,15 +42,22 @@ function parseFixture(header, opponent, side, venue) {
   return { id, date, league, opponent: String(opponent).trim(), side: String(side || "").trim(), venue: String(venue || "").trim(), time, cancelled };
 }
 
+function availabilityAliases(player) {
+  const names = [player.fullName, player.publicName].map(normalise);
+  if (names.some(name => ["gary hampshire", "gary hampshere", "gary hamshere"].includes(name))) return ["Gary Hampshere", "Gary Hamshere"];
+  if (names.some(name => ["george m", "george mills"].includes(name))) return ["George Mills"];
+  return [];
+}
+
 function findPlayerRow(values, player) {
   // Full names take precedence; public-name matching supports rows such as Billiams.
-  const candidates = [player.availabilitySheetName, player.fullName, player.publicName].map(normalise).filter(Boolean);
+  const candidates = [player.availabilitySheetName, player.fullName, player.publicName, ...availabilityAliases(player)].map(normalise).filter(Boolean);
   for (const candidate of candidates) {
     const matches = values.flatMap((row, index) => index >= 7 && normalise(row[0]) === candidate ? [index] : []);
     if (matches.length > 1) throw problem("failed-precondition", "Your player matches more than one sheet row. Please ask a club administrator to check it.");
     if (matches.length === 1) return matches[0];
   }
-  throw problem("failed-precondition", "Your linked player does not match a row in the availability sheet yet. Please ask a club administrator to check the spelling.");
+  throw problem("not-found", "Your linked player does not match a row in the availability sheet yet. Please ask a club administrator to check the spelling.");
 }
 
 function fixturesFor(values, rowIndex, today) {
@@ -93,6 +100,7 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     const { values } = await readSheet();
     // Keep fixture headings and player responses, excluding counts and the spare column.
     return {
+      sheetTeamSync: true,
       rows: values.map((row, index) => index >= 4 && index < 7 ? [] : [row[0] || "", "", ...row.slice(2)]),
       fixtureIds: Object.fromEntries(fixturesFor(values, 7, todayLondon(now()))
         .filter(fixture => fixture.editable).map(fixture => [fixture.column, fixture.id])),
@@ -109,13 +117,69 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     return playerContext(user.linkedPlayerKey);
   }
 
-  async function playerContext(playerKey) {
+  async function loadPlayer(playerKey) {
+    if (typeof playerKey !== "string" || !playerKey || playerKey.includes("/")) {
+      throw problem("invalid-argument", "Choose a club player.");
+    }
     const playerSnapshot = await db.doc(`players/${playerKey}`).get();
-    if (!playerSnapshot.exists) throw problem("failed-precondition", "Your linked player could not be found.");
-    const player = playerSnapshot.data();
+    if (!playerSnapshot.exists) throw problem("failed-precondition", "That player profile could not be found.");
+    return playerSnapshot.data();
+  }
+
+  async function playerContext(playerKey) {
+    const player = await loadPlayer(playerKey);
     const { title, values } = await readSheet();
-    const rowIndex = findPlayerRow(values, player);
+    let rowIndex;
+    try {
+      rowIndex = findPlayerRow(values, player);
+    } catch (error) {
+      if (error.code === "not-found") throw problem("failed-precondition", error.message);
+      throw error;
+    }
     return { title, rowIndex, fixtures: fixturesFor(values, rowIndex, todayLondon(now())) };
+  }
+
+  async function archiveTeamPlayer(uid, payload) {
+    await requireAdmin(uid);
+    if (typeof payload?.archived !== "boolean") throw problem("invalid-argument", "Choose whether to archive or restore the player.");
+    const player = await loadPlayer(payload.playerKey);
+    const { values } = await readSheet();
+    let rowIndex;
+    try {
+      rowIndex = findPlayerRow(values, player);
+    } catch (error) {
+      if (error.code === "not-found") return { sheetRowChanged: false };
+      throw error;
+    }
+    await sheets.setRowHidden(rowIndex, payload.archived);
+    return { sheetRowChanged: true };
+  }
+
+  async function selectTeamOnSheet(uid, payload) {
+    await requireAdmin(uid);
+    const keys = payload?.playerKeys;
+    if (!Array.isArray(keys) || keys.length > 12 || new Set(keys).size !== keys.length || typeof payload.fixtureId !== "string") {
+      throw problem("invalid-argument", "Choose up to 12 different players for an upcoming fixture.");
+    }
+    const { title, values } = await readSheet();
+    const fixture = fixturesFor(values, 7, todayLondon(now())).find(item => item.id === payload.fixtureId && item.editable);
+    if (!fixture) throw problem("failed-precondition", "That fixture has changed or is no longer upcoming. Refresh availability.");
+    const players = await Promise.all(keys.map(loadPlayer));
+    const rows = players.map(player => {
+      try {
+        return findPlayerRow(values, player);
+      } catch (error) {
+        throw problem("failed-precondition", `${player.publicName || player.fullName}: ${error.message}`);
+      }
+    });
+    if (new Set(rows).size !== rows.length) throw problem("failed-precondition", "Two selected profiles match the same sheet row.");
+    const entries = await Promise.all(rows.map(async rowIndex => {
+      const cell = await sheets.cell(`${title}!${columnName(fixture.column)}${rowIndex + 1}`);
+      const rule = dropdownRule(cell);
+      return { rowIndex, columnIndex: fixture.column, rule };
+    }));
+    if (entries.length) await sheets.overrideSelections(entries);
+    return { selected: entries.length };
   }
 
   async function get(uid) {
@@ -143,27 +207,37 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     return writeResponse(await playerContext(payload.playerKey), payload);
   }
 
+  function dropdownRule(cellData) {
+    const rule = cellData.dataValidation;
+    if (cellData.userEnteredValue?.formulaValue || rule?.condition?.type !== "ONE_OF_LIST") {
+      throw problem("failed-precondition", "This sheet cell is not an availability dropdown. Please ask a club administrator to check it.");
+    }
+    const allowed = rule.condition.values.map(value => value.userEnteredValue);
+    if (CHOICES.some(choice => !allowed.includes(choice)) || allowed.includes("Selected")) {
+      throw problem("failed-precondition", "The sheet's availability choices have changed. Please refresh.");
+    }
+    return rule;
+  }
+
   async function writeResponse(data, payload) {
     const fixture = data.fixtures.find(item => item.id === payload.fixtureId);
     if (!fixture || !fixture.editable) throw problem("failed-precondition", "That fixture has changed or is no longer upcoming. Refresh the fixtures.");
     if (fixture.status !== payload.previousStatus) throw problem("aborted", "Your response changed in the sheet. Refresh before saving again.");
     const cell = `${data.title}!${columnName(fixture.column)}${data.rowIndex + 1}`;
     const cellData = await sheets.cell(cell);
-    if (cellData.userEnteredValue?.formulaValue || cellData.dataValidation?.condition?.type !== "ONE_OF_LIST") throw problem("failed-precondition", "This sheet cell is not an availability dropdown. Please ask a club administrator to check it.");
-    const allowed = cellData.dataValidation.condition.values.map(value => value.userEnteredValue);
-    if (CHOICES.some(choice => !allowed.includes(choice)) || allowed.includes("Selected")) throw problem("failed-precondition", "The sheet's availability choices have changed. Please refresh.");
+    const rule = dropdownRule(cellData);
     const currentRaw = cellData.userEnteredValue?.stringValue || "";
     const current = STATUSES.find(choice => normalise(choice) === normalise(currentRaw)) || "";
     if (current !== payload.previousStatus) throw problem("aborted", "Your response changed in the sheet. Refresh before saving again.");
     if (payload.status === "Selected") {
-      await sheets.overrideSelection(data.rowIndex, fixture.column, cellData.dataValidation);
+      await sheets.overrideSelections([{ rowIndex: data.rowIndex, columnIndex: fixture.column, rule }]);
     } else {
       await sheets.update(cell, payload.status);
     }
     return { fixtureId: fixture.id, status: payload.status };
   }
 
-  return { get, set, getTeamSheet, setTeamResponse };
+  return { get, set, getTeamSheet, setTeamResponse, archiveTeamPlayer, selectTeamOnSheet };
 }
 
 module.exports = { SPREADSHEET_ID, SHEET_ID, CHOICES, normalise, columnName, parseFixture, findPlayerRow, fixturesFor, todayLondon, createAvailabilityService };

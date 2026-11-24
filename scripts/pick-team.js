@@ -81,7 +81,10 @@
   }
 
   function playerSheetKey(player, sheetFixture) {
-    return [player.availabilitySheetName, player.fullName, player.publicName]
+    const names = [player.fullName, player.publicName].map(person);
+    const aliases = names.some(name => ["gary hampshire", "gary hampshere", "gary hamshere"].includes(name))
+      ? ["Gary Hampshere", "Gary Hamshere"] : names.some(name => ["george m", "george mills"].includes(name)) ? ["George Mills"] : [];
+    return [player.availabilitySheetName, player.fullName, player.publicName, ...aliases]
       .map(person).find(key => sheetFixture.responses.has(key));
   }
 
@@ -131,6 +134,7 @@
     const status = el("pickTeamStatus");
     const drafts = new Map();
     let sheet = [];
+    let sheetTeamSync = false;
     let source = "";
     let message = "";
     let loading = false;
@@ -175,9 +179,14 @@
 
     function renderSelection(fixture) {
       const names = chosen(fixture);
+      const match = matchSheet(sheet, rowFor(fixture), dateKey);
+      const needsSheetSync = sheetTeamSync && match?.id && names.some(name => {
+        const player = roster().find(item => item.publicName === name);
+        return player && playerStatus(player, match) !== "Selected";
+      });
       selection.innerHTML = `<div><strong>Selected team · ${names.length}/${LIMIT}</strong>
         <span>${names.length ? names.map(name => escape(displayName(roster().find(player => player.publicName === name) || { publicName: name }))).join(" · ") : "Select players below in playing order."}</span></div>
-        <button type="button" class="btn btnPrimary" data-pick-team-save${saving || !drafts.has(fixture.id) ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button>`;
+        <button type="button" class="btn btnPrimary" data-pick-team-save${saving || (!drafts.has(fixture.id) && !needsSheetSync) ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button>`;
     }
 
     function render() {
@@ -242,7 +251,8 @@
       message = "";
       render();
       try {
-        const { rows, fixtureIds } = await liveRows();
+        const { rows, fixtureIds, sheetTeamSync: enabled } = await liveRows();
+        sheetTeamSync = enabled === true;
         sheet = readSheet(rows, dateKey, fixtureIds);
         source = "Live availability sheet";
       } catch (error) {
@@ -353,6 +363,7 @@
       archiveButton.disabled = true;
       try {
         await setArchived(player, toArchive);
+        await refreshSheet();
         toast(toArchive ? "Player archived." : "Player restored.");
       } catch (error) {
         toast(error.message || "Could not update the archive.", true);
@@ -370,9 +381,18 @@
       saving = true;
       render();
       try {
-        await save(fixture, chosen(fixture));
+        const names = chosen(fixture);
+        const match = matchSheet(sheet, rowFor(fixture), dateKey);
+        if (sheetTeamSync && names.length) {
+          if (loading || message || !match?.id) throw new Error("Refresh availability and check that this fixture matches the sheet before saving.");
+          const playerKeys = names.map(name => roster().find(player => player.publicName === name)?.playerKey);
+          if (playerKeys.some(key => !key)) throw new Error("Every selected player needs a club profile.");
+          await window.ONMFirebase.availability("selectTeamAvailability", { fixtureId: match.id, playerKeys });
+        }
+        await save(fixture, names);
         drafts.delete(fixture.id);
-        toast("Team saved. The Match tracker will load these players.");
+        toast(sheetTeamSync ? "Team saved and sheet updated." : "Team saved. Sheet sync is pending deployment.");
+        await refreshSheet();
       } catch (error) {
         toast(error.message || "Could not save the team.", true);
       } finally {

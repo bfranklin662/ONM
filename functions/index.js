@@ -25,19 +25,29 @@ const service = createAvailabilityService({
       const data = await request(`${base}?ranges=${encodeURIComponent(range)}&includeGridData=true&fields=sheets(data(rowData(values(userEnteredValue,dataValidation))))`);
       return data.sheets?.[0]?.data?.[0]?.rowData?.[0]?.values?.[0] || {};
     },
-    overrideSelection: (rowIndex, columnIndex, rule) => {
-      const start = { sheetId: SHEET_ID, rowIndex, columnIndex };
-      const range = {
-        sheetId: SHEET_ID, startRowIndex: rowIndex, endRowIndex: rowIndex + 1,
-        startColumnIndex: columnIndex, endColumnIndex: columnIndex + 1
-      };
-      // Write the override and restore the original dropdown in a single batch.
-      return request(`${base}:batchUpdate`, { method: "POST", data: { requests: [
-        { setDataValidation: { range, rule: { ...rule, strict: false } } },
-        { updateCells: { start, fields: "userEnteredValue", rows: [{ values: [{ userEnteredValue: { stringValue: "Selected" } }] }] } },
-        { setDataValidation: { range, rule } }
-      ] } });
+    overrideSelections: entries => {
+      const requests = entries.flatMap(({ rowIndex, columnIndex, rule }) => {
+        const start = { sheetId: SHEET_ID, rowIndex, columnIndex };
+        const range = {
+          sheetId: SHEET_ID, startRowIndex: rowIndex, endRowIndex: rowIndex + 1,
+          startColumnIndex: columnIndex, endColumnIndex: columnIndex + 1
+        };
+        // Write the override and restore the original dropdown in a single batch.
+        return [
+          { setDataValidation: { range, rule: { ...rule, strict: false } } },
+          { updateCells: { start, fields: "userEnteredValue", rows: [{ values: [{ userEnteredValue: { stringValue: "Selected" } }] }] } },
+          { setDataValidation: { range, rule } }
+        ];
+      });
+      return request(`${base}:batchUpdate`, { method: "POST", data: { requests } });
     },
+    setRowHidden: (rowIndex, hiddenByUser) => request(`${base}:batchUpdate`, {
+      method: "POST",
+      data: { requests: [{ updateDimensionProperties: {
+        range: { sheetId: SHEET_ID, dimension: "ROWS", startIndex: rowIndex, endIndex: rowIndex + 1 },
+        properties: { hiddenByUser }, fields: "hiddenByUser"
+      } }] }
+    }),
     update: (range, value) => request(`${base}/values/${encodeURIComponent(range)}?valueInputOption=RAW`, {
       method: "PUT", data: { range, majorDimension: "ROWS", values: [[value]] }
     })
@@ -79,6 +89,8 @@ function callable(handler) {
 }
 exports.getPlayerAvailability = callable(uid => service.get(uid));
 exports.getTeamAvailability = callable(uid => service.getTeamSheet(uid));
+exports.archiveTeamAvailabilityPlayer = callable((uid, data) => service.archiveTeamPlayer(uid, data));
+exports.selectTeamAvailability = callable((uid, data) => service.selectTeamOnSheet(uid, data));
 exports.setTeamAvailability = callable((uid, data) => service.setTeamResponse(uid, data));
 exports.setPlayerAvailability = callable((uid, data) => service.set(uid, data));
 

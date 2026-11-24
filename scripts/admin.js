@@ -1032,6 +1032,7 @@
   }
 
   async function setPickTeamArchived(player, archived) {
+    await window.ONMFirebase.availability("archiveTeamAvailabilityPlayer", { playerKey: player.playerKey, archived });
     const { ref, firestoreSdk } = await pickTeamSettings();
     const operation = archived ? firestoreSdk.arrayUnion(player.playerKey) : firestoreSdk.arrayRemove(player.playerKey);
     await firestoreSdk.setDoc(ref, { pickTeamArchivedPlayerKeys: operation }, { merge: true });
