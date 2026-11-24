@@ -1686,8 +1686,9 @@ html:has(.fixtureDetails[open]), body:has(.fixtureDetails[open]) {
   color: #e6f4eb;
 }
 .fixtureDetailsClose:hover { background: #28513c; }
-.fixtureDetailsClose:focus { outline: none; box-shadow: none; }
-.fixtureDetailsClose:focus-visible { box-shadow: inset 0 0 0 1px #81b79a; }
+#fixtureDetails #fixtureDetailsClose { outline: 0 !important; box-shadow: none !important; }
+#fixtureDetails #fixtureDetailsClose:focus-visible { background: #28513c; border-color: #81b79a; }
+#fixtureDetailsContent:focus { outline: none; }
 .fixtureDetailsClose svg { display: block; }
 .fixturePhotosLoading { display: flex; align-items: center; gap: 8px; }
 .fixturePhotosSpinner {
@@ -1704,6 +1705,21 @@ html:has(.fixtureDetails[open]), body:has(.fixtureDetails[open]) {
 @media (prefers-reduced-motion: reduce) {
   .fixturePhotosSpinner { animation: none; }
 }
-.fixtureLineupName { display: inline-flex; flex-wrap: wrap; column-gap: .25em; }
+.fixtureLineupName { display: block; min-width: 0; overflow-wrap: anywhere; letter-spacing: normal; word-spacing: normal; }
 .fixtureLineupIdentity { display: flex; align-items: baseline; gap: .3em; }
 .fixtureLineupCaptain { font-size: .72rem; color: #b9d5c3; }
+
+@media (max-width: 650px) {
+  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable { display: table; }
+  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable thead { display: table-header-group; }
+  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable tbody { display: table-row-group; }
+  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable tr { display: table-row; }
+  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable td {
+    display: table-cell;
+    height: 34px;
+    padding: 4px;
+    vertical-align: top;
+  }
+  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable th { text-align: center; padding: 5px 2px; }
+  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureMobileWeekday { display: none; }
+}

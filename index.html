@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/games.css?v=20261123-home-games">
   <link rel="stylesheet" href="styles/result-photos.css?v=20261124-match-indicator">
-  <link rel="stylesheet" href="styles/fixtures.css?v=20261124-team-captains">
+  <link rel="stylesheet" href="styles/fixtures.css?v=20261124-mobile-calendar-loading">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/home-refresh.css?v=20261124-merch-fixtures">
@@ -131,8 +131,8 @@
         </div>
       </div>
       <dialog id="fixtureDetails" class="fixtureDetails" aria-labelledby="fixtureDetailsTitle">
-        <button id="fixtureDetailsClose" type="button" class="fixtureDetailsClose" aria-label="Close fixture details" autofocus><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="m4 4 8 8m0-8-8 8"/></svg></button>
-        <div id="fixtureDetailsContent"></div>
+        <button id="fixtureDetailsClose" type="button" class="fixtureDetailsClose" aria-label="Close fixture details"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="m4 4 8 8m0-8-8 8"/></svg></button>
+        <div id="fixtureDetailsContent" tabindex="-1" autofocus></div>
       </dialog>
     </section>
 
@@ -418,7 +418,7 @@
 <script src="scripts/photo-placeholders.js?v=20261123-fixture-photos"></script>
 <script src="scripts/fixture-photos.js?v=20261124-fixture-photo-loading"></script>
 <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
-<script src="scripts/fixtures.js?v=20261124-team-captains"></script>
+<script src="scripts/fixtures.js?v=20261124-mobile-calendar-loading"></script>
 <script src="scripts/merch.js?v=20261124-merch-rail"></script>
 
 

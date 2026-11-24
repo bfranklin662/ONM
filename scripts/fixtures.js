@@ -146,10 +146,9 @@
     const fullName = fixturePictures.names?.get(normalizeName(name)) || String(name).replace(/\s+[A-Z]$/, "");
     const [first, ...surname] = fullName.trim().split(/\s+/);
     const nickname = fixturePlayerNickname(name);
-    return [first ? `<span>${escapeFixtureText(first)}</span>` : "",
-      nickname ? `<em class="fixtureLineupNickname">${escapeFixtureText(nickname)}</em>` : "",
-      surname.length ? `<span>${escapeFixtureText(surname.join(" "))}</span>` : ""
-    ].filter(Boolean).join(" ");
+    return [escapeFixtureText(first), nickname ? `<em class="fixtureLineupNickname">${escapeFixtureText(nickname)}</em>` : "",
+      escapeFixtureText(surname.join(" "))
+    ].filter(Boolean).join("&nbsp;");
   }
 
   async function loadFixturePlayerPictures() {
