@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="styles/fixtures.css?v=20261123-club-about">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/home-refresh.css?v=20261124-merch-and-photos">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/home-refresh.css?v=20261124-home-layout">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
   <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
@@ -80,7 +80,6 @@
       <a href="#fixtures" aria-current="location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2"/></svg><span>Fixtures &amp; results</span></a>
       <a href="#home-play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="m12 12 8-8m-3 0h3v3"/></svg><span>Play darts</span></a>
       <a href="#merch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 4-5 3 3 5 2-1v10h8V11l2 1 3-5-5-3a4 4 0 0 1-8 0Z"/></svg><span>Merch</span></a>
-      <a href="#competitions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8v6a4 4 0 0 1-8 0V3Zm0 2H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4m-4 1v7m-4 1h8"/></svg><span>Competitions</span></a>
       <a href="#team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-16a3 3 0 0 1 0 6m3 10v-3a6 6 0 0 0-3-5"/></svg><span>About</span></a>
     </nav>
 
@@ -137,90 +136,86 @@
     </section>
 
     <section id="home-play" class="home-section home-play" aria-labelledby="home-play-title">
-      <div class="home-section-heading"><p>Step up to the oche</p><h2 id="home-play-title">Play darts</h2></div>
+      <div class="home-section-heading"><h2 id="home-play-title">Play darts</h2></div>
       <div class="scorerSetupCard playGameList" aria-label="Games">
-      <div class="setupGrid">
+        <div class="setupGrid">
 
-        <a href="monster-bot.html" class="gameTile gameTileMonster">
-          <div class="gameTileImage monsterTileArt">
-            <span class="monsterArtLabel">MEET YOUR MATCH</span>
-            <div class="monsterArtCast">
-              <img src="graphics/bots/billy-bot.png" alt="Billy Bot" width="150" height="190">
-              <img src="graphics/bots/croft-bot.png" alt="Croft Bot" width="150" height="190">
-              <img src="graphics/bots/venton-bot.png" alt="Venton Bot" width="150" height="190">
-              <img src="graphics/bots/istan-bot.png" alt="Istan Bot" width="150" height="190">
+          <a href="monster-bot.html" class="gameTile gameTileMonster">
+            <div class="gameTileImage monsterTileArt" aria-hidden="true">
+              <div class="monsterArtCast">
+                <img src="graphics/bots/billy-bot.png" alt="" width="150" height="190">
+                <img src="graphics/bots/croft-bot.png" alt="" width="150" height="190">
+                <img src="graphics/bots/venton-bot.png" alt="" width="150" height="190">
+                <img src="graphics/bots/istan-bot.png" alt="" width="150" height="190">
+              </div>
             </div>
-            <span class="monsterArtCaption">Start with Billy. Uncover the rest.</span>
-          </div>
-          <div class="gameTileBody">
-            <h2>Monster Bot Game</h2>
-            <p class="gameTileKicker">Online · Ladder · Bull or Bust</p>
-            <p>Meet the Monsters. Beat their challenges. Unlock your next rival.</p>
-            <div class="gameTileStats"><span id="botGamePlayers" hidden>👥 <strong></strong></span><span>50 challenges</span><span>★ Flawless wins</span><span>🎯 Bull or Bust</span></div>
-          </div>
-          <span class="gameTileAction">Enter the game →</span>
-        </a>
-
-        <a href="dart-scorer.html?mode=versus" class="gameTile gameTileLeague">
-          <div class="gameTileImage gameDiagramArt" aria-hidden="true">
-            <svg viewBox="0 0 230 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="19" y="21" width="66" height="57" rx="9"/><rect x="145" y="21" width="66" height="57" rx="9"/><path d="M85 40h60m-60 20h60m-21-28 8 8-8 8m-18 4-8 8 8 8M38 41h28M38 58h28m98-17h28m-28 17h28"/>
-            </svg>
-          </div>
-          <div class="gameTileBody">
-            <h2>Monsters Versus</h2>
-            <p class="gameTileKicker">Online matches · Averages tracked</p>
-            <div class="gameTileStats" id="molGameStats">
-              <span>👥 <strong id="molGamePlayers">-</strong></span>
+            <div class="gameTileBody">
+              <h3>Monster Bot Game</h3>
+              <p>Beat challenges to unlock your next rival.</p>
             </div>
-            <p>Play online 501 games with friends. See player photos, flags and averages—no rankings or league table.</p>
-          </div>
-          <span class="gameTileAction">Play →</span>
-        </a>
+            <div class="gameTileStats"><span id="botGamePlayers" hidden>👥 <strong></strong></span><span>Solo</span></div>
+            <span class="gameTileAction">Play →</span>
+          </a>
 
-        <a href="tournament.html" class="gameTile gameTileTournament">
-          <div class="gameTileImage gameDiagramArt" aria-hidden="true">
-            <svg viewBox="0 0 230 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
-              <path d="M10 12h32v23h35m-67 23h32V35m-32 30h32v23h35m-67 8h32v-8M77 35v53m0-26h34M220 12h-32v23h-35m67 23h-32V35m32 30h-32v23h-35m67 8h-32v-8m-35-53v53m0-26h-34"/>
-              <circle cx="115" cy="62" r="9"/>
-            </svg>
-          </div>
-          <div class="gameTileBody">
-            <h2>Tournament</h2>
-            <p class="gameTileKicker">Groups · Knockouts · Live standings</p>
-            <p>Join the draw, follow the bracket and see how every player scores.</p>
-          </div>
-          <span class="gameTileAction">Open lobby →</span>
-        </a>
+          <a href="dart-scorer.html?mode=versus" class="gameTile gameTileLeague">
+            <div class="gameTileImage gameDiagramArt" aria-hidden="true">
+              <svg viewBox="0 0 230 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="19" y="21" width="66" height="57" rx="9"/><rect x="145" y="21" width="66" height="57" rx="9"/><path d="M85 40h60m-60 20h60m-21-28 8 8-8 8m-18 4-8 8 8 8M38 41h28M38 58h28m98-17h28m-28 17h28"/>
+              </svg>
+            </div>
+            <div class="gameTileBody">
+              <h3>Monsters Versus</h3>
+              <p>Play 501 online with friends and track your averages.</p>
+            </div>
+            <div class="gameTileStats"><span id="molGameStats">👥 <strong id="molGamePlayers">–</strong></span><span>Online</span></div>
+            <span class="gameTileAction">Play →</span>
+          </a>
 
-        <a href="dart-scorer.html?mode=casual&v=20260602" class="gameTile gameTileCasual">
-          <div class="gameTileImage gameDiagramArt" aria-hidden="true">
-            <svg viewBox="0 0 230 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="92" y="11" width="46" height="78" rx="8"/><path d="M102 24h26v15h-26zM103 50h4m6 0h4m6 0h4m-24 10h4m6 0h4m6 0h4m-24 10h4m6 0h4m6 0h4M30 50h45m80 0h45"/><circle cx="30" cy="50" r="5"/><circle cx="200" cy="50" r="5"/>
-            </svg>
-          </div>
-          <div class="gameTileBody">
-            <h2>Casual Dart Scorer</h2>
-            <p class="gameTileKicker">Online scorecard · In-person play</p>
-            <p>Keep score for both players on one device.</p>
-          </div>
-          <span class="gameTileAction">Open →</span>
-        </a>
+          <a href="tournament.html" class="gameTile gameTileTournament">
+            <div class="gameTileImage gameDiagramArt" aria-hidden="true">
+              <svg viewBox="0 0 230 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                <path d="M10 12h32v23h35m-67 23h32V35m-32 30h32v23h35m-67 8h32v-8M77 35v53m0-26h34M220 12h-32v23h-35m67 23h-32V35m32 30h-32v23h-35m67 8h-32v-8m-35-53v53m0-26h-34"/>
+                <circle cx="115" cy="62" r="9"/>
+              </svg>
+            </div>
+            <div class="gameTileBody">
+              <h3>Tournament</h3>
+              <p>Join the draw and follow the live bracket.</p>
+            </div>
+            <div class="gameTileStats"><span>Multiplayer</span></div>
+            <span class="gameTileAction">Play →</span>
+          </a>
 
-      </div>
+          <a href="dart-scorer.html?mode=casual&v=20260602" class="gameTile gameTileCasual">
+            <div class="gameTileImage gameDiagramArt" aria-hidden="true">
+              <svg viewBox="0 0 230 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="92" y="11" width="46" height="78" rx="8"/><path d="M102 24h26v15h-26zM103 50h4m6 0h4m6 0h4m-24 10h4m6 0h4m6 0h4m-24 10h4m6 0h4m6 0h4M30 50h45m80 0h45"/><circle cx="30" cy="50" r="5"/><circle cx="200" cy="50" r="5"/>
+              </svg>
+            </div>
+            <div class="gameTileBody">
+              <h3>Casual Dart Scorer</h3>
+              <p>Keep score for both players on one device.</p>
+            </div>
+            <div class="gameTileStats"><span>2 players</span></div>
+            <span class="gameTileAction">Play →</span>
+          </a>
+
+        </div>
       </div>
     </section>
 
-    <section id="merch" class="home-section home-merch">
-      <div class="home-section-heading home-section-heading-row">
-        <div>
-          <h2>Monsters in Merch</h2>
-        </div>
+    <section id="merch" class="home-section home-merch" aria-labelledby="home-merch-title">
+      <div class="home-section-heading">
+        <h2 id="home-merch-title">Merch</h2>
+      </div>
+      <p class="home-merch-intro">Explore our merch options.</p>
+      <div class="home-merch-gallery">
+        <img class="home-merch-feature" src="images/merch/monsters-match-shirt.jpg" width="1080" height="1440" alt="A Monster in the green-and-black match shirt facing the dartboard at Nolan’s" loading="lazy" decoding="async">
+        <img class="home-merch-feature" src="images/merch/monsters-club-tee.jpg" width="1080" height="1440" alt="A Monster wearing the black club T-shirt with a collage of player portraits on the back" loading="lazy" decoding="async">
       </div>
 
       <div class="home-merch-ranges">
         <section id="merch-shirt-panel" class="home-merch-card home-merch-panel" aria-labelledby="merch-shirt-heading">
-          <img class="home-merch-feature" src="images/merch/monsters-match-shirt.jpg" width="1080" height="1440" alt="A Monster in the green-and-black match shirt facing the dartboard at Nolan’s" loading="lazy" decoding="async">
           <div class="home-merch-copy">
             <h3 id="merch-shirt-heading">Match shirt</h3>
             <p>Our green-and-black match shirt, with the Monster across the back.</p>
@@ -235,7 +230,6 @@
         </section>
 
         <section id="merch-tshirt-panel" class="home-merch-card home-merch-panel" aria-labelledby="merch-tshirt-heading">
-          <img class="home-merch-feature" src="images/merch/monsters-club-tee.jpg" width="1080" height="1440" alt="A Monster wearing the black club T-shirt with a collage of player portraits on the back" loading="lazy" decoding="async">
           <div class="home-merch-copy">
             <h3 id="merch-tshirt-heading">Club T-shirts</h3>
             <p>Shop the club tees in white or black, including the heavyweight Apocalypse design.</p>
@@ -262,119 +256,15 @@
     </section>
 
 
-    <section id="competitions" class="home-section home-competitions">
-      <div class="home-section-heading">
-        <p>Where we play</p>
-        <h2>Competitions</h2>
-      </div>
-
-      <div class="home-comps-grid">
-        <article class="home-comp-card">
-          <img src="images/banks.jpg" alt="Banks League">
-          <div class="home-comp-body">
-            <div class="home-comp-top">
-              <h3>Banks League</h3>
-              <div class="pwl-grid" data-league="Banks League">
-                <a class="pwl played">P: <span id="banks-p">–</span></a>
-                <a class="pwl won">W: <span id="banks-w">–</span></a>
-                <a class="pwl lost">L: <span id="banks-l">–</span></a>
-              </div>
-            </div>
-            <p class="home-comp-tag">Division 2 Champions 2024/25</p>
-            <p>The regular league engine room: weekly matches, promotion momentum and a proper competitive grind.</p>
-            <div class="home-comp-links">
-              <a href="results.html#results">Results</a>
-              <a href="results.html#stats">Stats</a>
-              <a href="https://cbfidl2.leaguerepublic.com/fg/1_991506423.html" target="_blank">Table</a>
-            </div>
-          </div>
-        </article>
-
-        <article class="home-comp-card">
-          <img src="images/trafalgar.jpg" alt="Trafalgar League">
-          <div class="home-comp-body">
-            <div class="home-comp-top">
-              <h3>Trafalgar League</h3>
-              <div class="pwl-grid" data-league="Trafalgar League">
-                <a class="pwl played">P: <span id="traf-p">–</span></a>
-                <a class="pwl won">W: <span id="traf-w">–</span></a>
-                <a class="pwl lost">L: <span id="traf-l">–</span></a>
-              </div>
-            </div>
-            <p class="home-comp-tag">Team legs • trebles • doubles • singles</p>
-            <p>A bigger league format with more moving parts, deeper nights and plenty of room for drama.</p>
-            <div class="home-comp-links">
-              <a href="results.html#results">Results</a>
-              <a href="results.html#stats">Stats</a>
-              <a href="https://www.trafalgardartleague.org.uk/table.html" target="_blank">Table</a>
-            </div>
-          </div>
-        </article>
-
-        <article class="home-comp-card">
-          <img src="images/bull.jpg" alt="Smithfield League">
-          <div class="home-comp-body">
-            <div class="home-comp-top">
-              <h3>Smithfield League</h3>
-            </div>
-            <p class="home-comp-tag">Four-player league • plenty of darts</p>
-            <p>A compact four-player format with a mix of team legs, doubles and singles. Plenty of visits, plenty of
-              pressure.</p>
-            <div class="home-comp-links">
-              <a href="results.html#results">Results</a>
-              <a href="results.html#stats">Stats</a>
-            </div>
-          </div>
-        </article>
-
-        <article class="home-comp-card">
-          <img src="images/colda.jpg" alt="COLDA League">
-          <div class="home-comp-body">
-            <h3>COLDA League</h3>
-            <p class="home-comp-tag">City Of London Darts Association</p>
-            <p>A four-player team league for Monsters who play in the COLDA singles league, adding another competitive
-              route through the season.</p>
-            <div class="home-comp-links">
-              <a href="results.html#results">Results</a>
-              <a href="results.html#stats">Stats</a>
-            </div>
-          </div>
-        </article>
-
-        <article class="home-comp-card compact">
-          <img src="images/beckett.jpg" alt="Alex Beckett League">
-          <div class="home-comp-body">
-            <h3>Alex Beckett League</h3>
-            <p class="home-comp-tag">Tournament Champions 2024/25</p>
-            <p>The Barley Mow tournament where the Monsters picked up silverware and a story worth retelling.</p>
-            <div class="home-comp-links">
-              <a href="https://thebarleymowmarylebone.com/the-darts-league" target="_blank">Website</a>
-            </div>
-          </div>
-        </article>
-
-        <article class="home-comp-card compact">
-          <img src="images/mpl.jpg" alt="Monsters Premier League">
-          <div class="home-comp-body">
-            <h3>Monsters Premier League</h3>
-            <p class="home-comp-tag">2025 Winner: Filip</p>
-            <p>Internal summer darts, bragging rights and a league table nobody pretends not to care about.</p>
-            <div class="home-comp-links">
-              <a href="mpl-table.html">Table</a>
-              <a href="mpl-stats.html">Stats</a>
-            </div>
-          </div>
-        </article>
-      </div>
-    </section>
-
     <section id="team" class="home-section home-story" aria-labelledby="club-about-title">
       <div class="home-section-heading">
         <p>Est. 2023 · London darts</p>
         <h2 id="club-about-title">Welcome to the Oche Ness Monsters</h2>
       </div>
       <div class="clubIntro">
-        <img src="images/team1.jpg" alt="The Oche Ness Monsters together as a team" loading="lazy" width="720" height="480">
+        <div class="clubIntroPhoto">
+          <img src="images/team1.jpg" alt="The Oche Ness Monsters together as a team" loading="lazy" width="720" height="480">
+        </div>
         <div class="clubIntroCopy">
           <span class="clubStamp">Good darts. Questionable decisions.</span>
           <h3>A club with a taste for bull glory.</h3>
@@ -403,6 +293,87 @@
           <span class="clubMotto">Every legend has a running total.</span>
         </article>
       </div>
+      <section id="competitions" class="clubCompetitions" aria-labelledby="club-competitions-title">
+        <h3 id="club-competitions-title">Competitions</h3>
+
+        <div class="home-comps-grid">
+          <article class="home-comp-card">
+            <img src="images/banks.jpg" alt="" loading="lazy" decoding="async">
+            <div class="home-comp-body">
+              <h4>Banks League</h4>
+              <p class="home-comp-tag">Division 2 Champions 2024/25</p>
+              <p>The regular league engine room: weekly matches, promotion momentum and a proper competitive grind.</p>
+              <div class="home-comp-links">
+                <a href="results.html#results">Results</a>
+                <a href="https://cbfidl2.leaguerepublic.com/fg/1_991506423.html" target="_blank">Table</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="home-comp-card">
+            <img src="images/trafalgar.jpg" alt="" loading="lazy" decoding="async">
+            <div class="home-comp-body">
+              <h4>Trafalgar League</h4>
+              <p class="home-comp-tag">Team legs • trebles • doubles • singles</p>
+              <p>A bigger league format with more moving parts, deeper nights and plenty of room for drama.</p>
+              <div class="home-comp-links">
+                <a href="results.html#results">Results</a>
+                <a href="https://www.trafalgardartleague.org.uk/table.html" target="_blank">Table</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="home-comp-card">
+            <img src="images/bull.jpg" alt="" loading="lazy" decoding="async">
+            <div class="home-comp-body">
+              <h4>Smithfield League</h4>
+              <p class="home-comp-tag">Four-player league • plenty of darts</p>
+              <p>A compact four-player format with a mix of team legs, doubles and singles. Plenty of visits, plenty of
+                pressure.</p>
+              <div class="home-comp-links">
+                <a href="results.html#results">Results</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="home-comp-card">
+            <img src="images/colda.jpg" alt="" loading="lazy" decoding="async">
+            <div class="home-comp-body">
+              <h4>COLDA League</h4>
+              <p class="home-comp-tag">City Of London Darts Association</p>
+              <p>A four-player team league for Monsters who play in the COLDA singles league, adding another competitive
+                route through the season.</p>
+              <div class="home-comp-links">
+                <a href="results.html#results">Results</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="home-comp-card">
+            <img src="images/beckett.jpg" alt="" loading="lazy" decoding="async">
+            <div class="home-comp-body">
+              <h4>Alex Beckett League</h4>
+              <p class="home-comp-tag">Tournament Champions 2024/25</p>
+              <p>The Barley Mow tournament where the Monsters picked up silverware and a story worth retelling.</p>
+              <div class="home-comp-links">
+                <a href="https://thebarleymowmarylebone.com/the-darts-league" target="_blank">Website</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="home-comp-card">
+            <img src="images/mpl.jpg" alt="" loading="lazy" decoding="async">
+            <div class="home-comp-body">
+              <h4>Monsters Premier League</h4>
+              <p class="home-comp-tag">2025 Winner: Filip</p>
+              <p>Internal summer darts, bragging rights and a league table nobody pretends not to care about.</p>
+              <div class="home-comp-links">
+                <a href="mpl-table.html">Table</a>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
     </section>
 
     <footer class="home-footer">
@@ -439,7 +410,6 @@
 <script src="scripts/fixture-photos.js?v=20261123-fixture-photos"></script>
 <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
 <script src="scripts/fixtures.js?v=20261124-merch-and-photos"></script>
-<script src="scripts/comps.js"></script>
 <script src="scripts/merch.js?v=20261124-merch-rail"></script>
 
 

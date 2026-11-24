@@ -33,17 +33,26 @@
   gap: 0;
 }
 
+.home-merch-intro {
+  margin: 0 0 12px;
+  color: #c8dfd1;
+}
+
+.home-merch-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
 .home-merch-feature {
   display: block;
   width: 100%;
-  height: auto;
-  aspect-ratio: 5 / 4;
+  height: clamp(140px, 28vw, 290px);
   object-fit: cover;
-  object-position: center 72%;
-  border-radius: 15px 15px 0 0;
+  object-position: center 75%;
+  border-radius: 10px;
 }
-
-#merch-shirt-panel .home-merch-feature { object-position: center bottom; }
 
 #merch .home-merch-copy {
   padding: 18px;
@@ -128,7 +137,7 @@
 }
 @media(prefers-reduced-motion:reduce) { #fixtureCalendar[aria-busy="true"] #fixtureCalendarCount::before { animation:none; } }
 
-.homeSectionMenu { position:sticky; top:calc(var(--header-h,92px) + 6px); z-index:40; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:5px; margin:0 0 16px; padding:5px; border:1px solid #365a47; border-radius:11px; background:#0a1c20f5; backdrop-filter:blur(12px); }
+.homeSectionMenu { position:sticky; top:calc(var(--header-h,92px) + 6px); z-index:40; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; margin:0 0 16px; padding:5px; border:1px solid #365a47; border-radius:11px; background:#0a1c20f5; backdrop-filter:blur(12px); }
 .homeSectionMenu a { display:flex; align-items:center; justify-content:center; gap:8px; min-height:43px; padding:7px; border:1px solid transparent; border-radius:7px; color:#a5bfb1; text-decoration:none; font:650 12px/1.2 system-ui,sans-serif; text-align:center; }
 .homeSectionMenu svg { width:19px; height:19px; flex-shrink:0; }
 .homeSectionMenu a[aria-current="location"] { background:#244b37; border-color:#5c9572; color:#e4f5e9; }
@@ -137,11 +146,89 @@
 .home-shell > section[id] { scroll-margin-top:calc(var(--header-h,92px) + 80px); }
 .home-play { --yellow:#ffdf78; --muted:#bdd0c4; }
 .home-play .scorerSetupCard { width:100%; margin:0; padding:0; }
-.home-play .setupGrid { display:grid; grid-template-columns:minmax(0,1fr); }
-.home-play .gameTile { box-sizing:border-box; text-align:left; }
-.home-play .gameTileBody { min-width:0; }
-.home-play .gameTileStats { flex-wrap:wrap; }
-.home-play .gameTileImage { border:0; }
+.home-play .setupGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.home-play .playGameList .gameTile {
+  grid-template: "art copy pills" auto "art copy action" 1fr / clamp(60px, 8vw, 104px) minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  min-height: 88px;
+  padding: 0 10px 0 0;
+  border-radius: 10px;
+  box-sizing: border-box;
+  text-align: left;
+  background: #112a20;
+  box-shadow: none;
+}
+
+.home-play .playGameList .gameTileImage {
+  grid-area: art;
+  min-height: 0;
+  padding: 4px;
+  border: 0;
+  justify-content: center;
+}
+
+.home-play .monsterTileArt::before { display: none; }
+.home-play .playGameList .monsterArtCast img { width: clamp(20px, 3vw, 32px); height: 30px; }
+.home-play .playGameList .gameTileBody { grid-area: copy; min-width: 0; padding: 10px 0; gap: 4px; }
+.home-play .gameTileBody h3 { margin: 0; font-size: clamp(.88rem, 1.5vw, 1.125rem); line-height: 1.15; }
+.home-play .playGameList .gameTileBody > p:not(.gameTileKicker) {
+  display: block;
+  color: #bdd0c4;
+  font-size: .75rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.home-play .playGameList .gameTileStats {
+  grid-area: pills;
+  justify-content: flex-end;
+  align-self: start;
+  gap: 4px;
+  margin: 8px 0 0;
+}
+
+.home-play .playGameList .gameTileStats span {
+  display: inline-block;
+  padding: 3px 6px;
+  font-size: .625rem;
+}
+
+.home-play .playGameList .gameTileStats span[hidden] { display: none; }
+
+.home-play .playGameList .gameTileAction {
+  grid-area: action;
+  position: static;
+  transform: none;
+  justify-self: end;
+  align-self: end;
+  margin: 0 0 8px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: #ffdf78;
+  color: #14251c !important;
+  font-size: .7rem;
+}
+
+.home-play .playGameList .gameTileAction::after { content: none; }
+
+@media (max-width: 900px) {
+  .home-play .setupGrid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .home-play .playGameList .gameTile {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    column-gap: 7px;
+    padding-right: 7px;
+  }
+  .home-play .playGameList .gameTileStats { flex-direction: column; align-items: flex-end; }
+}
+
 @media(max-width:650px) {
  .homeSectionMenu { gap:2px; padding:4px; margin-bottom:10px; }
  .homeSectionMenu a { flex-direction:column; gap:4px; min-height:48px; padding:4px 2px; font-size:9px; }
@@ -182,7 +269,8 @@ html:has(.homeSectionMenu) { scroll-padding-top:0; }
 
 /* Club story, honours and traditions. */
 .clubIntro { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); overflow:hidden; border:1px solid #3c654c; border-radius:12px; background:#0d271b; }
-.clubIntro > img { display:block; width:100%; height:100%; min-height:300px; object-fit:cover; object-position:center 42%; }
+.clubIntroPhoto { position: relative; }
+.clubIntroPhoto img { display:block; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 42%; }
 .clubIntroCopy { padding:clamp(18px,3vw,32px); }
 .clubStamp { display:inline-block; margin-bottom:10px; color:#ffdf78; font:700 10px/1.3 "Poppins",sans-serif; letter-spacing:.08em; text-transform:uppercase; }
 .clubIntroCopy h3 { margin:0 0 12px; font-size:23px; line-height:1.2; }
@@ -201,7 +289,7 @@ html:has(.homeSectionMenu) { scroll-padding-top:0; }
 .clubMotto { display:block; color:#ffdf78; font-size:11px; font-weight:650; }
 @media(max-width:650px) {
  .clubIntro,.clubTraditions { grid-template-columns:minmax(0,1fr); }
- .clubIntro > img { height:180px; min-height:0; }
+ .clubIntroPhoto { aspect-ratio: 2 / 1; }
  .clubIntroCopy { padding:15px; }
  .clubIntroCopy h3 { font-size:19px; }
  .clubIntroCopy p,.clubTraditions p { font-size:12px; line-height:1.6; }
@@ -217,3 +305,28 @@ html:has(.homeSectionMenu) { scroll-padding-top:0; }
  .clubTraditions article { padding:14px; }
  .clubTraditionTitle h3 { font-size:15px; }
 }
+
+
+.clubCompetitions {
+  margin-top: clamp(20px, 4vw, 36px);
+  scroll-margin-top: calc(var(--header-h, 92px) + var(--home-menu-height, 64px) + 16px);
+}
+
+.clubCompetitions > h3 { margin: 0 0 12px; font-size: clamp(1.15rem, 2.5vw, 1.6rem); }
+
+.clubCompetitions .home-comps-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 10px;
+}
+
+.clubCompetitions .home-comp-card {
+  grid-template-columns: clamp(64px, 9vw, 120px) minmax(0, 1fr);
+  min-height: 0;
+  box-shadow: none;
+}
+
+.clubCompetitions .home-comp-card img { height: 100%; min-height: 0; }
+.clubCompetitions .home-comp-body { padding: 12px; gap: 6px; }
+.clubCompetitions .home-comp-card h4 { margin: 0; font-size: 1rem; line-height: 1.2; }
+.clubCompetitions .home-comp-card p:not(.home-comp-tag) { font-size: .75rem; }
+.clubCompetitions .home-comp-links { margin-top: auto; }
