@@ -1148,6 +1148,17 @@
     });
     el("#fixtureDetailsClose").addEventListener("click", () => { if (!savingAvailability) dialog.close(); });
     dialog.addEventListener("cancel", event => { if (savingAvailability) event.preventDefault(); });
+    function isBackdrop(event) {
+      if (event.target !== dialog) return false;
+      const { left, right, top, bottom } = dialog.getBoundingClientRect();
+      return event.clientX < left || event.clientX >= right || event.clientY < top || event.clientY >= bottom;
+    }
+    let startedOnBackdrop = false;
+    dialog.addEventListener("pointerdown", event => { startedOnBackdrop = isBackdrop(event); });
+    dialog.addEventListener("click", event => {
+      if (startedOnBackdrop && isBackdrop(event) && !savingAvailability) dialog.close();
+      startedOnBackdrop = false;
+    });
     dialog.addEventListener("submit", async event => {
       if (event.target.id !== "fixtureAvailabilityForm") return;
       event.preventDefault();
@@ -1177,11 +1188,6 @@
     });
     dialog.addEventListener("click", event => {
       if (event.target.closest(".fxAvailabilityRefresh")) loadPersonalAvailability();
-    });
-    dialog.addEventListener("click", event => {
-      if (event.target !== dialog || savingAvailability) return;
-      const bounds = dialog.getBoundingClientRect();
-      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
     });
     render();
     return { refresh: render, setFixtures(updated) {
