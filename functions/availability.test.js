@@ -24,6 +24,7 @@ function harness(overrides = {}) {
       metadata: async () => ({ sheets: [{ properties: { sheetId: SHEET_ID, title: "Availability 2026-27", gridProperties: { rowCount: 93, columnCount: 50 } } }] }),
       values: async () => grid,
       cell: async () => ({ userEnteredValue: data.formula ? { formulaValue: "=1" } : { stringValue: data.current }, dataValidation: data.valid ? { condition: { type: "ONE_OF_LIST", values: ["Available", "Unavailable", "Not sure"].map(userEnteredValue => ({ userEnteredValue })) } } : undefined }),
+      overrideSelection: async (row, column, rule) => writes.push({ row, column, rule }),
       update: async (range, value) => writes.push({ range, value })
     }
   });
@@ -113,4 +114,40 @@ test("duplicate fixtures are read-only and London dates handle summer time", asy
   await assert.rejects(h.service.set("signed-in-user", { fixtureId: fixtures[0].id, status: "Available", previousStatus: "Unavailable" }));
   assert.equal(todayLondon(new Date("2026-07-01T23:30:00Z")), "2026-07-02");
   assert.equal(parseFixture("BANKS\nTuesday\n31 Feb 2027", "Opponent", "H", "Pub"), null);
+});
+
+test("only active admins and owners can read team availability", async () => {
+  await assert.rejects(harness().service.getTeamSheet(null), { code: "unauthenticated" });
+  for (const user of [{ role: "player" }, { role: "admin", status: "Inactive" }]) {
+    await assert.rejects(harness({ user }).service.getTeamSheet("signed-in-user"), { code: "permission-denied" });
+  }
+  const h = harness({ user: { role: "admin", linkedPlayerKey: "" } });
+  const { rows } = await h.service.getTeamSheet("signed-in-user");
+  assert.deepEqual(rows[7], ["Nick Horne (c)", "", "Unavailable", "Available", "Available"]);
+  assert.deepEqual(rows.slice(4, 7), [[], [], []]);
+  assert.deepEqual(h.reads, ["users/signed-in-user"]);
+  assert.equal(h.writes.length, 0);
+});
+
+test("only admins can mark a matching response Selected, without adding a dropdown option", async () => {
+  const admin = harness({ user: { role: "admin", linkedPlayerKey: "" } });
+  const { fixtureIds } = await admin.service.getTeamSheet("signed-in-user");
+  const payload = { fixtureId: fixtureIds[2], playerKey: "nick", status: "Selected", previousStatus: "Unavailable" };
+  const member = harness();
+  await assert.rejects(member.service.setTeamResponse("signed-in-user", payload), { code: "permission-denied" });
+  await assert.rejects(member.service.set("signed-in-user", payload), { code: "invalid-argument" });
+  await assert.rejects(admin.service.setTeamResponse("signed-in-user", { ...payload, previousStatus: "Available" }), { code: "aborted" });
+  await admin.service.setTeamResponse("signed-in-user", payload);
+  assert.equal(admin.writes.length, 1);
+  assert.equal(admin.writes[0].row, 7);
+  assert.equal(admin.writes[0].column, 2);
+  assert.deepEqual(admin.writes[0].rule.condition.values.map(value => value.userEnteredValue), ["Available", "Unavailable", "Not sure"]);
+
+  member.grid[7][2] = "Selected";
+  member.data.current = "Selected";
+  const { fixtures, choices } = await member.service.get("signed-in-user");
+  assert.equal(fixtures[0].status, "Selected");
+  assert(!choices.includes("Selected"));
+  await member.service.set("signed-in-user", { ...payload, status: "Not sure", previousStatus: "Selected" });
+  assert.deepEqual(member.writes, [{ range: "'Availability 2026-27'!C8", value: "Not sure" }]);
 });

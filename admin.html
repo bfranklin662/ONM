@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow">
   <title>Club admin | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
-  <link rel="stylesheet" href="styles/admin.css?v=20261124-team-roster">
+  <link rel="stylesheet" href="styles/admin.css?v=20261124-selected-override">
   <link rel="stylesheet" href="styles/club-bank.css?v=20261030-owed">
 <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
@@ -90,22 +90,15 @@
 
       <section id="pickTeamPanel" class="adminPanel hidden" aria-labelledby="pickTeamHeading">
         <div class="adminToolbar">
-          <div class="adminFilters">
-            <label id="pickTeamHeading">Upcoming match
-              <select id="pickTeamFixture"></select>
-            </label>
-          </div>
-          <div class="pickTeamSources">
-            <button class="btn btnGhost" type="button" id="pickTeamRefresh">Refresh availability</button>
-            <a class="btn btnGhost" href="https://docs.google.com/spreadsheets/d/1jrh1Ij_H2sidOam3mZY_lCwT-KC5qVp1QNUxxgrUzqQ/export?format=csv&amp;gid=1717914264" target="_blank" rel="noopener">Download sheet CSV</a>
-            <label class="pickTeamImport">Import availability CSV
-              <input id="pickTeamCsv" type="file" accept=".csv,text/csv">
-            </label>
-          </div>
+          <h2 id="pickTeamHeading">Upcoming fixtures</h2>
+          <button class="btn btnGhost" type="button" id="pickTeamRefresh">Refresh availability</button>
         </div>
-        <p id="pickTeamStatus" class="pickTeamStatus" role="status"></p>
-        <div id="pickTeamSelection" class="pickTeamSelection"></div>
-        <div id="pickTeamGroups"></div>
+        <div id="pickTeamFixture" class="pickTeamFixtures" role="tablist" aria-labelledby="pickTeamHeading"></div>
+        <div id="pickTeamFixturePanel" role="tabpanel">
+          <p id="pickTeamStatus" class="pickTeamStatus" role="status"></p>
+          <div id="pickTeamSelection" class="pickTeamSelection"></div>
+          <div id="pickTeamGroups"></div>
+        </div>
         <details id="pickTeamArchive" class="pickTeamArchive">
           <summary>Archived players (<span id="pickTeamArchiveCount">0</span>)</summary>
           <div id="pickTeamArchiveCards" class="pickTeamCards"></div>
@@ -224,12 +217,12 @@
 
   <div id="adminToast" class="adminToast hidden" role="status"></div>
 
-  <script src="scripts/firebase-client.js?v=20261123-calendar-social"></script>
+  <script src="scripts/firebase-client.js?v=20261124-selected-override"></script>
   <script src="scripts/player-data.js?v=20261016-registration"></script>
   <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
   <script src="scripts/admin-accolades.js?v=20261120-cups-awards"></script>
-  <script src="scripts/pick-team.js?v=20261124-team-roster"></script>
-  <script src="scripts/admin.js?v=20261124-team-roster"></script>
+  <script src="scripts/pick-team.js?v=20261124-selected-override"></script>
+  <script src="scripts/admin.js?v=20261124-selected-override"></script>
   <script src="scripts/club-bank-engine.js?v=20261030-owed"></script>
   <script src="scripts/club-bank.js?v=20261030-owed"></script>
 <script src="/scripts/site-ui.js?v=20261028-avatar-fill"></script></body>

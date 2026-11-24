@@ -5,6 +5,8 @@ const SPREADSHEET_ID = "1jrh1Ij_H2sidOam3mZY_lCwT-KC5qVp1QNUxxgrUzqQ";
 const SHEET_ID = 1717914264;
 const CHOICES = ["Available", "Unavailable", "Not sure"];
 
+const STATUSES = [...CHOICES, "Selected"];
+
 function problem(code, message) {
   return Object.assign(new Error(message), { code });
 }
@@ -57,7 +59,7 @@ function fixturesFor(values, rowIndex, today) {
     const fixture = parseFixture(values[0]?.[column], values[1]?.[column], values[2]?.[column], values[3]?.[column]);
     if (!fixture || fixture.cancelled || fixture.date < today) continue;
     const value = String(values[rowIndex]?.[column] || "").trim();
-    const status = CHOICES.find(choice => normalise(choice) === normalise(value)) || "";
+    const status = STATUSES.find(choice => normalise(choice) === normalise(value)) || "";
     fixtures.push({ ...fixture, column, status });
   }
   const counts = new Map();
@@ -67,15 +69,7 @@ function fixturesFor(values, rowIndex, today) {
 }
 
 function createAvailabilityService({ db, sheets, now = () => new Date() }) {
-  async function context(uid) {
-    if (!uid) throw problem("unauthenticated", "Please sign in to set availability.");
-    const userSnapshot = await db.doc(`users/${uid}`).get();
-    const user = userSnapshot.data();
-    if (!user || user.status !== "Active" || user.accountType === "supporter") throw problem("permission-denied", "Availability is for active player accounts.");
-    if (!user.linkedPlayerKey || /\//.test(user.linkedPlayerKey)) throw problem("failed-precondition", "Link your account to an ONM player before setting availability.");
-    const playerSnapshot = await db.doc(`players/${user.linkedPlayerKey}`).get();
-    if (!playerSnapshot.exists) throw problem("failed-precondition", "Your linked player could not be found.");
-    const player = playerSnapshot.data();
+  async function readSheet() {
     const metadata = await sheets.metadata();
     const tab = (metadata.sheets || []).find(sheet => sheet.properties.sheetId === SHEET_ID)?.properties;
     if (!tab) throw problem("failed-precondition", "The availability tab could not be found.");
@@ -83,6 +77,43 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     if (rowCount > 500 || columnCount > 500) throw problem("failed-precondition", "The availability sheet layout needs checking by a club administrator.");
     const title = `'${tab.title.replace(/'/g, "''")}'`;
     const values = await sheets.values(`${title}!A1:${columnName(columnCount - 1)}${rowCount}`);
+    return { title, values };
+  }
+
+  async function requireAdmin(uid) {
+    if (!uid) throw problem("unauthenticated", "Sign in as an administrator.");
+    const account = (await db.doc(`users/${uid}`).get()).data();
+    if (account?.status !== "Active" || !["admin", "owner"].includes(account.role)) {
+      throw problem("permission-denied", "Administrator access required.");
+    }
+  }
+
+  async function getTeamSheet(uid) {
+    await requireAdmin(uid);
+    const { values } = await readSheet();
+    // Keep fixture headings and player responses, excluding counts and the spare column.
+    return {
+      rows: values.map((row, index) => index >= 4 && index < 7 ? [] : [row[0] || "", "", ...row.slice(2)]),
+      fixtureIds: Object.fromEntries(fixturesFor(values, 7, todayLondon(now()))
+        .filter(fixture => fixture.editable).map(fixture => [fixture.column, fixture.id])),
+      refreshedAt: now().toISOString()
+    };
+  }
+
+  async function context(uid) {
+    if (!uid) throw problem("unauthenticated", "Please sign in to set availability.");
+    const userSnapshot = await db.doc(`users/${uid}`).get();
+    const user = userSnapshot.data();
+    if (!user || user.status !== "Active" || user.accountType === "supporter") throw problem("permission-denied", "Availability is for active player accounts.");
+    if (!user.linkedPlayerKey || /\//.test(user.linkedPlayerKey)) throw problem("failed-precondition", "Link your account to an ONM player before setting availability.");
+    return playerContext(user.linkedPlayerKey);
+  }
+
+  async function playerContext(playerKey) {
+    const playerSnapshot = await db.doc(`players/${playerKey}`).get();
+    if (!playerSnapshot.exists) throw problem("failed-precondition", "Your linked player could not be found.");
+    const player = playerSnapshot.data();
+    const { title, values } = await readSheet();
     const rowIndex = findPlayerRow(values, player);
     return { title, rowIndex, fixtures: fixturesFor(values, rowIndex, todayLondon(now())) };
   }
@@ -92,11 +123,27 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     return { fixtures: data.fixtures.map(({ column, ...fixture }) => fixture), choices: CHOICES, refreshedAt: now().toISOString() };
   }
 
-  async function set(uid, payload) {
-    if (!payload || typeof payload.fixtureId !== "string" || !["", ...CHOICES].includes(payload.status) || !["", ...CHOICES].includes(payload.previousStatus)) {
+  function validateResponse(payload, choices) {
+    if (!payload || typeof payload.fixtureId !== "string" || !["", ...choices].includes(payload.status) || !["", ...STATUSES].includes(payload.previousStatus)) {
       throw problem("invalid-argument", "Choose a valid availability response.");
     }
-    const data = await context(uid);
+  }
+
+  async function set(uid, payload) {
+    validateResponse(payload, CHOICES);
+    return writeResponse(await context(uid), payload);
+  }
+
+  async function setTeamResponse(uid, payload) {
+    await requireAdmin(uid);
+    validateResponse(payload, STATUSES);
+    if (typeof payload.playerKey !== "string" || !payload.playerKey || payload.playerKey.includes("/")) {
+      throw problem("invalid-argument", "Choose a club player.");
+    }
+    return writeResponse(await playerContext(payload.playerKey), payload);
+  }
+
+  async function writeResponse(data, payload) {
     const fixture = data.fixtures.find(item => item.id === payload.fixtureId);
     if (!fixture || !fixture.editable) throw problem("failed-precondition", "That fixture has changed or is no longer upcoming. Refresh the fixtures.");
     if (fixture.status !== payload.previousStatus) throw problem("aborted", "Your response changed in the sheet. Refresh before saving again.");
@@ -104,15 +151,19 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     const cellData = await sheets.cell(cell);
     if (cellData.userEnteredValue?.formulaValue || cellData.dataValidation?.condition?.type !== "ONE_OF_LIST") throw problem("failed-precondition", "This sheet cell is not an availability dropdown. Please ask a club administrator to check it.");
     const allowed = cellData.dataValidation.condition.values.map(value => value.userEnteredValue);
-    if (payload.status && !allowed.includes(payload.status)) throw problem("failed-precondition", "The sheet's availability choices have changed. Please refresh.");
+    if (CHOICES.some(choice => !allowed.includes(choice)) || allowed.includes("Selected")) throw problem("failed-precondition", "The sheet's availability choices have changed. Please refresh.");
     const currentRaw = cellData.userEnteredValue?.stringValue || "";
-    const current = CHOICES.find(choice => normalise(choice) === normalise(currentRaw)) || "";
+    const current = STATUSES.find(choice => normalise(choice) === normalise(currentRaw)) || "";
     if (current !== payload.previousStatus) throw problem("aborted", "Your response changed in the sheet. Refresh before saving again.");
-    await sheets.update(cell, payload.status);
+    if (payload.status === "Selected") {
+      await sheets.overrideSelection(data.rowIndex, fixture.column, cellData.dataValidation);
+    } else {
+      await sheets.update(cell, payload.status);
+    }
     return { fixtureId: fixture.id, status: payload.status };
   }
 
-  return { get, set };
+  return { get, set, getTeamSheet, setTeamResponse };
 }
 
 module.exports = { SPREADSHEET_ID, SHEET_ID, CHOICES, normalise, columnName, parseFixture, findPlayerRow, fixturesFor, todayLondon, createAvailabilityService };

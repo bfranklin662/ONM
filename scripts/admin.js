@@ -1048,6 +1048,7 @@
       linked: player => state.linkedPlayerKeys.has(player.playerKey),
       archived: player => state.pickTeamArchived.has(player.playerKey),
       setArchived: setPickTeamArchived,
+      editPlayer: openPlayerEditor,
       link(player) {
         state.pickTeamLinkTarget = player.playerKey;
         document.querySelector('[data-admin-tab="requests"]').click();

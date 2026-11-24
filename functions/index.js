@@ -7,7 +7,7 @@ const { defineSecret } = require("firebase-functions/params");
 const starlingToken = defineSecret("STARLING_ACCESS_TOKEN");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { GoogleAuth } = require("google-auth-library");
-const { SPREADSHEET_ID, createAvailabilityService } = require("./availability");
+const { SPREADSHEET_ID, SHEET_ID, createAvailabilityService } = require("./availability");
 
 initializeApp();
 const auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/spreadsheets"] });
@@ -24,6 +24,19 @@ const service = createAvailabilityService({
     cell: async range => {
       const data = await request(`${base}?ranges=${encodeURIComponent(range)}&includeGridData=true&fields=sheets(data(rowData(values(userEnteredValue,dataValidation))))`);
       return data.sheets?.[0]?.data?.[0]?.rowData?.[0]?.values?.[0] || {};
+    },
+    overrideSelection: (rowIndex, columnIndex, rule) => {
+      const start = { sheetId: SHEET_ID, rowIndex, columnIndex };
+      const range = {
+        sheetId: SHEET_ID, startRowIndex: rowIndex, endRowIndex: rowIndex + 1,
+        startColumnIndex: columnIndex, endColumnIndex: columnIndex + 1
+      };
+      // Write the override and restore the original dropdown in a single batch.
+      return request(`${base}:batchUpdate`, { method: "POST", data: { requests: [
+        { setDataValidation: { range, rule: { ...rule, strict: false } } },
+        { updateCells: { start, fields: "userEnteredValue", rows: [{ values: [{ userEnteredValue: { stringValue: "Selected" } }] }] } },
+        { setDataValidation: { range, rule } }
+      ] } });
     },
     update: (range, value) => request(`${base}/values/${encodeURIComponent(range)}?valueInputOption=RAW`, {
       method: "PUT", data: { range, majorDimension: "ROWS", values: [[value]] }
@@ -65,6 +78,8 @@ function callable(handler) {
   });
 }
 exports.getPlayerAvailability = callable(uid => service.get(uid));
+exports.getTeamAvailability = callable(uid => service.getTeamSheet(uid));
+exports.setTeamAvailability = callable((uid, data) => service.setTeamResponse(uid, data));
 exports.setPlayerAvailability = callable((uid, data) => service.set(uid, data));
 
 const {buildFineBalances,buildFineHistory}=require("./fines-balances");

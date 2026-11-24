@@ -3,6 +3,7 @@
 .fxPersonalBadge-available,.fxPersonalBadge-played { border-color:#36ba7b; background:#133b2a; color:#a6efc6; }
 .fxPersonalBadge-unavailable { border-color:#d86d77; background:#46252c; color:#ffc1c7; }
 .fxPersonalBadge-unsure { border-color:#d4b051; background:#453919; color:#ffe5a0; }
+.fxPersonalBadge-selected { border-color:#609de0; background:#203f64; color:#c4e0ff; }
 .fxPersonalDetails,.fxAvailabilityForm button,.fxAvailabilityRefresh { min-height:40px; padding:8px 12px; border:1px solid #399a78; border-radius:8px; background:#153e31; color:#fff; font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
 .fxPersonalDetails { display:block; align-self:center; margin:6px auto; }
 .fxPersonalDetails:focus-visible,.fixtureEventOpen:focus-visible,.fxAvailabilityForm :focus-visible { outline:2px solid #ffd740; outline-offset:3px; }

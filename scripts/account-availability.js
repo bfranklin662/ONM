@@ -19,6 +19,7 @@
       return `<article class="accountAvailabilityFixture">
         <div><span class="accountEyebrow">${escape(fixture.league)}</span><h3>${escape(fixture.opponent)} (${escape(fixture.side)})</h3><p>${escape(date)} · ${escape(fixture.time)}<br>${escape(fixture.venue)}</p></div>
         <label>My availability<select data-fixture-id="${escape(fixture.id)}"${!fixture.editable || saving ? " disabled" : ""} aria-label="Availability against ${escape(fixture.opponent)} on ${escape(date)}">
+          ${fixture.status === "Selected" ? '<option disabled selected>Selected</option>' : ""}
           <option value=""${fixture.status === "" ? " selected" : ""}>Not answered</option>
           ${choices.map(choice => `<option${fixture.status === choice ? " selected" : ""}>${choice}</option>`).join("")}
         </select>${!fixture.editable ? '<small>Duplicate fixture in the sheet—please ask an administrator to check.</small>' : ""}</label>

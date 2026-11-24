@@ -45,7 +45,7 @@
       personalSide(item.side) === personalSide(fixture.HA));
     if (matches.length !== 1) return { label: "Not linked in availability sheet", state: "unknown" };
     const response = matches[0];
-    return { response, label: response.status || "Availability not recorded", state: ({ Available: "available", Unavailable: "unavailable", "Not sure": "unsure" })[response.status] || "unanswered" };
+    return { response, label: response.status || "Availability not recorded", state: ({ Available: "available", Unavailable: "unavailable", "Not sure": "unsure", Selected: "selected" })[response.status] || "unanswered" };
   }
 
   function personalClass(fixture) {
@@ -88,6 +88,7 @@
     return `<form id="fixtureAvailabilityForm" class="fxAvailabilityForm">
       <label for="fixtureAvailabilityChoice">Your availability</label>
       <select id="fixtureAvailabilityChoice"${!response.editable || savingAvailability ? " disabled" : ""}>
+        ${response.status === "Selected" ? '<option disabled selected>Selected</option>' : ""}
         ${["", "Available", "Unavailable", "Not sure"].map(choice => `<option value="${choice}"${response.status === choice ? " selected" : ""}>${choice || "Not answered"}</option>`).join("")}
       </select>
       <button type="submit"${!response.editable || savingAvailability ? " disabled" : ""}>${savingAvailability ? "Saving…" : "Save availability"}</button>
@@ -1129,6 +1130,7 @@
       const item = personalFixture(fixture);
       if (!item?.response?.editable) return;
       const status = el("#fixtureAvailabilityChoice").value;
+      if (status === item.response.status) return;
       savingAvailability = true;
       openFixtureDetails(fixture);
       el("#fixtureAvailabilityMessage").textContent = "Saving to the availability sheet…";

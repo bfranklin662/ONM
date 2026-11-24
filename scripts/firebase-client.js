@@ -999,7 +999,7 @@
     return callRegionalFunction("tournamentScoring", data);
   }
   async function availability(action, data = {}) {
-    if (!["getPlayerAvailability", "setPlayerAvailability"].includes(action)) throw new Error("Unknown availability action.");
+    if (!["getPlayerAvailability", "setPlayerAvailability", "getTeamAvailability", "setTeamAvailability"].includes(action)) throw new Error("Unknown availability action.");
     return callRegionalFunction(action, data);
   }
 

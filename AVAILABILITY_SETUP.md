@@ -26,7 +26,7 @@ write endpoint, browser secrets, or service-account key file is required.
 
    ```sh
    npm --prefix functions install
-   npx firebase-tools deploy --only functions:availability
+   npx firebase-tools deploy --only functions:availability:getPlayerAvailability,functions:availability:setPlayerAvailability,functions:availability:getTeamAvailability,functions:availability:setTeamAvailability,firestore:rules
    ```
 
 3. In the availability spreadsheet's **Share** dialog, add this service
@@ -72,5 +72,12 @@ updated. Google Sheets does not provide an atomic compare-and-swap for cell
 values, so genuinely simultaneous edits to the same cell still use the last
 successful write.
 
-No live writes have been made by this implementation. The above setup and
-two-way verification are required before the connection is live.
+In **Admin → Pick team**, an active admin or owner can mark a player's sheet
+response **Selected** from their settings menu. The override replaces the
+cell value and retains the existing dropdown choices. The blue conditional
+format already applies to Selected. Players can still submit one of the
+three normal availability responses. Saving the playing order is a separate
+action in the same tab.
+
+After deployment, verify the override against a test player and fixture,
+including the retained dropdown choices and the blue formatting.

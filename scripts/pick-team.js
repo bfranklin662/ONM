@@ -50,8 +50,8 @@
     return ({ h: "home", a: "away", n: "neutral" })[side] || side;
   }
 
-  function readSheet(rows, dateKey) {
-    if (!Array.isArray(rows) || rows.length < 8) throw new Error("Choose the CSV for the Availability tab.");
+  function readSheet(rows, dateKey, fixtureIds = {}) {
+    if (!Array.isArray(rows) || rows.length < 8) throw new Error("The availability sheet layout could not be read.");
     const fixtures = [];
     for (let column = 2; column < (rows[0] || []).length; column++) {
       const header = String(rows[0][column] || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean);
@@ -67,7 +67,7 @@
         const status = GROUPS.find(choice => normal(choice) === normal(row[column])) || "Not updated";
         responses.set(key, responses.has(key) ? null : status);
       }
-      fixtures.push({ date: dateKey(date), league: leagueKey(header[0]), opponent: opponentKey(opponent), side: sideKey(rows[2]?.[column]), responses, sheetNames });
+      fixtures.push({ id: fixtureIds[column], date: dateKey(date), league: leagueKey(header[0]), opponent: opponentKey(opponent), side: sideKey(rows[2]?.[column]), responses, sheetNames });
     }
     if (!fixtures.length) throw new Error("No match columns were found in the availability sheet.");
     return fixtures;
@@ -97,11 +97,11 @@
     const sdk = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-functions.js");
     const getTeam = sdk.httpsCallable(sdk.getFunctions(app, "europe-west2"), "getTeamAvailability");
     try {
-      return (await getTeam({})).data.rows;
+      return (await getTeam({})).data;
     } catch (error) {
       if (error.code !== "functions/unauthenticated") throw error;
       await user.getIdToken(true);
-      return (await getTeam({})).data.rows;
+      return (await getTeam({})).data;
     }
   }
 
@@ -113,10 +113,10 @@
       "functions/failed-precondition": error.message,
       "functions/unavailable": "The site could not reach the availability sheet. Try Refresh availability again."
     }[error.code] || "Live availability could not be loaded. Try Refresh availability again.";
-    return source ? `${detail} Showing ${source.toLowerCase()}.` : `${detail} You can also import the sheet CSV.`;
+    return source ? `${detail} Showing ${source.toLowerCase()}.` : detail;
   }
 
-  function init({ upcoming, roster, appearances, dateKey, rowFor, photo, escape, save, toast, linked, archived, setArchived, link }) {
+  function init({ upcoming, roster, appearances, dateKey, rowFor, photo, escape, save, toast, linked, archived, setArchived, link, editPlayer }) {
     const el = id => document.getElementById(id);
     const picker = el("pickTeamFixture");
     const groups = el("pickTeamGroups");
@@ -126,7 +126,8 @@
     const archiving = new Set();
     const selection = el("pickTeamSelection");
     const refresh = el("pickTeamRefresh");
-    const csv = el("pickTeamCsv");
+    const panel = el("pickTeamFixturePanel");
+    let fixtureId = "";
     const status = el("pickTeamStatus");
     const drafts = new Map();
     let sheet = [];
@@ -135,10 +136,9 @@
     let loading = false;
     let saving = false;
     let requested = false;
-    let requestVersion = 0;
 
     function activeFixture() {
-      return upcoming().find(item => item.id === picker.value);
+      return upcoming().find(item => item.id === fixtureId);
     }
 
     function chosen(fixture) {
@@ -149,22 +149,28 @@
 
     const displayName = player => player.fullName?.trim() || player.publicName;
 
-    function renderPlayer({ player, count }, names, inArchive = false) {
-      const name = displayName(player);
+    function renderPlayer({ player, count, group }, names, inArchive = false, canOverride = false) {
+      const name = escape(displayName(player));
       const selected = names.includes(player.publicName);
       const isLinked = linked(player);
       const key = escape(player.playerKey);
       const body = `<img src="${escape(photo(player))}" width="52" height="52" alt="" loading="lazy">
-        <strong>${escape(name)}${isLinked ? ' <span class="pickTeamLinked" role="img" aria-label="Linked account" title="Linked account">✓</span>' : ""}</strong>
-        <span>${count} ${count === 1 ? "appearance" : "appearances"}</span>`;
-      return `<div class="pickTeamTile">
+        <span class="pickTeamPlayerInfo"><strong>${name}${isLinked ? ' <span class="pickTeamLinked" role="img" aria-label="Account linked" title="Account linked"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>' : ""}</strong>
+        <span class="pickTeamApps">Apps: ${count}</span></span>`;
+      return `<article class="pickTeamPlayerCard">
         ${inArchive ? `<div class="pickTeamPlayer">${body}</div>` :
           `<button type="button" class="pickTeamPlayer" data-pick-player="${escape(player.publicName)}" aria-pressed="${selected}"${saving ? " disabled" : ""}>${body}</button>`}
-        <div class="pickTeamPlayerActions">
-          ${isLinked ? "" : `<button type="button" data-pick-link="${key}" aria-label="Link account for ${escape(name)}">Link</button>`}
-          <button type="button" data-pick-archive="${key}" aria-label="${inArchive ? "Restore" : "Archive"} ${escape(name)}"${archiving.has(player.playerKey) || saving ? " disabled" : ""}>${inArchive ? "Restore" : "Archive"}</button>
-        </div>
-      </div>`;
+        <details class="pickTeamSettings">
+          <summary aria-label="Settings for ${name}" title="Player settings">⚙</summary>
+          <div>
+            <a href="player-profile.html?name=${encodeURIComponent(player.publicName)}">View player</a>
+            <button type="button" data-pick-edit="${key}">Edit player</button>
+            ${isLinked ? "" : `<button type="button" data-pick-link="${key}">Link account</button>`}
+            ${canOverride ? `<button type="button" data-pick-status="${key}">${group === "Selected" ? "Change sheet response" : "Mark Selected on sheet"}</button>` : ""}
+            <button type="button" data-pick-archive="${key}"${archiving.has(player.playerKey) || saving ? " disabled" : ""}>${inArchive ? "Restore to list" : "Archive from list"}</button>
+          </div>
+        </details>
+      </article>`;
     }
 
     function renderSelection(fixture) {
@@ -176,13 +182,24 @@
 
     function render() {
       const fixtures = upcoming();
-      const previous = picker.value;
-      picker.replaceChildren(...fixtures.map(item => {
+      if (!fixtures.some(item => item.id === fixtureId)) fixtureId = fixtures[0]?.id || "";
+      picker.innerHTML = fixtures.map((item, index) => {
         const row = rowFor(item);
-        return new Option(`${row.Date} · ${row.League} · ${row.Opponent} (${sideKey(row.HA).charAt(0).toUpperCase()})`, item.id);
-      }));
-      if (fixtures.some(item => item.id === previous)) picker.value = previous;
-      picker.disabled = saving || !fixtures.length;
+        const active = item.id === fixtureId;
+        const side = sideKey(row.HA).charAt(0).toUpperCase();
+        const category = leagueKey(row.League).replace(" league", "").replace(/ /g, "-");
+        return `<button type="button" role="tab" class="pickTeamFixture ${escape(category)}" id="pickFixtureTab${index}"
+          data-fixture-id="${escape(item.id)}" aria-controls="pickTeamFixturePanel" aria-selected="${active}"
+          tabindex="${active ? 0 : -1}"${saving ? " disabled" : ""}>
+          <span class="pickTeamLeague">${escape(row.League)}</span>
+          <strong>${escape(row.Opponent)}${side ? ` · ${escape(side)}` : ""}</strong>
+          <span>${escape(row.Date)}${row.Time ? ` · ${escape(row.Time)}` : ""}</span>
+          <span>${escape(row.Location || "")}</span>
+        </button>`;
+      }).join("");
+      const activeTab = picker.querySelector('[aria-selected="true"]');
+      if (activeTab) panel.setAttribute("aria-labelledby", activeTab.id);
+      else panel.removeAttribute("aria-labelledby");
       const fixture = activeFixture();
       const archivedPlayers = roster().filter(archived).sort((a, b) => displayName(a).localeCompare(displayName(b)));
       archiveCount.textContent = archivedPlayers.length;
@@ -211,7 +228,7 @@
       const headings = match ? [...GROUPS, "No matching sheet row"] : ["Availability not loaded"];
       groups.innerHTML = headings.map(heading => {
         const entries = players.filter(entry => entry.group === heading);
-        return `<section class="pickTeamGroup"><h3>${escape(heading)} <span>${entries.length}</span></h3>${entries.length ? `<div class="pickTeamCards">${entries.map(entry => renderPlayer(entry, names)).join("")}</div>` : '<p class="pickTeamEmpty">No players</p>'}</section>`;
+        return `<section class="pickTeamGroup" data-status="${escape(heading)}"><h3>${escape(heading)} <span>${entries.length}</span></h3>${entries.length ? `<div class="pickTeamCards">${entries.map(entry => renderPlayer(entry, names, false, Boolean(match?.id && heading !== "No matching sheet row"))).join("")}</div>` : '<p class="pickTeamEmpty">No players</p>'}</section>`;
       }).join("") + (unmatched.length ? `<section class="pickTeamGroup"><h3>Sheet names without a player profile</h3>
         <p class="pickTeamEmpty">Link these names to a club player before selecting them.</p>
         <ul>${unmatched.map(([key, name]) => `<li>${escape(name)} · ${escape(match.responses.get(key) || "Duplicate sheet row")}</li>`).join("")}</ul></section>` : "");
@@ -223,16 +240,13 @@
       loading = true;
       refresh.disabled = true;
       message = "";
-      const version = ++requestVersion;
       render();
       try {
-        const next = readSheet(await liveRows(), dateKey);
-        if (version === requestVersion) {
-          sheet = next;
-          source = "Live availability sheet";
-        }
+        const { rows, fixtureIds } = await liveRows();
+        sheet = readSheet(rows, dateKey, fixtureIds);
+        source = "Live availability sheet";
       } catch (error) {
-        if (version === requestVersion) message = liveFailureMessage(error, source);
+        message = liveFailureMessage(error, source);
       } finally {
         loading = false;
         refresh.disabled = false;
@@ -240,30 +254,27 @@
       }
     }
 
-    picker.addEventListener("change", render);
-    refresh.addEventListener("click", refreshSheet);
-    csv.addEventListener("change", async () => {
-      const file = csv.files[0];
-      if (!file) return;
-      if (file.size > 2_000_000) {
-        toast("Choose the CSV for the Availability tab (under 2 MB).", true);
-        csv.value = "";
-        return;
-      }
-      const version = ++requestVersion;
-      try {
-        const rows = readSheet(parseCsv(await file.text()), dateKey);
-        if (version !== requestVersion) return;
-        sheet = rows;
-        source = "Imported availability CSV";
-        message = "";
-      } catch (error) {
-        toast(error.message, true);
-      } finally {
-        csv.value = "";
-        render();
-      }
+    function activateTab(tab) {
+      fixtureId = tab.dataset.fixtureId;
+      render();
+      picker.querySelector('[aria-selected="true"]')?.focus();
+    }
+
+    picker.addEventListener("click", event => {
+      const tab = event.target.closest("[data-fixture-id]");
+      if (tab) activateTab(tab);
     });
+    picker.addEventListener("keydown", event => {
+      const tabs = [...picker.querySelectorAll('[role="tab"]')];
+      const current = tabs.indexOf(event.target);
+      if (saving || current < 0 || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const next = { Home: 0, End: tabs.length - 1, ArrowLeft: (current - 1 + tabs.length) % tabs.length,
+        ArrowRight: (current + 1) % tabs.length }[event.key];
+      activateTab(tabs[next]);
+    });
+    refresh.addEventListener("click", refreshSheet);
+
     groups.addEventListener("click", event => {
       const button = event.target.closest("[data-pick-player]");
       const fixture = activeFixture();
@@ -279,7 +290,54 @@
       button.setAttribute("aria-pressed", String(!selected));
       renderSelection(fixture);
     });
+    groups.addEventListener("click", async event => {
+      const action = event.target.closest("[data-pick-status]");
+      if (!action || saving) return;
+      const key = action.dataset.pickStatus;
+      const player = roster().find(item => item.playerKey === key);
+      if (!player) return;
+      const fixture = activeFixture();
+      const match = fixture && matchSheet(sheet, rowFor(fixture), dateKey);
+      const previous = match && playerStatus(player, match);
+      let status;
+      if (action.dataset.pickStatus) {
+        if (message || loading || !match || previous === "No matching sheet row") {
+          toast("Refresh availability before changing the sheet.", true);
+          return;
+        }
+        if (previous === "Selected") {
+          const response = window.prompt("Replace Selected with Available, Unavailable or Not sure, or leave blank to clear.", "");
+          if (response === null) return;
+          status = ["Available", "Unavailable", "Not sure", ""].find(choice => normal(choice) === normal(response));
+          if (status === undefined) { toast("Choose Available, Unavailable or Not sure.", true); return; }
+        } else {
+          if (!window.confirm(`Mark ${player.publicName} as Selected on the availability sheet?`)) return;
+          status = "Selected";
+        }
+      }
+      saving = true;
+      render();
+      try {
+        await window.ONMFirebase.availability("setTeamAvailability", {
+          playerKey: key, fixtureId: match.id, status, previousStatus: previous === "Not updated" ? "" : previous
+        });
+        toast("Sheet response updated.");
+        await refreshSheet();
+      } catch (error) {
+        toast(error.message || "Could not update the player.", true);
+      } finally {
+        saving = false;
+        render();
+      }
+    });
     async function handleRosterAction(event) {
+      const edit = event.target.closest("[data-pick-edit]");
+      if (edit) {
+        edit.closest("details").open = false;
+        const player = roster().find(item => item.playerKey === edit.dataset.pickEdit);
+        if (player) editPlayer(player);
+        return;
+      }
       const linkButton = event.target.closest("[data-pick-link]");
       const archiveButton = event.target.closest("[data-pick-archive]");
       const key = linkButton?.dataset.pickLink || archiveButton?.dataset.pickArchive;
