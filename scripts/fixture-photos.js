@@ -38,14 +38,27 @@
       viewer = document.createElement('dialog');
       viewer.className = 'fixturePhotoViewer';
       viewer.setAttribute('aria-label','Match photo viewer');
-      viewer.innerHTML = '<button type="button" class="fixturePhotoViewerClose" aria-label="Close photo">×</button><img alt="Match photo"><div><button type="button" data-photo-prev aria-label="Previous photo">←</button><span data-photo-position></span><button type="button" data-photo-next aria-label="Next photo">→</button></div>';
+      viewer.innerHTML = '<button type="button" class="fixturePhotoViewerClose" aria-label="Close photo"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="m4 4 8 8m0-8-8 8"/></svg></button><img alt="Match photo"><div><button type="button" data-photo-prev aria-label="Previous photo">←</button><span data-photo-position></span><button type="button" data-photo-next aria-label="Next photo">→</button></div>';
       document.body.appendChild(viewer);
       viewer.querySelector('.fixturePhotoViewerClose').addEventListener('click',()=>viewer.close());
+      function onBackdrop(event) {
+        if (event.target !== viewer) return false;
+        const { left, right, top, bottom } = viewer.getBoundingClientRect();
+        return event.clientX < left || event.clientX >= right || event.clientY < top || event.clientY >= bottom;
+      }
+      let pressedBackdrop = false;
+      viewer.addEventListener('pointerdown', event => { pressedBackdrop = onBackdrop(event); });
+      viewer.addEventListener('pointercancel', () => { pressedBackdrop = false; });
+      viewer.addEventListener('click', event => {
+        if (pressedBackdrop && onBackdrop(event)) viewer.close();
+        pressedBackdrop = false;
+      });
       viewer.querySelector('[data-photo-prev]').addEventListener('click',()=>{if(viewerIndex>0){viewerIndex--;updateViewer();}});
       viewer.querySelector('[data-photo-next]').addEventListener('click',()=>{if(viewerIndex<photos.length-1){viewerIndex++;updateViewer();}});
       viewer.addEventListener('keydown',event=>{if(event.key==='ArrowLeft'&&viewerIndex>0){event.preventDefault();viewerIndex--;updateViewer();}if(event.key==='ArrowRight'&&viewerIndex<photos.length-1){event.preventDefault();viewerIndex++;updateViewer();}});
     }
-    viewerIndex = index; updateViewer(); viewer.showModal();
+    viewerIndex = index; updateViewer();
+    if (!viewer.open) viewer.showModal();
   }
   document.addEventListener('click',event=>{
     const button = event.target.closest('[data-fixture-photo], [data-retry-fixture-photos]');

@@ -1723,3 +1723,40 @@ html:has(.fixtureDetails[open]), body:has(.fixtureDetails[open]) {
   #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable th { text-align: center; padding: 5px 2px; }
   #fixtures #fixtureCalendar[aria-busy="true"] .fixtureMobileWeekday { display: none; }
 }
+
+html:has(.fixturePhotoViewer[open]), body:has(.fixturePhotoViewer[open]) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.fixturePhotoViewer {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  padding: 42px 10px 10px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.fixturePhotoViewer > img {
+  max-height: min(72vh, calc(100vh - 124px));
+  max-height: min(72dvh, calc(100dvh - 124px));
+}
+.fixturePhotoGrid button, .fixturePhotoViewer { touch-action: manipulation; }
+.fixturePhotoViewerClose {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  background: #1b3b2c;
+  border-color: #406650;
+  color: #e6f4eb;
+}
+.fixturePhotoViewerClose:focus { outline: none; box-shadow: none; }
+.fixturePhotoViewerClose:is(:hover, :focus-visible) { background: #28513c; border-color: #81b79a; }
