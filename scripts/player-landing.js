@@ -363,8 +363,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
         <h3 class="player-card-name" data-name="${escapeHtml(name)}">
-          ${escapeHtml(name)}
+          <a href="player-profile.html?name=${encodeURIComponent(name)}">${escapeHtml(name)}</a>
           ${profile.nickname ? `<div class="player-card-nickname">"${escapeHtml(profile.nickname)}"</div>` : ""}
+          <div class="player-mobile-accolades">${makeAccoladesOverlayHtml(profile)}</div>
         </h3>
 
         <div class="player-card-stats">
@@ -381,7 +382,14 @@ document.addEventListener("DOMContentLoaded", async () => {
               </span>
             </div>
 
-            
+            <div class="player-card-stat player-mobile-stat">
+              <span class="label">Wins</span>
+              <span class="value" data-stat="wlPct"><span class="wins">–</span></span>
+            </div>
+            <div class="player-card-stat player-mobile-stat">
+              <span class="label">Fines</span>
+              <span class="value" data-stat="fineRatio"><span class="fines">–</span></span>
+            </div>
           </div>
 
           <div class="player-card-specials" data-stat="specials">
@@ -627,7 +635,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const finesEl = fineWrap.querySelector(".fines");
         const ratioEl = fineWrap.querySelector(".ratio");
 
-        const finesRounded = Math.round(Number(p.fines) || 0);
+        const finesRounded = (Number(p.fines) || 0).toFixed(2);
 
         if (finesEl) finesEl.textContent = `£${finesRounded}`;
         if (ratioEl) ratioEl.textContent = (Number(p.fineRatio) || 0).toFixed(2);

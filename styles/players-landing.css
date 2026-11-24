@@ -760,3 +760,54 @@
 .player-stats-container > .stats-header .stats-header-left { justify-self:start; }
 .player-stats-container > .stats-header .stats-header-right { justify-self:end; }
 @media(max-width:650px) { .player-stats-container > .stats-header.main-profile-header { grid-template-columns:minmax(0,1fr) minmax(0,1fr); } }
+
+.players-mobile-head, .player-mobile-stat, .player-mobile-accolades { display: none; }
+.player-card-name > a { color: inherit; text-decoration: none; }
+.player-card-name > a:hover { text-decoration: underline; }
+
+@media (max-width: 700px) {
+  .player-stats-container { padding: 6px; }
+  .player-stats-container > .stats-header.main-profile-header { display: grid; grid-template-columns: 1fr minmax(115px, 43%); gap: 8px; margin: 0 0 7px; padding: 7px 9px; }
+  .player-stats-container > .stats-header .stats-header-left { display: none; }
+  .player-stats-container > .stats-header .stats-header-middle { grid-column: 1; grid-row: 1; justify-self: start; }
+  .player-stats-container > .stats-header .profile-title { display: block; font-size: 1rem; }
+  .player-stats-container > .stats-header .stats-header-right { grid-column: 2; grid-row: 1; width: 100%; }
+  .player-stats-container > .stats-header :is(.players-search, input) { width: 100%; max-width: none; }
+  .player-stats-container > .stats-header input { min-height: 31px; padding: 5px 7px; font-size: 16px; }
+  .players-landing-wrapper { padding: 0; }
+  .players-mobile-head, #playersGrid .player-card {
+    display: grid;
+    grid-template-columns: 25px minmax(0, 2fr) minmax(16px, .42fr) minmax(18px, .48fr) minmax(16px, .42fr) minmax(35px, .9fr) minmax(39px, 1.1fr);
+    align-items: center;
+    column-gap: 3px;
+    padding: 4px;
+  }
+  .players-mobile-head { background: #284139; color: #d5e6dd; border-radius: 7px 7px 0 0; text-align: center; font: 700 .61rem system-ui,sans-serif; }
+  .players-mobile-head span:first-child { grid-column: span 2; text-align: left; }
+  #playersGrid { display: block; }
+  #playersGrid .player-card { width: 100%; min-height: 36px; margin: 0; border: 0; border-bottom: 1px solid #ffffff19; border-radius: 0; background: #132e22; box-shadow: none; opacity: 1; animation: none !important; transform: none; }
+  #playersGrid .player-card:nth-child(even) { background: #19362a; }
+  #playersGrid .player-card-photo-wrap,
+  #playersGrid .player-card-photo-frame,
+  #playersGrid .player-card-photo { width: 25px; height: 25px; min-width: 0; margin: 0; aspect-ratio: 1; border-radius: 50%; }
+  #playersGrid .player-card-photo { object-fit: cover; box-shadow: none; }
+  #playersGrid .player-card-photo-wrap .player-card-accolades,
+  #playersGrid .captain-ribbon, #playersGrid .player-card-btn,
+  #playersGrid .player-card-stat .label, #playersGrid .player-card-stat :is(.sep, .ratio) { display: none; }
+  #playersGrid .player-card-name { margin: 0; text-align: left; font: 700 .68rem/1.12 system-ui,sans-serif; letter-spacing: 0; overflow-wrap: anywhere; }
+  #playersGrid .player-card-nickname { margin: 1px 0 0; font-size: .56rem; line-height: 1.1; }
+  #playersGrid .player-card-stats, #playersGrid .player-card-stats-grid, #playersGrid .player-card-stat { display: contents; }
+  #playersGrid .player-card-stat .value, #playersGrid .player-card-stat .value span {
+    margin: 0; font-size: .61rem; font-variant-numeric: tabular-nums; line-height: 1.1; white-space: nowrap;
+  }
+  #playersGrid .player-card-specials { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px; margin: 0; padding: 0; min-height: 0; background: none; border: 0; }
+  #playersGrid .player-card-specials .stat-badge { font-size: .51rem; line-height: 1.1; padding: 1px 2px; margin: 0; white-space: nowrap; }
+  #playersGrid .player-card-specials .stat-badge.inactive { display: none; }
+  #playersGrid .player-card-specials:not(:has(.stat-badge.active))::before { content: "—"; font-size: .6rem; color: #9fb7aa; }
+  #playersGrid .player-mobile-accolades { display: block; }
+  #playersGrid .player-mobile-accolades:empty { display: none; }
+  #playersGrid .player-mobile-accolades .player-card-accolades { position: static; transform: none; display: flex; flex-wrap: wrap; gap: 2px; padding: 0; margin: 1px 0 0; border: 0; background: none; box-shadow: none; }
+  #playersGrid .player-mobile-accolades .acc-emoji { font-size: .63rem; }
+  #playersGrid .profileLinkedBadge { width: 12px; height: 12px; margin-left: 3px; }
+  #playersGrid .profileLinkedBadge svg { width: 8px; height: 8px; }
+}
