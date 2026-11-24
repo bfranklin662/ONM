@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="styles/fixtures.css?v=20261123-club-about">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/home-refresh.css?v=20261124-home-layout">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/home-refresh.css?v=20261124-merch-follow">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
   <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
@@ -81,6 +81,7 @@
       <a href="#home-play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="m12 12 8-8m-3 0h3v3"/></svg><span>Play darts</span></a>
       <a href="#merch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 4-5 3 3 5 2-1v10h8V11l2 1 3-5-5-3a4 4 0 0 1-8 0Z"/></svg><span>Merch</span></a>
       <a href="#team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-16a3 3 0 0 1 0 6m3 10v-3a6 6 0 0 0-3-5"/></svg><span>About</span></a>
+      <a href="#follow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 5a5 5 0 0 0-7 0l-1 1-1-1a5 5 0 0 0-7 7l8 8 8-8a5 5 0 0 0 0-7Z"/></svg><span>Follow</span></a>
     </nav>
 
   <main class="home-shell">
@@ -219,12 +220,15 @@
           <div class="home-merch-copy">
             <h3 id="merch-shirt-heading">Match shirt</h3>
             <p>Our green-and-black match shirt, with the Monster across the back.</p>
+            <div class="home-merch-actions">
+              <a class="home-btn primary" href="https://westlondondarts.com/services/custom-darts-shirts/" target="_blank" rel="noopener">Visit the shop</a>
+            </div>
           </div>
 
-          <div class="home-merch-rail home-merch-rail-single" aria-label="Oche Ness Monsters match shirt">
-            <a class="home-merch-shirt home-merch-shirt-match" href="https://westlondondarts.com/services/custom-darts-shirts/" target="_blank" rel="noopener">
+          <div class="home-merch-rail" aria-label="Oche Ness Monsters match shirt">
+            <a class="home-merch-shirt" href="https://westlondondarts.com/services/custom-darts-shirts/" target="_blank" rel="noopener">
               <img src="images/merch/ONM%20Shirt.png" alt="Front and back of the green and black Oche Ness Monsters darts shirt">
-              <span>View shirt details ↗</span>
+              <span>Oche Ness Monsters match shirt</span>
             </a>
           </div>
         </section>
@@ -233,7 +237,10 @@
           <div class="home-merch-copy">
             <h3 id="merch-tshirt-heading">Club T-shirts</h3>
             <p>Shop the club tees in white or black, including the heavyweight Apocalypse design.</p>
-            <a class="home-btn primary" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">Visit the shop</a>
+            <div class="home-merch-actions">
+              <a class="home-btn primary" href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">Visit the shop</a>
+              <div class="merchRailControls"><button type="button" data-merch-scroll="-1" aria-controls="merch-tee-rail" aria-label="Previous T-shirt">‹</button><button type="button" data-merch-scroll="1" aria-controls="merch-tee-rail" aria-label="Next T-shirt">›</button></div>
+            </div>
           </div>
 
           <div class="home-merch-rail" id="merch-tee-rail" tabindex="0" aria-label="Oche Ness Monsters T-shirts — scroll to browse">
@@ -250,7 +257,6 @@
               <span>Monsters Club T - Black</span>
             </a>
           </div>
-          <div class="merchRailControls"><span>Swipe or scroll to browse</span><button type="button" data-merch-scroll="-1" aria-controls="merch-tee-rail" aria-label="Previous T-shirt">‹</button><button type="button" data-merch-scroll="1" aria-controls="merch-tee-rail" aria-label="Next T-shirt">›</button></div>
         </section>
       </div>
     </section>
@@ -376,13 +382,16 @@
       </section>
     </section>
 
-    <footer class="home-footer">
+    <footer id="follow" class="home-footer" aria-labelledby="home-follow-title">
       <div>
         <p>Oche Ness Monsters</p>
-        <h2>Follow the Monsters</h2>
+        <h2 id="home-follow-title">Follow the Monsters</h2>
       </div>
       <div class="home-footer-links">
-        <a href="https://www.instagram.com/ochenessmonsters" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://www.instagram.com/ochenessmonsters" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+          Instagram
+        </a>
         <a href="https://ochenessmonstersdarts.printmykit.co.uk/" target="_blank" rel="noopener">Merch shop</a>
       </div>
     </footer>

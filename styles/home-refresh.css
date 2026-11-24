@@ -48,13 +48,14 @@
 .home-merch-feature {
   display: block;
   width: 100%;
-  height: clamp(140px, 28vw, 290px);
+  height: clamp(160px, 31vw, 330px);
   object-fit: cover;
   object-position: center 75%;
   border-radius: 10px;
 }
 
 #merch .home-merch-copy {
+  flex: 1;
   padding: 18px;
   gap: 8px;
   justify-content: start;
@@ -67,25 +68,31 @@
   gap: 10px;
   width: auto;
   min-width: 0;
-  margin: auto 18px 12px;
+  margin: 0 18px 18px;
   scroll-snap-type: x mandatory;
   scrollbar-width: thin;
   scrollbar-color: #638f70 #102b1f;
 }
 
 #merch .home-merch-rail > .home-merch-shirt {
-  flex: 0 0 62%;
+  flex: 0 0 100%;
   min-width: 0;
   box-sizing: border-box;
 }
 
-#merch .home-merch-rail-single > .home-merch-shirt { flex-basis: 100%; }
 #merch .home-merch-shirt img { height: 132px; aspect-ratio: auto; object-fit: contain; }
 #merch .home-merch-shirt span { font-size: .8rem; }
-#merch .merchRailControls { margin: 0 18px 14px; }
-#merch-shirt-panel .home-merch-rail { margin-bottom: 18px; }
+.home-merch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 5px;
+}
 
-.merchRailControls{display:flex;align-items:center;justify-content:flex-end;gap:8px;color:#b6d1bf;font-size:11px}.merchRailControls span{margin-right:auto}
+.merchRailControls { display: flex; gap: 6px; margin-left: auto; }
 .merchRailControls button{width:34px;height:34px;border:1px solid #507d5d;border-radius:8px;background:#1b402b;color:#e2f6e8;font-size:24px;cursor:pointer}
 @media(max-width:650px){
  #fixtures .fixtureViewBar{gap:10px;margin-bottom:10px}
@@ -137,7 +144,7 @@
 }
 @media(prefers-reduced-motion:reduce) { #fixtureCalendar[aria-busy="true"] #fixtureCalendarCount::before { animation:none; } }
 
-.homeSectionMenu { position:sticky; top:calc(var(--header-h,92px) + 6px); z-index:40; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; margin:0 0 16px; padding:5px; border:1px solid #365a47; border-radius:11px; background:#0a1c20f5; backdrop-filter:blur(12px); }
+.homeSectionMenu { position:sticky; top:calc(var(--header-h,92px) + 6px); z-index:40; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:5px; margin:0 0 16px; padding:5px; border:1px solid #365a47; border-radius:11px; background:#0a1c20f5; backdrop-filter:blur(12px); }
 .homeSectionMenu a { display:flex; align-items:center; justify-content:center; gap:8px; min-height:43px; padding:7px; border:1px solid transparent; border-radius:7px; color:#a5bfb1; text-decoration:none; font:650 12px/1.2 system-ui,sans-serif; text-align:center; }
 .homeSectionMenu svg { width:19px; height:19px; flex-shrink:0; }
 .homeSectionMenu a[aria-current="location"] { background:#244b37; border-color:#5c9572; color:#e4f5e9; }
@@ -315,7 +322,7 @@ html:has(.homeSectionMenu) { scroll-padding-top:0; }
 .clubCompetitions > h3 { margin: 0 0 12px; font-size: clamp(1.15rem, 2.5vw, 1.6rem); }
 
 .clubCompetitions .home-comps-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -330,3 +337,16 @@ html:has(.homeSectionMenu) { scroll-padding-top:0; }
 .clubCompetitions .home-comp-card h4 { margin: 0; font-size: 1rem; line-height: 1.2; }
 .clubCompetitions .home-comp-card p:not(.home-comp-tag) { font-size: .75rem; }
 .clubCompetitions .home-comp-links { margin-top: auto; }
+
+
+#follow { scroll-margin-top: calc(var(--header-h, 92px) + var(--home-menu-height, 64px) + 16px); }
+#follow .home-footer-links a { display: inline-flex; align-items: center; gap: 8px; }
+#follow .home-footer-links svg { width: 19px; height: 19px; flex: none; }
+
+@media (max-width: 900px) {
+  .clubCompetitions .home-comps-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 570px) {
+  .clubCompetitions .home-comps-grid { grid-template-columns: minmax(0, 1fr); }
+}

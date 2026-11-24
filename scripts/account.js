@@ -40,9 +40,40 @@
     localStorage.setItem("onmUser", JSON.stringify(user));
   }
 
+  function updateWalkoutPlayer() {
+    const container = document.getElementById("accountWalkoutPlayer");
+    const input = form.elements.walkoutSong;
+    let embedUrl = "";
+    if (!input.disabled && input.value.trim()) {
+      try {
+        const songUrl = new URL(input.value.trim());
+        const track = songUrl.pathname.match(/^\/(?:intl-[a-z-]+\/)?(?:embed\/)?track\/([a-zA-Z0-9]{22})\/?$/);
+        if (songUrl.protocol === "https:" && songUrl.host === "open.spotify.com" && track) {
+          embedUrl = `https://open.spotify.com/embed/track/${track[1]}`;
+        }
+      } catch {
+        // The field can contain a partial URL while the user edits it.
+      }
+    }
+
+    container.hidden = !embedUrl;
+    if (!embedUrl) {
+      container.replaceChildren();
+      return;
+    }
+    if (container.firstElementChild?.src === embedUrl) return;
+
+    const player = document.createElement("iframe");
+    player.title = "Spotify walkout song";
+    player.src = embedUrl;
+    player.loading = "lazy";
+    player.setAttribute("allow", "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture");
+    container.replaceChildren(player);
+  }
+
   function populate() {
     const monster=isMonsterPlayer();
-    ["bio","nickname","playerRole","highestCheckout","gooch","walkoutSong","accolades"].forEach(field=>{
+    ["bio","nickname","highestCheckout","walkoutSong"].forEach(field=>{
       const input=form.elements[field];
       if(input){input.closest("label").hidden=!monster;input.disabled=!monster;}
     });
@@ -68,11 +99,11 @@
     document.getElementById("accountPlayer").textContent = user.linkedPlayerName || "Not linked";
     document.getElementById("accountAdminCard").classList.toggle("hidden", !["owner", "admin"].includes(user.role));
 
-    ["firstName", "surname", "email", "team", "nationality", "nickname", "walkoutSong", "bio", "playerRole", "highestCheckout", "accolades"].forEach(field => {
+    ["firstName", "surname", "email", "team", "nationality", "nickname", "walkoutSong", "bio", "highestCheckout"].forEach(field => {
       const input = form.elements[field];
       if (input) input.value = user[field] || "";
     });
-    form.elements.gooch.checked = user.gooch === "yes" || user.gooch === true;
+    updateWalkoutPlayer();
 
     const actions = document.getElementById("accountHeroActions");
     actions.innerHTML = monster && user.linkedPlayerName
@@ -94,14 +125,14 @@
       nickname: linkedProfile.nickname || user.nickname || "",
       bio: linkedProfile.bio || user.bio || "",
       walkoutSong: linkedProfile.song || user.walkoutSong || "",
-      playerRole: linkedProfile.role || "",
-      highestCheckout: linkedProfile.highestCheckout || "",
-      accolades: (linkedProfile.accolades || []).join(", "),
-      gooch: linkedProfile.gooch || ""
+      highestCheckout: linkedProfile.highestCheckout || ""
     };
     for(const [field,value] of Object.entries(profileValues))if(!touchedFields.has(field)){
-      user[field]=value;const input=form.elements[field];if(input){if(input.type==="checkbox")input.checked=value===true||value==="yes";else input.value=value;}
+      user[field] = value;
+      form.elements[field].value = value;
     }
+
+    updateWalkoutPlayer();
 
     const loadPhoto=async()=>{
     let photoUrl = user.photoUrl || user.photo || linkedProfile.photoUrl || linkedProfile.photo || "";
@@ -146,10 +177,10 @@
         nickname: profile.nickname,
         bio: profile.bio,
         song: profile.walkoutSong,
-        role: clean(data.get("playerRole")),
+        role: linkedProfile?.role,
         highestCheckout: clean(data.get("highestCheckout")),
-        accolades: clean(data.get("accolades")).split(",").map(value => value.trim()).filter(Boolean),
-        gooch: data.get("gooch") === "on",
+        accolades: linkedProfile?.accolades,
+        gooch: linkedProfile?.gooch === true || linkedProfile?.gooch === "yes",
         photoUrl: linkedProfile?.photoUrl || linkedProfile?.photo || "",
         profileVisible: linkedProfile?.profileVisible !== false
       };
@@ -158,7 +189,7 @@
         if (!playerResult.success) throw new Error(playerResult.error || "Your account saved, but the player profile could not be updated.");
         linkedProfile = { ...(linkedProfile || {}), ...playerValues };
       }
-      updateLocalUser({ ...profile, ...(monster?{playerRole: playerValues.role, highestCheckout: playerValues.highestCheckout, accolades: playerValues.accolades.join(", "), gooch: playerValues.gooch ? "yes" : ""}:{}) });
+      updateLocalUser({ ...profile, ...(monster ? { highestCheckout: playerValues.highestCheckout } : {}) });
       populate();
       showMessage("Your account details have been saved.");
     } catch (error) {
@@ -222,7 +253,10 @@
       }
       localStorage.setItem("onmUser", JSON.stringify(user));
       populate();
-      form.addEventListener("input",event=>{if(event.target.name)touchedFields.add(event.target.name);});
+      form.addEventListener("input", event => {
+        if (event.target.name) touchedFields.add(event.target.name);
+        if (event.target === form.elements.walkoutSong) updateWalkoutPlayer();
+      });
       form.addEventListener("submit", saveProfile);
       document.getElementById("accountChangePhoto").addEventListener("click", () => document.getElementById("accountPhotoInput").click());
       document.getElementById("accountPhotoInput").addEventListener("change", uploadPhoto);

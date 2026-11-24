@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow">
   <title>My account | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
-  <link rel="stylesheet" href="styles/account.css?v=20261123-compact-account">
+  <link rel="stylesheet" href="styles/account.css?v=20261124-walkout">
   <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
@@ -98,11 +98,9 @@
             <label>Team<input name="team"></label>
             <label>Nationality<input name="nationality"></label>
             <label>Nickname<input name="nickname"></label>
-            <label>Club role<input name="playerRole" placeholder="Captain, vice-captain…"></label>
             <label>Highest checkout<input name="highestCheckout" type="number" min="0" max="170"></label>
-            <label class="accountCheck"><input name="gooch" type="checkbox"> Gooch</label>
             <label class="wide">Walkout song Spotify link<input name="walkoutSong" type="url" placeholder="https://open.spotify.com/…"></label>
-            <label class="wide">Accolades<input name="accolades" placeholder="Comma-separated accolade keys"></label>
+            <div id="accountWalkoutPlayer" class="wide" hidden></div>
             <label class="wide">Bio<textarea name="bio" rows="6"></textarea></label>
           </div>
         </form>
@@ -137,7 +135,7 @@
 
   <script src="scripts/firebase-client.js?v=20261104-player-identity"></script>
   <script src="scripts/player-data.js?v=20261016-registration"></script>
-  <script src="scripts/account.js?v=20261028-account-restore"></script>
+  <script src="scripts/account.js?v=20261124-walkout"></script>
   <script src="scripts/account-availability.js?v=20261025-profile-navigation"></script>
 <script src="/scripts/site-ui.js?v=20261028-avatar-fill"></script></body>
 </html>
