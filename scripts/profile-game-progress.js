@@ -9,6 +9,13 @@
     for (let bot = 1; bot <= 20; bot++) if ([1,3,5,7,9].every(mode => flawless.has(`${bot}-${mode}`))) trophies++;
     return { challenges: wins.size, flawless: flawless.size, trophies };
   }
+  function communityProgress(rows, name) {
+    const matches = rows.filter(row => row.name === name);
+    if (matches.length !== 1) return null;
+    const { completed, flawless, trophies } = matches[0];
+    return { challenges: completed, flawless, trophies };
+  }
+
   function championAwards(tournaments, uids, viewTournament) {
     const eligible = new Set(uids);
     return tournaments.flatMap(tournament => {
@@ -20,7 +27,8 @@
       } catch (_) { return []; }
     });
   }
-  if (typeof module !== "undefined" && module.exports) { module.exports = { botProgress, championAwards }; return; }
+  if (typeof module !== "undefined" && module.exports) { module.exports = { botProgress, communityProgress, championAwards }; return; }
+  const communityUrl = new URL("monster-bot-data.js?v=20261027-trophy-backfill", document.currentScript.src).href;
   const engineUrl = new URL("tournament-engine.mjs", document.currentScript.src).href;
   const section = document.getElementById("profileGameProgress");
   if (!section || !window.ONMFirebase) return;
@@ -60,14 +68,30 @@
       authSdk.onAuthStateChanged(auth, async user => {
         const current = ++revision;
         stopBot(); stopTournaments(); progress = null; awards = []; render();
-        if (!user) return;
+        const loadPublicProgress = () => import(communityUrl).then(() => window.ONMBotData.fetchCommunity({
+          projectId: window.ONMFirebase.config.projectId
+        })).then(({ leaderboard }) => {
+          if (current !== revision) return;
+          progress = communityProgress(leaderboard, player.name);
+          render();
+        }).catch(() => {});
+        if (!user) {
+          loadPublicProgress();
+          return;
+        }
         const account = await window.ONMFirebase.loadOwnUser().catch(()=>null);
-        if (current !== revision || account?.status !== "Active") return;
+        if (current !== revision) return;
+        if (account?.status !== "Active") {
+          loadPublicProgress();
+          return;
+        }
         if (account.linkedPlayerKey === player.playerKey) {
           stopBot = sdk.onSnapshot(sdk.doc(db,"users",user.uid), snapshot => {
             if (current !== revision) return;
             progress = botProgress(snapshot.data() || {}); render();
           }, () => { if (current === revision) { progress = null; render(); } });
+        } else {
+          loadPublicProgress();
         }
         try {
           const linked = await sdk.getDocs(sdk.collection(db,"linkedPlayers"));

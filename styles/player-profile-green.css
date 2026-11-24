@@ -1,9 +1,12 @@
-/* Final profile surface layer: neutral club panels are green, not grey. */
+#playerProfileSection {
+  --profile-panel: #132820;
+  --profile-panel-border: #3b5b4b;
+}
 #playerProfileSection .stats-header,
 #playerProfileSection .player-header-card,
 #playerProfileSection .stats-and-appearances-wrapper,
 #playerProfileSection .appearance-card,
-#playerProfileSection .gallery-card{background:#143324;border-color:#3c654d}
+#playerProfileSection .gallery-card{background:var(--profile-panel);border-color:var(--profile-panel-border)}
 #playerProfileSection .player-stats-table table,
 #playerProfileSection .player-stats-table .table-container,
 #playerProfileSection .appearance-table-container,
@@ -11,7 +14,7 @@
 #playerProfileSection .stat-card,
 #playerProfileSection .stat-item,
 #playerProfileSection .medals-row,
-#playerProfileSection .last5-block{background:#102b1e;border-color:#345b43}
+#playerProfileSection .last5-block{background:var(--profile-panel);border-color:var(--profile-panel-border)}
 #playerProfileSection .player-stats-table thead th,
 #playerProfileSection .appearances-table-simple th{background:#1b412d}
 #playerProfileSection .player-selector-inline,
@@ -114,10 +117,10 @@
 #playerProfileSection .player-page-container { min-width:0; }
 
 #playerProfileSection .profile-season-dropdown { appearance:none; -webkit-appearance:none; min-width:112px; padding:.48rem 2rem .48rem .75rem; border:1px solid #00b894; border-radius:6px; background:rgba(0,184,148,.18) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right .65rem center; color:white; font:inherit; font-weight:600; cursor:pointer; }
-#playerProfileSection .profile-stat-box { background:#19412d; border-color:#416b4f; }
-#playerProfileSection .stats-and-appearances-wrapper { background:#143b29; border-color:#416b4f; }
+#playerProfileSection .profile-stat-box { background:var(--profile-panel); border-color:var(--profile-panel-border); }
+#playerProfileSection .stats-and-appearances-wrapper { background:var(--profile-panel); border-color:var(--profile-panel-border); }
 #playerProfileSection .player-stats-table table,#playerProfileSection .player-stats-table .table-container { background:#102f21; }
-#playerProfileSection .profile-game-progress { background:#132820; border-color:#3b5b4b; }
+#playerProfileSection .profile-game-progress { background:var(--profile-panel); border-color:var(--profile-panel-border); }
 
 @media (max-width: 700px) {
   #playerProfileSection .player-header-card {
@@ -210,7 +213,7 @@
 #playerProfileSection .profile-stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 #playerProfileSection .profile-stat-box { min-width: 0; text-align: center; }
 #playerProfileSection .header-form { grid-area: extras; width: 100%; min-width: 0; max-width: none; min-height: 0; align-items: stretch; gap: 8px; }
-#playerProfileSection .profile-extras-card { width: 100%; background: #102b1e; border: 1px solid #416b4f; border-radius: 9px; padding: 9px 10px; margin: 0; }
+#playerProfileSection .profile-extras-card { width: 100%; background: var(--profile-panel); border: 1px solid var(--profile-panel-border); border-radius: 9px; padding: 9px 10px; margin: 0; }
 #playerProfileSection .form-medals-bottom { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 7px 8px; align-items: center; }
 #playerProfileSection .form-fines-row, #playerProfileSection .last5-block { display: contents; }
 #playerProfileSection :is(.last5-title, .medals-title, .accolades-title, .walkout-badge) {
