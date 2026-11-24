@@ -216,10 +216,10 @@
       <dl class="fixtureDetailsMeta"><div class="fixtureDetailsDate"><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div>
       <div class="fixtureDetailsLocation"><dt>Location</dt><dd>${escapeFixtureText(fixture.Location || "To be confirmed")}</dd></div></dl>
       ${lineup}
-      ${fixture.completed && fixture.resultRow ? `<section id="fixtureMatchPhotos" aria-label="Match photos"><p class="fixturePhotosNotice" role="status">Loading photos…</p></section>` : ""}
-      ${fixture.completed || fixtureAdminEditLink(fixture) ? `<div class="fixtureDetailsFooter">${fixtureAdminEditLink(fixture)}${fixture.completed ? `<a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View full result ↗</a>` : ""}</div>` : ""}
       ${availabilityDetails(fixture)}
       <p id="fixtureAvailabilityMessage" role="status" aria-live="polite"></p>
+      ${fixture.completed && fixture.resultRow ? `<section id="fixtureMatchPhotos" aria-label="Match photos"><p class="fixturePhotosNotice" role="status">Loading photos…</p></section>` : ""}
+      ${fixture.completed || fixtureAdminEditLink(fixture) ? `<div class="fixtureDetailsFooter">${fixtureAdminEditLink(fixture)}${fixture.completed ? `<a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View full result ↗</a>` : ""}</div>` : ""}
       `;
     const dialog = el("#fixtureDetails");
     if (!dialog.open) dialog.showModal();
