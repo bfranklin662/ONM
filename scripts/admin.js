@@ -157,9 +157,9 @@
     return ourScore > theirScore ? "win" : ourScore < theirScore ? "loss" : "draw";
   }
 
-  function matchTable(items, type, actions = true) {
-    const isResult = type === "result";
-    const rows = items.map(item => {
+  function matchTable(entries, nextId) {
+    const rows = entries.map(({ item, type }) => {
+      const isResult = type === "result";
       const row = rowFor(item);
       const home = normaliseTeam(row.HomeTeam) === "oche ness monsters";
       const opponent = isResult ? (home ? row.AwayTeam : row.HomeTeam) : row.Opponent;
@@ -170,15 +170,17 @@
       const timestamp = dateValue(row.Date);
       const date = timestamp ? new Date(timestamp) : null;
       const prettyDate = date ? `${ordinal(date.getDate())} ${date.toLocaleString("en-GB", { month: "short" })}` : "Date TBA";
-      return `<tr>
+      return `<tr${!isResult && item.id === nextId ? ' data-next-fixture="true"' : ""}>
         <td>${escapeHtml((isResult ? row.Competition : row.League) || "Competition TBA")}</td>
         <td><span class="adminOpponent">${escapeHtml(opponent || "Opponent TBA")}</span> <span class="adminSide">(${side})</span></td>
         <td><time datetime="${escapeHtml(inputDate(row.Date))}" title="${escapeHtml(row.Date)}">${escapeHtml(prettyDate)}</time></td>
         <td>${isResult ? `<span class="adminScoreBox ${escapeHtml(outcome)}" aria-label="${escapeHtml(outcome || "Result")} ${escapeHtml(score)}">${escapeHtml(score)}</span>` : '<span class="adminPending">—</span>'}</td>
-        ${actions ? `<td><div class="adminRowActions"><button class="adminSmallBtn" type="button" data-edit-${type}="${escapeHtml(item.id)}">${!isResult && row.EventType !== "social" ? "Edit / pick team" : `Edit ${type}`}</button>${actions === true ? `<button class="adminSmallBtn danger" type="button" data-delete-${type}="${escapeHtml(item.id)}">Delete</button>` : ""}</div></td>` : ""}
+        <td><div class="adminRowActions"><button class="adminSmallBtn" type="button" data-edit-${type}="${escapeHtml(item.id)}">${!isResult && row.EventType !== "social" ? "Edit / pick team" : `Edit ${type}`}</button><button class="adminSmallBtn danger" type="button" data-delete-${type}="${escapeHtml(item.id)}">Delete</button></div></td>
       </tr>`;
     }).join("");
-    return `<div class="adminTableScroll"><table class="adminMatchTable"><caption class="adminVisuallyHidden">${isResult ? "Results" : "Fixtures"}</caption><thead><tr><th scope="col">League</th><th scope="col">Opponent</th><th scope="col">Date</th><th scope="col">Result</th>${actions ? '<th scope="col">Actions</th>' : ""}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    return `<div class="adminTableScroll adminMatchTimeline" tabindex="0" role="region" aria-label="Fixtures and results">
+      <table class="adminMatchTable"><caption class="adminVisuallyHidden">Fixtures and results</caption><thead><tr><th scope="col">League</th><th scope="col">Opponent</th><th scope="col">Date</th><th scope="col">Result</th><th scope="col">Actions</th></tr></thead><tbody>${rows}</tbody></table>
+    </div>`;
   }
 
   function filtered(items, seasonId, searchId, haystack) {
@@ -190,33 +192,44 @@
     });
   }
 
-  function renderFixtures() {
+  function centreNextFixture() {
+    const scroll = document.querySelector(".adminMatchTimeline");
+    if (!scroll?.clientHeight) return;
+    const next = scroll.querySelector("[data-next-fixture]");
+    if (!next) {
+      scroll.scrollTop = scroll.scrollHeight;
+      return;
+    }
+    const row = next.getBoundingClientRect();
+    const viewport = scroll.getBoundingClientRect();
+    scroll.scrollTop += row.top + row.height / 2 - viewport.top - scroll.clientHeight / 2;
+  }
+
+  function renderFixtures({ centre = false } = {}) {
     const list = document.getElementById("fixturesList");
+    const previousScroll = list.querySelector(".adminMatchTimeline")?.scrollTop ?? 0;
     const fixtures = filtered(state.fixtures, "fixtureSeasonFilter", "fixtureSearch", item => {
       const row = rowFor(item);
       return `${row.Opponent || ""} ${row.League || ""} ${row.Location || ""}`;
-    }).filter(item => !fixtureHasResult(item))
-      .sort((a, b) => dateValue(rowFor(a).Date) - dateValue(rowFor(b).Date));
-
-    if (!fixtures.length) {
-      list.innerHTML = '<div class="adminEmpty">No fixtures match these filters.</div>';
-      return;
-    }
-    list.innerHTML = matchTable(fixtures, "fixture");
-  }
-
-  function renderResults() {
-    const list = document.getElementById("resultsList");
+    }).filter(item => !fixtureHasResult(item));
     const results = filtered(state.results, "fixtureSeasonFilter", "fixtureSearch", item => {
       const row = rowFor(item);
       return `${row.HomeTeam || ""} ${row.AwayTeam || ""} ${row.Competition || ""} ${Array.from({ length: 12 }, (_, index) => playerValue(row, index + 1)).join(" ")}`;
-    }).sort((a, b) => dateValue(rowFor(b).Date) - dateValue(rowFor(a).Date));
+    });
+    const entries = [
+      ...fixtures.map(item => ({ item, type: "fixture" })),
+      ...results.map(item => ({ item, type: "result" }))
+    ].sort((a, b) => dateValue(rowFor(a.item).Date) - dateValue(rowFor(b.item).Date));
 
-    if (!results.length) {
-      list.innerHTML = '<div class="adminEmpty">No results match these filters.</div>';
+    if (!entries.length) {
+      list.innerHTML = '<div class="adminEmpty">No fixtures or results match these filters.</div>';
       return;
     }
-    list.innerHTML = matchTable(results, "result");
+    const fixtureIds = new Set(fixtures.map(item => item.id));
+    const next = upcomingTeamFixtures().find(item => fixtureIds.has(item.id));
+    list.innerHTML = matchTable(entries, next?.id);
+    if (centre) centreNextFixture();
+    else list.querySelector(".adminMatchTimeline").scrollTop = previousScroll;
   }
 
   function playerFineAccount(player, season = "26-27") {
@@ -735,7 +748,6 @@
     await firestoreSdk.setDoc(firestoreSdk.doc(db, "results", id), saved, { merge: true });
     const local = { ...(existing || {}), id, ...saved, sheetRow };
     state.results = existing ? state.results.map(item => item.id === id ? local : item) : [...state.results, local];
-    renderResults();
     renderFines();
     renderFixtures();
     renderPlayers();
@@ -801,7 +813,7 @@
       : item);
     if (profile.publicName !== player.publicName) {
       state.results = await loadCollection("results");
-      renderResults();
+      renderFixtures();
       renderFines();
     }
     renderPlayers();
@@ -987,7 +999,6 @@
         renderFixtures();
       } else {
         state.results = state.results.filter(entry => entry.id !== id);
-        renderResults();
         renderFines();
         renderFixtures();
         renderPlayers();
@@ -1085,6 +1096,7 @@
       state.activeTab = button.dataset.adminTab;
       document.querySelectorAll("[data-admin-tab]").forEach(item => item.classList.toggle("active", item === button));
       document.getElementById("fixturesPanel").classList.toggle("hidden", state.activeTab !== "fixtures");
+      if (state.activeTab === "fixtures") centreNextFixture();
       document.getElementById("pickTeamPanel").classList.toggle("hidden", state.activeTab !== "pickTeam");
       if (state.activeTab === "pickTeam") pickTeam.open();
       document.getElementById("playersPanel").classList.toggle("hidden", state.activeTab !== "players");
@@ -1092,8 +1104,8 @@
       document.getElementById("requestsPanel").classList.toggle("hidden", state.activeTab !== "requests");
       document.getElementById("bankPanel").classList.toggle("hidden", state.activeTab !== "bank");
     }));
-    document.getElementById("fixtureSeasonFilter").addEventListener("change", () => { renderFixtures(); renderResults(); });
-    document.getElementById("fixtureSearch").addEventListener("input", () => { renderFixtures(); renderResults(); });
+    document.getElementById("fixtureSeasonFilter").addEventListener("change", () => renderFixtures({ centre: true }));
+    document.getElementById("fixtureSearch").addEventListener("input", () => renderFixtures({ centre: true }));
     document.getElementById("playerSearch").addEventListener("input", renderPlayers);
     document.getElementById("playerListView").addEventListener("change", renderPlayers);
     ["playerRegistrationFilter", "playerAccountFilter", "playerFinesFilter"].forEach(id => document.getElementById(id).addEventListener("change", renderPlayers));
@@ -1187,8 +1199,7 @@
       gate.classList.add("hidden");
       app.classList.remove("hidden");
       attachListeners();
-      renderFixtures();
-      renderResults();
+      renderFixtures({ centre: true });
       renderPlayers();
       renderFines();
       openRequestedMatchEditor();

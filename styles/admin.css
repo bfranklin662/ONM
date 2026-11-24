@@ -448,3 +448,9 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .pickTeamSelectionFooter { display: flex; align-items: center; gap: 10px; }
 .pickTeamSelectionFooter button { margin-inline-start: auto; }
 .pickTeamEmptySlot { min-height: 48px; padding-inline: 10px; border-style: dashed; color: #b4ccbf; font-size: .85rem; }
+
+.adminMatchTimeline { max-height: min(68vh, 680px); overflow: auto; }
+.adminMatchTimeline .adminMatchTable { table-layout: fixed; min-width: 630px; }
+.adminMatchTimeline th { width: 20%; position: sticky; top: 0; z-index: 1; background: #284139; }
+.adminMatchTimeline td { overflow-wrap: anywhere; }
+.adminMatchTimeline .adminRowActions { flex-wrap: wrap; }
