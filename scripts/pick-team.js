@@ -169,8 +169,8 @@
       const body = `<img src="${escape(photo(player))}" width="52" height="52" alt="" loading="lazy">
         <span class="pickTeamPlayerInfo"><strong>${name}${isLinked ? ' <span class="pickTeamLinked" role="img" aria-label="Account linked" title="Account linked"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>' : ""}</strong>
         <span class="pickTeamApps">Apps: ${count}</span></span>`;
-      const statusDot = group && group !== "Availability not loaded" && group !== "No matching sheet row"
-        ? `<span class="pickTeamStatusDot" role="img" aria-label="${escape(group)}" title="${escape(group)}"></span>` : "";
+      const status = selected ? "Selected" : group || "Not updated";
+      const statusDot = inArchive ? "" : `<span class="pickTeamStatusDot" data-status="${escape(status)}" role="img" aria-label="${escape(status)}" title="${escape(status)}"></span>`;
       return `<article class="pickTeamPlayerCard" data-status="${escape(group || "")}">
         ${statusDot}
         ${inArchive ? `<div class="pickTeamPlayer">${body}</div>` :
@@ -350,7 +350,14 @@
       if (saved.length === names.length && saved.every((name, index) => name === names[index])) drafts.delete(fixture.id);
       else drafts.set(fixture.id, names);
       for (const card of groups.querySelectorAll("[data-pick-player]")) {
-        card.setAttribute("aria-pressed", String(names.includes(card.dataset.pickPlayer)));
+        const selected = names.includes(card.dataset.pickPlayer);
+        card.setAttribute("aria-pressed", String(selected));
+        const container = card.closest(".pickTeamPlayerCard");
+        const dot = container.querySelector(".pickTeamStatusDot");
+        const status = selected ? "Selected" : container.dataset.status || "Not updated";
+        dot.dataset.status = status;
+        dot.setAttribute("aria-label", status);
+        dot.title = status;
       }
       renderSelection(fixture);
     }

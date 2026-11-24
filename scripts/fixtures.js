@@ -153,16 +153,15 @@
   }
 
   function fixtureLineup(fixture) {
-    if (!fixture.completed) return "";
-    const row = fixture.resultRow;
+    const row = fixture.completed ? fixture.resultRow : fixture;
     let entries = row ? Array.from({ length: 12 }, (_, i) => ({ slot: i + 1, name: row[`Player${i + 1}`] ?? row[`Player ${i + 1}`], checkouts: row[`C${i + 1}`] ?? row[`C ${i + 1}`] })).filter(entry => entry.name) : [];
     if (!entries.length) entries = (fixture.playerNames || []).map(name => ({ name }));
     const seen = new Set();
     entries = entries.filter(entry => { const key = normalizeName(entry.name); if (seen.has(key)) return false; seen.add(key); return true; });
     if (!entries.length) return "";
-    return `<section class="fixtureLineup" aria-label="Submitted team lineup"><h4>Our team</h4><ul>${entries.map(({name,checkouts,slot}) => {
+    return `<section class="fixtureLineup" aria-label="${fixture.completed ? "Submitted team lineup" : "Selected team lineup"}"><h4>Our team</h4><ul>${entries.map(({name,checkouts,slot}) => {
       const mine = personal.user?.accountType !== "supporter" && [personal.user?.linkedPlayerName, personal.user?.linkedPlayerKey?.replace(/-/g," ")].filter(Boolean).some(value => normalizeName(value) === normalizeName(name));
-      return `<li><a class="${mine ? "fixtureLineupSelf" : ""}"${mine ? ' aria-label="Your player profile"' : ""} href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupName">${escapeFixtureText(name)}</span><span class="fixtureLineupStats"><span class="fixtureLineupCheckouts fixtureLineupStat">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span>${fixturePlayerStats(row,slot)}</span></span><span class="fixtureLineupArrow" aria-hidden="true">↗</span></a></li>`; }).join("")}</ul></section>`;
+      return `<li><a class="${mine ? "fixtureLineupSelf" : ""}"${mine ? ' aria-label="Your player profile"' : ""} href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupName">${escapeFixtureText(name)}</span>${fixture.completed ? `<span class="fixtureLineupStats"><span class="fixtureLineupCheckouts fixtureLineupStat">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span>${fixturePlayerStats(row,slot)}</span>` : ""}</span><span class="fixtureLineupArrow" aria-hidden="true">↗</span></a></li>`; }).join("")}</ul></section>`;
   }
 
   document.addEventListener("error", event => {
@@ -181,6 +180,7 @@
       if (!dialog.open) dialog.showModal();
       return;
     }
+    const lineup = fixtureLineup(fixture);
     const confirmedOpponent = fixture.Opponent && fixture.Opponent !== "TBC";
     el("#fixtureDetailsContent").innerHTML = `
       <div class="fixtureDetailsHeader"><span class="fixtureCategory ${fixture.leagueClass}">${escapeFixtureText(fixture.League)}</span></div>
@@ -190,7 +190,7 @@
       <dl class="fixtureDetailsMeta"><div class="fixtureDetailsDate"><dt>Date</dt><dd>${escapeFixtureText(fixture.Day)}, ${escapeFixtureText(fixture.Date)}</dd></div>
       <div class="fixtureDetailsLocation"><dt>Location</dt><dd>${escapeFixtureText(fixture.Location || "To be confirmed")}</dd></div></dl>
       ${availabilityDetails(fixture)}
-      ${fixtureLineup(fixture)}
+      ${lineup}
       ${fixture.completed && fixture.resultRow ? `<section id="fixtureMatchPhotos" aria-label="Match photos"><p class="fixturePhotosNotice" role="status">Loading photos…</p></section>` : ""}
       <p id="fixtureAvailabilityMessage" role="status" aria-live="polite"></p>
       ${fixture.completed || fixtureAdminEditLink(fixture) ? `<div class="fixtureDetailsFooter">${fixtureAdminEditLink(fixture)}${fixture.completed ? `<a class="fxResultLink" href="${escapeFixtureText(RESULTS_PAGE_URL(fixture))}">View full result ↗</a>` : ""}</div>` : ""}
@@ -198,7 +198,7 @@
     const dialog = el("#fixtureDetails");
     if (!dialog.open) dialog.showModal();
     window.ONMFixturePhotos?.show(fixture);
-    if (window.PlayerData && fixture.completed) void loadFixturePlayerPictures().catch(() => {});
+    if (window.PlayerData && lineup) void loadFixturePlayerPictures().catch(() => {});
   }
 
   const RESULTS_PAGE_URL = (fx) =>
