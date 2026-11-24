@@ -237,3 +237,48 @@
   #playerProfileSection .profile-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #playerProfileSection .profile-detail-actions a { font-size: .65rem; }
 }
+
+#playerProfileSection :is([data-league="banks"], [data-league-colour="banks"], .stats-row.row-banks) { --profile-league-colour: #79adff; }
+#playerProfileSection :is([data-league="traf"], [data-league-colour="traf"], .stats-row.row-traf) { --profile-league-colour: #f5d34e; }
+#playerProfileSection :is([data-league="smithfield"], [data-league-colour="smithfield"], .stats-row.row-smithfield) { --profile-league-colour: #a5adb9; }
+#playerProfileSection :is([data-league="colda-a"], [data-league-colour="colda-a"], .stats-row.row-colda-a) { --profile-league-colour: #86d7ff; }
+#playerProfileSection :is([data-league="colda-b"], [data-league-colour="colda-b"], .stats-row.row-colda-b) { --profile-league-colour: #bd8af5; }
+#playerProfileSection [data-league-colour="banks-cup"] { --profile-league-colour: #62d998; }
+#playerProfileSection [data-league-colour="traf-cup"] { --profile-league-colour: #ffa45c; }
+
+#playerProfileSection :is(.appearance-row[data-league-colour], .stats-row[data-league]:not([data-league="all"])) {
+  border-left: 3px solid var(--profile-league-colour, #a5adb9);
+}
+#playerProfileSection .appearance-row .league-col,
+#playerProfileSection .profile-league-filter .league-btn:not([data-league="all"]) {
+  color: var(--profile-league-colour, #a5adb9);
+}
+#playerProfileSection .profile-league-filter .league-btn.active:not([data-league="all"]) {
+  border-color: var(--profile-league-colour);
+  background: color-mix(in srgb, var(--profile-league-colour) 18%, #102b1e);
+}
+#playerProfileSection #backToPlayers { text-decoration: none; }
+@media (max-width: 700px) {
+  #playerProfileSection { padding-top: 4px; }
+  #playerProfileSection > .main-profile-header {
+    display: block;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    min-height: 0;
+    margin: 0 0 4px;
+    padding: 0 4px;
+  }
+  #playerProfileSection .main-profile-header :is(.stats-header-middle, .stats-header-right) { display: none; }
+  #playerProfileSection #backToPlayers { display: inline-block; padding: 3px 0; font-size: .72rem; background: none; border: 0; }
+  #playerProfileSection .profile-data-controls:has([data-profile-view="appearances"][aria-pressed="true"]) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-block: 2px;
+  }
+  #playerProfileSection .profile-data-controls:has([data-profile-view="appearances"][aria-pressed="true"]) #statsTitle { display: none; }
+  #playerProfileSection .profile-data-controls:has([data-profile-view="appearances"][aria-pressed="true"]) .profile-league-filter { grid-column: 1; }
+  #playerProfileSection .profile-data-controls:has([data-profile-view="appearances"][aria-pressed="true"]) .profile-view-tabs { grid-column: 2; }
+  #playerProfileSection #playerAppearancesWrapper,
+  #playerProfileSection .appearance-table-container { margin-top: 2px; }
+  #playerProfileSection .appearance-season-title { margin-block: 4px 3px; }
+}

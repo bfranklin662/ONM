@@ -1214,16 +1214,18 @@
   function setupFixtureViews() {
     const calendar = el("#fixtureCalendar");
     const carousel = el("#fixturesCarousel");
-    document.querySelectorAll("[data-fixtures-view]").forEach(button => {
-      button.addEventListener("click", () => {
-        const showCalendar = button.dataset.fixturesView === "calendar";
-        calendar.hidden = !showCalendar;
-        carousel.hidden = showCalendar;
-        document.querySelectorAll("[data-fixtures-view]").forEach(option => {
-          option.setAttribute("aria-pressed", String(option === button));
-        });
-      });
-    });
+    const mobile = window.matchMedia?.("(max-width: 700px)");
+    const buttons = document.querySelectorAll("[data-fixtures-view]");
+    function showView(view) {
+      const showCalendar = mobile?.matches || view === "calendar";
+      calendar.hidden = !showCalendar;
+      carousel.hidden = showCalendar;
+      buttons.forEach(button => button.setAttribute("aria-pressed",
+        String(button.dataset.fixturesView === (showCalendar ? "calendar" : "cards"))));
+    }
+    buttons.forEach(button => button.addEventListener("click", () => showView(button.dataset.fixturesView)));
+    mobile?.addEventListener?.("change", event => { if (event.matches) showView("calendar"); });
+    if (mobile?.matches) showView("calendar");
   }
 
   async function init() {

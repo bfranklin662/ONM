@@ -750,6 +750,8 @@ async function buildRowsOnly(apps) {
   return apps.map((r, index) => {
     const league = leagueInfoFromRow(r);
     const leagueText = escapeHtml(window.ONMLeagueDivisions.shortLabel(r.Competition || leagueLabelFromId(league.name), window.ONMLeagueDivisions.seasonFromDate(r["Date Played"] || r["Match Date"] || r.Date), window.ONMLeagueDivisions.isCup(r))).toUpperCase();
+    const cup = window.ONMLeagueDivisions.isCup(r);
+    const colourKey = cup && ["banks", "traf"].includes(league.name) ? `${league.name}-cup` : league.name;
     const rowClass = `row-${league.name}`;
 
     const home = (r.HomeTeam || "").trim();
@@ -808,7 +810,7 @@ async function buildRowsOnly(apps) {
       specials = `<span class="no-specials">—</span>`;
 
     return `
-      <tr class="appearance-row ${rowClass}" data-appearance-url="${escapeHtml(appearanceUrl.href)}" tabindex="0" role="link" aria-label="View result against ${escapeHtml(opponent)} on ${date}"
+      <tr class="appearance-row ${rowClass}" data-league-colour="${escapeHtml(colourKey)}" data-appearance-url="${escapeHtml(appearanceUrl.href)}" tabindex="0" role="link" aria-label="View result against ${escapeHtml(opponent)} on ${date}"
           style="animation: slideIn 0.35s ease-out forwards; animation-delay:${index * 0.05}s; opacity:0">
 
         <td><span class="league-col ${league.name}">${leagueText}</span></td>
@@ -1418,14 +1420,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// Back button → go to All Players landing
-document.addEventListener("click", e => {
-  if (e.target.id === "backToPlayers") {
-    window.location.href = "players-landing.html"; // shows landing page
-  }
-});
-
-
 // ---------- SEASON / LEAGUE FILTERS ----------
 document.addEventListener("click", (e) => {
   const seasonBtn = e.target.closest(".season-btn");
@@ -1636,7 +1630,8 @@ async function loadSeasonData(season) {
         <button class="league-btn ${selectedLeague === "all" ? "active" : ""}" data-league="all">All</button>
         ${playerLeagueIds.map(id => `
           <button class="league-btn ${selectedLeague === id ? "active" : ""}" data-league="${id}">
-            ${leagueLabelFromId(id)}
+            <span class="appearance-desktop">${escapeHtml(leagueLabelFromId(id))}</span>
+            <span class="appearance-mobile">${escapeHtml(({ traf: "Traf", smithfield: "Smith", "colda-a": "CLD A", "colda-b": "CLD B" })[id] || leagueLabelFromId(id))}</span>
           </button>
         `).join("")}
       `;

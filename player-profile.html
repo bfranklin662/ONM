@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="styles/player-profile.css?v=20261124-mobile-appearances">
   <link rel="stylesheet" href="styles/players-landing.css?v=20261120-green-headers">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
-  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261124-profile-layout">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261124-league-colours">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
   <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
@@ -83,7 +83,7 @@
 
         <!-- LEFT: Back button -->
         <div class="stats-header-left">
-          <button id="backToPlayers" class="back-btn">← All Players</button>
+          <a id="backToPlayers" class="back-btn" href="players-landing.html">← All players</a>
         </div>
 
         <!-- MIDDLE: Title + dropdown -->
@@ -331,7 +331,7 @@
   <script src="scripts/player-data.js?v=20261016-registration"></script>
   <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
   <script src="scripts/profile-game-progress.js?v=20261120-profile-games"></script>
-  <script src="scripts/player-profile.js?v=20261124-profile-layout"></script>
+  <script src="scripts/player-profile.js?v=20261124-league-colours"></script>
   <script>
     function toggleSidebar() {
       const sidebar = document.getElementById("sidebar");

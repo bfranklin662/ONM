@@ -1760,3 +1760,7 @@ html:has(.fixturePhotoViewer[open]), body:has(.fixturePhotoViewer[open]) {
 }
 .fixturePhotoViewerClose:focus { outline: none; box-shadow: none; }
 .fixturePhotoViewerClose:is(:hover, :focus-visible) { background: #28513c; border-color: #81b79a; }
+
+@media (max-width: 700px) {
+  #fixtures .fixtureViewSwitch, #fixtures #fixturesCarousel { display: none !important; }
+}
