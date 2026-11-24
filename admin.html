@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow">
   <title>Club admin | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
-  <link rel="stylesheet" href="styles/admin.css?v=20261124-pick-team">
+  <link rel="stylesheet" href="styles/admin.css?v=20261124-team-roster">
   <link rel="stylesheet" href="styles/club-bank.css?v=20261030-owed">
 <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
@@ -106,6 +106,10 @@
         <p id="pickTeamStatus" class="pickTeamStatus" role="status"></p>
         <div id="pickTeamSelection" class="pickTeamSelection"></div>
         <div id="pickTeamGroups"></div>
+        <details id="pickTeamArchive" class="pickTeamArchive">
+          <summary>Archived players (<span id="pickTeamArchiveCount">0</span>)</summary>
+          <div id="pickTeamArchiveCards" class="pickTeamCards"></div>
+        </details>
       </section>
 
       <section id="resultsPanel" class="adminPanel hidden">
@@ -224,8 +228,8 @@
   <script src="scripts/player-data.js?v=20261016-registration"></script>
   <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
   <script src="scripts/admin-accolades.js?v=20261120-cups-awards"></script>
-  <script src="scripts/pick-team.js?v=20261124-team-sheet-retry"></script>
-  <script src="scripts/admin.js?v=20261124-pick-team"></script>
+  <script src="scripts/pick-team.js?v=20261124-team-roster"></script>
+  <script src="scripts/admin.js?v=20261124-team-roster"></script>
   <script src="scripts/club-bank-engine.js?v=20261030-owed"></script>
   <script src="scripts/club-bank.js?v=20261030-owed"></script>
 <script src="/scripts/site-ui.js?v=20261028-avatar-fill"></script></body>

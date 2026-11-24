@@ -13,7 +13,9 @@
     playerPhotos: {},
     adminRequests: [],
     activeTab: "fixtures",
-    editor: null
+    editor: null,
+    pickTeamArchived: new Set(),
+    pickTeamLinkTarget: ""
   };
 
   const gate = document.getElementById("adminGate");
@@ -414,10 +416,12 @@
     state.editor = { type: "accountLink", id: user.id, expectedPlayerKey: user.linkedPlayerKey || "" };
     typeLabel.textContent = "Oche Ness Monsters";
     title.textContent = "Link player account";
+    const preferredPlayer = user.linkedPlayerKey || state.pickTeamLinkTarget;
+    state.pickTeamLinkTarget = "";
     const options = [...state.players].sort((a, b) => clean(a.fullName || a.publicName).localeCompare(clean(b.fullName || b.publicName))).map(player => {
       const key = player.playerKey || player.id;
       const taken = state.adminRequests.some(account => account.id !== user.id && account.linkedPlayerKey === key);
-      return `<option value="${escapeHtml(key)}"${user.linkedPlayerKey === key ? " selected" : ""}${taken ? " disabled" : ""}>${escapeHtml(player.fullName || player.publicName)}${taken ? " (already linked)" : ""}</option>`;
+      return `<option value="${escapeHtml(key)}"${preferredPlayer === key && !taken ? " selected" : ""}${taken ? " disabled" : ""}>${escapeHtml(player.fullName || player.publicName)}${taken ? " (already linked)" : ""}</option>`;
     }).join("");
     form.innerHTML = `<p>${escapeHtml(`${user.firstName || ""} ${user.surname || ""}`.trim() || user.email)}${user.email ? ` · ${escapeHtml(user.email)}` : ""}</p>
       <p>${escapeHtml(user.linkedPlayerName ? `Currently linked to ${user.linkedPlayerName}. Saving will replace this link.` : "Choose their Monsters player profile, or create one below.")}</p>
@@ -1022,12 +1026,35 @@
     else openResultEditor(matches[0]);
   }
 
+  async function pickTeamSettings() {
+    const { db, firestoreSdk } = await window.ONMFirebase.ready;
+    return { ref: firestoreSdk.doc(db, "seasons", "26-27"), firestoreSdk };
+  }
+
+  async function setPickTeamArchived(player, archived) {
+    const { ref, firestoreSdk } = await pickTeamSettings();
+    const operation = archived ? firestoreSdk.arrayUnion(player.playerKey) : firestoreSdk.arrayRemove(player.playerKey);
+    await firestoreSdk.setDoc(ref, { pickTeamArchivedPlayerKeys: operation }, { merge: true });
+    if (archived) state.pickTeamArchived.add(player.playerKey);
+    else state.pickTeamArchived.delete(player.playerKey);
+  }
+
   function attachListeners() {
     let countSeason;
     let counts;
     const pickTeam = window.ONMPickTeam.init({
       upcoming: upcomingTeamFixtures,
       roster: () => state.players,
+      linked: player => state.linkedPlayerKeys.has(player.playerKey),
+      archived: player => state.pickTeamArchived.has(player.playerKey),
+      setArchived: setPickTeamArchived,
+      link(player) {
+        state.pickTeamLinkTarget = player.playerKey;
+        document.querySelector('[data-admin-tab="requests"]').click();
+        document.getElementById("accountSearch").value = clean(player.fullName || player.publicName);
+        renderAdminRequests();
+        document.getElementById("accountSearch").focus();
+      },
       appearances(player, season) {
         if (season !== countSeason) {
           countSeason = season;
@@ -1128,8 +1155,9 @@
       document.getElementById("adminIdentity").textContent = `Signed in as ${state.user.firstName || state.user.email}`;
       const profilesRequest = window.ONMFirebase.post({ action: "getPublicPlayerProfiles" });
       const photosRequest = window.PlayerData?.fetchPlayerPhotosFromDrive?.().catch(() => ({})) || Promise.resolve({});
-      const [fixtures, results, finePayments, privatePlayers, users, profileResult, photos] = await Promise.all([
-        loadCollection("fixtures"), loadCollection("results"), loadCollection("finePayments"), loadCollection("players"), loadCollection("users"), profilesRequest, photosRequest
+      const [fixtures, results, finePayments, privatePlayers, users, profileResult, photos, teamSettings] = await Promise.all([
+        loadCollection("fixtures"), loadCollection("results"), loadCollection("finePayments"), loadCollection("players"), loadCollection("users"), profilesRequest, photosRequest,
+        pickTeamSettings().then(({ ref, firestoreSdk }) => firestoreSdk.getDoc(ref))
       ]);
       state.fixtures = fixtures;
       state.results = results;
@@ -1142,6 +1170,7 @@
       state.players = [...playerMap.values()].filter(player => player.publicName);
       state.linkedPlayerKeys = new Set(users.map(account => account.linkedPlayerKey).filter(Boolean));
       state.playerPhotos = photos || {};
+      state.pickTeamArchived = new Set(teamSettings.data()?.pickTeamArchivedPlayerKeys || []);
       gate.classList.add("hidden");
       app.classList.remove("hidden");
       attachListeners();

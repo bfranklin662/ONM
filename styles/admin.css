@@ -261,3 +261,30 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .pickTeamPlayer img { border-radius: 50%; object-fit: cover; }
 .pickTeamPlayer strong { overflow-wrap: anywhere; }
 .pickTeamPlayer span { color: #d1e2d8; font-size: .7rem; }
+
+.pickTeamTile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid #3c5b4f;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.pickTeamTile .pickTeamPlayer { flex: 1; border: 0; border-radius: 0; }
+.pickTeamTile div.pickTeamPlayer { cursor: default; }
+.pickTeamPlayer .pickTeamLinked { color: #b3efc6; font-size: inherit; }
+.pickTeamPlayerActions { display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; padding: 4px; }
+.pickTeamPlayerActions button {
+  background: transparent;
+  color: #d1e2d8;
+  border: 0;
+  border-radius: 4px;
+  padding: 4px 5px;
+  font-size: .72rem;
+  cursor: pointer;
+}
+.pickTeamPlayerActions button:hover { background: #305f44; }
+.pickTeamArchive { margin-top: 20px; padding: 12px; border: 1px solid #456857; border-radius: 10px; }
+.pickTeamArchive summary { cursor: pointer; font-weight: 700; }
+.pickTeamArchive[open] summary { margin-bottom: 12px; }

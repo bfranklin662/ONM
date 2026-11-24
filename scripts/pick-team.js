@@ -2,7 +2,7 @@
   "use strict";
 
   const LIMIT = 12;
-  const GROUPS = ["Available", "Not sure", "Not updated", "Unavailable"];
+  const GROUPS = ["Selected", "Available", "Not sure", "Not updated", "Unavailable"];
   const normal = value => String(value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
   const person = value => normal(value).replace(/\s*\((?:c|vc)\)$/, "");
 
@@ -116,10 +116,14 @@
     return source ? `${detail} Showing ${source.toLowerCase()}.` : `${detail} You can also import the sheet CSV.`;
   }
 
-  function init({ upcoming, roster, appearances, dateKey, rowFor, photo, escape, save, toast }) {
+  function init({ upcoming, roster, appearances, dateKey, rowFor, photo, escape, save, toast, linked, archived, setArchived, link }) {
     const el = id => document.getElementById(id);
     const picker = el("pickTeamFixture");
     const groups = el("pickTeamGroups");
+    const folder = el("pickTeamArchive");
+    const archiveCards = el("pickTeamArchiveCards");
+    const archiveCount = el("pickTeamArchiveCount");
+    const archiving = new Set();
     const selection = el("pickTeamSelection");
     const refresh = el("pickTeamRefresh");
     const csv = el("pickTeamCsv");
@@ -143,10 +147,30 @@
       return Array.from({ length: LIMIT }, (_, i) => row[`Player${i + 1}`]).filter(Boolean);
     }
 
+    const displayName = player => player.fullName?.trim() || player.publicName;
+
+    function renderPlayer({ player, count }, names, inArchive = false) {
+      const name = displayName(player);
+      const selected = names.includes(player.publicName);
+      const isLinked = linked(player);
+      const key = escape(player.playerKey);
+      const body = `<img src="${escape(photo(player))}" width="52" height="52" alt="" loading="lazy">
+        <strong>${escape(name)}${isLinked ? ' <span class="pickTeamLinked" role="img" aria-label="Linked account" title="Linked account">✓</span>' : ""}</strong>
+        <span>${count} ${count === 1 ? "appearance" : "appearances"}</span>`;
+      return `<div class="pickTeamTile">
+        ${inArchive ? `<div class="pickTeamPlayer">${body}</div>` :
+          `<button type="button" class="pickTeamPlayer" data-pick-player="${escape(player.publicName)}" aria-pressed="${selected}"${saving ? " disabled" : ""}>${body}</button>`}
+        <div class="pickTeamPlayerActions">
+          ${isLinked ? "" : `<button type="button" data-pick-link="${key}" aria-label="Link account for ${escape(name)}">Link</button>`}
+          <button type="button" data-pick-archive="${key}" aria-label="${inArchive ? "Restore" : "Archive"} ${escape(name)}"${archiving.has(player.playerKey) || saving ? " disabled" : ""}>${inArchive ? "Restore" : "Archive"}</button>
+        </div>
+      </div>`;
+    }
+
     function renderSelection(fixture) {
       const names = chosen(fixture);
       selection.innerHTML = `<div><strong>Selected team · ${names.length}/${LIMIT}</strong>
-        <span>${names.length ? names.map(escape).join(" · ") : "Select players below in playing order."}</span></div>
+        <span>${names.length ? names.map(name => escape(displayName(roster().find(player => player.publicName === name) || { publicName: name }))).join(" · ") : "Select players below in playing order."}</span></div>
         <button type="button" class="btn btnPrimary" data-pick-team-save${saving || !drafts.has(fixture.id) ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button>`;
     }
 
@@ -160,6 +184,11 @@
       if (fixtures.some(item => item.id === previous)) picker.value = previous;
       picker.disabled = saving || !fixtures.length;
       const fixture = activeFixture();
+      const archivedPlayers = roster().filter(archived).sort((a, b) => displayName(a).localeCompare(displayName(b)));
+      archiveCount.textContent = archivedPlayers.length;
+      archiveCards.innerHTML = archivedPlayers.map(player =>
+        renderPlayer({ player, count: appearances(player, fixture?.season || "26-27") }, [], true)
+      ).join("") || '<p class="pickTeamEmpty">No archived players</p>';
       if (!fixture) {
         status.textContent = "No upcoming match fixtures.";
         selection.replaceChildren();
@@ -172,24 +201,17 @@
         (match ? source : sheet.length ? "No unique match for this fixture in the availability sheet." : "Availability isn’t loaded yet.");
       renderSelection(fixture);
       const names = chosen(fixture);
-      const players = roster().map(player => ({
+      const players = roster().filter(player => !archived(player)).map(player => ({
         player,
         count: appearances(player, fixture.season),
         group: match ? playerStatus(player, match) : "Availability not loaded"
-      })).sort((a, b) => b.count - a.count || a.player.publicName.localeCompare(b.player.publicName));
-      const linkedNames = new Set(match ? players.map(({ player }) => playerSheetKey(player, match)) : []);
+      })).sort((a, b) => b.count - a.count || displayName(a.player).localeCompare(displayName(b.player)));
+      const linkedNames = new Set(match ? roster().map(player => playerSheetKey(player, match)) : []);
       const unmatched = match ? [...match.sheetNames].filter(([key]) => !linkedNames.has(key)) : [];
       const headings = match ? [...GROUPS, "No matching sheet row"] : ["Availability not loaded"];
       groups.innerHTML = headings.map(heading => {
         const entries = players.filter(entry => entry.group === heading);
-        return `<section class="pickTeamGroup"><h3>${escape(heading)} <span>${entries.length}</span></h3>${entries.length ? `<div class="pickTeamCards">${entries.map(({ player, count }) => {
-          const selected = names.includes(player.publicName);
-          return `<button type="button" class="pickTeamPlayer" data-pick-player="${escape(player.publicName)}" aria-pressed="${selected}"${saving ? " disabled" : ""}>
-            <img src="${escape(photo(player))}" width="52" height="52" alt="" loading="lazy">
-            <strong>${escape(player.publicName)}</strong>
-            <span>${count} ${count === 1 ? "appearance" : "appearances"}</span>
-          </button>`;
-        }).join("")}</div>` : '<p class="pickTeamEmpty">No players</p>'}</section>`;
+        return `<section class="pickTeamGroup"><h3>${escape(heading)} <span>${entries.length}</span></h3>${entries.length ? `<div class="pickTeamCards">${entries.map(entry => renderPlayer(entry, names)).join("")}</div>` : '<p class="pickTeamEmpty">No players</p>'}</section>`;
       }).join("") + (unmatched.length ? `<section class="pickTeamGroup"><h3>Sheet names without a player profile</h3>
         <p class="pickTeamEmpty">Link these names to a club player before selecting them.</p>
         <ul>${unmatched.map(([key, name]) => `<li>${escape(name)} · ${escape(match.responses.get(key) || "Duplicate sheet row")}</li>`).join("")}</ul></section>` : "");
@@ -257,6 +279,33 @@
       button.setAttribute("aria-pressed", String(!selected));
       renderSelection(fixture);
     });
+    async function handleRosterAction(event) {
+      const linkButton = event.target.closest("[data-pick-link]");
+      const archiveButton = event.target.closest("[data-pick-archive]");
+      const key = linkButton?.dataset.pickLink || archiveButton?.dataset.pickArchive;
+      const player = roster().find(item => item.playerKey === key);
+      if (!player) return;
+      if (linkButton) {
+        link(player);
+        return;
+      }
+      if (saving || archiving.has(key)) return;
+      const toArchive = !archived(player);
+      archiving.add(key);
+      archiveButton.disabled = true;
+      try {
+        await setArchived(player, toArchive);
+        toast(toArchive ? "Player archived." : "Player restored.");
+      } catch (error) {
+        toast(error.message || "Could not update the archive.", true);
+      } finally {
+        archiving.delete(key);
+        render();
+      }
+    }
+
+    groups.addEventListener("click", handleRosterAction);
+    folder.addEventListener("click", handleRosterAction);
     selection.addEventListener("click", async event => {
       const fixture = activeFixture();
       if (!event.target.closest("[data-pick-team-save]") || !fixture || saving) return;
