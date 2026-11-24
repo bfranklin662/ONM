@@ -48,7 +48,7 @@
 .home-merch-feature {
   display: block;
   width: 100%;
-  height: clamp(160px, 31vw, 330px);
+  height: clamp(200px, 40vw, 420px);
   object-fit: cover;
   object-position: center 75%;
   border-radius: 10px;
@@ -80,7 +80,7 @@
   box-sizing: border-box;
 }
 
-#merch .home-merch-shirt img { height: 132px; aspect-ratio: auto; object-fit: contain; }
+#merch .home-merch-shirt img { height: clamp(185px, 24vw, 275px); aspect-ratio: auto; object-fit: contain; }
 #merch .home-merch-shirt span { font-size: .8rem; }
 .home-merch-actions {
   display: flex;
@@ -95,7 +95,6 @@
 .merchRailControls { display: flex; gap: 6px; margin-left: auto; }
 .merchRailControls button{width:34px;height:34px;border:1px solid #507d5d;border-radius:8px;background:#1b402b;color:#e2f6e8;font-size:24px;cursor:pointer}
 @media(max-width:650px){
- #fixtures .fixtureViewBar{gap:10px;margin-bottom:10px}
  #fixtures .fixtureLegend{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:12px;padding-bottom:4px;scrollbar-width:thin;max-width:100%}
  #fixtures .fixtureLegend li{flex:none;font-size:9px}
  #fixtures .fixtureCalendarToolbar{padding:10px;gap:5px}
@@ -349,4 +348,24 @@ html:has(.homeSectionMenu) { scroll-padding-top:0; }
 
 @media (max-width: 570px) {
   .clubCompetitions .home-comps-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+
+/* Flip the scroll container vertically to put its native scrollbar above the products. */
+#merch-tee-rail,
+#merch-tee-rail > .home-merch-shirt { transform: scaleY(-1); }
+
+.fixtureSectionHeader { margin-bottom: 12px; }
+.homePage .home-shell .fixtureSectionHeader .home-section-heading { margin-bottom: 10px; }
+
+@media (min-width: 801px) {
+  .fixtureSectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .homePage .home-shell .fixtureSectionHeader .home-section-heading { margin-bottom: 0; }
+  .fixtureSectionHeader .fixtureViewSwitch { flex: none; }
 }

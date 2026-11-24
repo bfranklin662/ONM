@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="styles/fixtures.css?v=20261123-club-about">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/home-refresh.css?v=20261124-merch-follow">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/home-refresh.css?v=20261124-merch-fixtures">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
   <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
@@ -89,18 +89,18 @@
 
 
     <section id="fixtures" class="home-section fixturesContainer">
-      <div class="home-section-heading">
-        <p>OCHE NESS MONSTERS</p>
-        <h2>Fixtures &amp; results</h2>
+      <div class="fixtureSectionHeader">
+        <div class="home-section-heading">
+          <p>OCHE NESS MONSTERS</p>
+          <h2>Fixtures &amp; results</h2>
+        </div>
+        <div class="fixtureViewSwitch" role="group" aria-label="Fixtures view">
+          <button type="button" data-fixtures-view="calendar" aria-pressed="true" aria-controls="fixtureCalendar">Calendar</button>
+          <button type="button" data-fixtures-view="cards" aria-pressed="false" aria-controls="fixturesCarousel">Cards</button>
+        </div>
       </div>
       <div class="fixturesGlass">
         <div id="fixturesBanner" class="fixturesBanner" aria-label="Fixtures">
-          <div class="fixtureViewBar">
-            <div class="fixtureViewSwitch" role="group" aria-label="Fixtures view">
-              <button type="button" data-fixtures-view="calendar" aria-pressed="true" aria-controls="fixtureCalendar">Calendar</button>
-              <button type="button" data-fixtures-view="cards" aria-pressed="false" aria-controls="fixturesCarousel">Cards</button>
-            </div>
-          </div>
           <div id="fixtureCalendar" class="fixtureCalendar" aria-busy="true" role="region" aria-labelledby="fixtureCalendarMonth">
             <div class="fixtureCalendarToolbar">
               <div class="fixtureMonthHeading" aria-live="polite" aria-atomic="true">
