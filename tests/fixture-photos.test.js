@@ -4,9 +4,9 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname,'../scripts/fixture-photos.js'),'utf8');
-function harness(loader) {
+function harness(loader, timers = { setTimeout, clearTimeout }) {
   const container = { innerHTML:'' }, events = {};
-  const context = { document:{getElementById:()=>container,addEventListener:(event,handler)=>{events[event]=handler}}, window:{ONMResultPhotos:{thumbnail:url=>url,loadMatchPhotos:loader}} };
+  const context = { ...timers, document:{getElementById:()=>container,addEventListener:(event,handler)=>{events[event]=handler}}, window:{ONMResultPhotos:{thumbnail:url=>url,loadMatchPhotos:loader}} };
   vm.createContext(context);vm.runInContext(source,context);
   return {api:context.window.ONMFixturePhotos,container,events};
 }
@@ -35,4 +35,17 @@ test('an upload refreshes only its own open match',async()=>{
  h.events['onm-result-photos-changed']({detail:{resultId:'current'}});
  await new Promise(resolve=>setImmediate(resolve));
  assert.deepEqual(requests.at(-1),{id:'current',force:true});
+});
+
+test('a stalled photo request shows the spinner and uploader, then allows retry',async()=>{
+ let expire;
+ const h=harness(()=>new Promise(()=>{}),{setTimeout:fn=>{expire=fn;return 1;},clearTimeout(){}});
+ const pending=h.api.show({completed:true,resultRow:{_resultId:'saved-match'}});
+ assert.match(h.container.innerHTML,/fixturePhotosSpinner/);
+ assert.match(h.container.innerHTML,/Add photos/);
+ expire();
+ await pending;
+ assert.doesNotMatch(h.container.innerHTML,/fixturePhotosSpinner/);
+ assert.match(h.container.innerHTML,/data-retry-fixture-photos/);
+ assert.match(h.container.innerHTML,/Add photos/);
 });

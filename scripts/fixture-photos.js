@@ -1,23 +1,29 @@
 (function () {
   let current = null, photos = [], revision = 0, viewer, viewerIndex = 0;
   const escape = value => String(value || "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
-  function render(partial = false) {
+  function render(partial = false, loading = false) {
     const container = document.getElementById('fixtureMatchPhotos');
     if (!container || !current) return;
     const id = current.resultRow?._resultId;
     const extra = Math.max(0, photos.length - 8);
-    container.innerHTML = `<h4>Match photos</h4><div class="fixturePhotoGrid match-image-grid" data-photo-count="${photos.length}">${photos.slice(0,8).map((url,index)=>`<button type="button" class="photo-slot ${index===7&&extra?'image-count-overlay':''}" data-photo-index="${index}" data-fixture-photo="${index}" data-extra="${index===7&&extra?'+'+extra:''}" aria-label="View match photo ${index+1} of ${photos.length}"><img src="${escape(window.ONMResultPhotos.thumbnail(url)||url)}" data-drive-thumb="1" alt="Match photo ${index+1}" loading="lazy" decoding="async"></button>`).join('')}${id ? `<button type="button" class="addResultPhotos result-photo-frame" data-add-result-photos="${encodeURIComponent(id)}" hidden><span class="result-photo-plus" aria-hidden="true">+</span><span>${photos.length?'Add more':'Add photos'}</span></button>` : ''}</div>${partial?'<p class="fixturePhotosNotice" role="status">Some photos could not be loaded. <button type="button" data-retry-fixture-photos>Retry</button></p>':!photos.length?'<p class="fixturePhotosNotice">No photos added yet.</p>':''}`;
+    container.innerHTML = `<h4>Match photos</h4><div class="fixturePhotoGrid match-image-grid" data-photo-count="${photos.length}">${photos.slice(0,8).map((url,index)=>`<button type="button" class="photo-slot ${index===7&&extra?'image-count-overlay':''}" data-photo-index="${index}" data-fixture-photo="${index}" data-extra="${index===7&&extra?'+'+extra:''}" aria-label="View match photo ${index+1} of ${photos.length}"><img src="${escape(window.ONMResultPhotos.thumbnail(url)||url)}" data-drive-thumb="1" alt="Match photo ${index+1}" loading="lazy" decoding="async"></button>`).join('')}${id ? `<button type="button" class="addResultPhotos result-photo-frame" data-add-result-photos="${encodeURIComponent(id)}" hidden><span class="result-photo-plus" aria-hidden="true">+</span><span>${photos.length?'Add more':'Add photos'}</span></button>` : ''}</div>${loading?'<p class="fixturePhotosNotice fixturePhotosLoading" role="status"><span class="fixturePhotosSpinner" aria-hidden="true"></span>Loading photos…</p>':partial?'<p class="fixturePhotosNotice" role="status">Some photos could not be loaded. <button type="button" data-retry-fixture-photos>Retry</button></p>':!photos.length?'<p class="fixturePhotosNotice">No photos added yet.</p>':''}`;
   }
   async function show(fixture, force = false) {
     current = fixture;
     photos = [];
     const token = ++revision;
     if (!fixture?.completed || !fixture.resultRow) return;
+    render(false, true);
+    let timer;
     try {
-      const result = await window.ONMResultPhotos.loadMatchPhotos(fixture.resultRow,force);
+      const result = await Promise.race([
+        window.ONMResultPhotos.loadMatchPhotos(fixture.resultRow, force),
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("Photo loading timed out")), 12000); })
+      ]);
       if (token !== revision) return;
       photos = result.urls; render(result.partial);
     } catch (_) { if (token === revision) render(true); }
+    finally { clearTimeout(timer); }
   }
   function updateViewer() {
     viewer.querySelector('img').src = photos[viewerIndex];
