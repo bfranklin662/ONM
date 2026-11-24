@@ -71,36 +71,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       card.style.display = match ? "" : "none";
 
 
-      // used for sorting
-      card._searchName = name;
-      card._matchIndex = q ? name.indexOf(q) : 0;
     });
-
-    // Sort visible first, then best match, then alpha
-    cards.sort((a, b) => {
-      const ah = a.style.display === "none" ? 1 : 0;
-      const bh = b.style.display === "none" ? 1 : 0;
-
-      if (ah !== bh) return ah - bh;
-
-      if (a.style.display !== "none" && b.style.display !== "none" && q) {
-        if (a._matchIndex !== b._matchIndex) return a._matchIndex - b._matchIndex;
-      }
-
-      return (a._searchName || "").localeCompare(b._searchName || "", undefined, { sensitivity: "base" });
-    });
-
-    const frag = document.createDocumentFragment();
-    cards.forEach(c => frag.appendChild(c));
-    grid.appendChild(frag);
   }
-
-  function applySearchIfActive() {
-    const q = (playerSearch?.value || "").trim();
-    if (q) searchSortCards();
-  }
-
-
 
   playerSearch?.addEventListener("input", searchSortCards);
 
@@ -563,8 +535,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     const sortSelect = document.getElementById("sortBySelect");
     window.playersWithStats = playersWithStats; // keep latest stats
 
+    const sortButtons = [...document.querySelectorAll("[data-player-sort]")];
+    let activeSort = "checkouts";
+    let ascending = false;
+
+    function updateSortButtons() {
+      sortButtons.forEach(button => {
+        const active = button.dataset.playerSort === activeSort;
+        button.setAttribute("aria-pressed", String(active));
+        button.dataset.direction = active ? (ascending ? "asc" : "desc") : "";
+        const label = button.dataset.label;
+        button.setAttribute("aria-label", active ? `${label}, ${ascending ? "ascending" : "descending"}` : label);
+      });
+    }
+
     function getSortValue(p, sortKey) {
       switch (sortKey) {
+        case "specials": return Object.values(p.specials).reduce((total, count) => total + count, 0);
+        case "accolades": return playerAccolades(window.playerProfiles[p.name]).length;
         case "checkouts": return p.checkouts;
         case "joined": return p.joinedAt || 0;
         case "coRatio": return p.coRatio;
@@ -580,11 +568,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    function resortAndRender(sortKey) {
+    function resortAndRender(sortKey, sortAscending = false) {
+      activeSort = sortKey;
+      ascending = sortAscending;
+      updateSortButtons();
       const sorted = [...window.playersWithStats].sort((a, b) => {
-        const av = getSortValue(a, sortKey);
-        const bv = getSortValue(b, sortKey);
-        return (bv ?? 0) - (av ?? 0);
+        const nameOrder = a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        if (sortKey === "name") return sortAscending ? nameOrder : -nameOrder;
+        const difference = getSortValue(a, sortKey) - getSortValue(b, sortKey);
+        return (sortAscending ? difference : -difference) || nameOrder;
       });
 
       const byKey = new Map();
@@ -608,8 +600,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
 
-    // Sort DESC by checkouts
-    playersWithStats.sort((a, b) => b.checkouts - a.checkouts);
+    sortButtons.forEach(button => {
+      button.dataset.label = button.getAttribute("aria-label");
+      button.disabled = false;
+      button.addEventListener("click", () => {
+        const key = button.dataset.playerSort;
+        resortAndRender(key, key === activeSort ? !ascending : key === "name");
+        if (sortSelect) sortSelect.value = key;
+      });
+    });
 
     // Map existing cards by key
     const byKey = new Map();
@@ -667,9 +666,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     grid.appendChild(frag);
 
-    // Re-apply fan delays based on sorted order
-    applyFanAnimationDelays(playersWithStats);
-    applySearchIfActive();
+    resortAndRender("checkouts");
 
 
   } catch (err) {

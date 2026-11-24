@@ -953,6 +953,9 @@
     const today = todayNoon();
 
     const normalized = fixtures.map(fx => {
+      const isTrafalgarCup = /^trafalgar\s*-\s*(?:challenge cup team ko|secretary's cup)$/i.test(String(fx.League || "").trim());
+      if (isTrafalgarCup && /^tb[cv]$/i.test(String(fx.Opponent || "").trim())) return null;
+
       const d = parseFixtureDate(fx.Date);
       if (!d) return null;
 
