@@ -100,8 +100,15 @@
 .profile-game-progress { padding:16px; margin-top:14px; border:1px solid #3c654d; border-radius:12px; background:#143324; }
 .profile-game-progress[hidden] { display:none; }
 .profile-game-progress h3 { margin:0 0 10px; font-size:.95rem; }
-.profile-game-progress .game-progress-stats { display:flex; flex-wrap:wrap; gap:12px; font:500 13px system-ui,sans-serif; }
-.profile-game-progress .game-progress-stats strong { color:#ffdc3d; font-weight:700; }
+.profile-game-progress .game-progress-stats { display:grid; gap:9px; font:500 12px system-ui,sans-serif; }
+.profile-bot-badges { display:flex; flex-wrap:wrap; gap:5px; }
+.profile-bot-badges > span { border:1px solid currentColor; border-radius:999px; padding:3px 8px; font-weight:700; }
+.profile-bot-wins { background:#113d2d; color:#8ce8bd; }
+.profile-bot-flawless { background:#3a3017; color:#ffdb69; }
+.profile-bot-trophies { background:#283931; color:#dbefe4; }
+.profile-bot-completion { display:flex; align-items:center; gap:8px; }
+.profile-bot-completion progress { flex:1; min-width:0; height:8px; accent-color:#73dbaa; }
+.profile-game-progress .game-progress-stats + .profile-tournament-heading { margin-top:14px; }
 .profile-tournament-awards { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
 .profile-tournament-awards a { display:inline-flex; align-items:center; gap:6px; border:1px solid #8c7740; border-radius:8px; background:#343419; color:#f5d65f; padding:7px 10px; text-decoration:none; font:600 12px system-ui,sans-serif; }
 #playerProfileSection .player-page-container { min-width:0; }
@@ -205,9 +212,9 @@
 #playerProfileSection .profile-stat-box { min-width: 0; text-align: center; }
 #playerProfileSection .header-form { grid-area: extras; width: 100%; min-width: 0; max-width: none; min-height: 0; align-items: stretch; gap: 8px; }
 #playerProfileSection .profile-extras-card { width: 100%; background: #102b1e; border: 1px solid #416b4f; border-radius: 9px; padding: 9px 10px; margin: 0; }
-#playerProfileSection .form-medals-bottom { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 7px 8px; align-items: center; }
+#playerProfileSection .form-medals-bottom { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 7px 8px; align-items: center; }
 #playerProfileSection .form-fines-row, #playerProfileSection .last5-block { display: contents; }
-#playerProfileSection :is(.last5-title, .medals-title, .walkout-badge) {
+#playerProfileSection :is(.last5-title, .medals-title, .accolades-title, .walkout-badge) {
   position: static; padding: 0; margin: 0; background: none; border: 0; color: #c5dfce;
   font: 650 .73rem/1.2 system-ui,sans-serif; text-align: left;
 }
@@ -282,8 +289,9 @@
   #playerProfileSection .appearance-table-container { margin-top: 2px; }
   #playerProfileSection .appearance-season-title { margin-block: 4px 3px; }
 }
+#playerProfileSection .profile-accolades-row:not([hidden]) { display: contents; }
 #playerProfileSection .profile-accolade-pills {
-  display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px;
+  display: flex; flex-wrap: wrap; gap: 3px;
 }
 #playerProfileSection .profile-accolade-pill {
   padding: 2px 5px; border: 1px solid #6e613d; border-radius: 999px;

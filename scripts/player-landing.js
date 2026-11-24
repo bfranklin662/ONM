@@ -105,14 +105,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const accoladeMap = {
-    guthrie_cup_winner_25_26: { emoji: "🏆", tooltip: "Guthrie Cup Winner 2025/26" },
+    guthrie_cup_winner_25_26: { emoji: "🏆", tooltip: "Guthrie Cup Winner 25/26" },
     banks_winner_24_25: {
       emoji: "⭐",
-      tooltip: "Banks League 2024/25"
+      tooltip: "Banks Div 2 Winner 24/25"
     },
     alex_beckett_winner_25: {
       emoji: "🏆",
-      tooltip: "Alex Beckett Cup 2025"
+      tooltip: "Alex Beckett Winner 24/25"
     },
     mpl_winner_25: {
       emoji: "🏅",

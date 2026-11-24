@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="styles/player-profile.css?v=20261124-mobile-appearances">
   <link rel="stylesheet" href="styles/players-landing.css?v=20261120-green-headers">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
-  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261124-match-checkouts">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261124-profile-honours">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
   <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
@@ -108,7 +108,6 @@
                       <div id="playerNickname" class="info-item"></div>
                       <div class="info-item"><span class="meta-label">Date joined:</span> <span id="playerDateJoined" class="meta-value">...</span></div>
                       <div id="playerHighestCheckout" class="info-item"><span class="meta-label">Highest checkout:</span> <span class="meta-value">…</span></div>
-                      <div id="profilePhotoAccolades" class="profile-accolade-pills" aria-label="Accolades"></div>
                     </div>
                     <div class="profile-detail-actions">
                       <a class="profileOweLink" hidden href="fines.html">What I owe</a>
@@ -125,6 +124,10 @@
                   </div>
                   <div class="medals-title">Medals</div>
                   <div id="playerMedals" class="medals-row"></div>
+                  <div id="profileAccoladesRow" class="profile-accolades-row" hidden>
+                    <div class="accolades-title">Accolades</div>
+                    <div class="profile-accolade-pills"></div>
+                  </div>
                 </div>
                 <div class="walkout-wrap">
                   <div class="walkout-embed profile-extras-card">
@@ -311,8 +314,8 @@
   <script src="scripts/season-data.js?v=20261014-admin"></script>
   <script src="scripts/player-data.js?v=20261016-registration"></script>
   <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
-  <script src="scripts/profile-game-progress.js?v=20261120-profile-games"></script>
-  <script src="scripts/player-profile.js?v=20261124-match-checkouts"></script>
+  <script src="scripts/profile-game-progress.js?v=20261124-profile-honours"></script>
+  <script src="scripts/player-profile.js?v=20261124-profile-honours"></script>
   <script>
     function toggleSidebar() {
       const sidebar = document.getElementById("sidebar");

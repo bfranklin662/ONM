@@ -82,12 +82,13 @@ function initProfileAccountDetails(name, profileData) {
   const owe = document.querySelector(".profileOweLink");
   const heading = document.getElementById("playerName");
   let revision = 0;
-  window.ONMFirebase?.ready.then(({ auth, authSdk }) => {
+  window.ONMFirebase?.ready.then(({ auth, authSdk, db, firestoreSdk }) => {
     authSdk.onAuthStateChanged(auth, async user => {
       const current = ++revision;
       if (owe) owe.hidden = true;
       showPlayerAccountLink(false);
-      heading?.querySelector(".profileLinkedBadge")?.remove();
+      if (heading) heading.textContent = name;
+      document.title = `Player Profile - ${name}`;
       const imageButton = document.getElementById("editOwnPlayerImage");
       if (imageButton) imageButton.hidden = true;
       if (!user || !profileData.playerKey) return;
@@ -95,6 +96,13 @@ function initProfileAccountDetails(name, profileData) {
         const account = await window.ONMFirebase.loadOwnUser();
         if (current !== revision || account?.status !== "Active") return;
         const isOwnPage = account.linkedPlayerKey === profileData.playerKey;
+        firestoreSdk.getDoc(firestoreSdk.doc(db, "players", profileData.playerKey)).then(snapshot => {
+          const fullName = snapshot.data()?.fullName?.trim();
+          if (current !== revision || !fullName) return;
+          const nameText = heading?.firstChild;
+          if (nameText) nameText.textContent = fullName;
+          document.title = `Player Profile - ${fullName}`;
+        }).catch(() => {});
         if (owe) owe.hidden = !isOwnPage;
         if (imageButton) imageButton.hidden = !isOwnPage;
         showPlayerAccountLink(isOwnPage);
@@ -155,9 +163,9 @@ function makeProfileAccoladesHtml(profile) {
   if (!keys.length) return "";
 
   const accoladeMap = {
-    guthrie_cup_winner_25_26: { icon: "🏆", tip: "Guthrie Cup Winner 2025/26" },
-    banks_winner_24_25: { icon: "⭐", tip: "Banks League Div 2 Winner 2024/25" },
-    alex_beckett_winner_25: { icon: "🏆", tip: "Alex Beckett League Winner 2024/25" },
+    guthrie_cup_winner_25_26: { icon: "🏆", tip: "Guthrie Cup Winner 25/26" },
+    banks_winner_24_25: { icon: "⭐", tip: "Banks Div 2 Winner 24/25" },
+    alex_beckett_winner_25: { icon: "🏆", tip: "Alex Beckett Winner 24/25" },
     mpl_winner_25: { icon: "🏅", tip: "Monsters Premier League Winner 2025" }
   };
 
@@ -979,13 +987,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (last5Title) last5Title.style.display = "none";
   if (walkoutWrapper) walkoutWrapper.style.display = "none";
 
-  const photoAccoladesEl = document.getElementById("profilePhotoAccolades");
-  if (photoAccoladesEl) {
-    photoAccoladesEl.style.display = "none";
-    photoAccoladesEl.innerHTML = "";
-  }
-
-
   const medalsSection = document.getElementById("medalsSection");
   if (medalsSection) medalsSection.style.display = "none";
 
@@ -1243,18 +1244,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    const accEl = document.getElementById("profilePhotoAccolades");
-
-    if (accEl) {
-      const html = makeProfileAccoladesHtml(profileData);
-
-      if (html) {
-        accEl.innerHTML = html;
-        accEl.style.display = ""; // reveal ONLY now
-      } else {
-        accEl.innerHTML = "";
-        accEl.style.display = "none"; // fully gone
-      }
+    const accoladeRow = document.getElementById("profileAccoladesRow");
+    if (accoladeRow) {
+      const accolades = makeProfileAccoladesHtml(profileData);
+      accoladeRow.querySelector(".profile-accolade-pills").innerHTML = accolades;
+      accoladeRow.hidden = !accolades;
     }
 
   }

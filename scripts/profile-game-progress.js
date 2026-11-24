@@ -29,7 +29,26 @@
   let progress = null, awards = [];
   function render() {
     section.hidden = !progress && !awards.length;
-    section.innerHTML = `${progress ? `<h3>Monster Bot</h3><div class="game-progress-stats"><span>Challenges <strong>${progress.challenges}/100</strong></span><span>Flawless <strong>${progress.flawless}</strong></span><span>Mastery trophies <strong>${progress.trophies}</strong></span><a href="monster-bot.html">Play Monster Bot ↗</a></div>` : ""}${awards.length ? `<h3${progress ? ' style="margin-top:16px"' : ""}>Tournament accolades</h3><div class="profile-tournament-awards">${awards.map(award=>`<a href="tournament.html?id=${encodeURIComponent(award.id)}" title="${escape(award.mode)} tournament winner">🏆 ${escape(award.title)} · ${escape(award.mode)} winner</a>`).join("")}</div>` : ""}`;
+    const ladder = progress ? `
+      <h3>Monster Bot</h3>
+      <div class="game-progress-stats">
+        <div class="profile-bot-badges">
+          <span class="profile-bot-wins"><span aria-hidden="true">✓</span> Wins ${progress.challenges}/100</span>
+          <span class="profile-bot-flawless"><span aria-hidden="true">⭐</span> Flawless ${progress.flawless}</span>
+          <span class="profile-bot-trophies"><span aria-hidden="true">🏆</span> Mastery trophies ${progress.trophies}</span>
+        </div>
+        <div class="profile-bot-completion">
+          <progress max="100" value="${progress.challenges}" aria-label="Monster Bot challenge completion"></progress>
+          <span>${progress.challenges}% complete</span>
+        </div>
+        <a href="monster-bot.html">Play Monster Bot ↗</a>
+      </div>` : "";
+    const tournaments = awards.length ? `
+      <h3 class="profile-tournament-heading">Tournament accolades</h3>
+      <div class="profile-tournament-awards">${awards.map(award =>
+        `<a href="tournament.html?id=${encodeURIComponent(award.id)}" title="${escape(award.mode)} tournament winner">🏆 ${escape(award.title)} · ${escape(award.mode)} winner</a>`
+      ).join("")}</div>` : "";
+    section.innerHTML = ladder + tournaments;
   }
   function start() {
     const player = window.ONMProfilePlayer;
