@@ -90,9 +90,30 @@
   }
 
   async function liveRows() {
-    const { app } = await window.ONMFirebase.ready;
+    const firebase = window.ONMFirebase;
+    const user = await firebase.currentFirebaseUser();
+    if (!user) throw Object.assign(new Error("Sign in to refresh availability."), { code: "functions/unauthenticated" });
+    const { app } = await firebase.ready;
     const sdk = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-functions.js");
-    return (await sdk.httpsCallable(sdk.getFunctions(app, "europe-west2"), "getTeamAvailability")({})).data.rows;
+    const getTeam = sdk.httpsCallable(sdk.getFunctions(app, "europe-west2"), "getTeamAvailability");
+    try {
+      return (await getTeam({})).data.rows;
+    } catch (error) {
+      if (error.code !== "functions/unauthenticated") throw error;
+      await user.getIdToken(true);
+      return (await getTeam({})).data.rows;
+    }
+  }
+
+  function liveFailureMessage(error, source) {
+    const detail = {
+      "functions/unauthenticated": "Sign out and back in as an ONM administrator, then refresh availability.",
+      "auth/user-token-expired": "Sign out and back in as an ONM administrator, then refresh availability.",
+      "functions/permission-denied": "An active ONM admin or owner account is required to load the sheet.",
+      "functions/failed-precondition": error.message,
+      "functions/unavailable": "The site could not reach the availability sheet. Try Refresh availability again."
+    }[error.code] || "Live availability could not be loaded. Try Refresh availability again.";
+    return source ? `${detail} Showing ${source.toLowerCase()}.` : `${detail} You can also import the sheet CSV.`;
   }
 
   function init({ upcoming, roster, appearances, dateKey, rowFor, photo, escape, save, toast }) {
@@ -188,11 +209,8 @@
           sheet = next;
           source = "Live availability sheet";
         }
-      } catch {
-        if (version === requestVersion) {
-          message = sheet.length ? `Live availability is unavailable. Showing ${source.toLowerCase()}.` :
-            "Live availability is unavailable. Import a CSV from the Availability tab to see the responses.";
-        }
+      } catch (error) {
+        if (version === requestVersion) message = liveFailureMessage(error, source);
       } finally {
         loading = false;
         refresh.disabled = false;
