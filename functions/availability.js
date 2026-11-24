@@ -122,6 +122,7 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
       throw problem("invalid-argument", "Choose a club player.");
     }
     const playerSnapshot = await db.doc(`players/${playerKey}`).get();
+    if (!playerSnapshot.exists && playerKey === "george-m") return { publicName: "George M", fullName: "George Mills" };
     if (!playerSnapshot.exists) throw problem("failed-precondition", "That player profile could not be found.");
     return playerSnapshot.data();
   }
@@ -213,7 +214,8 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
       throw problem("failed-precondition", "This sheet cell is not an availability dropdown. Please ask a club administrator to check it.");
     }
     const allowed = rule.condition.values.map(value => value.userEnteredValue);
-    if (CHOICES.some(choice => !allowed.includes(choice)) || allowed.includes("Selected")) {
+    const selectedOnly = allowed.length === 1 && allowed[0] === "Selected" && !rule.showCustomUi;
+    if (!selectedOnly && (CHOICES.some(choice => !allowed.includes(choice)) || allowed.includes("Selected"))) {
       throw problem("failed-precondition", "The sheet's availability choices have changed. Please refresh.");
     }
     return rule;
@@ -229,8 +231,8 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     const currentRaw = cellData.userEnteredValue?.stringValue || "";
     const current = STATUSES.find(choice => normalise(choice) === normalise(currentRaw)) || "";
     if (current !== payload.previousStatus) throw problem("aborted", "Your response changed in the sheet. Refresh before saving again.");
-    if (payload.status === "Selected") {
-      await sheets.overrideSelections([{ rowIndex: data.rowIndex, columnIndex: fixture.column, rule }]);
+    if (payload.status === "Selected" || rule.condition.values.some(value => value.userEnteredValue === "Selected")) {
+      await sheets.overrideSelections([{ rowIndex: data.rowIndex, columnIndex: fixture.column, rule, status: payload.status }]);
     } else {
       await sheets.update(cell, payload.status);
     }

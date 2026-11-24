@@ -7,7 +7,7 @@ const { defineSecret } = require("firebase-functions/params");
 const starlingToken = defineSecret("STARLING_ACCESS_TOKEN");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { GoogleAuth } = require("google-auth-library");
-const { SPREADSHEET_ID, SHEET_ID, createAvailabilityService } = require("./availability");
+const { SPREADSHEET_ID, SHEET_ID, CHOICES, createAvailabilityService } = require("./availability");
 
 initializeApp();
 const auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/spreadsheets"] });
@@ -26,17 +26,22 @@ const service = createAvailabilityService({
       return data.sheets?.[0]?.data?.[0]?.rowData?.[0]?.values?.[0] || {};
     },
     overrideSelections: entries => {
-      const requests = entries.flatMap(({ rowIndex, columnIndex, rule }) => {
+      const requests = entries.flatMap(({ rowIndex, columnIndex, rule, status = "Selected" }) => {
         const start = { sheetId: SHEET_ID, rowIndex, columnIndex };
         const range = {
           sheetId: SHEET_ID, startRowIndex: rowIndex, endRowIndex: rowIndex + 1,
           startColumnIndex: columnIndex, endColumnIndex: columnIndex + 1
         };
-        // Write the override and restore the original dropdown in a single batch.
+        const selected = status === "Selected";
+        const choices = selected ? [status] : CHOICES;
+        const nextRule = {
+          ...rule, strict: true, showCustomUi: !selected,
+          condition: { type: "ONE_OF_LIST", values: choices.map(userEnteredValue => ({ userEnteredValue })) }
+        };
         return [
           { setDataValidation: { range, rule: { ...rule, strict: false } } },
-          { updateCells: { start, fields: "userEnteredValue", rows: [{ values: [{ userEnteredValue: { stringValue: "Selected" } }] }] } },
-          { setDataValidation: { range, rule } }
+          { updateCells: { start, fields: "userEnteredValue", rows: [{ values: [status ? { userEnteredValue: { stringValue: status } } : {}] }] } },
+          { setDataValidation: { range, rule: nextRule } }
         ];
       });
       return request(`${base}:batchUpdate`, { method: "POST", data: { requests } });

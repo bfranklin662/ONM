@@ -2,6 +2,7 @@
   "use strict";
 
   const LIMIT = 12;
+  const RESPONSE_ACTIONS = ["Selected", "Available", "Not sure", "Unavailable"];
   const GROUPS = ["Selected", "Available", "Not sure", "Not updated", "Unavailable"];
   const normal = value => String(value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
   const person = value => normal(value).replace(/\s*\((?:c|vc)\)$/, "");
@@ -153,7 +154,7 @@
 
     const displayName = player => player.fullName?.trim() || player.publicName;
 
-    function renderPlayer({ player, count, group }, names, inArchive = false, canOverride = false) {
+    function renderPlayer({ player, count }, names, inArchive = false, canOverride = false) {
       const name = escape(displayName(player));
       const selected = names.includes(player.publicName);
       const isLinked = linked(player);
@@ -170,7 +171,7 @@
             <a href="player-profile.html?name=${encodeURIComponent(player.publicName)}">View player</a>
             <button type="button" data-pick-edit="${key}">Edit player</button>
             ${isLinked ? "" : `<button type="button" data-pick-link="${key}">Link account</button>`}
-            ${canOverride ? `<button type="button" data-pick-status="${key}">${group === "Selected" ? "Change sheet response" : "Mark Selected on sheet"}</button>` : ""}
+            ${canOverride ? RESPONSE_ACTIONS.map(status => `<button type="button" data-pick-status="${key}" data-availability-status="${status}">Mark ${status}</button>`).join("") : ""}
             <button type="button" data-pick-archive="${key}"${archiving.has(player.playerKey) || saving ? " disabled" : ""}>${inArchive ? "Restore to list" : "Archive from list"}</button>
           </div>
         </details>
@@ -284,6 +285,20 @@
       activateTab(tabs[next]);
     });
     refresh.addEventListener("click", refreshSheet);
+    document.addEventListener("click", event => {
+      const current = event.target.closest(".pickTeamSettings");
+      document.querySelectorAll("#pickTeamPanel .pickTeamSettings[open]").forEach(menu => {
+        if (menu !== current) menu.open = false;
+      });
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key !== "Escape") return;
+      const menu = document.querySelector("#pickTeamPanel .pickTeamSettings[open]");
+      if (menu) {
+        menu.open = false;
+        menu.querySelector("summary")?.focus();
+      }
+    });
 
     groups.addEventListener("click", event => {
       const button = event.target.closest("[data-pick-player]");
@@ -309,22 +324,11 @@
       const fixture = activeFixture();
       const match = fixture && matchSheet(sheet, rowFor(fixture), dateKey);
       const previous = match && playerStatus(player, match);
-      let status;
-      if (action.dataset.pickStatus) {
-        if (message || loading || !match || previous === "No matching sheet row") {
-          toast("Refresh availability before changing the sheet.", true);
-          return;
-        }
-        if (previous === "Selected") {
-          const response = window.prompt("Replace Selected with Available, Unavailable or Not sure, or leave blank to clear.", "");
-          if (response === null) return;
-          status = ["Available", "Unavailable", "Not sure", ""].find(choice => normal(choice) === normal(response));
-          if (status === undefined) { toast("Choose Available, Unavailable or Not sure.", true); return; }
-        } else {
-          if (!window.confirm(`Mark ${player.publicName} as Selected on the availability sheet?`)) return;
-          status = "Selected";
-        }
+      if (message || loading || !match || previous === "No matching sheet row") {
+        toast("Refresh availability before changing the sheet.", true);
+        return;
       }
+      const status = action.dataset.availabilityStatus;
       saving = true;
       render();
       try {

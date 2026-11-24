@@ -26,7 +26,7 @@ write endpoint, browser secrets, or service-account key file is required.
 
    ```sh
    npm --prefix functions install
-   npx firebase-tools deploy --only functions:availability:getPlayerAvailability,functions:availability:setPlayerAvailability,functions:availability:getTeamAvailability,functions:availability:setTeamAvailability,firestore:rules
+   npx firebase-tools deploy --only functions:availability:getPlayerAvailability,functions:availability:setPlayerAvailability,functions:availability:getTeamAvailability,functions:availability:setTeamAvailability,functions:availability:selectTeamAvailability,functions:availability:archiveTeamAvailabilityPlayer,firestore:rules
    ```
 
 3. In the availability spreadsheet's **Share** dialog, add this service
@@ -74,10 +74,11 @@ successful write.
 
 In **Admin → Pick team**, an active admin or owner can mark a player's sheet
 response **Selected** from their settings menu. The override replaces the
-cell value and retains the existing dropdown choices. The blue conditional
-format already applies to Selected. Players can still submit one of the
-three normal availability responses. Saving the playing order is a separate
-action in the same tab.
+cell value and hides its dropdown while it holds Selected. Restoring a normal
+response returns the three-choice dropdown. The blue conditional format
+applies to Selected. Saving the playing order also marks the chosen players
+Selected in the sheet. Archiving hides the corresponding row and restoring
+the player unhides it.
 
 After deployment, verify the override against a test player and fixture,
 including the retained dropdown choices and the blue formatting.

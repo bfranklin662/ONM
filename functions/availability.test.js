@@ -23,8 +23,8 @@ function harness(overrides = {}) {
     sheets: {
       metadata: async () => ({ sheets: [{ properties: { sheetId: SHEET_ID, title: "Availability 2026-27", gridProperties: { rowCount: 93, columnCount: 50 } } }] }),
       values: async () => grid,
-      cell: async () => ({ userEnteredValue: data.formula ? { formulaValue: "=1" } : { stringValue: data.current }, dataValidation: data.valid ? { condition: { type: "ONE_OF_LIST", values: ["Available", "Unavailable", "Not sure"].map(userEnteredValue => ({ userEnteredValue })) } } : undefined }),
-      overrideSelections: async entries => writes.push(...entries.map(({ rowIndex, columnIndex, rule }) => ({ row: rowIndex, column: columnIndex, rule }))),
+      cell: async () => ({ userEnteredValue: data.formula ? { formulaValue: "=1" } : { stringValue: data.current }, dataValidation: data.rule || (data.valid ? { condition: { type: "ONE_OF_LIST", values: ["Available", "Unavailable", "Not sure"].map(userEnteredValue => ({ userEnteredValue })) } } : undefined) }),
+      overrideSelections: async entries => writes.push(...entries.map(({ rowIndex, columnIndex, rule, status }) => ({ row: rowIndex, column: columnIndex, rule, status }))),
       setRowHidden: async (row, hidden) => writes.push({ row, hidden }),
       update: async (range, value) => writes.push({ range, value })
     }
@@ -173,4 +173,18 @@ test("saving a team writes Selected for the requested fixture and rejects ordina
   assert.deepEqual(await admin.service.selectTeamOnSheet("signed-in-user", payload), { selected: 1 });
   assert.equal(admin.writes[0].row, 7);
   assert.equal(admin.writes[0].column, 2);
+});
+
+test("admin can replace Selected with a normal response when the sheet hides the Selected dropdown", async () => {
+  const h = harness({ user: { role: "admin" } });
+  h.grid[7][2] = "Selected";
+  h.data.current = "Selected";
+  h.data.rule = { strict: true, condition: { type: "ONE_OF_LIST", values: [{ userEnteredValue: "Selected" }] } };
+  const { fixtureIds } = await h.service.getTeamSheet("signed-in-user");
+  await h.service.setTeamResponse("signed-in-user", {
+    playerKey: "nick", fixtureId: fixtureIds[2], status: "Not sure", previousStatus: "Selected"
+  });
+  assert.equal(h.writes[0].status, "Not sure");
+  assert.equal(h.writes[0].row, 7);
+  assert.equal(h.writes[0].column, 2);
 });

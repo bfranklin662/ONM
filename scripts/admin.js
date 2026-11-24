@@ -782,6 +782,16 @@
       profileVisible: data.get("profileVisible") === "on",
       registrationPaid: data.get("registrationPaid") === "on"
     };
+    if (player.historicalOnly) {
+      const { db, firestoreSdk: sdk } = await window.ONMFirebase.ready;
+      const ref = sdk.doc(db, "players", player.playerKey);
+      await sdk.runTransaction(db, async transaction => {
+        if (!(await transaction.get(ref)).exists()) {
+          transaction.set(ref, { playerKey: player.playerKey, publicName: player.publicName, fullName: player.fullName });
+        }
+      });
+      player.historicalOnly = false;
+    }
     const result = await window.ONMFirebase.post({ action: "updatePlayerProfile", playerKey: player.playerKey, profile });
     if (!result.success) throw new Error(result.error || "Could not save that player.");
     state.players = state.players.map(item => item.playerKey === player.playerKey
@@ -1170,6 +1180,10 @@
         playerMap.set(key, { ...(playerMap.get(key) || {}), ...profile, playerKey: key });
       });
       state.players = [...playerMap.values()].filter(player => player.publicName);
+      if (!playerMap.has("george-m") && !state.players.some(player =>
+        [player.publicName, player.fullName].some(name => ["george m", "george mills"].includes(clean(name).toLowerCase())))) {
+        state.players.push({ playerKey: "george-m", publicName: "George M", fullName: "George Mills", historicalOnly: true });
+      }
       state.linkedPlayerKeys = new Set(users.map(account => account.linkedPlayerKey).filter(Boolean));
       state.playerPhotos = photos || {};
       state.pickTeamArchived = new Set(teamSettings.data()?.pickTeamArchivedPlayerKeys || []);
