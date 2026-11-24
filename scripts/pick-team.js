@@ -132,6 +132,7 @@
     const archiving = new Set();
     const selection = el("pickTeamSelection");
     const summary = el("pickTeamSummary");
+    const fixtureSummary = el("pickTeamFixtureSummary");
     const refresh = el("pickTeamRefresh");
     const panel = el("pickTeamFixturePanel");
     let fixtureId = "";
@@ -169,12 +170,11 @@
       const body = `<img src="${escape(photo(player))}" width="52" height="52" alt="" loading="lazy">
         <span class="pickTeamPlayerInfo"><strong>${name}${isLinked ? ' <span class="pickTeamLinked" role="img" aria-label="Account linked" title="Account linked"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>' : ""}</strong>
         <span class="pickTeamApps">Apps: ${count}</span></span>`;
-      const status = selected ? "Selected" : group || "Not updated";
-      const statusDot = inArchive ? "" : `<span class="pickTeamStatusDot" data-status="${escape(status)}" role="img" aria-label="${escape(status)}" title="${escape(status)}"></span>`;
       return `<article class="pickTeamPlayerCard" data-status="${escape(group || "")}">
-        ${statusDot}
         ${inArchive ? `<div class="pickTeamPlayer">${body}</div>` :
-          `<button type="button" class="pickTeamPlayer" data-pick-player="${escape(player.publicName)}" aria-pressed="${selected}"${saving ? " disabled" : ""}>${body}</button>`}
+          `<button type="button" role="checkbox" class="pickTeamPlayer" data-pick-player="${escape(player.publicName)}" aria-checked="${selected}"${saving ? " disabled" : ""}>
+            <span class="pickTeamCheckbox" aria-hidden="true">✓</span>${body}
+          </button>`}
         <details class="pickTeamSettings">
           <summary aria-label="Settings for ${name}" title="Player settings">⚙</summary>
           <div>
@@ -195,12 +195,20 @@
         const player = roster().find(item => item.publicName === name);
         return player && playerStatus(player, match) !== "Selected";
       });
-      selection.innerHTML = `<div><strong>Selected team · ${names.length}/${LIMIT}</strong>
-        <div class="pickTeamSelectedNames">${names.length ? names.map(name => {
-          const label = escape(displayName(roster().find(player => player.publicName === name) || { publicName: name }));
-          return `<button type="button" class="pickTeamSelectedName" data-pick-remove="${escape(name)}" aria-label="Remove ${label} from team"${saving ? " disabled" : ""}>${label} <span aria-hidden="true">×</span></button>`;
-        }).join("") : '<span>Select players below in playing order.</span>'}</div></div>
-        <button type="button" class="btn btnPrimary" data-pick-team-save${saving || (!drafts.has(fixture.id) && !needsSheetSync) ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button>`;
+      selection.innerHTML = `<div class="pickTeamSelectionHeader"><strong>Selected team · ${names.length}/${LIMIT}</strong>
+        <button type="button" class="btn btnPrimary" data-pick-team-save${saving || (!drafts.has(fixture.id) && !needsSheetSync) ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button></div>
+        ${names.length ? `<ol class="pickTeamSelectedNames">${names.map(name => {
+          const player = roster().find(item => item.publicName === name) || { publicName: name };
+          const label = escape(displayName(player));
+          const nickname = String(player.nickname || "").trim().replace(/^["“]|["”]$/g, "");
+          return `<li class="pickTeamSelectedName">
+            <a href="player-profile.html?name=${encodeURIComponent(name)}">
+              <img src="${escape(photo(player))}" width="40" height="40" alt="" loading="lazy">
+              <span>${label}${nickname ? ` <em>“${escape(nickname)}”</em>` : ""}</span>
+            </a>
+            <button type="button" data-pick-remove="${escape(name)}" aria-label="Remove ${label} from team"${saving ? " disabled" : ""}>×</button>
+          </li>`;
+        }).join("")}</ol>` : '<span>Select players below in playing order.</span>'}`;
     }
 
     const responded = match => RESPONSE_ACTIONS.reduce((total, status) => total + match.counts[status], 0);
@@ -208,14 +216,18 @@
 
     function renderSummary(match, season) {
       const active = roster().filter(player => !archived(player) && appearances(player, season) > 0).length;
-      const total = match ? sheetTotal(match) : sheet.length ? sheetTotal(sheet[0]) : "—";
-      const metrics = [ ["On sheet", total], ["Active · played this season", active] ];
-      if (match) {
-        metrics.push(["Responded", responded(match)], ...["Available", "Unavailable", "Not sure"].map(status => [status, match.counts[status]]));
-      }
-      summary.innerHTML = metrics.map(([label, count]) =>
+      const total = sheet.length ? sheetTotal(sheet[0]) : "—";
+      const cards = metrics => metrics.map(([label, count]) =>
         `<div data-label="${escape(label)}"><dt>${escape(label)}</dt><dd>${count}</dd></div>`
       ).join("");
+      summary.innerHTML = cards([["On sheet", total], ["Active · played this season", active]]);
+      fixtureSummary.hidden = !match;
+      fixtureSummary.innerHTML = match ? cards([
+        ["Responded", `${responded(match)}/${sheetTotal(match)}`],
+        ["Available", match.counts.Available + match.counts.Selected],
+        ["Unavailable", match.counts.Unavailable],
+        ["Not sure", match.counts["Not sure"]]
+      ]) : "";
     }
 
     function render() {
@@ -224,7 +236,6 @@
       picker.innerHTML = fixtures.map((item, index) => {
         const row = rowFor(item);
         const active = item.id === fixtureId;
-        const match = matchSheet(sheet, row, dateKey);
         const side = sideKey(row.HA).charAt(0).toUpperCase();
         const category = leagueKey(row.League).replace(" league", "").replace(/ /g, "-");
         return `<button type="button" role="tab" class="pickTeamFixture ${escape(category)}" id="pickFixtureTab${index}"
@@ -234,7 +245,6 @@
           <strong>${escape(row.Opponent)}${side ? ` · ${escape(side)}` : ""}</strong>
           <span>${escape(row.Date)}${row.Time ? ` · ${escape(row.Time)}` : ""}</span>
           <span>${escape(row.Location || "")}</span>
-          ${match ? `<span class="pickTeamFixtureResponses">${responded(match)}/${sheetTotal(match)} responded</span>` : ""}
         </button>`;
       }).join("");
       const activeTab = picker.querySelector('[aria-selected="true"]');
@@ -278,9 +288,10 @@
       })).sort((a, b) => b.count - a.count || displayName(a.player).localeCompare(displayName(b.player)));
       const linkedNames = new Set(match ? roster().map(player => playerSheetKey(player, match)) : []);
       const unmatched = match ? [...match.sheetNames].filter(([key]) => !linkedNames.has(key)) : [];
-      const headings = match ? [...GROUPS, "No matching sheet row"] : ["Availability not loaded"];
+      const headings = match ? [...GROUPS.filter(group => group !== "Selected"), "No matching sheet row"] : ["Availability not loaded"];
       groups.innerHTML = headings.map(heading => {
-        const entries = players.filter(entry => entry.group === heading);
+        const entries = players.filter(entry => entry.group === heading || (heading === "Available" && entry.group === "Selected"));
+        if (heading === "No matching sheet row" && !entries.length) return "";
         return `<section class="pickTeamGroup" data-status="${escape(heading)}"><h3>${escape(heading)} <span>${entries.length}</span></h3>${entries.length ? `<div class="pickTeamCards">${entries.map(entry => renderPlayer(entry, names, false, Boolean(match?.id && heading !== "No matching sheet row"))).join("")}</div>` : '<p class="pickTeamEmpty">No players</p>'}</section>`;
       }).join("") + (unmatched.length ? `<section class="pickTeamGroup"><h3>Sheet names without a player profile</h3>
         <p class="pickTeamEmpty">Link these names to a club player before selecting them.</p>
@@ -362,13 +373,7 @@
       else drafts.set(fixture.id, names);
       for (const card of groups.querySelectorAll("[data-pick-player]")) {
         const selected = names.includes(card.dataset.pickPlayer);
-        card.setAttribute("aria-pressed", String(selected));
-        const container = card.closest(".pickTeamPlayerCard");
-        const dot = container.querySelector(".pickTeamStatusDot");
-        const status = selected ? "Selected" : container.dataset.status || "Not updated";
-        dot.dataset.status = status;
-        dot.setAttribute("aria-label", status);
-        dot.title = status;
+        card.setAttribute("aria-checked", String(selected));
       }
       renderSelection(fixture);
     }

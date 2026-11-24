@@ -266,7 +266,6 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .pickTeamGroup[data-status="Available"] h3 { color: #a7edc4; }
 .pickTeamGroup[data-status="Unavailable"] h3 { color: #ffaaaa; }
 .pickTeamGroup[data-status="Not sure"] h3 { color: #ffe5a0; }
-.pickTeamGroup[data-status="Selected"] h3 { color: #aad1ff; }
 .pickTeamCards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
@@ -291,7 +290,7 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
   outline-offset: 2px;
 }
 .pickTeamPlayer img { border-radius: 50%; object-fit: cover; }
-.pickTeamPlayer strong { display: block; overflow-wrap: anywhere; }
+.pickTeamPlayer strong { display: flex; align-items: center; justify-content: center; gap: 4px; overflow-wrap: anywhere; }
 .pickTeamApps {
   display: inline-block;
   margin-top: 5px;
@@ -306,15 +305,16 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
   display: inline-grid;
   place-items: center;
   vertical-align: middle;
-  width: 18px;
-  height: 18px;
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
   border: 1px solid #4b966f;
   border-radius: 50%;
   background: #20503a;
   color: #a7edc4;
 }
-.pickTeamLinked svg { width: 12px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-.pickTeamSettings { position: absolute; inset: 5px 5px auto auto; }
+.pickTeamLinked svg { width: 8px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.pickTeamSettings { position: absolute; inset: 5px auto auto 5px; }
 .pickTeamSettings summary {
   display: grid;
   place-items: center;
@@ -332,7 +332,7 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .pickTeamSettings > div {
   position: absolute;
   top: 100%;
-  right: 0;
+  left: 0;
   display: grid;
   width: 130px;
   padding: 3px;
@@ -360,36 +360,63 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 
 #pickTeamGroups .pickTeamPlayer { border-color: var(--availability-colour); }
 .pickTeamPlayerCard { --availability-colour: #849390; }
-.pickTeamPlayerCard[data-status="Available"], .pickTeamStatusDot[data-status="Available"] { --availability-colour: #80daa0; }
-.pickTeamPlayerCard[data-status="Unavailable"], .pickTeamStatusDot[data-status="Unavailable"] { --availability-colour: #ff8989; }
-.pickTeamPlayerCard[data-status="Not sure"], .pickTeamStatusDot[data-status="Not sure"] { --availability-colour: #f4d264; }
-.pickTeamStatusDot[data-status="Selected"] { --availability-colour: #79baff; }
-#pickTeamGroups .pickTeamPlayerCard[data-status="Selected"] .pickTeamPlayer,
-#pickTeamGroups .pickTeamPlayer[aria-pressed="true"] { border-color: #79baff; }
-.pickTeamStatusDot {
+.pickTeamPlayerCard[data-status="Available"] { --availability-colour: #80daa0; }
+.pickTeamPlayerCard[data-status="Unavailable"] { --availability-colour: #ff8989; }
+.pickTeamPlayerCard[data-status="Not sure"] { --availability-colour: #f4d264; }
+.pickTeamPlayerCard[data-status="Selected"] { --availability-colour: #79baff; }
+.pickTeamCheckbox {
   position: absolute;
-  top: 9px;
-  left: 9px;
-  z-index: 1;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--availability-colour);
-  pointer-events: none;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--availability-colour);
+  border-radius: 4px;
+  color: transparent;
+  background: #0e211b;
+  font-size: .88rem;
 }
-.pickTeamSelectedNames { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.pickTeamPlayer[aria-checked="true"] .pickTeamCheckbox {
+  background: var(--availability-colour);
+  color: #0e211b;
+}
+.pickTeamSelection:not(:empty) { display: grid; gap: 8px; }
+.pickTeamSelectionHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pickTeamSelectedNames { display: grid; gap: 6px; list-style: none; padding: 0; margin: 0; }
 .pickTeamSelectedName {
-  padding: 3px 7px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #456857;
+  border-radius: 7px;
+  background: #142e25;
+}
+.pickTeamSelectedName a {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 9px;
+  text-decoration: none;
+  color: #edf7ff;
+}
+.pickTeamSelectedName a:hover { background: #23483b; }
+.pickTeamSelectedName img { border-radius: 50%; object-fit: cover; }
+.pickTeamSelectedName span { display: inline; margin: 0; color: inherit; overflow-wrap: anywhere; }
+.pickTeamSelectedName em { color: #adccba; }
+.pickTeamSelectedName button {
+  margin-right: 7px;
+  min-width: 30px;
+  min-height: 30px;
   border: 1px solid #456857;
   border-radius: 5px;
+  background: #0e211b;
   color: #edf7ff;
-  background: #142e25;
-  font: inherit;
-  font-size: .82rem;
   cursor: pointer;
 }
-.pickTeamSelectedName span { display: inline; margin: 0 0 0 2px; color: inherit; }
-.pickTeamSelectedName:hover { background: #23483b; }
 
 .pickTeamSummary {
   display: grid;
@@ -403,7 +430,8 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
   padding: 7px 9px;
   background: #142e25;
 }
-.pickTeamSummary dt, .pickTeamFixtureResponses { color: #c3d9cf; font-size: .74rem; }
+.pickTeamSummary[hidden] { display: none; }
+.pickTeamSummary dt { color: #c3d9cf; font-size: .74rem; }
 .pickTeamSummary dd { margin: 3px 0 0; font-size: 1.15rem; font-weight: 700; }
 .pickTeamSummary [data-label="Available"] dd { color: #80daa0; }
 .pickTeamSummary [data-label="Unavailable"] dd { color: #ff8989; }

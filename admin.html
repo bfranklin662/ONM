@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow">
   <title>Club admin | Oche Ness Monsters</title>
   <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
-  <link rel="stylesheet" href="styles/admin.css?v=20261124-status-loading">
+  <link rel="stylesheet" href="styles/admin.css?v=20261124-team-checkboxes">
   <link rel="stylesheet" href="styles/club-bank.css?v=20261030-owed">
 <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
@@ -96,6 +96,7 @@
         <dl id="pickTeamSummary" class="pickTeamSummary" aria-label="Availability summary"></dl>
         <div id="pickTeamFixture" class="pickTeamFixtures" role="tablist" aria-labelledby="pickTeamHeading"></div>
         <div id="pickTeamFixturePanel" role="tabpanel">
+          <dl id="pickTeamFixtureSummary" class="pickTeamSummary" aria-label="Fixture responses" hidden></dl>
           <p id="pickTeamStatus" class="pickTeamStatus" role="status"></p>
           <div id="pickTeamSelection" class="pickTeamSelection"></div>
           <div id="pickTeamGroups"></div>
@@ -222,7 +223,7 @@
   <script src="scripts/player-data.js?v=20261016-registration"></script>
   <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
   <script src="scripts/admin-accolades.js?v=20261120-cups-awards"></script>
-  <script src="scripts/pick-team.js?v=20261124-status-loading"></script>
+  <script src="scripts/pick-team.js?v=20261124-team-checkboxes"></script>
   <script src="scripts/admin.js?v=20261124-roster-summary"></script>
   <script src="scripts/club-bank-engine.js?v=20261030-owed"></script>
   <script src="scripts/club-bank.js?v=20261030-owed"></script>
