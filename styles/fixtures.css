@@ -1657,15 +1657,20 @@ html:has(.fixtureDetails[open]), body:has(.fixtureDetails[open]) {
 .fixtureDetails[open] {
   display: flex;
   flex-direction: column;
+  padding: 0;
   max-height: calc(100vh - 24px);
   max-height: calc(100dvh - 24px);
   overflow: hidden;
 }
 #fixtureDetailsContent {
+  padding: 20px;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 420px) {
+  #fixtureDetailsContent { padding: 16px; }
 }
 .fixtureDetailsClose {
   z-index: 1;
