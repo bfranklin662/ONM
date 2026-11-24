@@ -289,3 +289,36 @@
   padding: 2px 5px; border: 1px solid #6e613d; border-radius: 999px;
   background: #302a18; color: #f0dd9c; font: 500 .62rem/1.2 system-ui,sans-serif;
 }
+
+#playerProfileSection { padding-top: 4px; }
+#playerProfileSection .profile-card-navigation {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+#playerProfileSection .profile-card-navigation #backToPlayers { margin-left: auto; padding: 3px 6px; font-size: .72rem; background: none; border: 0; }
+#playerProfileSection .player-header-card {
+  grid-template-areas: "navigation navigation navigation" "photo identity extras" "stats stats stats";
+  row-gap: 9px;
+  padding-top: 8px;
+}
+#playerProfileSection .profile-stats-grid { gap: 5px; }
+#playerProfileSection .profile-stat-box {
+  display: grid; place-content: center; justify-items: center; gap: 2px;
+  padding: 4px 5px; line-height: 1.1;
+}
+#playerProfileSection .profile-stat-box .value {
+  display: flex; align-items: baseline; justify-content: center; gap: 3px;
+  margin: 0; font-size: .95rem; line-height: 1.1;
+}
+@media (max-width: 960px) {
+  #playerProfileSection .player-header-card { grid-template-areas: "navigation navigation" "photo identity" "stats stats" "extras extras"; }
+}
+@media (max-width: 700px) {
+  #playerProfileSection .profile-card-navigation #playerSelect { display: none; }
+  #playerProfileSection .profile-stat-box .value { font-size: .85rem; }
+}

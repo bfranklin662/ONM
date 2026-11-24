@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="styles/player-profile.css?v=20261124-mobile-appearances">
   <link rel="stylesheet" href="styles/players-landing.css?v=20261120-green-headers">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
-  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261124-accolade-list">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261124-profile-stat-alignment">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
   <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
@@ -79,34 +79,16 @@
 
     <div id="playerProfileSection" class="player-stats-container">
 
-      <div class="stats-header main-profile-header">
-
-        <!-- LEFT: Back button -->
-        <div class="stats-header-left">
-          <a id="backToPlayers" class="back-btn" href="players-landing.html">← All players</a>
-        </div>
-
-        <!-- MIDDLE: Title + dropdown -->
-        <div class="stats-header-middle title-middle">
-          <h2 class="profile-title only-desktop">
-            Player Profile
-          </h2>
-        </div>
-
-        <!-- RIGHT: Tabs -->
-        <div class="stats-header-right title-left">
-          <select id="playerSelect" class="player-selector-inline" aria-label="Choose player"></select>
-        </div>
-
-      </div>
-
-
       <!-- PROFILE CONTENT ONLY -->
       <section id="playerProfileContent">
         <div class="main-container">
           <div class="player-page-container">
 
             <div class="player-header-card">
+              <div class="profile-card-navigation">
+                <select id="playerSelect" class="player-selector-inline" aria-label="Choose player"></select>
+                <a id="backToPlayers" class="back-btn" href="players-landing.html">← All players</a>
+              </div>
               <div class="header-col header-photo">
                 <div class="profile-photo-shell">
                   <div class="profile-photo-frame is-loading" id="profilePhotoFrame">
