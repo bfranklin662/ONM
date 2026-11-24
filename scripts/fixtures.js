@@ -97,7 +97,6 @@
         ${["", "Available", "Unavailable", "Not sure"].map(choice => `<option value="${choice}"${response.status === choice ? " selected" : ""}>${choice || "Not answered"}</option>`).join("")}
       </select>
       <button type="submit"${!response.editable || savingAvailability ? " disabled" : ""}>${savingAvailability ? "Saving…" : "Save availability"}</button>
-      <button type="button" class="fxAvailabilityRefresh"${savingAvailability ? " disabled" : ""}>Refresh</button>
       <p class="fxAvailabilityHelp">Changes save to the club availability sheet.${!response.editable ? " This fixture is duplicated in the sheet; ask an administrator to check it." : ""}</p>
     </form>`;
   }
@@ -124,7 +123,11 @@
     const fields = { edit: type, date: fixture.dateISO, league: fixture.Competition || fixture.League, opponent: fixture.Opponent, side: fixture.HA, season: fixture.season || "26-27" };
     if (type === "result" && fixture.resultRow?._resultId) fields.id = fixture.resultRow._resultId;
     const query = Object.entries(fields).map(([key,value]) => `${key}=${encodeURIComponent(value || "")}`).join("&");
-    return `<a class="fxAdminEditLink" href="admin.html?${escapeFixtureText(query)}">Edit ${type}</a>`;
+    const edit = `<a class="fxAdminEditLink" href="admin.html?${escapeFixtureText(query)}">Admin edit ${type}</a>`;
+    if (fixture.completed || fixture.EventType === "social") return edit;
+    const hasLineup = Array.from({ length: 12 }, (_, index) =>
+      fixture[`Player${index + 1}`] || fixture[`Player ${index + 1}`]).some(Boolean);
+    return edit + `<a class="fxAdminEditLink" href="admin.html?${escapeFixtureText(query)}&amp;tab=pickTeam">Admin ${hasLineup ? "amend" : "pick"} team</a>`;
   }
 
   function fixturePlayerImage(name) {
@@ -143,7 +146,7 @@
     const fullName = fixturePictures.names?.get(normalizeName(name)) || String(name).replace(/\s+[A-Z]$/, "");
     const [first, ...surname] = fullName.trim().split(/\s+/);
     const nickname = fixturePlayerNickname(name);
-    return [escapeFixtureText(first), nickname ? `<em class="fixtureLineupNickname">${escapeFixtureText(nickname)}</em>` : "", escapeFixtureText(surname.join(" "))].filter(Boolean).join(" ");
+    return [escapeFixtureText(first), nickname ? `<em class="fixtureLineupNickname">${escapeFixtureText(nickname)}</em>` : "", escapeFixtureText(surname.join(" "))].filter(Boolean).join("&#32;");
   }
 
   async function loadFixturePlayerPictures() {

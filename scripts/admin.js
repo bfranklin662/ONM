@@ -1035,14 +1035,22 @@
     });
   }
 
-  function openRequestedMatchEditor() {
+  function openRequestedMatchEditor(pickTeam) {
     const params = new URLSearchParams(window.location.search);
     const type = params.get("edit");
     if (!["fixture", "result"].includes(type)) return;
-    const tab = "fixtures";
-    document.querySelector(`[data-admin-tab="${tab}"]`)?.click();
     const matches = requestedMatchCandidates(type === "fixture" ? state.fixtures : state.results, params, type);
     if (matches.length !== 1) { showToast(matches.length ? "More than one match fits this link. Choose the correct match in the list." : "This match could not be found. Refresh and choose it from the list.", true); return; }
+    if (type === "fixture" && params.get("tab") === "pickTeam") {
+      if (!upcomingTeamFixtures().some(item => item.id === matches[0].id)) {
+        showToast("This fixture is no longer available for team selection.", true);
+        return;
+      }
+      pickTeam.open(matches[0].id);
+      document.querySelector('[data-admin-tab="pickTeam"]').click();
+      return;
+    }
+    document.querySelector('[data-admin-tab="fixtures"]')?.click();
     if (type === "fixture") openFixtureEditor(matches[0]);
     else openResultEditor(matches[0]);
   }
@@ -1159,6 +1167,7 @@
         submit.textContent = state.editor.type === "accountLink" ? (form.elements.linkMode.value === "new" ? "Create & link Monster" : "Link player") : state.editor.type === "fixture" ? "Save fixture" : state.editor.type === "result" ? "Save result" : "Save player";
       }
     });
+    return pickTeam;
   }
 
   async function initialise() {
@@ -1198,11 +1207,11 @@
       state.pickTeamArchived = new Set(teamSettings.data()?.pickTeamArchivedPlayerKeys || []);
       gate.classList.add("hidden");
       app.classList.remove("hidden");
-      attachListeners();
+      const pickTeam = attachListeners();
       renderFixtures({ centre: true });
       renderPlayers();
       renderFines();
-      openRequestedMatchEditor();
+      openRequestedMatchEditor(pickTeam);
       if (["owner", "admin"].includes(state.user.role)) {
         document.getElementById("adminRequestsTab").classList.remove("hidden");
         await loadAdminRequests();

@@ -504,7 +504,13 @@
         render();
       }
     });
-    return { open() { render(); if (!requested && upcoming().length) void refreshSheet(); } };
+    return {
+      open(id) {
+        if (id) fixtureId = id;
+        render();
+        if (!requested && upcoming().length) void refreshSheet();
+      }
+    };
   }
 
   if (typeof module === "object" && module.exports) {
