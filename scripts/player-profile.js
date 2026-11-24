@@ -283,7 +283,7 @@ function makeProfileAccoladesHtml(profile) {
         try { a = { icon: "🏆", tip: decodeURIComponent(k.slice(7)) }; } catch (_) {}
       }
       if (!a) return "";
-      return `<span class="acc-emoji" data-tooltip="${escapeHtml(a.tip)}">${a.icon}</span>`;
+      return `<span class="acc-emoji" tabindex="0" data-tooltip="${escapeHtml(a.tip)}">${a.icon}</span>`;
     })
     .join("");
 }
@@ -387,7 +387,7 @@ function updateMedals(stats) {
   medalsEl.style.display = "";
 
   // Render medals with a slower stagger (like last 5)
-  medalsEl.innerHTML = medals.map((m, i) => `
+  medalsEl.innerHTML = medals.slice(0, 8).map((m, i) => `
     <div class="medal"
          data-tooltip="${tooltipLabels[m] || ""}"
          style="animation-delay:${0.2 + i * 0.12}s">

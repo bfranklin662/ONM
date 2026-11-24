@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="styles/player-profile.css?v=20261124-mobile-appearances">
   <link rel="stylesheet" href="styles/players-landing.css?v=20261120-green-headers">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
-  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261124-mobile-header">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261124-profile-layout">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
   <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
@@ -106,85 +106,52 @@
         <div class="main-container">
           <div class="player-page-container">
 
-            <!-- HEADER CARD -->
             <div class="player-header-card">
-
-
-
               <div class="header-col header-photo">
                 <div class="profile-photo-shell">
-
-                  <!-- CLIPPED FRAME: image + ribbon only -->
                   <div class="profile-photo-frame is-loading" id="profilePhotoFrame">
                     <img id="playerPhoto" class="profile-photo" alt="Player photo" decoding="async" loading="eager">
-                    <div class="photo-loader" aria-hidden="true">
-                      <div class="spinner"></div>
-                    </div>
-
-                    <!-- optional: accolades/ribbon overlays can sit here too -->
-                    <div id="profilePhotoAccolades" class="profile-photo-accolades"></div>
+                    <div class="photo-loader" aria-hidden="true"><div class="spinner"></div></div>
                     <div id="profileCaptainRibbon"></div>
-                    <button id="editOwnPlayerImage" type="button" hidden>Edit image</button>
                   </div>
-
+                  <div id="profilePhotoAccolades" class="profile-photo-accolades"></div>
+                  <button id="editOwnPlayerImage" type="button" aria-label="Edit image" hidden>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 4 4M4 20l4.5-1 11-11a2.8 2.8 0 0 0-4-4l-11 11L4 20Z"/></svg>
+                  </button>
                 </div>
               </div>
-
-
-
               <div class="header-col header-info">
                 <div class="profile-header-identity">
-                <div class="profile-name-row">
-                  <h1 id="playerName" class="player-name"></h1>
-                </div>
-
-                <div class="player-info-grid">
-                  <!-- Row 1 -->
-                  <div id="playerNickname" class="info-item"></div>
-
-                  <!-- Row 2 -->
-                  <div class="info-item">
-                    <span class="meta-label">Date joined:</span>
-                    <span id="playerDateJoined" class="meta-value">...</span>
-                  </div>
-                  <div id="playerHighestCheckout" class="info-item"></div>
-                  <div class="profile-detail-actions"><a class="profileOweLink" hidden href="fines.html">What I owe →</a><div id="playerProfileActions" class="profile-card-actions"></div></div>
-
-                  <!-- Row 3 -->
-                </div>
-
-                </div>
-                <div id="playerQuickStats" class="player-stats-line"></div>
-
-              </div>
-
-
-              <div class="header-col header-form">
-
-                <div class="walkout-wrap">
-                  <div class="walkout-embed">
-                    <div class="walkout-badge">Walkout Song</div>
-                    <div id="playerWalkout"></div>
-                  </div>
-                </div>
-
-
-                <div class="form-medals-bottom">
-                  <div class="form-fines-row">
-                    <div class="last5-block">
-                      <div class="last5-title">Last 5 →</div>
-                      <div id="playerFormGraph" class="form-dots"></div>
+                  <div class="profile-name-row"><h1 id="playerName" class="player-name"></h1></div>
+                  <div class="profile-detail-grid">
+                    <div class="player-info-grid">
+                      <div id="playerNickname" class="info-item"></div>
+                      <div class="info-item"><span class="meta-label">Date joined:</span> <span id="playerDateJoined" class="meta-value">...</span></div>
+                      <div id="playerHighestCheckout" class="info-item"></div>
                     </div>
-
+                    <div class="profile-detail-actions">
+                      <a class="profileOweLink" hidden href="fines.html">What I owe</a>
+                      <div id="playerProfileActions" class="profile-card-actions"></div>
+                    </div>
                   </div>
-
+                </div>
+              </div>
+              <div id="playerQuickStats" class="player-stats-line"></div>
+              <div class="header-col header-form">
+                <div class="form-medals-bottom profile-extras-card">
+                  <div class="form-fines-row">
+                    <div class="last5-block"><div class="last5-title">Last 5</div><div id="playerFormGraph" class="form-dots"></div></div>
+                  </div>
                   <div class="medals-title">Medals</div>
                   <div id="playerMedals" class="medals-row"></div>
                 </div>
+                <div class="walkout-wrap">
+                  <div class="walkout-embed profile-extras-card">
+                    <div class="walkout-badge">Walkout song</div>
+                    <div id="playerWalkout"></div>
+                  </div>
+                </div>
               </div>
-
-
-
             </div>
 
             <section id="profileGameProgress" class="profile-game-progress" hidden aria-label="Game progress and tournament accolades"></section>
@@ -364,7 +331,7 @@
   <script src="scripts/player-data.js?v=20261016-registration"></script>
   <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
   <script src="scripts/profile-game-progress.js?v=20261120-profile-games"></script>
-  <script src="scripts/player-profile.js?v=20261124-mobile-appearances"></script>
+  <script src="scripts/player-profile.js?v=20261124-profile-layout"></script>
   <script>
     function toggleSidebar() {
       const sidebar = document.getElementById("sidebar");
