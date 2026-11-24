@@ -1594,7 +1594,8 @@
 .fixtureLineup h4 { margin:0 0 9px; font-size:.9rem; }
 .fixtureLineup ul { display:flex; flex-wrap:wrap; gap:7px; list-style:none; padding:0; margin:0; }
 .fixtureLineup a { display:block; padding:6px 10px; border:1px solid #375d47; border-radius:7px; background:#0d251a; color:#d0e6d7; font:500 .78rem/1.3 system-ui,sans-serif; text-decoration:none; }
-.fixtureLineup a:hover { background:#214a33; color:#fff; }
+.fixtureLineup a { -webkit-tap-highlight-color: transparent; touch-action: pan-y; }
+.fixtureLineup a:focus-visible { outline: 2px solid #81d69b; outline-offset: 2px; }
 
 .fixtureEventSideInline { opacity:.8; white-space:nowrap; font-size:.7rem; }
 .fixtureEventFooter { display:flex; align-items:center; justify-content:space-between; gap:6px; width:100%; min-width:0; }
@@ -1620,11 +1621,11 @@
 .fixtureLineupInfo { display:flex; flex-direction:column; gap:4px; min-width:0; }
 .fixtureLineupName { font-size:.85rem; font-weight:650; }
 .fixtureLineupCheckouts { display:inline-flex; align-items:center; gap:5px; font-size:.72rem; color:#9fbea9; }
-.fixtureLineupArrow { margin-left:auto; color:#98b9a3; }
+.fixtureLineupArrow { margin-left:auto; width:14px; height:14px; flex:0 0 14px; color:#98b9a3; }
 
 .fixtureLineupStats { display:flex; align-items:center; flex-wrap:wrap; gap:5px 12px; color:#9fbea9; font-size:.72rem; }
 .fixtureLineupSpecials { display:inline-flex; flex-wrap:wrap; gap:4px; }
-.fixtureLineup a.fixtureLineupSelf { background:#204e35; border-color:#62aa7c; box-shadow:inset 3px 0 #81d69b; }
+
 
 .fixtureEventFooter .fixtureEventVenue { order:0; margin-left:0; text-align:left; }
 .fixtureEventFooter .fxPersonalBadge { order:1; margin-left:auto; }
