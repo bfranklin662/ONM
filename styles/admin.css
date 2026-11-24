@@ -359,3 +359,33 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .pickTeamArchive { margin-top: 20px; padding: 12px; border: 1px solid #456857; border-radius: 10px; }
 .pickTeamArchive summary { cursor: pointer; font-weight: 700; }
 .pickTeamArchive[open] summary { margin-bottom: 12px; }
+
+.pickTeamPlayerCard { --availability-colour: #94a69d; }
+.pickTeamPlayerCard[data-status="Available"] { --availability-colour: #80daa0; }
+.pickTeamPlayerCard[data-status="Unavailable"] { --availability-colour: #ff8989; }
+.pickTeamPlayerCard[data-status="Not sure"] { --availability-colour: #f4d264; }
+.pickTeamPlayerCard[data-status="Selected"] { --availability-colour: #79baff; }
+.pickTeamStatusDot {
+  position: absolute;
+  top: 13px;
+  right: 39px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--availability-colour);
+  pointer-events: none;
+}
+.pickTeamPlayerCard .pickTeamPlayer[aria-pressed="true"] { background: #244566; border-color: #79baff; }
+.pickTeamSelectedNames { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.pickTeamSelectedName {
+  padding: 3px 7px;
+  border: 1px solid #638bb4;
+  border-radius: 5px;
+  color: #edf7ff;
+  background: #244566;
+  font: inherit;
+  font-size: .82rem;
+  cursor: pointer;
+}
+.pickTeamSelectedName span { display: inline; margin: 0 0 0 2px; color: inherit; }
+.pickTeamSelectedName:hover { background: #305780; }

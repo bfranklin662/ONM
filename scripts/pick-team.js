@@ -148,13 +148,17 @@
 
     function chosen(fixture) {
       if (drafts.has(fixture.id)) return drafts.get(fixture.id);
+      return savedNames(fixture);
+    }
+
+    function savedNames(fixture) {
       const row = rowFor(fixture);
       return Array.from({ length: LIMIT }, (_, i) => row[`Player${i + 1}`]).filter(Boolean);
     }
 
     const displayName = player => player.fullName?.trim() || player.publicName;
 
-    function renderPlayer({ player, count }, names, inArchive = false, canOverride = false) {
+    function renderPlayer({ player, count, group }, names, inArchive = false, canOverride = false) {
       const name = escape(displayName(player));
       const selected = names.includes(player.publicName);
       const isLinked = linked(player);
@@ -162,7 +166,10 @@
       const body = `<img src="${escape(photo(player))}" width="52" height="52" alt="" loading="lazy">
         <span class="pickTeamPlayerInfo"><strong>${name}${isLinked ? ' <span class="pickTeamLinked" role="img" aria-label="Account linked" title="Account linked"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>' : ""}</strong>
         <span class="pickTeamApps">Apps: ${count}</span></span>`;
-      return `<article class="pickTeamPlayerCard">
+      const statusDot = group && group !== "Availability not loaded" && group !== "No matching sheet row"
+        ? `<span class="pickTeamStatusDot" role="img" aria-label="${escape(group)}" title="${escape(group)}"></span>` : "";
+      return `<article class="pickTeamPlayerCard" data-status="${escape(group || "")}">
+        ${statusDot}
         ${inArchive ? `<div class="pickTeamPlayer">${body}</div>` :
           `<button type="button" class="pickTeamPlayer" data-pick-player="${escape(player.publicName)}" aria-pressed="${selected}"${saving ? " disabled" : ""}>${body}</button>`}
         <details class="pickTeamSettings">
@@ -186,7 +193,10 @@
         return player && playerStatus(player, match) !== "Selected";
       });
       selection.innerHTML = `<div><strong>Selected team · ${names.length}/${LIMIT}</strong>
-        <span>${names.length ? names.map(name => escape(displayName(roster().find(player => player.publicName === name) || { publicName: name }))).join(" · ") : "Select players below in playing order."}</span></div>
+        <div class="pickTeamSelectedNames">${names.length ? names.map(name => {
+          const label = escape(displayName(roster().find(player => player.publicName === name) || { publicName: name }));
+          return `<button type="button" class="pickTeamSelectedName" data-pick-remove="${escape(name)}" aria-label="Remove ${label} from team"${saving ? " disabled" : ""}>${label} <span aria-hidden="true">×</span></button>`;
+        }).join("") : '<span>Select players below in playing order.</span>'}</div></div>
         <button type="button" class="btn btnPrimary" data-pick-team-save${saving || (!drafts.has(fixture.id) && !needsSheetSync) ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button>`;
     }
 
@@ -300,6 +310,16 @@
       }
     });
 
+    function updatePick(fixture, names) {
+      const saved = savedNames(fixture);
+      if (saved.length === names.length && saved.every((name, index) => name === names[index])) drafts.delete(fixture.id);
+      else drafts.set(fixture.id, names);
+      for (const card of groups.querySelectorAll("[data-pick-player]")) {
+        card.setAttribute("aria-pressed", String(names.includes(card.dataset.pickPlayer)));
+      }
+      renderSelection(fixture);
+    }
+
     groups.addEventListener("click", event => {
       const button = event.target.closest("[data-pick-player]");
       const fixture = activeFixture();
@@ -311,9 +331,7 @@
         toast("You can select up to 12 players.", true);
         return;
       }
-      drafts.set(fixture.id, selected ? previous.filter(player => player !== name) : [...previous, name]);
-      button.setAttribute("aria-pressed", String(!selected));
-      renderSelection(fixture);
+      updatePick(fixture, selected ? previous.filter(player => player !== name) : [...previous, name]);
     });
     groups.addEventListener("click", async event => {
       const action = event.target.closest("[data-pick-status]");
@@ -381,17 +399,33 @@
     folder.addEventListener("click", handleRosterAction);
     selection.addEventListener("click", async event => {
       const fixture = activeFixture();
-      if (!event.target.closest("[data-pick-team-save]") || !fixture || saving) return;
+      if (!fixture || saving) return;
+      const remove = event.target.closest("[data-pick-remove]");
+      if (remove) {
+        updatePick(fixture, chosen(fixture).filter(name => name !== remove.dataset.pickRemove));
+        [...groups.querySelectorAll("[data-pick-player]")]
+          .find(card => card.dataset.pickPlayer === remove.dataset.pickRemove)?.focus({ preventScroll: true });
+        return;
+      }
+      if (!event.target.closest("[data-pick-team-save]")) return;
       saving = true;
       render();
       try {
         const names = chosen(fixture);
         const match = matchSheet(sheet, rowFor(fixture), dateKey);
-        if (sheetTeamSync && names.length) {
+        const removed = savedNames(fixture).filter(name => !names.includes(name));
+        if (sheetTeamSync && (names.length || removed.length)) {
           if (loading || message || !match?.id) throw new Error("Refresh availability and check that this fixture matches the sheet before saving.");
           const playerKeys = names.map(name => roster().find(player => player.publicName === name)?.playerKey);
           if (playerKeys.some(key => !key)) throw new Error("Every selected player needs a club profile.");
-          await window.ONMFirebase.availability("selectTeamAvailability", { fixtureId: match.id, playerKeys });
+          if (playerKeys.length) {
+            await window.ONMFirebase.availability("selectTeamAvailability", { fixtureId: match.id, playerKeys });
+          }
+          const removedPlayers = roster().filter(player =>
+            removed.includes(player.publicName) && playerStatus(player, match) === "Selected");
+          await Promise.all(removedPlayers.map(player => window.ONMFirebase.availability("setTeamAvailability", {
+            playerKey: player.playerKey, fixtureId: match.id, previousStatus: "Selected", status: ""
+          })));
         }
         await save(fixture, names);
         drafts.delete(fixture.id);
@@ -399,6 +433,7 @@
         await refreshSheet();
       } catch (error) {
         toast(error.message || "Could not save the team.", true);
+        if (sheetTeamSync) await refreshSheet();
       } finally {
         saving = false;
         render();

@@ -2413,3 +2413,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .setupFixtureField { margin-bottom: 12px; }
 .setupLineupActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
 .setupLineupActions .smallNote { margin: 0; }
+
+#matchTracker[hidden], #matchSignIn[hidden], #matchSignInLink[hidden] { display: none; }
+.matchSignIn { max-width: 480px; }
+.matchSignIn .card { text-align: center; }
+.matchSignIn p { margin: 12px 0 16px; }

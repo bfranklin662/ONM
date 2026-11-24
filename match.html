@@ -7,7 +7,7 @@
   <title>Oche Ness Monsters | Match</title>
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css">
-  <link rel="stylesheet" href="styles/fines.css?v=20261124-fixture-lineup" />
+  <link rel="stylesheet" href="styles/fines.css?v=20261124-match-sign-in" />
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
@@ -73,7 +73,14 @@
     <a href="/match" class="active">Match</a>
   </div>
 
-  <div class="wrap">
+  <section id="matchSignIn" class="wrap matchSignIn" aria-labelledby="matchSignInTitle">
+    <div class="card">
+      <h1 id="matchSignInTitle" class="sectionTitle">Match</h1>
+      <p id="matchSignInStatus" role="status">Checking sign-in…</p>
+      <a id="matchSignInLink" class="btn btnPrimary" href="/auth.html?mode=login&amp;redirect=%2Fmatch" hidden>Sign in</a>
+    </div>
+  </section>
+  <div id="matchTracker" class="wrap" hidden>
     <div class="header appSwitcher" id="appHeader">
       <div>
         <div class="title" id="screenTitleText">Fine Tracker</div>
@@ -355,7 +362,7 @@
   <script src="scripts/session.js?v=20261028-avatar-fill"></script>
   <script src="scripts/profile.js?v=20261025-profile-navigation"></script>
   <script src="scripts/season-data.js"></script>
-  <script src="scripts/fines.js?v=20261124-fixture-lineup"></script>
+  <script src="scripts/fines.js?v=20261124-match-sign-in"></script>
 <script src="/scripts/site-ui.js?v=20261028-avatar-fill"></script></body>
 
 </html>

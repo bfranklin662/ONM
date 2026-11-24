@@ -91,3 +91,52 @@ test("fixture save persists public player names and rejects duplicates", async (
   await context.saveFixture(fields);
   assert.equal(writes[1].sheetRow.Player1, "");
 });
+
+test("both Match routes keep the tracker hidden until Firebase restores a signed-in user", async () => {
+  for (const route of ["../match.html", "../match/index.html"]) {
+    const markup = fs.readFileSync(require.resolve(route), "utf8");
+    assert.match(markup, /id="matchTracker"[^>]*\bhidden\b/);
+    assert.match(markup, /id="matchSignInLink"[^>]*redirect=%2Fmatch/);
+  }
+  for (const user of [null, { uid: "player-1" }]) {
+    const nodes = {
+      matchTracker: { hidden: true },
+      matchSignIn: { hidden: false },
+      matchSignInStatus: {},
+      matchSignInLink: { hidden: true }
+    };
+    let start;
+    let matchDataStarted = false;
+    let authChanged;
+    let reloaded = false;
+    const context = vm.createContext({
+      document: {
+        addEventListener(_, callback) { start = callback; },
+        getElementById: id => nodes[id]
+      },
+      window: {
+        ONMFirebase: {
+          async currentFirebaseUser() { return user; },
+          ready: Promise.resolve({ auth: {}, authSdk: {
+            onAuthStateChanged(_, callback) { authChanged = callback; }
+          } })
+        },
+        location: { reload() { reloaded = true; } }
+      },
+      console: { log() {} },
+      startMatchData() { matchDataStarted = true; }
+    });
+    vm.runInContext(fines.slice(0, fines.indexOf("  // ---- Constants ----")) + "startMatchData(); });", context);
+    await start();
+    assert.equal(matchDataStarted, Boolean(user));
+    assert.equal(nodes.matchTracker.hidden, !user);
+    if (!user) {
+      assert.match(nodes.matchSignInStatus.textContent, /Sign in to view upcoming games/);
+      assert.equal(nodes.matchSignInLink.hidden, false);
+    } else {
+      authChanged(null);
+      assert.equal(nodes.matchTracker.hidden, true);
+      assert.equal(reloaded, true);
+    }
+  }
+});

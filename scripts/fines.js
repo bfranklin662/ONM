@@ -1,6 +1,33 @@
 console.log("✅ fines.js loaded");
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  const tracker = document.getElementById("matchTracker");
+  const gate = document.getElementById("matchSignIn");
+  if (gate && tracker) {
+    const status = document.getElementById("matchSignInStatus");
+    const link = document.getElementById("matchSignInLink");
+    try {
+      const firebase = window.ONMFirebase;
+      const user = await firebase.currentFirebaseUser();
+      if (!user) {
+        status.textContent = "Sign in to view upcoming games and team lineups.";
+        link.hidden = false;
+        return;
+      }
+      const { auth, authSdk } = await firebase.ready;
+      authSdk.onAuthStateChanged(auth, current => {
+        if (current?.uid === user.uid) return;
+        tracker.hidden = true;
+        window.location.reload();
+      });
+    } catch {
+      status.textContent = "Could not check your sign-in. Refresh to try again.";
+      return;
+    }
+    gate.hidden = true;
+    tracker.hidden = false;
+  }
+
   // ---- Constants ----
   const STORAGE_KEY = "darts_fines_tracker_v1";
   const MAX_PLAYERS = 12;
@@ -369,12 +396,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (teamsRes?.ok) leagueTeamsData = await teamsRes.json();
       completedFixtureKeys.clear();
-      const today = todayInputValue();
       seasonFixtures = (Array.isArray(fixtures) ? fixtures : [])
         .filter(isResultTeamFixture)
         .map(normaliseSeasonFixture)
         .filter(fixture => fixture.dateValue)
-        .filter(fixture => fixture.dateValue <= today)
         .filter(fixture => {
           if (!fixtureHasSubmittedResult(fixture, results)) return true;
           completedFixtureKeys.add(fixture.key);
@@ -3507,6 +3532,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!currentUser.linkedPlayerName || !currentUser.linkedPlayerKey) {
       showToast("You must be linked to an ONM player to submit a result.");
+      return;
+    }
+    if (matchDate.value > todayInputValue()) {
+      showToast("You can submit a result from the day of the match.");
       return;
     }
     const isResubmit = Boolean(submittedResultRow);
