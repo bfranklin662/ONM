@@ -282,3 +282,10 @@
   #playerProfileSection .appearance-table-container { margin-top: 2px; }
   #playerProfileSection .appearance-season-title { margin-block: 4px 3px; }
 }
+#playerProfileSection .profile-accolade-pills {
+  display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px;
+}
+#playerProfileSection .profile-accolade-pill {
+  padding: 2px 5px; border: 1px solid #6e613d; border-radius: 999px;
+  background: #302a18; color: #f0dd9c; font: 500 .62rem/1.2 system-ui,sans-serif;
+}

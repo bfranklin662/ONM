@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="styles/player-profile.css?v=20261124-mobile-appearances">
   <link rel="stylesheet" href="styles/players-landing.css?v=20261120-green-headers">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
-  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261124-league-colours">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261124-accolade-list">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
   <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
@@ -114,7 +114,6 @@
                     <div class="photo-loader" aria-hidden="true"><div class="spinner"></div></div>
                     <div id="profileCaptainRibbon"></div>
                   </div>
-                  <div id="profilePhotoAccolades" class="profile-photo-accolades"></div>
                   <button id="editOwnPlayerImage" type="button" aria-label="Edit image" hidden>
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 4 4M4 20l4.5-1 11-11a2.8 2.8 0 0 0-4-4l-11 11L4 20Z"/></svg>
                   </button>
@@ -128,6 +127,7 @@
                       <div id="playerNickname" class="info-item"></div>
                       <div class="info-item"><span class="meta-label">Date joined:</span> <span id="playerDateJoined" class="meta-value">...</span></div>
                       <div id="playerHighestCheckout" class="info-item"></div>
+                      <div id="profilePhotoAccolades" class="profile-accolade-pills" aria-label="Accolades"></div>
                     </div>
                     <div class="profile-detail-actions">
                       <a class="profileOweLink" hidden href="fines.html">What I owe</a>
@@ -331,7 +331,7 @@
   <script src="scripts/player-data.js?v=20261016-registration"></script>
   <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
   <script src="scripts/profile-game-progress.js?v=20261120-profile-games"></script>
-  <script src="scripts/player-profile.js?v=20261124-league-colours"></script>
+  <script src="scripts/player-profile.js?v=20261124-accolade-list"></script>
   <script>
     function toggleSidebar() {
       const sidebar = document.getElementById("sidebar");

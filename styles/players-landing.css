@@ -811,3 +811,25 @@
   #playersGrid .profileLinkedBadge { width: 12px; height: 12px; margin-left: 3px; }
   #playersGrid .profileLinkedBadge svg { width: 8px; height: 8px; }
 }
+
+#playersGrid .player-card { cursor: pointer; }
+.player-accolade-count { position: relative; justify-self: center; text-align: center; }
+.player-accolade-details summary { list-style: none; cursor: pointer; }
+.player-accolade-details summary::-webkit-details-marker { display: none; }
+.player-accolade-details summary, .player-no-accolades {
+  display: inline-grid; place-items: center; min-width: 18px; min-height: 20px; padding: 1px 3px;
+  border-radius: 5px; color: #f8dc81; background: #3f3419; font: 650 .68rem system-ui,sans-serif;
+}
+.player-no-accolades { color: #abc2b3; background: transparent; }
+.player-accolade-details ul {
+  position: absolute; z-index: 2; right: -4px; top: 100%; width: max-content; max-width: min(210px, 75vw);
+  list-style: none; padding: 5px 8px; margin: 4px 0 0; border: 1px solid #587a66; border-radius: 6px;
+  background: #142f23; color: #ecf6ef; text-align: left; font: 500 .71rem/1.3 system-ui,sans-serif;
+}
+.player-accolade-details li + li { margin-top: 4px; }
+#playersGrid .player-card:has(.player-accolade-details[open]) { position: relative; z-index: 3; }
+@media (max-width: 700px) {
+  .players-mobile-head, #playersGrid .player-card {
+    grid-template-columns: 25px minmax(0, 2fr) minmax(16px, .42fr) minmax(18px, .48fr) minmax(16px, .42fr) minmax(35px, .9fr) minmax(37px, 1.1fr) 21px;
+  }
+}

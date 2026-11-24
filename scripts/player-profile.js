@@ -283,7 +283,7 @@ function makeProfileAccoladesHtml(profile) {
         try { a = { icon: "🏆", tip: decodeURIComponent(k.slice(7)) }; } catch (_) {}
       }
       if (!a) return "";
-      return `<span class="acc-emoji" tabindex="0" data-tooltip="${escapeHtml(a.tip)}">${a.icon}</span>`;
+      return `<span class="profile-accolade-pill"><span aria-hidden="true">${a.icon}</span> ${escapeHtml(a.tip)}</span>`;
     })
     .join("");
 }

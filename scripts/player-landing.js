@@ -37,6 +37,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const grid = document.getElementById("playersGrid");
   const playerSearch = document.getElementById("playerSearch");
 
+  grid?.addEventListener("click", event => {
+    const card = event.target.closest(".player-card");
+    if (!card || event.target.closest("a, button, details, [tabindex]")) return;
+    const link = card.querySelector(".player-card-name a");
+    if (link) window.location.assign(link.href);
+  });
+
   function getCardName(card) {
     // Prefer a stable attribute if present
     const h3 = card.querySelector(".player-card-name");
@@ -142,14 +149,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
 
-  function makeAccoladesOverlayHtml(profile = {}) {
+  function playerAccolades(profile = {}) {
     const keys = Array.isArray(profile.accolades) ? profile.accolades : [];
-    const items = keys.map(k => {
+    return keys.map(k => {
       if (accoladeMap[k]) return accoladeMap[k];
       if (k.startsWith("custom:")) { try { return { emoji: "🏆", tooltip: decodeURIComponent(k.slice(7)) }; } catch (_) {} }
       return null;
     }).filter(Boolean);
 
+  }
+
+  function makeAccoladesOverlayHtml(items) {
     if (!items.length) return "";
 
     return `
@@ -338,6 +348,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   grid.innerHTML = allPlayers
     .map((name, i) => {
       const profile = window.playerProfiles[name];
+      const accolades = playerAccolades(profile);
       const key = window.PlayerData.photoKey(name);
 
 
@@ -358,14 +369,13 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
 
           <!-- ✅ Move accolades OUTSIDE the clipped frame -->
-          ${makeAccoladesOverlayHtml(profile)}
+          ${makeAccoladesOverlayHtml(accolades)}
         </div>
 
 
         <h3 class="player-card-name" data-name="${escapeHtml(name)}">
           <a href="player-profile.html?name=${encodeURIComponent(name)}">${escapeHtml(name)}</a>
           ${profile.nickname ? `<div class="player-card-nickname">"${escapeHtml(profile.nickname)}"</div>` : ""}
-          <div class="player-mobile-accolades">${makeAccoladesOverlayHtml(profile)}</div>
         </h3>
 
         <div class="player-card-stats">
@@ -399,6 +409,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         
 
+        <div class="player-accolade-count">
+          ${accolades.length ? `<details class="player-accolade-details">
+            <summary aria-label="${accolades.length} accolades for ${escapeHtml(name)}">${accolades.length}</summary>
+            <ul aria-label="Accolades">${accolades.map(item => `<li><span aria-hidden="true">${item.emoji}</span> ${escapeHtml(item.tooltip)}</li>`).join("")}</ul>
+          </details>` : '<span class="player-no-accolades" aria-label="No accolades">0</span>'}
+        </div>
         <button class="btn player-card-btn"
           onclick="location.href='player-profile.html?name=${encodeURIComponent(name)}'">
           Player Profile
