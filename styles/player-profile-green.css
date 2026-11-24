@@ -112,3 +112,70 @@
 #playerProfileSection .player-stats-table table,#playerProfileSection .player-stats-table .table-container { background:#102f21; }
 #playerProfileSection .profile-game-progress { background:#143b29; border-color:#416b4f; }
 #playerProfileSection .profile-game-progress .game-progress-stats { padding:12px; border-radius:9px; background:#19412d; }
+
+@media (max-width: 700px) {
+  #playerProfileSection .player-header-card {
+    grid-template-columns: clamp(68px, 22vw, 96px) minmax(0, 1fr);
+    grid-template-areas: "photo identity" "stats stats" "bottom bottom";
+    gap: 9px 11px;
+    padding: 10px;
+    text-align: left;
+  }
+  #playerProfileSection .header-photo { grid-area: photo; width: 100%; align-self: start; }
+  #playerProfileSection .profile-photo-shell,
+  #playerProfileSection .profile-photo-frame { width: 100%; height: auto; margin: 0; }
+  #playerProfileSection .profile-photo-frame { border-radius: 50%; aspect-ratio: 1; }
+  #playerProfileSection #playerPhoto { border-radius: inherit; }
+  #playerProfileSection .header-info { display: contents; }
+  #playerProfileSection .profile-header-identity { grid-area: identity; min-width: 0; }
+  #playerProfileSection .profile-name-row { margin: 0 0 4px; }
+  #playerProfileSection .player-name { font-size: clamp(1rem, 5vw, 1.32rem); line-height: 1.1; overflow-wrap: anywhere; }
+  #playerProfileSection .player-info-grid { gap: 3px; }
+  #playerProfileSection .player-info-grid :is(.info-item, .meta-label, .meta-value) { font-size: .7rem; line-height: 1.2; text-align: left; }
+  #playerProfileSection .profile-detail-actions { gap: 5px; margin-top: 3px; }
+  #playerProfileSection .profile-edit-button { min-height: 24px; padding: 3px 6px; font-size: .66rem; }
+  #playerProfileSection #playerQuickStats { grid-area: stats; width: 100%; max-width: none; margin: 0; }
+  #playerProfileSection .header-form { grid-area: bottom; align-items: stretch; gap: 7px; }
+  #playerProfileSection .form-medals-bottom {
+    order: -1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 4px 8px;
+    margin: 0;
+  }
+  #playerProfileSection .form-fines-row { grid-column: 1 / -1; display: block; }
+  #playerProfileSection .last5-block { flex-direction: row; gap: 8px; }
+  #playerProfileSection .last5-title,
+  #playerProfileSection .medals-title { margin: 0; font-size: .65rem; text-align: left; }
+  #playerProfileSection #playerMedals {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 3px;
+    margin: 0;
+    padding: 0;
+  }
+  #playerProfileSection #playerMedals .medal { width: 26px; height: 26px; flex: 0 0 26px; }
+  #playerProfileSection #playerMedals .medal img { width: 100%; height: 100%; object-fit: contain; }
+  #playerProfileSection .walkout-wrap { width: 100%; margin: 0; }
+  #playerProfileSection .walkout-badge { position: static; margin: 0 0 3px; padding: 0; font-size: .65rem; }
+  #playerProfileSection #playerWalkout iframe { display: block; width: 100%; max-width: none; height: 80px; min-height: 0; }
+  #playerProfileSection #editOwnPlayerImage { bottom: 8px; right: 50%; transform: translateX(50%); white-space: nowrap; padding: 2px 4px; font-size: .52rem; }
+  #playerProfileSection .profile-photo-accolades { right: 50%; bottom: 3px; transform: translateX(50%); gap: 2px; padding: 2px 3px; }
+  #playerProfileSection .profile-photo-accolades .acc-emoji { font-size: .69rem; }
+  #playerProfileSection .profile-captain-ribbon { top: 9px; right: -34px; width: 103px; padding: 2px 0; font-size: .45rem; }
+  #playerProfileSection .player-stats-table .table-container,
+  #playerProfileSection .player-stats-table .table-container table { transform: none; }
+  #playerProfileSection .player-stats-table table { min-width: 0; table-layout: fixed; }
+  #playerProfileSection .player-stats-table :is(th, td) {
+    padding: 4px 1px;
+    font-size: .57rem !important;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  #playerProfileSection .player-stats-table :is(th, td):first-child { width: 23%; }
+  #playerProfileSection .player-stats-table .stat-badge { margin: 1px 0; padding: 1px 2px; font-size: .49rem; }
+  #playerProfileSection .player-stats-table .stat-badge.inactive { display: none; }
+}

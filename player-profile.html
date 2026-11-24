@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="styles/player-profile.css?v=20261124-mobile-appearances">
   <link rel="stylesheet" href="styles/players-landing.css?v=20261120-green-headers">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
-  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261120-green-stats">
+  <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261124-mobile-header">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
   <link rel="icon" type="image/png" sizes="32x32" href="/graphics/icons/favicon-32.png?v=20261104-brand">
   <link rel="icon" type="image/png" sizes="48x48" href="/graphics/icons/favicon-48.png?v=20261104-brand">
@@ -133,6 +133,7 @@
 
 
               <div class="header-col header-info">
+                <div class="profile-header-identity">
                 <div class="profile-name-row">
                   <h1 id="playerName" class="player-name"></h1>
                 </div>
@@ -152,6 +153,7 @@
                   <!-- Row 3 -->
                 </div>
 
+                </div>
                 <div id="playerQuickStats" class="player-stats-line"></div>
 
               </div>
@@ -226,15 +228,15 @@
                     <table>
                       <thead>
                         <tr>
-                          <th>Competition</th>
-                          <th>Played</th>
-                          <th>Wins</th>
-                          <th>Losses</th>
-                          <th>Checkouts</th>
-                          <th>CO/Game</th>
-                          <th>Fines</th>
-                          <th>Fines/Game</th>
-                          <th>Specials</th>
+                          <th><span class="appearance-desktop">Competition</span><abbr class="appearance-mobile" title="Competition">Comp</abbr></th>
+                          <th><span class="appearance-desktop">Played</span><abbr class="appearance-mobile" title="Played">P</abbr></th>
+                          <th><span class="appearance-desktop">Wins</span><abbr class="appearance-mobile" title="Wins">W</abbr></th>
+                          <th><span class="appearance-desktop">Losses</span><abbr class="appearance-mobile" title="Losses">L</abbr></th>
+                          <th><span class="appearance-desktop">Checkouts</span><abbr class="appearance-mobile" title="Checkouts">CO</abbr></th>
+                          <th><span class="appearance-desktop">CO/Game</span><abbr class="appearance-mobile" title="CO/Game">CO/G</abbr></th>
+                          <th><span class="appearance-desktop">Fines</span><abbr class="appearance-mobile" title="Fines">£</abbr></th>
+                          <th><span class="appearance-desktop">Fines/Game</span><abbr class="appearance-mobile" title="Fines/Game">£/G</abbr></th>
+                          <th><span class="appearance-desktop">Specials</span><abbr class="appearance-mobile" title="Specials">Sp</abbr></th>
                         </tr>
                       </thead>
                       <tbody id="playerStatsBody"></tbody>
