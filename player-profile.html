@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css?v=20261016-registration">
   <link rel="stylesheet" href="styles/index.css">
-  <link rel="stylesheet" href="styles/player-profile.css?v=20261120-profile-compact">
+  <link rel="stylesheet" href="styles/player-profile.css?v=20261124-mobile-appearances">
   <link rel="stylesheet" href="styles/players-landing.css?v=20261120-green-headers">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/player-profile-green.css?v=20261120-green-stats">
@@ -189,6 +189,7 @@
 
             <!-- STATS + APPEARANCES -->
             <div class="stats-and-appearances-wrapper">
+              <div class="profile-data-controls">
               <div class="profile-data-header">
                 <div class="stats-toggle-left">
                   <label class="profile-season-label" for="profileSeasonSelect">Season</label>
@@ -212,6 +213,8 @@
 
               <div class="profile-league-filter stats-toggle-right" id="profileLeagueFilter">
                 <button class="league-btn active" data-league="all">All</button>
+              </div>
+
               </div>
 
               <!-- STATS TABLE -->
@@ -359,7 +362,7 @@
   <script src="scripts/player-data.js?v=20261016-registration"></script>
   <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
   <script src="scripts/profile-game-progress.js?v=20261120-profile-games"></script>
-  <script src="scripts/player-profile.js?v=20261120-profile-games"></script>
+  <script src="scripts/player-profile.js?v=20261124-mobile-appearances"></script>
   <script>
     function toggleSidebar() {
       const sidebar = document.getElementById("sidebar");

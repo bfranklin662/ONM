@@ -4344,3 +4344,73 @@
   z-index: 100000;
 }
 .profile-view-btn[data-tooltip]:is(:hover, :focus)::before { display: none; }
+
+.appearance-mobile, .profile-data-title-mobile { display: none; }
+
+@media (max-width: 700px) {
+  #playerProfileSection { padding-inline: 6px; }
+  #playerProfileSection .stats-and-appearances-wrapper { padding: 7px 4px; }
+  #playerProfileSection .profile-data-controls {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 5px;
+    padding: 4px;
+  }
+  #playerProfileSection .profile-data-header { display: contents; }
+  #playerProfileSection .profile-data-header .stats-toggle-left,
+  #playerProfileSection .profile-data-title-desktop,
+  #playerProfileSection .appearance-desktop { display: none; }
+  #playerProfileSection .profile-data-title-mobile { display: grid; font-size: .65rem; line-height: 1.05; }
+  #playerProfileSection .profile-view-tabs { grid-column: 3; grid-row: 1; gap: 3px; }
+  #playerProfileSection .profile-view-btn { width: 28px; height: 28px; padding: 0; font-size: .8rem; }
+  #playerProfileSection .profile-league-filter {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 3px;
+    margin: 0;
+    overflow-x: auto;
+  }
+  #playerProfileSection .profile-league-filter .league-btn {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 4px 5px;
+    font-size: .63rem;
+    white-space: nowrap;
+  }
+  #playerProfileSection .appearance-table-container { transform: none; }
+  #playerProfileSection .appearance-table-container table { min-width: 0; table-layout: fixed; transform: none; }
+  #playerProfileSection .appearances-table-simple :is(th, td) {
+    width: auto;
+    padding: 3px 2px;
+    font-size: .63rem;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  #playerProfileSection .appearances-table-simple :is(th, td):first-child { display: none; }
+  #playerProfileSection .appearances-table-simple :is(th, td):nth-child(2) { width: 34%; }
+  #playerProfileSection .appearances-table-simple :is(th, td):nth-child(5) { width: 8%; }
+  #playerProfileSection .appearance-mobile { display: inline; }
+  #playerProfileSection .opp-wrap { display: block; text-align: left; }
+  #playerProfileSection .opp-name,
+  #playerProfileSection .opp-loc { display: inline; font-size: inherit; }
+  #playerProfileSection .opp-wrap > .appearance-mobile { display: block; margin-top: 2px; }
+  #playerProfileSection .league-col {
+    display: inline-block;
+    min-width: 0;
+    padding: 1px 3px;
+    font-size: .54rem;
+    line-height: 1.15;
+    white-space: normal;
+  }
+  #playerProfileSection .appearances-table-simple .result-box { padding: 2px; min-width: 0; font-size: .62rem; }
+  #playerProfileSection .appearances-table-simple .bagel { font-size: .78rem; }
+  #playerProfileSection .appearances-table-simple .specials-row { flex-wrap: wrap; gap: 2px; }
+  #playerProfileSection .appearances-table-simple .stat-badge { margin: 0; padding: 1px 2px; font-size: .55rem; }
+  #playerProfileSection .appearance-season-title { margin-block: 8px 4px; }
+}

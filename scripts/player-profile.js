@@ -55,7 +55,8 @@ function updateProfileDataTitle() {
 
   const viewText = selectedProfileView === "appearances" ? "Individual performances" : "Season stats";
   const seasonText = selectedSeasonLabel();
-  title.textContent = `${viewText}${seasonText ? ` ${seasonText}` : ""} – ${playerName}`;
+  title.innerHTML = `<span class="profile-data-title-desktop">${escapeHtml(viewText)}${seasonText ? ` ${escapeHtml(seasonText)}` : ""} – ${escapeHtml(playerName)}</span>
+    <span class="profile-data-title-mobile">${viewText.split(" ").map(word => `<span>${escapeHtml(word)}</span>`).join("")}</span>`;
 }
 
 function updateProfileDataPanels() {
@@ -765,6 +766,9 @@ async function buildRowsOnly(apps) {
       "";
     const date = escapeHtml(formatAppearanceDate(rawDate));
     const playedOn = safeParseDate(rawDate);
+    const compactDate = playedOn && !isNaN(playedOn)
+      ? `${String(playedOn.getDate()).padStart(2, "0")}/${String(playedOn.getMonth() + 1).padStart(2, "0")}`
+      : date;
     const appearanceUrl = new URL("results.html", window.location.href);
     if (playedOn && !isNaN(playedOn)) {
       const year = playedOn.getFullYear();
@@ -812,11 +816,12 @@ async function buildRowsOnly(apps) {
         <td>
           <div class="opp-wrap">
             <div class="opp-name">${escapeHtml(opponent)}</div>
-            ${loc ? `<div class="opp-loc">(${loc})</div>` : ""}
+            ${loc ? `<span class="opp-loc"><span class="appearance-desktop">(${loc})</span><span class="appearance-mobile">(${loc[0]})</span></span>` : ""}
+            <span class="appearance-mobile"><span class="league-col ${league.name}">${leagueText}</span></span>
           </div>
         </td>
 
-        <td>${date}</td>
+        <td><span class="appearance-desktop">${date}</span><span class="appearance-mobile">${compactDate}</span></td>
 
         <td>
           <div class="result-box ${resultClass}">
@@ -846,12 +851,12 @@ async function buildAppearanceTable(apps) {
       <thead>
         <tr>
           <th>League</th>
-          <th>Opponent</th>
+          <th><span class="appearance-desktop">Opponent</span><span class="appearance-mobile">Match</span></th>
           <th>Date</th>
-          <th>Result</th>
-          <th>Checkouts</th>
+          <th><span class="appearance-desktop">Result</span><span class="appearance-mobile">Res</span></th>
+          <th><span class="appearance-desktop">Checkouts</span><abbr class="appearance-mobile" title="Checkouts">CO</abbr></th>
           <th>Fines</th>
-          <th>Specials</th>
+          <th><span class="appearance-desktop">Specials</span><abbr class="appearance-mobile" title="Specials">Sp</abbr></th>
         </tr>
       </thead>
       <tbody>
