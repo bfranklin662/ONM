@@ -1,5 +1,6 @@
 "use strict";
 
+const { ARCHIVE_NOTE, archiveRecord } = require("./availability-roster");
 const { createHash } = require("node:crypto");
 const SPREADSHEET_ID = "1jrh1Ij_H2sidOam3mZY_lCwT-KC5qVp1QNUxxgrUzqQ";
 const SHEET_ID = 1717914264;
@@ -51,7 +52,7 @@ function availabilityAliases(player) {
 
 function findPlayerRow(values, player) {
   // Full names take precedence; public-name matching supports rows such as Billiams.
-  const candidates = [player.availabilitySheetName, player.fullName, player.publicName, ...availabilityAliases(player)].map(normalise).filter(Boolean);
+  const candidates = [player.availabilitySheetName, player.fullName, player.publicName, ...availabilityAliases(player), ...(player.aliases || [])].map(normalise).filter(Boolean);
   for (const candidate of candidates) {
     const matches = values.flatMap((row, index) => index >= 7 && normalise(row[0]) === candidate ? [index] : []);
     if (matches.length > 1) throw problem("failed-precondition", "Your player matches more than one sheet row. Please ask a club administrator to check it.");
@@ -75,7 +76,7 @@ function fixturesFor(values, rowIndex, today) {
     .sort((a, b) => a.date.localeCompare(b.date) || a.league.localeCompare(b.league));
 }
 
-function createAvailabilityService({ db, sheets, now = () => new Date() }) {
+function createAvailabilityService({ db, sheets, now = () => new Date(), withSheetLock = action => action() }) {
   async function readSheet() {
     const metadata = await sheets.metadata();
     const tab = (metadata.sheets || []).find(sheet => sheet.properties.sheetId === SHEET_ID)?.properties;
@@ -101,6 +102,7 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     // Keep fixture headings and player responses, excluding counts and the spare column.
     return {
       sheetTeamSync: true,
+      sheetRosterSync: true,
       rows: values.map((row, index) => index >= 4 && index < 7 ? [] : [row[0] || "", "", ...row.slice(2)]),
       fixtureIds: Object.fromEntries(fixturesFor(values, 7, todayLondon(now()))
         .filter(fixture => fixture.editable).map(fixture => [fixture.column, fixture.id])),
@@ -123,7 +125,11 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     }
     const playerSnapshot = await db.doc(`players/${playerKey}`).get();
     if (!playerSnapshot.exists && playerKey === "george-m") return { publicName: "George M", fullName: "George Mills" };
-    if (!playerSnapshot.exists) throw problem("failed-precondition", "That player profile could not be found.");
+    if (!playerSnapshot.exists) {
+      const publicSnapshot = await db.doc(`publicPlayers/${playerKey}`).get();
+      if (!publicSnapshot.exists) throw problem("failed-precondition", "That player profile could not be found.");
+      return publicSnapshot.data();
+    }
     return playerSnapshot.data();
   }
 
@@ -140,20 +146,111 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     return { title, rowIndex, fixtures: fixturesFor(values, rowIndex, todayLondon(now())) };
   }
 
+  async function rosterSnapshot() {
+    const { title, values } = await readSheet();
+    const notes = await sheets.rosterNotes(title);
+    return { values, notes };
+  }
+
+  function existingRow(values, player) {
+    try {
+      return findPlayerRow(values, player);
+    } catch (error) {
+      if (error.code === "not-found") return -1;
+      throw error;
+    }
+  }
+
+  function findArchivedRow(notes, playerKey) {
+    return [...notes.entries()].find(([, note]) => archiveRecord(note)?.key === playerKey);
+  }
+
+  async function changeRosterArchive({ values, notes }, player, playerKey, archived) {
+    const entry = findArchivedRow(notes, playerKey);
+    if (!archived && entry) {
+      const [index, note] = entry;
+      const record = archiveRecord(note);
+      if (values[index]?.[0]) throw problem("failed-precondition", "The archived row already has a name. Check it on the sheet before restoring.");
+      await sheets.setRosterName(index, record.name, record.note, false);
+      return true;
+    }
+    if (entry) return false;
+    const index = existingRow(values, player);
+    if (index < 0) return false;
+    const name = values[index][0];
+    const note = notes.get(index) || "";
+    await sheets.setRosterName(index, archived ? "" : name, archived ? ARCHIVE_NOTE + JSON.stringify({ key: playerKey, name, note }) : note, archived);
+    return true;
+  }
+
   async function archiveTeamPlayer(uid, payload) {
     await requireAdmin(uid);
     if (typeof payload?.archived !== "boolean") throw problem("invalid-argument", "Choose whether to archive or restore the player.");
     const player = await loadPlayer(payload.playerKey);
-    const { values } = await readSheet();
-    let rowIndex;
-    try {
-      rowIndex = findPlayerRow(values, player);
-    } catch (error) {
-      if (error.code === "not-found") return { sheetRowChanged: false };
-      throw error;
+    return withSheetLock(async () => {
+      const roster = await rosterSnapshot();
+      const changed = await changeRosterArchive(roster, player, payload.playerKey, payload.archived);
+      if (!changed && !payload.archived) await addMissingRows(roster, [player]);
+      return { sheetRowChanged: changed };
+    });
+  }
+
+  async function addMissingRows({ values, notes }, players) {
+    const additions = [];
+    const archivedNames = new Set([...notes.values()].map(note => normalise(archiveRecord(note)?.name)).filter(Boolean));
+    for (const player of players) {
+      const name = String(player.availabilitySheetName || player.fullName || player.publicName || "").trim();
+      if (!name || name.length > 120 || archivedNames.has(normalise(name)) || existingRow(values, player) >= 0 || findArchivedRow(notes, player.playerKey)) continue;
+      if (additions.some(added => normalise(added) === normalise(name))) continue;
+      additions.push(name);
     }
-    await sheets.setRowHidden(rowIndex, payload.archived);
-    return { sheetRowChanged: true };
+    if (!additions.length) return 0;
+    const occupied = values.reduce((last, row, index) => index >= 7 && row[0] ? index : last, 7);
+    const lastArchived = [...notes].reduce((last, [index, note]) => archiveRecord(note) ? Math.max(last, index) : last, 7);
+    await sheets.addRosterRows(Math.max(occupied, lastArchived) + 1, additions, values[0].length);
+    return additions.length;
+  }
+
+  async function archivedKeys() {
+    const snapshot = await db.doc("seasons/26-27").get();
+    return new Set(snapshot.data()?.pickTeamArchivedPlayerKeys || []);
+  }
+
+  async function syncRoster(uid, payload) {
+    await requireAdmin(uid);
+    const keys = payload?.playerKeys;
+    if (!Array.isArray(keys) || keys.length > 150 || new Set(keys).size !== keys.length) {
+      throw problem("invalid-argument", "Choose up to 150 club players.");
+    }
+    const archived = await archivedKeys();
+    const players = await Promise.all(keys.map(async playerKey => ({ ...await loadPlayer(playerKey), playerKey })));
+    return withSheetLock(async () => {
+      const roster = await rosterSnapshot();
+      let removed = 0;
+      for (const player of players.filter(item => archived.has(item.playerKey))) {
+        if (await changeRosterArchive(roster, player, player.playerKey, true)) removed += 1;
+      }
+      const added = await addMissingRows(roster, players.filter(player => !archived.has(player.playerKey)));
+      return { added, removed };
+    });
+  }
+
+  async function addResultPlayers(before, after) {
+    if (after?.season !== "26-27") return;
+    const namesFor = result => Array.from({ length: 12 }, (_, index) =>
+      String(result?.sheetRow?.[`Player${index + 1}`] || result?.sheetRow?.[`Player ${index + 1}`] || "").trim()).filter(Boolean);
+    const previous = new Set(namesFor(before).map(normalise));
+    const names = [...new Set(namesFor(after))].filter(name => !previous.has(normalise(name)));
+    if (!names.length) return;
+    const [directory, archived] = await Promise.all([db.collection("players").get(), archivedKeys()]);
+    const records = directory.docs.map(doc => ({ ...doc.data(), playerKey: doc.id }));
+    const players = names.flatMap(name => {
+      const candidates = records.filter(player => [player.publicName, player.fullName, ...(player.aliases || [])].map(normalise).includes(normalise(name)));
+      if (candidates.length > 1) return [];
+      const player = candidates[0] || { publicName: name, playerKey: normalise(name).replace(/[^a-z0-9]+/g, "-") };
+      return archived.has(player.playerKey) ? [] : [player];
+    });
+    if (players.length) await withSheetLock(async () => addMissingRows(await rosterSnapshot(), players));
   }
 
   async function selectTeamOnSheet(uid, payload) {
@@ -162,25 +259,27 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     if (!Array.isArray(keys) || keys.length > 12 || new Set(keys).size !== keys.length || typeof payload.fixtureId !== "string") {
       throw problem("invalid-argument", "Choose up to 12 different players for an upcoming fixture.");
     }
-    const { title, values } = await readSheet();
-    const fixture = fixturesFor(values, 7, todayLondon(now())).find(item => item.id === payload.fixtureId && item.editable);
-    if (!fixture) throw problem("failed-precondition", "That fixture has changed or is no longer upcoming. Refresh availability.");
-    const players = await Promise.all(keys.map(loadPlayer));
-    const rows = players.map(player => {
-      try {
-        return findPlayerRow(values, player);
-      } catch (error) {
-        throw problem("failed-precondition", `${player.publicName || player.fullName}: ${error.message}`);
-      }
+    return withSheetLock(async () => {
+      const { title, values } = await readSheet();
+      const fixture = fixturesFor(values, 7, todayLondon(now())).find(item => item.id === payload.fixtureId && item.editable);
+      if (!fixture) throw problem("failed-precondition", "That fixture has changed or is no longer upcoming. Refresh availability.");
+      const players = await Promise.all(keys.map(loadPlayer));
+      const rows = players.map(player => {
+        try {
+          return findPlayerRow(values, player);
+        } catch (error) {
+          throw problem("failed-precondition", `${player.publicName || player.fullName}: ${error.message}`);
+        }
+      });
+      if (new Set(rows).size !== rows.length) throw problem("failed-precondition", "Two selected profiles match the same sheet row.");
+      const entries = await Promise.all(rows.map(async rowIndex => {
+        const cell = await sheets.cell(`${title}!${columnName(fixture.column)}${rowIndex + 1}`);
+        const rule = dropdownRule(cell);
+        return { rowIndex, columnIndex: fixture.column, rule };
+      }));
+      if (entries.length) await sheets.overrideSelections(entries);
+      return { selected: entries.length };
     });
-    if (new Set(rows).size !== rows.length) throw problem("failed-precondition", "Two selected profiles match the same sheet row.");
-    const entries = await Promise.all(rows.map(async rowIndex => {
-      const cell = await sheets.cell(`${title}!${columnName(fixture.column)}${rowIndex + 1}`);
-      const rule = dropdownRule(cell);
-      return { rowIndex, columnIndex: fixture.column, rule };
-    }));
-    if (entries.length) await sheets.overrideSelections(entries);
-    return { selected: entries.length };
   }
 
   async function get(uid) {
@@ -196,7 +295,7 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
 
   async function set(uid, payload) {
     validateResponse(payload, CHOICES);
-    return writeResponse(await context(uid), payload);
+    return withSheetLock(async () => writeResponse(await context(uid), payload));
   }
 
   async function setTeamResponse(uid, payload) {
@@ -205,7 +304,7 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     if (typeof payload.playerKey !== "string" || !payload.playerKey || payload.playerKey.includes("/")) {
       throw problem("invalid-argument", "Choose a club player.");
     }
-    return writeResponse(await playerContext(payload.playerKey), payload);
+    return withSheetLock(async () => writeResponse(await playerContext(payload.playerKey), payload));
   }
 
   function dropdownRule(cellData) {
@@ -239,7 +338,7 @@ function createAvailabilityService({ db, sheets, now = () => new Date() }) {
     return { fixtureId: fixture.id, status: payload.status };
   }
 
-  return { get, set, getTeamSheet, setTeamResponse, archiveTeamPlayer, selectTeamOnSheet };
+  return { get, set, getTeamSheet, setTeamResponse, archiveTeamPlayer, selectTeamOnSheet, syncRoster, addResultPlayers };
 }
 
 module.exports = { SPREADSHEET_ID, SHEET_ID, CHOICES, normalise, columnName, parseFixture, findPlayerRow, fixturesFor, todayLondon, createAvailabilityService };

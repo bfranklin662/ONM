@@ -25,7 +25,17 @@ function harness(overrides = {}) {
       values: async () => grid,
       cell: async () => ({ userEnteredValue: data.formula ? { formulaValue: "=1" } : { stringValue: data.current }, dataValidation: data.rule || (data.valid ? { condition: { type: "ONE_OF_LIST", values: ["Available", "Unavailable", "Not sure"].map(userEnteredValue => ({ userEnteredValue })) } } : undefined) }),
       overrideSelections: async entries => writes.push(...entries.map(({ rowIndex, columnIndex, rule, status }) => ({ row: rowIndex, column: columnIndex, rule, status }))),
-      setRowHidden: async (row, hidden) => writes.push({ row, hidden }),
+      rosterNotes: async () => data.notes || new Map(),
+      setRosterName: async (row, name, note, hidden) => {
+        writes.push({ row, hidden, name });
+        grid[row][0] = name;
+        data.notes ||= new Map();
+        data.notes.set(row, note);
+      },
+      addRosterRows: async (row, names) => {
+        writes.push({ row, names });
+        grid.splice(row, 0, ...names.map(name => [name]));
+      },
       update: async (range, value) => writes.push({ range, value })
     }
   });
@@ -158,7 +168,7 @@ test("team sync matches exact roster aliases and hides or restores the sheet row
   h.grid[7][0] = "George Mills";
   await h.service.archiveTeamPlayer("signed-in-user", { playerKey: "george-m", archived: true });
   await h.service.archiveTeamPlayer("signed-in-user", { playerKey: "george-m", archived: false });
-  assert.deepEqual(h.writes, [{ row: 7, hidden: true }, { row: 7, hidden: false }]);
+  assert.deepEqual(h.writes, [{ row: 7, hidden: true, name: "" }, { row: 7, hidden: false, name: "George Mills" }]);
   h.grid[7][0] = "Gary Hampshere";
   assert.equal(findPlayerRow(h.grid, { fullName: "Gary Hampshire" }), 7);
 });
@@ -187,4 +197,19 @@ test("admin can replace Selected with a normal response when the sheet hides the
   assert.equal(h.writes[0].status, "Not sure");
   assert.equal(h.writes[0].row, 7);
   assert.equal(h.writes[0].column, 2);
+});
+
+test("roster sync adds a missing player once and skips an archived player", async () => {
+  const h = harness({ user: { role: "admin" }, player: { publicName: "Sam M", fullName: "Sam Miles" } });
+  await assert.rejects(harness().service.syncRoster("signed-in-user", { playerKeys: ["sam-m"] }), { code: "permission-denied" });
+  assert.deepEqual(await h.service.syncRoster("signed-in-user", { playerKeys: ["sam-m"] }), { added: 1, removed: 0 });
+  assert.deepEqual(await h.service.syncRoster("signed-in-user", { playerKeys: ["sam-m"] }), { added: 0, removed: 0 });
+  await h.service.archiveTeamPlayer("signed-in-user", { playerKey: "sam-m", archived: true });
+  assert.deepEqual(await h.service.syncRoster("signed-in-user", { playerKeys: ["sam-m"] }), { added: 0, removed: 0 });
+  await h.service.archiveTeamPlayer("signed-in-user", { playerKey: "sam-m", archived: false });
+  assert.deepEqual(h.writes, [
+    { row: 9, names: ["Sam Miles"] },
+    { row: 9, hidden: true, name: "" },
+    { row: 9, hidden: false, name: "Sam Miles" }
+  ]);
 });

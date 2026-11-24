@@ -26,7 +26,7 @@ write endpoint, browser secrets, or service-account key file is required.
 
    ```sh
    npm --prefix functions install
-   npx firebase-tools deploy --only functions:availability:getPlayerAvailability,functions:availability:setPlayerAvailability,functions:availability:getTeamAvailability,functions:availability:setTeamAvailability,functions:availability:selectTeamAvailability,functions:availability:archiveTeamAvailabilityPlayer,firestore:rules
+   npx firebase-tools deploy --only functions:availability:getPlayerAvailability,functions:availability:setPlayerAvailability,functions:availability:getTeamAvailability,functions:availability:setTeamAvailability,functions:availability:selectTeamAvailability,functions:availability:archiveTeamAvailabilityPlayer,functions:availability:syncAvailabilityRoster,functions:availability:addResultPlayersToAvailability,firestore:rules
    ```
 
 3. In the availability spreadsheet's **Share** dialog, add this service
@@ -77,8 +77,10 @@ response **Selected** from their settings menu. The override replaces the
 cell value and hides its dropdown while it holds Selected. Restoring a normal
 response returns the three-choice dropdown. The blue conditional format
 applies to Selected. Saving the playing order also marks the chosen players
-Selected in the sheet. Archiving hides the corresponding row and restoring
-the player unhides it.
+Selected in the sheet. Archiving removes the name and hides the row. Restoring
+puts the name back in the same row, keeping its response history. Refreshing
+Pick team adds missing roster rows. A Firestore result trigger adds players
+named in newly submitted 2026/27 results.
 
 After deployment, verify the override against a test player and fixture,
 including the retained dropdown choices and the blue formatting.

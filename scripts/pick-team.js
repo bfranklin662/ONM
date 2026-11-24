@@ -3,7 +3,7 @@
 
   const LIMIT = 12;
   const RESPONSE_ACTIONS = ["Selected", "Available", "Not sure", "Unavailable"];
-  const GROUPS = ["Selected", "Available", "Not sure", "Not updated", "Unavailable"];
+  const GROUPS = ["Selected", "Available", "Not sure", "Unavailable", "Not updated"];
   const normal = value => String(value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
   const person = value => normal(value).replace(/\s*\((?:c|vc)\)$/, "");
 
@@ -61,14 +61,16 @@
       if (!date || !opponent || /cancelled|canceled|postponed/i.test([header, opponent, rows[3]?.[column]].join(" "))) continue;
       const responses = new Map();
       const sheetNames = new Map();
+      const counts = Object.fromEntries(GROUPS.map(status => [status, 0]));
       for (const row of rows.slice(7)) {
         const key = person(row[0]);
         if (!key) continue;
         sheetNames.set(key, String(row[0]).trim());
         const status = GROUPS.find(choice => normal(choice) === normal(row[column])) || "Not updated";
         responses.set(key, responses.has(key) ? null : status);
+        counts[status] += 1;
       }
-      fixtures.push({ id: fixtureIds[column], date: dateKey(date), league: leagueKey(header[0]), opponent: opponentKey(opponent), side: sideKey(rows[2]?.[column]), responses, sheetNames });
+      fixtures.push({ id: fixtureIds[column], date: dateKey(date), league: leagueKey(header[0]), opponent: opponentKey(opponent), side: sideKey(rows[2]?.[column]), responses, sheetNames, counts });
     }
     if (!fixtures.length) throw new Error("No match columns were found in the availability sheet.");
     return fixtures;
@@ -129,6 +131,7 @@
     const archiveCount = el("pickTeamArchiveCount");
     const archiving = new Set();
     const selection = el("pickTeamSelection");
+    const summary = el("pickTeamSummary");
     const refresh = el("pickTeamRefresh");
     const panel = el("pickTeamFixturePanel");
     let fixtureId = "";
@@ -200,12 +203,28 @@
         <button type="button" class="btn btnPrimary" data-pick-team-save${saving || (!drafts.has(fixture.id) && !needsSheetSync) ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button>`;
     }
 
+    const responded = match => RESPONSE_ACTIONS.reduce((total, status) => total + match.counts[status], 0);
+    const sheetTotal = match => responded(match) + match.counts["Not updated"];
+
+    function renderSummary(match, season) {
+      const active = roster().filter(player => !archived(player) && appearances(player, season) > 0).length;
+      const total = match ? sheetTotal(match) : sheet.length ? sheetTotal(sheet[0]) : "—";
+      const metrics = [ ["On sheet", total], ["Active · played this season", active] ];
+      if (match) {
+        metrics.push(["Responded", responded(match)], ...["Available", "Unavailable", "Not sure"].map(status => [status, match.counts[status]]));
+      }
+      summary.innerHTML = metrics.map(([label, count]) =>
+        `<div data-label="${escape(label)}"><dt>${escape(label)}</dt><dd>${count}</dd></div>`
+      ).join("");
+    }
+
     function render() {
       const fixtures = upcoming();
       if (!fixtures.some(item => item.id === fixtureId)) fixtureId = fixtures[0]?.id || "";
       picker.innerHTML = fixtures.map((item, index) => {
         const row = rowFor(item);
         const active = item.id === fixtureId;
+        const match = matchSheet(sheet, row, dateKey);
         const side = sideKey(row.HA).charAt(0).toUpperCase();
         const category = leagueKey(row.League).replace(" league", "").replace(/ /g, "-");
         return `<button type="button" role="tab" class="pickTeamFixture ${escape(category)}" id="pickFixtureTab${index}"
@@ -215,6 +234,7 @@
           <strong>${escape(row.Opponent)}${side ? ` · ${escape(side)}` : ""}</strong>
           <span>${escape(row.Date)}${row.Time ? ` · ${escape(row.Time)}` : ""}</span>
           <span>${escape(row.Location || "")}</span>
+          ${match ? `<span class="pickTeamFixtureResponses">${responded(match)}/${sheetTotal(match)} responded</span>` : ""}
         </button>`;
       }).join("");
       const activeTab = picker.querySelector('[aria-selected="true"]');
@@ -227,6 +247,7 @@
         renderPlayer({ player, count: appearances(player, fixture?.season || "26-27") }, [], true)
       ).join("") || '<p class="pickTeamEmpty">No archived players</p>';
       if (!fixture) {
+        renderSummary(null, "26-27");
         status.textContent = "No upcoming match fixtures.";
         selection.replaceChildren();
         groups.replaceChildren();
@@ -234,6 +255,7 @@
       }
 
       const match = matchSheet(sheet, rowFor(fixture), dateKey);
+      renderSummary(match, fixture.season);
       status.textContent = loading ? "Loading availability…" : message ||
         (match ? source : sheet.length ? "No unique match for this fixture in the availability sheet." : "Availability isn’t loaded yet.");
       renderSelection(fixture);
@@ -262,9 +284,22 @@
       message = "";
       render();
       try {
-        const { rows, fixtureIds, sheetTeamSync: enabled } = await liveRows();
-        sheetTeamSync = enabled === true;
-        sheet = readSheet(rows, dateKey, fixtureIds);
+        const data = await liveRows();
+        sheetTeamSync = data.sheetTeamSync === true;
+        sheet = readSheet(data.rows, dateKey, data.fixtureIds);
+        if (data.sheetRosterSync && sheet.length) {
+          const playerKeys = roster().filter(player => {
+            const onSheet = playerSheetKey(player, sheet[0]);
+            return archived(player) ? onSheet : !onSheet;
+          }).map(player => player.playerKey);
+          if (playerKeys.length) {
+            const { added, removed } = await window.ONMFirebase.availability("syncAvailabilityRoster", { playerKeys });
+            if (added || removed) {
+              const updated = await liveRows();
+              sheet = readSheet(updated.rows, dateKey, updated.fixtureIds);
+            }
+          }
+        }
         source = "Live availability sheet";
       } catch (error) {
         message = liveFailureMessage(error, source);

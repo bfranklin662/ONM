@@ -389,3 +389,21 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 }
 .pickTeamSelectedName span { display: inline; margin: 0 0 0 2px; color: inherit; }
 .pickTeamSelectedName:hover { background: #305780; }
+
+.pickTeamSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+  gap: 6px;
+  margin: 0 0 10px;
+}
+.pickTeamSummary div {
+  border: 1px solid #456857;
+  border-radius: 7px;
+  padding: 7px 9px;
+  background: #142e25;
+}
+.pickTeamSummary dt, .pickTeamFixtureResponses { color: #c3d9cf; font-size: .74rem; }
+.pickTeamSummary dd { margin: 3px 0 0; font-size: 1.15rem; font-weight: 700; }
+.pickTeamSummary [data-label="Available"] dd { color: #80daa0; }
+.pickTeamSummary [data-label="Unavailable"] dd { color: #ff8989; }
+.pickTeamSummary [data-label="Not sure"] dd { color: #f4d264; }

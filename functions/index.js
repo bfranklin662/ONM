@@ -1,5 +1,7 @@
 "use strict";
 
+const { randomUUID } = require("node:crypto");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
@@ -7,7 +9,8 @@ const { defineSecret } = require("firebase-functions/params");
 const starlingToken = defineSecret("STARLING_ACCESS_TOKEN");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { GoogleAuth } = require("google-auth-library");
-const { SPREADSHEET_ID, SHEET_ID, CHOICES, createAvailabilityService } = require("./availability");
+const { SPREADSHEET_ID, SHEET_ID, CHOICES, columnName, createAvailabilityService } = require("./availability");
+const { createRosterSheet } = require("./availability-roster");
 
 initializeApp();
 const auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/spreadsheets"] });
@@ -16,9 +19,32 @@ async function request(url, options = {}) {
   const client = await auth.getClient();
   return (await client.request({ url, ...options })).data;
 }
+const db = getFirestore();
+
+async function withSheetLock(action) {
+  const ref = db.doc("availabilitySync/rosterLock");
+  const token = randomUUID();
+  await db.runTransaction(async transaction => {
+    const current = (await transaction.get(ref)).data();
+    if (current?.expiresAt > Date.now()) {
+      throw Object.assign(new Error("Availability is being updated. Try again in a moment."), { code: "aborted" });
+    }
+    transaction.set(ref, { token, expiresAt: Date.now() + 45_000 });
+  });
+  try {
+    return await action();
+  } finally {
+    await db.runTransaction(async transaction => {
+      if ((await transaction.get(ref)).data()?.token === token) transaction.delete(ref);
+    }).catch(error => console.error("Could not release availability lock", error.message));
+  }
+}
+
 const service = createAvailabilityService({
-  db: getFirestore(),
+  db,
+  withSheetLock,
   sheets: {
+    ...createRosterSheet({ request, base, sheetId: SHEET_ID, columnName, choices: CHOICES }),
     metadata: () => request(`${base}?fields=sheets(properties(sheetId,title,gridProperties))`),
     values: async range => (await request(`${base}/values/${encodeURIComponent(range)}?valueRenderOption=FORMATTED_VALUE`)).values || [],
     cell: async range => {
@@ -46,13 +72,6 @@ const service = createAvailabilityService({
       });
       return request(`${base}:batchUpdate`, { method: "POST", data: { requests } });
     },
-    setRowHidden: (rowIndex, hiddenByUser) => request(`${base}:batchUpdate`, {
-      method: "POST",
-      data: { requests: [{ updateDimensionProperties: {
-        range: { sheetId: SHEET_ID, dimension: "ROWS", startIndex: rowIndex, endIndex: rowIndex + 1 },
-        properties: { hiddenByUser }, fields: "hiddenByUser"
-      } }] }
-    }),
     update: (range, value) => request(`${base}/values/${encodeURIComponent(range)}?valueInputOption=RAW`, {
       method: "PUT", data: { range, majorDimension: "ROWS", values: [[value]] }
     })
@@ -94,6 +113,10 @@ function callable(handler) {
 }
 exports.getPlayerAvailability = callable(uid => service.get(uid));
 exports.getTeamAvailability = callable(uid => service.getTeamSheet(uid));
+exports.syncAvailabilityRoster = callable((uid, data) => service.syncRoster(uid, data));
+exports.addResultPlayersToAvailability = onDocumentWritten({
+  ...options, document: "results/{resultId}", retry: true
+}, event => service.addResultPlayers(event.data?.before.data(), event.data?.after.data()));
 exports.archiveTeamAvailabilityPlayer = callable((uid, data) => service.archiveTeamPlayer(uid, data));
 exports.selectTeamAvailability = callable((uid, data) => service.selectTeamOnSheet(uid, data));
 exports.setTeamAvailability = callable((uid, data) => service.setTeamResponse(uid, data));
