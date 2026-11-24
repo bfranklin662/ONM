@@ -31,20 +31,25 @@
   function personalFixture(fixture) {
     if (fixture.EventType === "social") return null;
     if (!personal.user?.linkedPlayerKey || personal.user.accountType === "supporter") return null;
+    const playerNames = [personal.user.linkedPlayerName, personal.user.linkedPlayerKey.replace(/-/g, " ")].map(normalizeName).filter(Boolean);
     if (fixture.completed) {
       if (!Array.isArray(fixture.playerNames) || !fixture.playerNames.length) return { label: "Line-up unavailable", state: "unknown" };
-      const names = [personal.user.linkedPlayerName, personal.user.linkedPlayerKey.replace(/-/g, " ")].map(normalizeName).filter(Boolean);
-      const played = fixture.playerNames.some(name => names.includes(normalizeName(name)));
+      const played = fixture.playerNames.some(name => playerNames.includes(normalizeName(name)));
       return { label: played ? "Played" : "Missed", state: played ? "played" : "missed" };
     }
-    if (personal.loading) return { label: "Loading your availability…", state: "unknown" };
-    if (personal.error) return { label: "Availability unavailable", state: "unknown" };
+    const selected = Array.from({ length: 12 }, (_, index) =>
+      fixture[`Player${index + 1}`] || fixture[`Player ${index + 1}`])
+      .some(name => playerNames.includes(normalizeName(name)));
+    const selectedBadge = { label: "Selected", state: "selected" };
+    if (personal.loading) return selected ? selectedBadge : { label: "Loading your availability…", state: "unknown" };
+    if (personal.error) return selected ? selectedBadge : { label: "Availability unavailable", state: "unknown" };
     const matches = personal.fixtures.filter(item => item.date === fixture.dateISO &&
       personalLeague(item.league) === personalLeague(fixture.League) &&
       personalTeam(item.opponent) === personalTeam(fixture.Opponent) &&
       personalSide(item.side) === personalSide(fixture.HA));
-    if (matches.length !== 1) return { label: "Not linked in availability sheet", state: "unknown" };
+    if (matches.length !== 1) return selected ? selectedBadge : { label: "Not linked in availability sheet", state: "unknown" };
     const response = matches[0];
+    if (selected) return { response, ...selectedBadge };
     return { response, label: response.status || "Availability not recorded", state: ({ Available: "available", Unavailable: "unavailable", "Not sure": "unsure", Selected: "selected" })[response.status] || "unanswered" };
   }
 
@@ -84,7 +89,7 @@
     if (!personal.user) return '<p class="fxAvailabilityHelp"><a href="auth.html?mode=login&redirect=index.html">Sign in</a> to view your availability.</p>';
     if (!item) return '<p class="fxAvailabilityHelp">Link your player account to set availability. <a href="account.html">My account →</a></p>';
     const response = item.response;
-    if (!response) return `<p class="fxAvailabilityHelp">${escapeFixtureText(personal.error || item.label)}. Use Refresh to try again, or open availability in <a href="account.html">My account</a>.</p><button type="button" class="fxAvailabilityRefresh">Refresh availability</button>`;
+    if (!response) return `<p class="fxAvailabilityHelp">${escapeFixtureText(personal.error || (item.state === "selected" ? "Availability unavailable" : item.label))}. Use Refresh to try again, or open availability in <a href="account.html">My account</a>.</p><button type="button" class="fxAvailabilityRefresh">Refresh availability</button>`;
     return `<form id="fixtureAvailabilityForm" class="fxAvailabilityForm">
       <label for="fixtureAvailabilityChoice">Your availability</label>
       <select id="fixtureAvailabilityChoice"${!response.editable || savingAvailability ? " disabled" : ""}>

@@ -47,6 +47,8 @@ test("Selected replaces Available on the fixture card", () => {
   h.response.status = "Selected";
   assert.match(h.context.personalBadge(h.fixture), /fxPersonalBadge-selected[^>]*>Selected</);
   assert.equal(h.context.personalClass(h.fixture), "");
+  h.response.status = "Available";
+  assert.match(h.context.personalBadge({ ...h.fixture, Player2: "Nick" }), /fxPersonalBadge-selected[^>]*>Selected</);
 });
 
 test("connection errors and ambiguous matches never look like unanswered fixtures", () => {
