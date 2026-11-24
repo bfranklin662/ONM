@@ -42,6 +42,13 @@ test("every response has the correct pill state and unanswered says not recorded
   }
 });
 
+test("Selected replaces Available on the fixture card", () => {
+  const h = harness();
+  h.response.status = "Selected";
+  assert.match(h.context.personalBadge(h.fixture), /fxPersonalBadge-selected[^>]*>Selected</);
+  assert.equal(h.context.personalClass(h.fixture), "");
+});
+
 test("connection errors and ambiguous matches never look like unanswered fixtures", () => {
   const h = harness();
   h.personal.error = "connection failed";
@@ -179,7 +186,9 @@ test("completed fixture details show participation once and keep score and resul
   assert(content.innerHTML.includes("player-profile.html?name=Nick%20B"));
   assert(content.innerHTML.indexOf("fixtureDetailsFooter") > content.innerHTML.indexOf("fixtureMatchPhotos"));
   assert(dialog.open);
+  vm.runInContext('fixturePictures.live = { "Nick B": { nickname: "The Monster" } };', h.context);
   h.context.openFixtureDetails({ ...h.fixture, Player1: "Nick B", "Player 4": "Rob", C1: "99" });
+  assert.match(content.innerHTML, /<em[^>]*>“The Monster”<\/em>/);
   assert(content.innerHTML.includes('aria-label="Selected team lineup"'));
   assert(content.innerHTML.indexOf('data-fixture-avatar="Nick B"') < content.innerHTML.indexOf('data-fixture-avatar="Rob"'));
   assert(!content.innerHTML.includes("Checkouts:"));

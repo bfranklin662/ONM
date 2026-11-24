@@ -364,13 +364,15 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .pickTeamPlayerCard[data-status="Unavailable"], .pickTeamStatusDot[data-status="Unavailable"] { --availability-colour: #ff8989; }
 .pickTeamPlayerCard[data-status="Not sure"], .pickTeamStatusDot[data-status="Not sure"] { --availability-colour: #f4d264; }
 .pickTeamStatusDot[data-status="Selected"] { --availability-colour: #79baff; }
+#pickTeamGroups .pickTeamPlayerCard[data-status="Selected"] .pickTeamPlayer,
+#pickTeamGroups .pickTeamPlayer[aria-pressed="true"] { border-color: #79baff; }
 .pickTeamStatusDot {
   position: absolute;
-  top: 5px;
-  left: 5px;
+  top: 9px;
+  left: 9px;
   z-index: 1;
-  width: 23px;
-  height: 23px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--availability-colour);
   pointer-events: none;

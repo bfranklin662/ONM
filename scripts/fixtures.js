@@ -55,7 +55,7 @@
 
   function personalBadge(fixture) {
     const item = personalFixture(fixture);
-    return item && ["played", "missed", "available", "unavailable"].includes(item.state) ? `<span class="fxPersonalBadge fxPersonalBadge-${item.state}">${escapeFixtureText(item.label)}</span>` : "";
+    return item && ["played", "missed", "available", "unavailable", "selected"].includes(item.state) ? `<span class="fxPersonalBadge fxPersonalBadge-${item.state}">${escapeFixtureText(item.label)}</span>` : "";
   }
 
   async function loadPersonalAvailability() {
@@ -126,6 +126,14 @@
     return fixturePictures.get(normalizeName(name)) || "images/default.jpg";
   }
 
+  function fixturePlayerNickname(name) {
+    const profiles = fixturePictures.live || {};
+    const entry = profiles[name] || Object.entries(profiles).find(([publicName]) =>
+      normalizeName(publicName) === normalizeName(name))?.[1];
+    const nickname = String(entry?.nickname || "").trim().replace(/^["“]|["”]$/g, "");
+    return nickname && normalizeName(nickname) !== normalizeName(name) ? `“${nickname}”` : "";
+  }
+
   async function loadFixturePlayerPictures() {
     if (!window.PlayerData) return;
     fixturePicturesPromise ||= Promise.allSettled([
@@ -143,6 +151,10 @@
       fixturePictures.live = live;
     });
     await fixturePicturesPromise;
+    document.querySelectorAll("#fixtureDetails [data-fixture-nickname]").forEach(label => {
+      label.textContent = fixturePlayerNickname(label.dataset.fixtureNickname);
+      label.hidden = !label.textContent;
+    });
     document.querySelectorAll("#fixtureDetails [data-fixture-avatar]").forEach(image => {
       const name = image.dataset.fixtureAvatar;
       const key = window.PlayerData.photoKey(name);
@@ -161,7 +173,8 @@
     if (!entries.length) return "";
     return `<section class="fixtureLineup" aria-label="${fixture.completed ? "Submitted team lineup" : "Selected team lineup"}"><h4>Our team</h4><ul>${entries.map(({name,checkouts,slot}) => {
       const mine = personal.user?.accountType !== "supporter" && [personal.user?.linkedPlayerName, personal.user?.linkedPlayerKey?.replace(/-/g," ")].filter(Boolean).some(value => normalizeName(value) === normalizeName(name));
-      return `<li><a class="${mine ? "fixtureLineupSelf" : ""}"${mine ? ' aria-label="Your player profile"' : ""} href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupName">${escapeFixtureText(name)}</span>${fixture.completed ? `<span class="fixtureLineupStats"><span class="fixtureLineupCheckouts fixtureLineupStat">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span>${fixturePlayerStats(row,slot)}</span>` : ""}</span><span class="fixtureLineupArrow" aria-hidden="true">↗</span></a></li>`; }).join("")}</ul></section>`;
+      const nickname = fixturePlayerNickname(name);
+      return `<li><a class="${mine ? "fixtureLineupSelf" : ""}"${mine ? ' aria-label="Your player profile"' : ""} href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupName">${escapeFixtureText(name)} <em class="fixtureLineupNickname" data-fixture-nickname="${escapeFixtureText(name)}"${nickname ? "" : " hidden"}>${escapeFixtureText(nickname)}</em></span>${fixture.completed ? `<span class="fixtureLineupStats"><span class="fixtureLineupCheckouts fixtureLineupStat">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span>${fixturePlayerStats(row,slot)}</span>` : ""}</span><span class="fixtureLineupArrow" aria-hidden="true">↗</span></a></li>`; }).join("")}</ul></section>`;
   }
 
   document.addEventListener("error", event => {

@@ -1,6 +1,6 @@
 "use strict";
 
-const { ARCHIVE_NOTE, archiveRecord } = require("./availability-roster");
+const { archiveRecord } = require("./availability-roster");
 const { createHash } = require("node:crypto");
 const SPREADSHEET_ID = "1jrh1Ij_H2sidOam3mZY_lCwT-KC5qVp1QNUxxgrUzqQ";
 const SHEET_ID = 1717914264;
@@ -165,21 +165,52 @@ function createAvailabilityService({ db, sheets, now = () => new Date(), withShe
     return [...notes.entries()].find(([, note]) => archiveRecord(note)?.key === playerKey);
   }
 
+  function rosterInsertIndex(values, notes) {
+    const occupied = values.reduce((last, row, index) => index >= 7 && row[0] ? index : last, 7);
+    const lastArchived = [...notes].reduce((last, [index, note]) => archiveRecord(note) ? Math.max(last, index) : last, 7);
+    return Math.max(occupied, lastArchived) + 1;
+  }
+
+  function fixtureColumns(values) {
+    return Object.fromEntries(values[0].flatMap((header, column) => {
+      if (column < 2) return [];
+      const fixture = parseFixture(header, values[1]?.[column], values[2]?.[column], values[3]?.[column]);
+      return fixture ? [[fixture.id, column]] : [];
+    }));
+  }
+
   async function changeRosterArchive({ values, notes }, player, playerKey, archived) {
     const entry = findArchivedRow(notes, playerKey);
-    if (!archived && entry) {
-      const [index, note] = entry;
-      const record = archiveRecord(note);
-      if (values[index]?.[0]) throw problem("failed-precondition", "The archived row already has a name. Check it on the sheet before restoring.");
+    const ref = db.doc(`availabilityArchives/${playerKey}`);
+    const index = entry?.[0] ?? existingRow(values, player);
+    if (archived) {
+      if (index < 0) return false;
+      const legacy = entry && archiveRecord(entry[1]);
+      const row = values[index] || [];
+      const responses = Object.fromEntries(Object.entries(fixtureColumns(values))
+        .filter(([, column]) => row[column]).map(([id, column]) => [id, row[column]]));
+      await ref.set({ name: legacy?.name || row[0], note: legacy?.note ?? notes.get(index) ?? "", responses });
+      await sheets.deleteRosterRow(index);
+      return true;
+    }
+
+    if (entry) {
+      const record = archiveRecord(entry[1]);
+      if (values[index]?.[0]) throw problem("failed-precondition", "The archived row already has a name. Check it before restoring.");
       await sheets.setRosterName(index, record.name, record.note, false);
       return true;
     }
-    if (entry) return false;
-    const index = existingRow(values, player);
-    if (index < 0) return false;
-    const name = values[index][0];
-    const note = notes.get(index) || "";
-    await sheets.setRosterName(index, archived ? "" : name, archived ? ARCHIVE_NOTE + JSON.stringify({ key: playerKey, name, note }) : note, archived);
+    const record = (await ref.get()).data();
+    if (index >= 0) {
+      await sheets.setRosterName(index, values[index][0], notes.get(index) || "", false);
+      if (record) await ref.delete();
+      return true;
+    }
+    if (!record) return false;
+    const responses = Object.fromEntries(Object.entries(fixtureColumns(values))
+      .flatMap(([id, column]) => record.responses[id] ? [[column, record.responses[id]]] : []));
+    await sheets.addRosterRows(rosterInsertIndex(values, notes), [record.name], values[0].length, [{ note: record.note, responses }]);
+    await ref.delete();
     return true;
   }
 
@@ -202,12 +233,11 @@ function createAvailabilityService({ db, sheets, now = () => new Date(), withShe
       const name = String(player.availabilitySheetName || player.fullName || player.publicName || "").trim();
       if (!name || name.length > 120 || archivedNames.has(normalise(name)) || existingRow(values, player) >= 0 || findArchivedRow(notes, player.playerKey)) continue;
       if (additions.some(added => normalise(added) === normalise(name))) continue;
+      if (player.playerKey && (await db.doc(`availabilityArchives/${player.playerKey}`).get()).data()) continue;
       additions.push(name);
     }
     if (!additions.length) return 0;
-    const occupied = values.reduce((last, row, index) => index >= 7 && row[0] ? index : last, 7);
-    const lastArchived = [...notes].reduce((last, [index, note]) => archiveRecord(note) ? Math.max(last, index) : last, 7);
-    await sheets.addRosterRows(Math.max(occupied, lastArchived) + 1, additions, values[0].length);
+    await sheets.addRosterRows(rosterInsertIndex(values, notes), additions, values[0].length);
     return additions.length;
   }
 
@@ -225,10 +255,13 @@ function createAvailabilityService({ db, sheets, now = () => new Date(), withShe
     const archived = await archivedKeys();
     const players = await Promise.all(keys.map(async playerKey => ({ ...await loadPlayer(playerKey), playerKey })));
     return withSheetLock(async () => {
-      const roster = await rosterSnapshot();
+      let roster = await rosterSnapshot();
       let removed = 0;
       for (const player of players.filter(item => archived.has(item.playerKey))) {
-        if (await changeRosterArchive(roster, player, player.playerKey, true)) removed += 1;
+        if (await changeRosterArchive(roster, player, player.playerKey, true)) {
+          removed += 1;
+          roster = await rosterSnapshot();
+        }
       }
       const added = await addMissingRows(roster, players.filter(player => !archived.has(player.playerKey)));
       return { added, removed };

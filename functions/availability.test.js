@@ -15,11 +15,19 @@ function harness(overrides = {}) {
   ];
   const user = { status: "Active", linkedPlayerKey: "nick", accountType: "player", ...overrides.user };
   const player = { fullName: "Nick Horne", publicName: "Nick", ...overrides.player };
-  const writes = [], reads = [];
+  const writes = [], reads = [], backups = new Map();
   const data = { user, player, grid, writes, reads, current: "Unavailable", formula: false, valid: true };
   const service = createAvailabilityService({
     now: () => new Date("2026-10-16T10:00:00Z"),
-    db: { doc(path) { reads.push(path); return { get: async () => ({ exists: true, data: () => path === "users/signed-in-user" ? user : player }) }; } },
+    db: { doc(path) {
+      reads.push(path);
+      if (path.startsWith("availabilityArchives/")) return {
+        get: async () => ({ data: () => backups.get(path) }),
+        set: async record => backups.set(path, record),
+        delete: async () => backups.delete(path)
+      };
+      return { get: async () => ({ exists: true, data: () => path === "users/signed-in-user" ? user : player }) };
+    } },
     sheets: {
       metadata: async () => ({ sheets: [{ properties: { sheetId: SHEET_ID, title: "Availability 2026-27", gridProperties: { rowCount: 93, columnCount: 50 } } }] }),
       values: async () => grid,
@@ -32,9 +40,17 @@ function harness(overrides = {}) {
         data.notes ||= new Map();
         data.notes.set(row, note);
       },
-      addRosterRows: async (row, names) => {
-        writes.push({ row, names });
-        grid.splice(row, 0, ...names.map(name => [name]));
+      deleteRosterRow: async row => {
+        writes.push({ row, deleted: true });
+        grid.splice(row, 1);
+      },
+      addRosterRows: async (row, names, _columns, restored = []) => {
+        writes.push({ row, names, ...(restored.length ? { restored } : {}) });
+        grid.splice(row, 0, ...names.map((name, index) => {
+          const cells = [name];
+          Object.entries(restored[index]?.responses || {}).forEach(([column, status]) => { cells[column] = status; });
+          return cells;
+        }));
       },
       update: async (range, value) => writes.push({ range, value })
     }
@@ -168,7 +184,9 @@ test("team sync matches exact roster aliases and hides or restores the sheet row
   h.grid[7][0] = "George Mills";
   await h.service.archiveTeamPlayer("signed-in-user", { playerKey: "george-m", archived: true });
   await h.service.archiveTeamPlayer("signed-in-user", { playerKey: "george-m", archived: false });
-  assert.deepEqual(h.writes, [{ row: 7, hidden: true, name: "" }, { row: 7, hidden: false, name: "George Mills" }]);
+  assert.equal(h.writes[0].deleted, true);
+  assert.equal(h.writes[1].names[0], "George Mills");
+  assert.equal(h.writes[1].restored[0].responses[2], "Unavailable");
   h.grid[7][0] = "Gary Hampshere";
   assert.equal(findPlayerRow(h.grid, { fullName: "Gary Hampshire" }), 7);
 });
@@ -209,7 +227,7 @@ test("roster sync adds a missing player once and skips an archived player", asyn
   await h.service.archiveTeamPlayer("signed-in-user", { playerKey: "sam-m", archived: false });
   assert.deepEqual(h.writes, [
     { row: 9, names: ["Sam Miles"] },
-    { row: 9, hidden: true, name: "" },
-    { row: 9, hidden: false, name: "Sam Miles" }
+    { row: 9, deleted: true },
+    { row: 9, names: ["Sam Miles"], restored: [{ note: "", responses: {} }] }
   ]);
 });

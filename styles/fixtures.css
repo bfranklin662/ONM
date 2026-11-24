@@ -1646,3 +1646,5 @@
 .fixtureEventFooter { align-items:center; min-height:0; line-height:1.3; }
 .fixtureCalendarEvent .fixtureEventFooter .fxPersonalBadge { margin:0 0 0 auto; padding:2px 5px; }
 .fixtureEventVenue { line-height:1.3; }
+
+.fixtureLineupNickname { color:#adccba; font-weight:500; }

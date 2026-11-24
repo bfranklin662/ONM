@@ -241,6 +241,17 @@
       if (activeTab) panel.setAttribute("aria-labelledby", activeTab.id);
       else panel.removeAttribute("aria-labelledby");
       const fixture = activeFixture();
+      if (!sheet.length || loading) {
+        archiveCount.textContent = "0";
+        folder.hidden = true;
+        archiveCards.replaceChildren();
+        selection.replaceChildren();
+        groups.replaceChildren();
+        renderSummary(null, fixture?.season || "26-27");
+        status.textContent = loading ? "Loading availability…" : message || "Availability isn’t loaded yet.";
+        return;
+      }
+      folder.hidden = false;
       const archivedPlayers = roster().filter(archived).sort((a, b) => displayName(a).localeCompare(displayName(b)));
       archiveCount.textContent = archivedPlayers.length;
       archiveCards.innerHTML = archivedPlayers.map(player =>

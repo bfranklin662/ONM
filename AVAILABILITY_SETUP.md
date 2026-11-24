@@ -77,8 +77,8 @@ response **Selected** from their settings menu. The override replaces the
 cell value and hides its dropdown while it holds Selected. Restoring a normal
 response returns the three-choice dropdown. The blue conditional format
 applies to Selected. Saving the playing order also marks the chosen players
-Selected in the sheet. Archiving removes the name and hides the row. Restoring
-puts the name back in the same row, keeping its response history. Refreshing
+Selected in the sheet. Archiving backs up the responses and removes the row. Restoring adds a row
+and restores responses for fixture columns that still exist. Refreshing
 Pick team adds missing roster rows. A Firestore result trigger adds players
 named in newly submitted 2026/27 results.
 

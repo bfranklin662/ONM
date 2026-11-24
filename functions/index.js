@@ -40,11 +40,12 @@ async function withSheetLock(action) {
   }
 }
 
+const rosterSheet = createRosterSheet({ request, base, sheetId: SHEET_ID, columnName });
 const service = createAvailabilityService({
   db,
   withSheetLock,
   sheets: {
-    ...createRosterSheet({ request, base, sheetId: SHEET_ID, columnName, choices: CHOICES }),
+    ...rosterSheet,
     metadata: () => request(`${base}?fields=sheets(properties(sheetId,title,gridProperties))`),
     values: async range => (await request(`${base}/values/${encodeURIComponent(range)}?valueRenderOption=FORMATTED_VALUE`)).values || [],
     cell: async range => {
@@ -67,7 +68,7 @@ const service = createAvailabilityService({
         return [
           { setDataValidation: { range, rule: { ...rule, strict: false } } },
           { updateCells: { start, fields: "userEnteredValue", rows: [{ values: [status ? { userEnteredValue: { stringValue: status } } : {}] }] } },
-          { setDataValidation: { range, rule: nextRule } }
+          selected ? { setDataValidation: { range, rule: nextRule } } : rosterSheet.copyNormalValidation(range)
         ];
       });
       return request(`${base}:batchUpdate`, { method: "POST", data: { requests } });
