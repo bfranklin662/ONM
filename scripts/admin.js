@@ -173,7 +173,7 @@
         <td><span class="adminOpponent">${escapeHtml(opponent || "Opponent TBA")}</span> <span class="adminSide">(${side})</span></td>
         <td><time datetime="${escapeHtml(inputDate(row.Date))}" title="${escapeHtml(row.Date)}">${escapeHtml(prettyDate)}</time></td>
         <td>${isResult ? `<span class="adminScoreBox ${escapeHtml(outcome)}" aria-label="${escapeHtml(outcome || "Result")} ${escapeHtml(score)}">${escapeHtml(score)}</span>` : '<span class="adminPending">—</span>'}</td>
-        ${actions ? `<td><div class="adminRowActions"><button class="adminSmallBtn" type="button" data-edit-${type}="${escapeHtml(item.id)}">Edit ${type}</button>${actions === true ? `<button class="adminSmallBtn danger" type="button" data-delete-${type}="${escapeHtml(item.id)}">Delete</button>` : ""}</div></td>` : ""}
+        ${actions ? `<td><div class="adminRowActions"><button class="adminSmallBtn" type="button" data-edit-${type}="${escapeHtml(item.id)}">${!isResult && row.EventType !== "social" ? "Edit / pick team" : `Edit ${type}`}</button>${actions === true ? `<button class="adminSmallBtn danger" type="button" data-delete-${type}="${escapeHtml(item.id)}">Delete</button>` : ""}</div></td>` : ""}
       </tr>`;
     }).join("");
     return `<div class="adminTableScroll"><table class="adminMatchTable"><caption class="adminVisuallyHidden">${isResult ? "Results" : "Fixtures"}</caption><thead><tr><th scope="col">League</th><th scope="col">Opponent</th><th scope="col">Date</th><th scope="col">Result</th>${actions ? '<th scope="col">Actions</th>' : ""}</tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -459,6 +459,34 @@
     ).join("");
   }
 
+  function fixtureLineupFields(row) {
+    const roster = state.players
+      .filter(player => clean(player.publicName))
+      .sort((a, b) => clean(a.publicName).localeCompare(clean(b.publicName)));
+    const fields = Array.from({ length: 12 }, (_, index) => {
+      const slot = index + 1;
+      const selected = clean(row[`Player${slot}`]);
+      const options = roster.map(player => {
+        const name = clean(player.publicName);
+        const label = player.fullName && player.fullName !== name ? `${name} · ${player.fullName}` : name;
+        return `<option value="${escapeHtml(name)}"${name === selected ? " selected" : ""}>${escapeHtml(label)}</option>`;
+      }).join("");
+      const previous = selected && !roster.some(player => clean(player.publicName) === selected)
+        ? `<option selected>${escapeHtml(selected)}</option>` : "";
+      return `<label>Player ${slot}<select name="lineupPlayer${slot}"><option value="">Unselected</option>${previous}${options}</select></label>`;
+    });
+    const expanded = fields.slice(6).some((_, index) => clean(row[`Player${index + 7}`]));
+    return `<fieldset class="wide adminFixtureLineup" data-match-field>
+      <legend>Pick the team</legend>
+      <p>Save your lineup with the fixture. For Banks and Trafalgar matches, the Match tracker fills in these names and lets you make late swaps.</p>
+      <div class="adminGrid">${fields.slice(0, 6).join("")}</div>
+      <details${expanded ? " open" : ""}>
+        <summary>Additional players</summary>
+        <div class="adminGrid">${fields.slice(6).join("")}</div>
+      </details>
+    </fieldset>`;
+  }
+
   function openFixtureEditor(item = null) {
     const row = rowFor(item);
     state.editor = { type: "fixture", id: item?.id || null };
@@ -474,6 +502,7 @@
       <label>Time<input name="time" type="time" value="${escapeHtml(clean(row.Time) || DEFAULT_MATCH_TIME)}"></label>
       <label class="wide">Venue<input name="location" value="${escapeHtml(row.Location)}"></label>
       <label class="wide" data-social-field>Details<textarea name="eventDetails" maxlength="2000">${escapeHtml(row.EventDetails || "")}</textarea></label>
+      ${fixtureLineupFields(row)}
     </div>
     <div class="adminFormActions">
       ${item?.id ? `<button class="btn btnGhost adminDeleteFixture" type="button" data-delete-fixture="${escapeHtml(item.id)}">Delete fixture</button>` : ""}
@@ -592,8 +621,16 @@
     const existing = state.fixtures.find(item => item.id === state.editor.id);
     const id = existing?.id || firestoreSdk.doc(firestoreSdk.collection(db, "fixtures")).id;
     const date = clean(data.get("date"));
+    const names = Array.from({ length: 12 }, (_, index) =>
+      data.get("eventType") === "social" ? "" : clean(data.get(`lineupPlayer${index + 1}`)));
+    const selectedNames = names.filter(Boolean).map(name => name.toLowerCase().replace(/\s+/g, " "));
+    if (new Set(selectedNames).size !== selectedNames.length) {
+      throw new Error("Pick each player only once in the lineup.");
+    }
+    const lineup = Object.fromEntries(names.map((name, index) => [`Player${index + 1}`, name]));
     const sheetRow = {
       ...rowFor(existing),
+      ...lineup,
       EventType: data.get("eventType") === "social" ? "social" : "fixture",
       EventDetails: data.get("eventType") === "social" ? clean(data.get("eventDetails")) : "",
       League: data.get("eventType") === "social" ? "Social" : clean(data.get("league")),

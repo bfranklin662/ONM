@@ -8,7 +8,7 @@
   <title>Oche Ness Monsters | Match</title>
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css">
-  <link rel="stylesheet" href="styles/fines.css?v=20261120-submit-confirmation" />
+  <link rel="stylesheet" href="styles/fines.css?v=20261124-fixture-lineup" />
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill">
   <!-- Shared Monsters branding: browser, home screen and link previews. -->
@@ -261,6 +261,14 @@
         </div>
       </div>
 
+      <div id="setupFixtureField" class="field setupFixtureField" hidden>
+        <label for="setupFixture">Match</label>
+        <select id="setupFixture" aria-describedby="setupLineupStatus"></select>
+        <div class="setupLineupActions">
+          <p id="setupLineupStatus" class="smallNote" role="status"></p>
+          <button id="loadSetupLineup" type="button" class="btn btnGhost" hidden>Load saved lineup</button>
+        </div>
+      </div>
       <div class="setupGrid" id="setupGrid"></div>
 
       <button id="startBtn" class="btn btnPrimary" style="margin-top:12px;">Submit Players</button>
@@ -348,7 +356,7 @@
   <script src="scripts/session.js?v=20261028-avatar-fill"></script>
   <script src="scripts/profile.js?v=20261025-profile-navigation"></script>
   <script src="scripts/season-data.js"></script>
-  <script src="scripts/fines.js?v=20261120-submit-confirmation"></script>
+  <script src="scripts/fines.js?v=20261124-fixture-lineup"></script>
 <script src="/scripts/site-ui.js?v=20261028-avatar-fill"></script></body>
 
 </html>

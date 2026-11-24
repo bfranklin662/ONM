@@ -2409,3 +2409,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .review-submit-card > .date { margin: 3px 0 8px; font-size: .85rem; }
 .review-submit-card .review-player-table { margin-top: 8px; margin-bottom: 6px; }
 .review-submit-card { padding-bottom: 6px; }
+
+.setupFixtureField { margin-bottom: 12px; }
+.setupLineupActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.setupLineupActions .smallNote { margin: 0; }

@@ -209,3 +209,16 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminAccolades [hidden] { display:none !important; }
 .adminAccolades details > label { display:grid; gap:6px; margin:12px 0; font-size:13px; font-weight:600; }
 .adminAccolades select,.adminAccolades #customAwardTitle { box-sizing:border-box; width:100%; min-height:40px; padding:8px 10px; border:1px solid #466d54; border-radius:8px; background:#0c2418; color:#e5f2e9; font:inherit; }
+
+.adminFixtureLineup {
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #456857;
+  border-radius: 10px;
+}
+.adminFixtureLineup legend { padding: 0 6px; font-weight: 700; }
+.adminFixtureLineup p { margin: 0 0 12px; }
+.adminFixtureLineup details { margin-top: 12px; }
+.adminFixtureLineup summary { cursor: pointer; }
+.adminFixtureLineup details .adminGrid { margin-top: 10px; }

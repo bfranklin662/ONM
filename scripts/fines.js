@@ -51,6 +51,10 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     }
 
+    const fixture = availableFixtures().find(item => setupFixtureIdentity(item) === store.setupFixtureKey);
+    const rosterName = fixtureLineup(fixture).find(name => normalisePlayerName(name) === normalisePlayerName(enteredName));
+    if (rosterName) return { name: rosterName, fullName: enteredName, playerKey: "" };
+
     const { firstName, surname } = splitPlayerName(enteredName);
     const firstNameKey = normalisePlayerName(firstName);
     const directoryCollision = signedInPlayerDirectory.some(player =>
@@ -311,7 +315,8 @@ document.addEventListener("DOMContentLoaded", () => {
   ];
 
   // ---- State ----
-  let store = loadStore(); // { totalsByName, history }
+  let store = loadStore();
+  playerInputCount = Math.min(MAX_PLAYERS, Math.max(DEFAULT_PLAYER_INPUTS, store.setupNames?.length || 0)); // { totalsByName, history }
 
   let localLightboxUrls = [];
   let localLightboxIndex = 0;
@@ -676,6 +681,73 @@ document.addEventListener("DOMContentLoaded", () => {
     matchFixture.value = selected.key;
     applyFixture(selected, { clearScores, save: false });
   }
+
+  const setupFixture = document.getElementById("setupFixture");
+  const setupFixtureField = document.getElementById("setupFixtureField");
+  const setupLineupStatus = document.getElementById("setupLineupStatus");
+  const loadSetupLineup = document.getElementById("loadSetupLineup");
+
+  function setupFixtureIdentity(fixture) {
+    return JSON.stringify([fixture.dateValue, fixture.League, fixture.opponent, fixture.homeAway]);
+  }
+
+  function fixtureLineup(fixture) {
+    if (!fixture) return [];
+    return Array.from({ length: MAX_PLAYERS }, (_, index) =>
+      String(fixture[`Player${index + 1}`] || "").trim()).filter(Boolean);
+  }
+
+  function applySetupFixture(fixture, { replaceNames = false } = {}) {
+    if (!fixture || players.length || store.game?.players?.length) return;
+    const lineup = fixtureLineup(fixture);
+    const draftNames = (store.setupNames || []).map(normalisePlayerName).filter(Boolean);
+    const previous = availableFixtures().find(item => setupFixtureIdentity(item) === store.setupFixtureKey);
+    const previousLineup = fixtureLineup(previous).map(name => normalisePlayerName(playerInputValue(name)));
+    const switchingUnusedLineup = previous && previous.key !== fixture.key &&
+      draftNames.length === previousLineup.length && draftNames.every((name, index) => name === previousLineup[index]);
+    const prefill = lineup.length > 0 && (replaceNames || !draftNames.length || switchingUnusedLineup);
+    store.setupFixtureKey = setupFixtureIdentity(fixture);
+    matchFixture.value = fixture.key;
+    applyFixture(fixture, { save: false });
+    readMatchInfo();
+
+    if (prefill || switchingUnusedLineup) {
+      store.setupNames = lineup;
+      playerInputCount = Math.max(DEFAULT_PLAYER_INPUTS, lineup.length);
+      setupGrid.replaceChildren();
+      renderSetupInputs();
+    }
+
+    saveStore(store);
+    loadSetupLineup.hidden = !lineup.length || prefill;
+    setupLineupStatus.textContent = prefill
+      ? "Lineup loaded. Edit any name to make a late swap."
+      : lineup.length ? "A saved lineup is available. Loading it replaces the names below."
+        : "No lineup has been saved for this fixture. Enter players below.";
+  }
+
+  function renderSetupFixtureSelector() {
+    if (!setupFixture) return;
+    const fixtures = availableFixtures();
+    setupFixtureField.hidden = !fixtures.length || Boolean(players.length || store.game?.players?.length);
+    if (setupFixtureField.hidden) return;
+    setupFixture.replaceChildren(...fixtures.map(fixture => {
+      const league = fixture.league.replace(" League", "") + (fixture.cup ? " Cup" : "");
+      const label = `${fixtureDateLabel(fixture.dateValue)} · ${league} · ${fixture.opponent} · ${fixture.homeAway}`;
+      return new Option(label, fixture.key);
+    }));
+    const selected = fixtures.find(fixture => setupFixtureIdentity(fixture) === store.setupFixtureKey)
+      || getClosestFixture(fixtures);
+    setupFixture.value = selected.key;
+    applySetupFixture(selected);
+  }
+
+  setupFixture?.addEventListener("change", () => {
+    applySetupFixture(availableFixtures().find(fixture => fixture.key === setupFixture.value));
+  });
+  loadSetupLineup?.addEventListener("click", () => {
+    applySetupFixture(availableFixtures().find(fixture => fixture.key === setupFixture.value), { replaceNames: true });
+  });
 
   function renderResultStatsScreen() {
     resultSubmitData.players = players.map(p => {
@@ -1712,6 +1784,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const hasGame = players.length > 0;
+    if (hasGame && setupFixtureField) setupFixtureField.hidden = true;
 
     startBtn?.classList.toggle("hidden", screen === "setup" && hasGame);
     setupGameActions?.classList.toggle("hidden", !(screen === "setup" && hasGame));
@@ -1786,7 +1859,8 @@ document.addEventListener("DOMContentLoaded", () => {
         totalsByName: parsed?.totalsByName ?? {},
         history: Array.isArray(parsed?.history) ? parsed.history : [],
         game: parsed?.game ?? null,
-        setupNames: Array.isArray(parsed?.setupNames) ? parsed.setupNames : []
+        setupNames: Array.isArray(parsed?.setupNames) ? parsed.setupNames : [],
+        setupFixtureKey: typeof parsed?.setupFixtureKey === "string" ? parsed.setupFixtureKey : ""
       };
     } catch {
       return { totalsByName: {}, history: [], game: null, setupNames: [] };
@@ -2111,8 +2185,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     for (let i = 1; i <= playerInputCount; i++) {
       existingValues[i] =
-        document.getElementById(`p${i}`)?.value ||
-        store.setupNames?.[i - 1] ||
+        document.getElementById(`p${i}`)?.value ??
+        store.setupNames?.[i - 1] ??
         "";
     }
 
@@ -2123,7 +2197,7 @@ document.addEventListener("DOMContentLoaded", () => {
       row.className = "nameRow";
       row.innerHTML = `
         <div class="playerNameInputWrap">
-          <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="40" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="p${i}-suggestions" value="${escapeHtml(playerInputValue(existingValues[i] || store.setupNames?.[i - 1] || ""))}" />
+          <input type="text" id="p${i}" placeholder="Player ${i} name" maxlength="40" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="p${i}-suggestions" value="${escapeHtml(playerInputValue(existingValues[i]))}" />
           <span class="newPlayerBadge" hidden>NEW</span>
           <div id="p${i}-suggestions" class="playerNameSuggestions" role="listbox" aria-label="Player ${i} suggestions" hidden></div>
         </div>
@@ -2329,7 +2403,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function hardResetAll() {
     document.getElementById("resultSubmittedBanner")?.remove();
     submittedResultRow = null;
-    store = { totalsByName: {}, history: [], game: null, setupNames: [] };
+    store = { totalsByName: {}, history: [], game: null, setupNames: [], setupFixtureKey: "" };
     saveStore(store);
 
     players = [];
@@ -2398,6 +2472,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cupToggle?.classList.remove("away");
 
     populateFixtureSelector({ clearScores: true });
+    renderSetupFixtureSelector();
 
     if (imageText) imageText.textContent = "📷 Add images";
 
@@ -3292,6 +3367,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (playerInputCount <= MIN_PLAYERS) return;
     playerInputCount--;
     renderSetupInputs();
+    saveSetupNamesToStore();
   });
 
   screenSwitch?.addEventListener("click", (e) => {
@@ -3675,6 +3751,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         hydrateMatchInfoDefaults();
       }
+      renderSetupFixtureSelector();
     }).finally(() => { fixtureLoadPromise = null; });
     return fixtureLoadPromise;
   }
