@@ -73,7 +73,7 @@
 
   function populate() {
     const monster=isMonsterPlayer();
-    ["bio","nickname","highestCheckout","walkoutSong"].forEach(field=>{
+    ["bio","nickname","walkoutSong"].forEach(field=>{
       const input=form.elements[field];
       if(input){input.closest("label").hidden=!monster;input.disabled=!monster;}
     });
@@ -99,7 +99,7 @@
     document.getElementById("accountPlayer").textContent = user.linkedPlayerName || "Not linked";
     document.getElementById("accountAdminCard").classList.toggle("hidden", !["owner", "admin"].includes(user.role));
 
-    ["firstName", "surname", "email", "team", "nationality", "nickname", "walkoutSong", "bio", "highestCheckout"].forEach(field => {
+    ["firstName", "surname", "email", "team", "nationality", "nickname", "walkoutSong", "bio"].forEach(field => {
       const input = form.elements[field];
       if (input) input.value = user[field] || "";
     });
@@ -124,8 +124,7 @@
     const profileValues = {
       nickname: linkedProfile.nickname || user.nickname || "",
       bio: linkedProfile.bio || user.bio || "",
-      walkoutSong: linkedProfile.song || user.walkoutSong || "",
-      highestCheckout: linkedProfile.highestCheckout || ""
+      walkoutSong: linkedProfile.song || user.walkoutSong || ""
     };
     for(const [field,value] of Object.entries(profileValues))if(!touchedFields.has(field)){
       user[field] = value;
@@ -178,7 +177,6 @@
         bio: profile.bio,
         song: profile.walkoutSong,
         role: linkedProfile?.role,
-        highestCheckout: clean(data.get("highestCheckout")),
         accolades: linkedProfile?.accolades,
         gooch: linkedProfile?.gooch === true || linkedProfile?.gooch === "yes",
         photoUrl: linkedProfile?.photoUrl || linkedProfile?.photo || "",
@@ -189,7 +187,7 @@
         if (!playerResult.success) throw new Error(playerResult.error || "Your account saved, but the player profile could not be updated.");
         linkedProfile = { ...(linkedProfile || {}), ...playerValues };
       }
-      updateLocalUser({ ...profile, ...(monster ? { highestCheckout: playerValues.highestCheckout } : {}) });
+      updateLocalUser(profile);
       populate();
       showMessage("Your account details have been saved.");
     } catch (error) {

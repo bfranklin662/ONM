@@ -792,7 +792,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         checkouts: existing?.checkouts ?? 0,
         oneEightys: existing?.oneEightys ?? 0,
         bulls: existing?.bulls ?? 0,
-        tonOuts: existing?.tonOuts ?? 0
+        tonOuts: existing?.tonOuts ?? 0,
+        highestCheckout: existing?.highestCheckout ?? 0
       };
     });
 
@@ -865,6 +866,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           resultSubmitData.players[index][field] = Math.round(num * 100);
         } else {
           resultSubmitData.players[index][field] = Number(input.value || 0);
+          if (field === "tonOuts" && Number(input.value) <= 0) resultSubmitData.players[index].highestCheckout = 0;
         }
         saveGameSnapshot();
       });
@@ -904,11 +906,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  function incrementPlayerSpecial(playerName, field) {
+  function validTonCheckout(raw) {
+    const score = Number(raw);
+    return /^\d{3}$/.test(raw) && score >= 100 && score <= 170 &&
+      ![159, 162, 163, 165, 166, 168, 169].includes(score);
+  }
+
+  function incrementPlayerSpecial(playerName, field, checkout = 0) {
     const existing = resultSubmitData.players.find(p => p.name === playerName);
 
     if (existing) {
       existing[field] = Number(existing[field] || 0) + 1;
+      if (checkout) existing.highestCheckout = Math.max(existing.highestCheckout || 0, checkout);
     } else {
       resultSubmitData.players.push({
         name: playerName,
@@ -917,7 +926,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         checkouts: 0,
         oneEightys: field === "oneEightys" ? 1 : 0,
         bulls: field === "bulls" ? 1 : 0,
-        tonOuts: field === "tonOuts" ? 1 : 0
+        tonOuts: field === "tonOuts" ? 1 : 0,
+        highestCheckout: checkout
       });
     }
 
@@ -1311,13 +1321,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         onConfirm: () => {
           const input = document.getElementById("tonOutInput");
           const raw = (input?.value ?? "").trim();
-          if (!/^\d{2,3}$/.test(raw)) {
+          if (!validTonCheckout(raw)) {
             showToast("Enter a valid checkout (e.g. 116)");
             return;
           }
           const penceEach = Number(raw);
           const { anyCapped } = applyFineToMany(otherNames, penceEach);
-          incrementPlayerSpecial(selectedName, "tonOuts");
+          incrementPlayerSpecial(selectedName, "tonOuts", penceEach);
           if (anyCapped) showToast("Maximum fine amount reached");
           else showToast(`Applied £${(penceEach / 100).toFixed(2)} to everyone else`);
           clearFineSelection();
@@ -1331,7 +1341,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const update = () => {
           const raw = input.value.trim();
-          if (!/^\d{2,3}$/.test(raw)) {
+          if (!validTonCheckout(raw)) {
             preview.innerHTML = "";
             return;
           }

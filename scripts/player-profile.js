@@ -86,6 +86,7 @@ function initProfileAccountDetails(name, profileData) {
     authSdk.onAuthStateChanged(auth, async user => {
       const current = ++revision;
       if (owe) owe.hidden = true;
+      showPlayerAccountLink(false);
       heading?.querySelector(".profileLinkedBadge")?.remove();
       const imageButton = document.getElementById("editOwnPlayerImage");
       if (imageButton) imageButton.hidden = true;
@@ -96,7 +97,7 @@ function initProfileAccountDetails(name, profileData) {
         const isOwnPage = account.linkedPlayerKey === profileData.playerKey;
         if (owe) owe.hidden = !isOwnPage;
         if (imageButton) imageButton.hidden = !isOwnPage;
-        initPlayerProfileEditor(name, profileData, account);
+        showPlayerAccountLink(isOwnPage);
         let linked = isOwnPage;
         if (!linked) {
           const directory = await window.ONMFirebase.post({ action: "getLinkedPlayers" });
@@ -126,141 +127,25 @@ function followAppearance(event) {
 document.addEventListener("click", followAppearance);
 document.addEventListener("keydown", followAppearance);
 
-function initPlayerProfileEditor(name, profileData, account = null) {
-  const user = account || window.ONMSession?.getUser?.();
-  if (!user || !profileData?.playerKey || typeof updatePublicPlayerProfile !== "function") return;
-  const canEdit = ["admin", "owner"].includes(user.role) || user.linkedPlayerKey === profileData.playerKey;
-  if (!canEdit) return;
-  if (document.getElementById("editPlayerProfileBtn")) return;
+function showPlayerAccountLink(visible) {
+  const link = document.getElementById("editPlayerProfileBtn");
+  if (link) link.hidden = !visible;
+}
 
-  const buttonWrap = document.getElementById("playerProfileActions");
-  if (!buttonWrap) return;
-
-  const editButton = document.createElement("button");
-  editButton.id = "editPlayerProfileBtn";
-  editButton.type = "button";
-  editButton.className = "profile-edit-button";
-  editButton.textContent = "Edit details";
-  buttonWrap.appendChild(editButton);
-
-  const overlay = document.createElement("div");
-  overlay.className = "profile-edit-overlay hidden";
-  overlay.setAttribute("aria-hidden", "true");
-  overlay.innerHTML = `
-    <div class="profile-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="profileEditTitle">
-      <div class="profile-edit-header">
-        <div>
-          <span class="profile-edit-kicker">Player profile</span>
-          <h2 id="profileEditTitle">Edit ${escapeHtml(name)}</h2>
-        </div>
-        <button class="profile-edit-close" type="button" aria-label="Close">×</button>
-      </div>
-      <form id="playerProfileEditForm" class="profile-edit-form">
-        <label>Nickname<input name="nickname" type="text" maxlength="80"></label>
-        <div class="profile-edit-image profile-edit-wide"><img id="profileEditImagePreview" src="${escapeHtml(profileData.photo || "images/default.jpg")}" alt="${escapeHtml(name)}"><button type="button" id="profileChooseImage">Add new image</button><input name="photoFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div>
-        <label>Photo link<input name="photoUrl" type="text" maxlength="500" placeholder="Drive link or images/players/photo.jpg"></label>
-        <label class="profile-edit-wide">Bio<textarea name="bio" rows="4" maxlength="1000"></textarea></label>
-        <label>Role<input name="role" type="text" maxlength="50" placeholder="Captain, vice-captain…"></label>
-        <label>Highest checkout<input name="highestCheckout" type="number" min="0" max="170"></label>
-        <label class="profile-edit-wide">Walkout song link<input name="song" type="url" maxlength="500" placeholder="Spotify link"></label>
-        <label class="profile-edit-wide">Accolades<input name="accolades" type="text" maxlength="500" placeholder="Comma-separated accolade keys"></label>
-        <div class="profile-edit-status" role="status"></div>
-        <div class="profile-edit-actions">
-          <button class="profile-edit-cancel" type="button">Cancel</button>
-          <button class="profile-edit-save" type="submit">Save changes</button>
-        </div>
-      </form>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  const form = overlay.querySelector("#playerProfileEditForm");
-  let imagePreviewUrl = "";
-  overlay.querySelector("#profileChooseImage").addEventListener("click", () => form.elements.namedItem("photoFile").click());
-  form.elements.namedItem("photoFile").addEventListener("change", event => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
-    imagePreviewUrl = URL.createObjectURL(file);
-    overlay.querySelector("#profileEditImagePreview").src = imagePreviewUrl;
-  });
-  const status = overlay.querySelector(".profile-edit-status");
-  const setValue = (field, value) => {
-    const control = form.elements.namedItem(field);
-    if (control) control.value = value || "";
-  };
-  setValue("nickname", profileData.nickname);
-  setValue("photoUrl", profileData.photo && !profileData.photo.includes("images/default.jpg") ? profileData.photo : "");
-  setValue("bio", profileData.bio);
-  setValue("role", profileData.role);
-  setValue("highestCheckout", profileData.highestCheckout);
-  setValue("song", profileData.song);
-  setValue("accolades", (profileData.accolades || []).join(", "));
-
-  const closeEditor = () => {
-    overlay.classList.add("hidden");
-    overlay.setAttribute("aria-hidden", "true");
-  };
-  const openEditor = () => {
-    status.textContent = "";
-    overlay.classList.remove("hidden");
-    overlay.setAttribute("aria-hidden", "false");
-    form.elements.namedItem("nickname")?.focus();
-  };
-
-  editButton.addEventListener("click", openEditor);
-  overlay.querySelector(".profile-edit-close").addEventListener("click", closeEditor);
-  overlay.querySelector(".profile-edit-cancel").addEventListener("click", closeEditor);
-  overlay.addEventListener("click", event => {
-    if (event.target === overlay) closeEditor();
-  });
-
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
-    const saveButton = overlay.querySelector(".profile-edit-save");
-    saveButton.disabled = true;
-    saveButton.textContent = "Saving…";
-    status.textContent = "";
-
-    try {
-      const file = form.elements.namedItem("photoFile")?.files?.[0];
-      if (file) {
-        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error("Choose a JPG, PNG or WebP image under 5 MB.");
-        status.textContent = "Uploading image…";
-        const imageBase64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result).split(",")[1]);
-          reader.onerror = () => reject(new Error("Could not read this image."));
-          reader.readAsDataURL(file);
-        });
-        const ownImage = user.linkedPlayerKey === profileData.playerKey;
-        const result = await window.ONMFirebase.post({ action: ownImage ? "uploadProfilePhoto" : "uploadPlayerPhoto", playerKey: profileData.playerKey, fileName: file.name, mimeType: file.type, imageBase64 });
-        if (!result.success) throw new Error(result.error || "Could not upload this image.");
-        form.elements.namedItem("photoUrl").value = result.photoUrl;
+function highestMatchCheckout(rows, playerKey, playerName) {
+  const name = playerName.trim().toLowerCase();
+  let highest = 0;
+  for (const row of rows) {
+    for (let slot = 1; slot <= 12; slot += 1) {
+      const key = row[`PlayerKey${slot}`];
+      const matches = key ? key === playerKey : String(row[`Player${slot}`] || "").trim().toLowerCase() === name;
+      const score = Number(row[`HighestCheckout${slot}`]);
+      if (matches && Number(row[`T${slot}`]) > 0 && Number.isInteger(score) && score >= 100 && score <= 170) {
+        highest = Math.max(highest, score);
       }
-      await updatePublicPlayerProfile({
-        user,
-        playerKey: profileData.playerKey,
-        profile: {
-          nickname: form.elements.namedItem("nickname").value,
-          photoUrl: form.elements.namedItem("photoUrl").value,
-          bio: form.elements.namedItem("bio").value,
-          role: form.elements.namedItem("role").value,
-          highestCheckout: form.elements.namedItem("highestCheckout").value,
-          song: form.elements.namedItem("song").value,
-          accolades: form.elements.namedItem("accolades").value.split(",").map(value => value.trim()).filter(Boolean),
-          gooch: profileData.gooch === "yes" || profileData.gooch === "true",
-          profileVisible: profileData.profileVisible !== false
-        }
-      });
-      status.textContent = "Saved. Refreshing the profile…";
-      window.setTimeout(() => window.location.reload(), 450);
-    } catch (error) {
-      status.textContent = error.message || "Could not save this profile.";
-      saveButton.disabled = false;
-      saveButton.textContent = "Save changes";
     }
-  });
+  }
+  return highest;
 }
 
 // ---------- ANIMATION HELPERS ----------
@@ -1254,17 +1139,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     initProfileAccountDetails(playerName, profileData);
     const editImage = document.getElementById("editOwnPlayerImage");
-    editImage?.addEventListener("click", () => {
-      document.getElementById("editPlayerProfileBtn")?.click();
-      document.querySelector('.profile-edit-form input[name="photoFile"]')?.click();
-    });
-    const highestEl = document.getElementById("playerHighestCheckout");
-    if (highestEl) {
-      const hc = (profileData.highestCheckout || "").trim();
-      highestEl.innerHTML = `
-    <span class="meta-label">Highest checkout:</span>
-    <span class="meta-value">${hc ? escapeHtml(hc) : "No ton+ outs"}</span>
-  `;
+    editImage?.addEventListener("click", () => { location.href = "account.html#accountPhoto"; });
+    const highestValue = document.querySelector("#playerHighestCheckout .meta-value");
+    if (highestValue) {
+      const existing = Number(profileData.highestCheckout) || 0;
+      highestValue.textContent = existing || "No ton+ outs";
+      Promise.allSettled(Object.values(SHEETS.appearances).map(fetchCSV)).then(seasons => {
+        const rows = seasons.flatMap(season => season.status === "fulfilled" ? season.value : []);
+        const highest = Math.max(existing, highestMatchCheckout(rows, profileData.playerKey, playerName));
+        highestValue.textContent = highest || "No ton+ outs";
+      });
     }
 
     function toSpotifyEmbedUrl(url) {
@@ -1373,7 +1257,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    initPlayerProfileEditor(playerName, profileData);
   }
 
 

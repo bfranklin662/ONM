@@ -733,6 +733,11 @@
       IMGFOLDER: clean(data.get("imageFolder"))
     };
     for (let index = 1; index <= 12; index += 1) {
+      const previousPlayer = clean(sheetRow[`Player${index}`] || sheetRow[`Player ${index}`]);
+      if (previousPlayer !== clean(data.get(`player${index}`)) || Number(data.get(`t${index}`)) <= 0) {
+        sheetRow[`HighestCheckout${index}`] = "";
+        sheetRow[`PlayerKey${index}`] = "";
+      }
       delete sheetRow[`Player ${index}`];
       sheetRow[`Player${index}`] = clean(data.get(`player${index}`));
       sheetRow[`C${index}`] = numericOrBlank(data.get(`c${index}`));

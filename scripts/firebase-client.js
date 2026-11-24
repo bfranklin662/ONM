@@ -423,7 +423,8 @@
       accolades: Array.isArray(profile.accolades) ? profile.accolades.map(clean).filter(Boolean) : [],
       role: clean(profile.role).slice(0, 50),
       song: clean(profile.song).slice(0, 500),
-      highestCheckout: clean(profile.highestCheckout).slice(0, 10),
+      ...(Object.prototype.hasOwnProperty.call(profile, "highestCheckout")
+        ? { highestCheckout: clean(profile.highestCheckout).slice(0, 10) } : {}),
       gooch: profile.gooch ? "yes" : "",
       profileVisible: profile.profileVisible !== false,
       updatedAt: firestoreSdk.serverTimestamp()
@@ -625,6 +626,10 @@
       row[`O${index}`] = player ? player.oneEightys ?? "" : "";
       row[`B${index}`] = player ? player.bulls ?? "" : "";
       row[`T${index}`] = player ? player.tonOuts ?? "" : "";
+      const checkout = Number(player?.highestCheckout);
+      const hasCheckout = player?.tonOuts > 0 && Number.isInteger(checkout) && checkout >= 100 && checkout <= 170;
+      row[`HighestCheckout${index}`] = hasCheckout ? checkout : "";
+      row[`PlayerKey${index}`] = hasCheckout ? clean(player.playerKey) : "";
     }
     row.IMGFOLDER = imageUrls.join("\n");
     row.Venue = match.venue || "";
