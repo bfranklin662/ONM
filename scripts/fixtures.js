@@ -191,6 +191,11 @@
     entries = entries.filter(entry => { const key = normalizeName(entry.name); if (seen.has(key)) return false; seen.add(key); return true; });
     if (!entries.length) return "";
     const captain = normalizeName(fixture.Captain || row?.Captain);
+    if (!fixture.completed) {
+      entries.sort((a, b) =>
+        Number(normalizeName(b.name) === captain) - Number(normalizeName(a.name) === captain) ||
+        a.name.localeCompare(b.name, "en-GB", { sensitivity: "base" }));
+    }
     return `<section class="fixtureLineup" aria-label="${fixture.completed ? "Submitted team lineup" : "Selected team lineup"}"><h4>Our team</h4><ul>${entries.map(({name,checkouts,slot}) => {
       const mine = personal.user?.accountType !== "supporter" && [personal.user?.linkedPlayerName, personal.user?.linkedPlayerKey?.replace(/-/g," ")].filter(Boolean).some(value => normalizeName(value) === normalizeName(name));
       return `<li><a class="${mine ? "fixtureLineupSelf" : ""}"${mine ? ' aria-label="Your player profile"' : ""} href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupIdentity"><span class="fixtureLineupName" data-fixture-nickname="${escapeFixtureText(name)}">${fixturePlayerNameMarkup(name)}</span>${captain && captain === normalizeName(name) ? ' <span class="fixtureLineupCaptain" aria-label="Captain">(c)</span>' : ""}</span>${fixture.completed ? `<span class="fixtureLineupStats"><span class="fixtureLineupCheckouts fixtureLineupStat">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span>${fixturePlayerStats(row,slot)}</span>` : ""}</span><svg class="fixtureLineupArrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M6 4h6v6"/></svg></a></li>`; }).join("")}</ul></section>`;

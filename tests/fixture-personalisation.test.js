@@ -189,10 +189,11 @@ test("completed fixture details show participation once and keep score and resul
   assert(content.innerHTML.indexOf("fixtureDetailsFooter") > content.innerHTML.indexOf("fixtureMatchPhotos"));
   assert(dialog.open);
   vm.runInContext('fixturePictures.live = { "Nick B": { nickname: "The Monster" } };', h.context);
-  h.context.openFixtureDetails({ ...h.fixture, Player1: "Nick B", "Player 4": "Rob", C1: "99" });
+  h.context.openFixtureDetails({ ...h.fixture, Player1: "Nick B", Player2: "Alex", "Player 4": "Rob", Captain: "Rob", C1: "99" });
   assert.match(content.innerHTML, /<em[^>]*>“The Monster”<\/em>/);
   assert(content.innerHTML.includes('aria-label="Selected team lineup"'));
-  assert(content.innerHTML.indexOf('data-fixture-avatar="Nick B"') < content.innerHTML.indexOf('data-fixture-avatar="Rob"'));
+  assert.deepEqual([...content.innerHTML.matchAll(/data-fixture-avatar="([^"]+)"/g)].map(match => match[1]), ["Rob", "Alex", "Nick B"]);
+  assert.match(content.innerHTML, /aria-label="Captain">\(c\)/);
   assert(!content.innerHTML.includes("Checkouts:"));
   assert(!content.innerHTML.includes("View full result"));
   assert(content.innerHTML.includes("fixtureAvailabilityForm"));
