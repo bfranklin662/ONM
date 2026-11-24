@@ -1116,6 +1116,11 @@
       next.disabled = month >= lastMonth();
       el("#fixtureNextMatch").disabled = loading || !fixtures.length;
       el("#fixtureCalendar").setAttribute("aria-busy", String(loading));
+      if (loading) {
+        grid.innerHTML = "";
+        el("#fixtureCalendarEmpty").hidden = true;
+        return;
+      }
       const offset = (date.getDay() + 6) % 7;
       const days = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
       const cellCount = Math.ceil((offset + days) / 7) * 7;
@@ -1231,19 +1236,20 @@
   async function init() {
     setupFixtureViews();
     renderLoadingSkeleton(3);
-    // Paint the dated grid before awaiting any live data.
+    // Show the month and loading status until fixture data is ready.
     const calendar = mountCalendar([], true);
 
     // 1) Load the live fixture sheet, with the packaged JSON as a fallback.
-    const fixturesRaw = window.ONMSeasonData?.fetchFixtures
-      ? (await Promise.all([
-          window.ONMSeasonData.fetchFixtures("25-26"),
-          window.ONMSeasonData.fetchFixtures("26-27")
-        ])).flat()
-      : await fetch(FIXTURES_URL, { cache: "no-store" }).then(res => {
-        if (!res.ok) throw new Error(`Failed to load fixtures JSON: ${res.status}`);
-        return res.json();
-      });
+    let fixturesRaw;
+    if (window.ONMSeasonData?.fetchFixtures) {
+      const seasons = await Promise.allSettled(["25-26", "26-27"].map(season => window.ONMSeasonData.fetchFixtures(season)));
+      if (seasons.every(season => season.status === "rejected")) throw seasons[1].reason;
+      fixturesRaw = seasons.flatMap(season => season.status === "fulfilled" ? season.value : []);
+    } else {
+      const response = await fetch(FIXTURES_URL, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Failed to load fixtures JSON: ${response.status}`);
+      fixturesRaw = await response.json();
+    }
 
     const fixturesOnly = normalizeFixturesOnly(fixturesRaw);
 

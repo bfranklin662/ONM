@@ -1709,20 +1709,7 @@ html:has(.fixtureDetails[open]), body:has(.fixtureDetails[open]) {
 .fixtureLineupIdentity { display: flex; align-items: baseline; gap: .3em; }
 .fixtureLineupCaptain { font-size: .72rem; color: #b9d5c3; }
 
-@media (max-width: 650px) {
-  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable { display: table; }
-  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable thead { display: table-header-group; }
-  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable tbody { display: table-row-group; }
-  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable tr { display: table-row; }
-  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable td {
-    display: table-cell;
-    height: 34px;
-    padding: 4px;
-    vertical-align: top;
-  }
-  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureCalendarTable th { text-align: center; padding: 5px 2px; }
-  #fixtures #fixtureCalendar[aria-busy="true"] .fixtureMobileWeekday { display: none; }
-}
+#fixtureCalendar[aria-busy="true"] :is(.fixtureCalendarTable, .fixtureCalendarHint, .fixtureMonthControls) { display: none; }
 
 html:has(.fixturePhotoViewer[open]), body:has(.fixturePhotoViewer[open]) {
   overflow: hidden;

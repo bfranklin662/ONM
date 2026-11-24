@@ -11,6 +11,21 @@
   const resultsPromises = new Map();
   const fixturesPromises = new Map();
 
+  async function loadLiveSeason(action, season, options = {}) {
+    if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
+    let timeout;
+    try {
+      return await Promise.race([
+        window.ONMFirebase.post({ action, season, ...options }),
+        new Promise((_, reject) => {
+          timeout = setTimeout(() => reject(new Error("Live season data timed out.")), 8000);
+        })
+      ]);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   function num(value) {
     const parsed = Number(String(value ?? "").replace(/[£,\s]/g, ""));
     return Number.isFinite(parsed) ? parsed : 0;
@@ -25,8 +40,7 @@
 
     const promise = (async () => {
       try {
-        if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
-        const payload = await window.ONMFirebase.post({ action: "getPublicSeasonResults", season });
+        const payload = await loadLiveSeason("getPublicSeasonResults", season);
         if (!payload.success || !Array.isArray(payload.results)) {
           throw new Error(payload.error || "Live results are unavailable.");
         }
@@ -50,8 +64,7 @@
 
     const promise = (async () => {
       try {
-        if (!window.ONMFirebase?.post) throw new Error("Firebase is not ready.");
-        const payload = await window.ONMFirebase.post({ action: "getPublicSeasonFixtures", season, includeSocial: true });
+        const payload = await loadLiveSeason("getPublicSeasonFixtures", season, { includeSocial: true });
         if (!payload.success || !Array.isArray(payload.fixtures)) {
           throw new Error(payload.error || "Live fixtures are unavailable.");
         }

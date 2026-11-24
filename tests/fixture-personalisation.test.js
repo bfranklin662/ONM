@@ -132,7 +132,7 @@ test("clicking a card shows the response and saving refreshes both views", async
   vm.runInContext(source, context);
   documentEvents.DOMContentLoaded();
   assert.equal(get("#fixtureCalendarMonth").textContent, "October 2026");
-  assert.equal((get("#fixtureCalendarGrid").innerHTML.match(/class="fixtureDayNumber"/g) || []).length, 31);
+  assert.equal(get("#fixtureCalendarGrid").innerHTML, "");
   assert.equal(get("#fixtureCalendarCount").textContent, "Loading fixtures…");
   assert(get("#fixtureCalendarEmpty").hidden);
   releaseFixtures();
