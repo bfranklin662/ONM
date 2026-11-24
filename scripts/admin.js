@@ -281,10 +281,12 @@
     });
   }
 
-  async function savePickedTeam(fixture, names) {
+  async function savePickedTeam(fixture, names, { captain, override }) {
     const { db, firestoreSdk } = await window.ONMFirebase.ready;
     const lineup = Object.fromEntries(Array.from({ length: 12 }, (_, index) =>
       [`Player${index + 1}`, names[index] || ""]));
+    lineup.Captain = names.includes(captain) ? captain : "";
+    lineup.CaptainOverride = names.includes(override) ? override : "";
     const updates = Object.fromEntries(Object.entries(lineup).map(([slot, name]) => [`sheetRow.${slot}`, name]));
     await firestoreSdk.updateDoc(firestoreSdk.doc(db, "fixtures", fixture.id), {
       ...updates, updatedBy: state.user.uid, updatedAt: firestoreSdk.serverTimestamp()
@@ -684,6 +686,8 @@
     const sheetRow = {
       ...rowFor(existing),
       ...lineup,
+      Captain: names.includes(rowFor(existing).Captain) ? rowFor(existing).Captain : "",
+      CaptainOverride: names.includes(rowFor(existing).CaptainOverride) ? rowFor(existing).CaptainOverride : "",
       EventType: data.get("eventType") === "social" ? "social" : "fixture",
       EventDetails: data.get("eventType") === "social" ? clean(data.get("eventDetails")) : "",
       League: data.get("eventType") === "social" ? "Social" : clean(data.get("league")),

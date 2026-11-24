@@ -122,6 +122,14 @@
     return source ? `${detail} Showing ${source.toLowerCase()}.` : detail;
   }
 
+  function defaultCaptain(names) {
+    for (const aliases of [["nick", "nick horne"], ["ricky", "ricky plows"], ["rob", "rob piesse"], ["phil", "phil l", "phil lee"]]) {
+      const name = names.find(player => aliases.includes(normal(player)));
+      if (name) return name;
+    }
+    return "";
+  }
+
   function init({ upcoming, roster, appearances, dateKey, rowFor, photo, escape, save, toast, linked, archived, setArchived, link, editPlayer }) {
     const el = id => document.getElementById(id);
     const picker = el("pickTeamFixture");
@@ -138,6 +146,7 @@
     let fixtureId = "";
     const status = el("pickTeamStatus");
     const drafts = new Map();
+    const captainDrafts = new Map();
     let sheet = [];
     let sheetTeamSync = false;
     let source = "";
@@ -192,10 +201,25 @@
       return ["banks league", "trafalgar league"].includes(leagueKey(rowFor(fixture).League)) ? 6 : 0;
     }
 
+    function captainFor(fixture, names) {
+      const requested = captainDrafts.get(fixture.id) ?? rowFor(fixture).CaptainOverride;
+      const override = names.includes(requested) ? requested : "";
+      return { override, captain: override || defaultCaptain(names) };
+    }
+
+    function canSave(fixture, names) {
+      if (drafts.has(fixture.id)) return names.length >= requiredPlayers(fixture);
+      const { captain, override } = captainFor(fixture, names);
+      const row = rowFor(fixture);
+      return captain !== (row.Captain || "") || override !== (row.CaptainOverride || "");
+    }
+
     function renderSelection(fixture) {
       const names = chosen(fixture);
       const row = rowFor(fixture);
       const minimum = requiredPlayers(fixture);
+      const { captain, override } = captainFor(fixture, names);
+      const automatic = defaultCaptain(names);
       const emptySlots = Array.from({ length: Math.max(0, minimum - names.length) }, (_, i) =>
         `<li class="pickTeamSelectedName pickTeamEmptySlot">Slot ${names.length + i + 1}</li>`).join("");
       selection.innerHTML = `<div class="pickTeamSelectionHeader"><strong>Selected team · ${names.length}/${LIMIT}</strong>
@@ -207,14 +231,20 @@
           return `<li class="pickTeamSelectedName">
             <a href="player-profile.html?name=${encodeURIComponent(name)}">
               <img src="${escape(photo(player))}" width="40" height="40" alt="" loading="lazy">
-              <span>${label}${nickname ? ` <em>“${escape(nickname)}”</em>` : ""}</span>
+              <span>${label}${name === captain ? " (c)" : ""}${nickname ? ` <em>“${escape(nickname)}”</em>` : ""}</span>
             </a>
             <button type="button" data-pick-remove="${escape(name)}" aria-label="Remove ${label} from team"${saving ? " disabled" : ""}>×</button>
           </li>`;
         }).join("")}${emptySlots}</ol>
         <div class="pickTeamSelectionFooter">
+          ${names.length ? `<label>Captain
+            <select data-pick-captain${saving ? " disabled" : ""}>
+              <option value="">${automatic ? `Auto · ${escape(automatic)}` : "Choose captain"}</option>
+              ${names.map(name => `<option value="${escape(name)}"${name === override ? " selected" : ""}>${escape(displayName(roster().find(player => player.publicName === name) || { publicName: name }))}</option>`).join("")}
+            </select>
+          </label>` : ""}
           ${minimum && names.length < minimum ? `<small>Choose at least ${minimum} players.</small>` : ""}
-          <button type="button" class="btn btnPrimary" data-pick-team-save${saving || !drafts.has(fixture.id) || names.length < minimum ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button>
+          <button type="button" class="btn btnPrimary" data-pick-team-save${saving || !canSave(fixture, names) ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button>
         </div>`;
     }
 
@@ -462,6 +492,13 @@
 
     groups.addEventListener("click", handleRosterAction);
     folder.addEventListener("click", handleRosterAction);
+    selection.addEventListener("change", event => {
+      const fixture = activeFixture();
+      if (!fixture || saving || !event.target.matches("[data-pick-captain]")) return;
+      captainDrafts.set(fixture.id, event.target.value);
+      renderSelection(fixture);
+      selection.querySelector("[data-pick-captain]")?.focus();
+    });
     selection.addEventListener("click", async event => {
       const fixture = activeFixture();
       if (!fixture || saving) return;
@@ -472,14 +509,15 @@
           .find(card => card.dataset.pickPlayer === remove.dataset.pickRemove)?.focus({ preventScroll: true });
         return;
       }
-      if (!event.target.closest("[data-pick-team-save]") || !drafts.has(fixture.id) || chosen(fixture).length < requiredPlayers(fixture)) return;
+      if (!event.target.closest("[data-pick-team-save]") || !canSave(fixture, chosen(fixture))) return;
+      const lineupChanged = drafts.has(fixture.id);
       saving = true;
       render();
       try {
         const names = chosen(fixture);
         const match = matchSheet(sheet, rowFor(fixture), dateKey);
         const removed = savedNames(fixture).filter(name => !names.includes(name));
-        if (sheetTeamSync && (names.length || removed.length)) {
+        if (lineupChanged && sheetTeamSync && (names.length || removed.length)) {
           if (loading || message || !match?.id) throw new Error("Refresh availability and check that this fixture matches the sheet before saving.");
           const playerKeys = names.map(name => roster().find(player => player.publicName === name)?.playerKey);
           if (playerKeys.some(key => !key)) throw new Error("Every selected player needs a club profile.");
@@ -492,9 +530,10 @@
             playerKey: player.playerKey, fixtureId: match.id, previousStatus: "Selected", status: ""
           })));
         }
-        await save(fixture, names);
+        await save(fixture, names, captainFor(fixture, names));
         drafts.delete(fixture.id);
-        toast(sheetTeamSync ? "Team saved and sheet updated." : "Team saved. Sheet sync is pending deployment.");
+        captainDrafts.delete(fixture.id);
+        toast(!lineupChanged ? "Captain saved." : sheetTeamSync ? "Team saved and sheet updated." : "Team saved. Sheet sync is pending deployment.");
         await refreshSheet();
       } catch (error) {
         toast(error.message || "Could not save the team.", true);
@@ -514,7 +553,7 @@
   }
 
   if (typeof module === "object" && module.exports) {
-    module.exports = { parseCsv, readSheet, matchSheet, playerStatus };
+    module.exports = { parseCsv, readSheet, matchSheet, playerStatus, defaultCaptain };
   } else {
     window.ONMPickTeam = { init };
   }

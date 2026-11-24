@@ -146,7 +146,10 @@
     const fullName = fixturePictures.names?.get(normalizeName(name)) || String(name).replace(/\s+[A-Z]$/, "");
     const [first, ...surname] = fullName.trim().split(/\s+/);
     const nickname = fixturePlayerNickname(name);
-    return [escapeFixtureText(first), nickname ? `<em class="fixtureLineupNickname">${escapeFixtureText(nickname)}</em>` : "", escapeFixtureText(surname.join(" "))].filter(Boolean).join("&#32;");
+    return [first ? `<span>${escapeFixtureText(first)}</span>` : "",
+      nickname ? `<em class="fixtureLineupNickname">${escapeFixtureText(nickname)}</em>` : "",
+      surname.length ? `<span>${escapeFixtureText(surname.join(" "))}</span>` : ""
+    ].filter(Boolean).join(" ");
   }
 
   async function loadFixturePlayerPictures() {
@@ -188,9 +191,10 @@
     const seen = new Set();
     entries = entries.filter(entry => { const key = normalizeName(entry.name); if (seen.has(key)) return false; seen.add(key); return true; });
     if (!entries.length) return "";
+    const captain = normalizeName(fixture.Captain || row?.Captain);
     return `<section class="fixtureLineup" aria-label="${fixture.completed ? "Submitted team lineup" : "Selected team lineup"}"><h4>Our team</h4><ul>${entries.map(({name,checkouts,slot}) => {
       const mine = personal.user?.accountType !== "supporter" && [personal.user?.linkedPlayerName, personal.user?.linkedPlayerKey?.replace(/-/g," ")].filter(Boolean).some(value => normalizeName(value) === normalizeName(name));
-      return `<li><a class="${mine ? "fixtureLineupSelf" : ""}"${mine ? ' aria-label="Your player profile"' : ""} href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupName" data-fixture-nickname="${escapeFixtureText(name)}">${fixturePlayerNameMarkup(name)}</span>${fixture.completed ? `<span class="fixtureLineupStats"><span class="fixtureLineupCheckouts fixtureLineupStat">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span>${fixturePlayerStats(row,slot)}</span>` : ""}</span><svg class="fixtureLineupArrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M6 4h6v6"/></svg></a></li>`; }).join("")}</ul></section>`;
+      return `<li><a class="${mine ? "fixtureLineupSelf" : ""}"${mine ? ' aria-label="Your player profile"' : ""} href="player-profile.html?name=${encodeURIComponent(name)}"><img src="${escapeFixtureText(fixturePlayerImage(name))}" data-fixture-avatar="${escapeFixtureText(name)}" alt="" loading="lazy" decoding="async"><span class="fixtureLineupInfo"><span class="fixtureLineupIdentity"><span class="fixtureLineupName" data-fixture-nickname="${escapeFixtureText(name)}">${fixturePlayerNameMarkup(name)}</span>${captain && captain === normalizeName(name) ? ' <span class="fixtureLineupCaptain" aria-label="Captain">(c)</span>' : ""}</span>${fixture.completed ? `<span class="fixtureLineupStats"><span class="fixtureLineupCheckouts fixtureLineupStat">Checkouts: ${fixtureCheckoutMarkup(checkouts)}</span>${fixturePlayerStats(row,slot)}</span>` : ""}</span><svg class="fixtureLineupArrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M6 4h6v6"/></svg></a></li>`; }).join("")}</ul></section>`;
   }
 
   document.addEventListener("error", event => {
@@ -1042,7 +1046,11 @@
       fixture.dateISO, normalizeName(normalizeLeague(fixture.League || fixture.Competition)),
       personalTeam(fixture.Opponent), personalSide(fixture.HA)
     ].join("|");
-    const resultsByMatch = new Map(results.map(result => [matchKey(result), result]));
+    const fixtureCaptains = new Map(fixtures.filter(fixture => fixture.Captain).map(fixture => [matchKey(fixture), fixture.Captain]));
+    const resultsByMatch = new Map(results.map(result => {
+      const key = matchKey(result);
+      return [key, { ...result, Captain: result.resultRow?.Captain || fixtureCaptains.get(key) }];
+    }));
     // A fixture that is already in the schedule appears once, with its result.
     const combined = fixtures.filter(fixture => !resultsByMatch.has(matchKey(fixture)));
     return [...combined, ...resultsByMatch.values()].sort((a, b) => a.dateObj - b.dateObj);

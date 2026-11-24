@@ -40,3 +40,12 @@ test("ambiguous fixture columns and duplicate player names do not look like miss
   assert.equal(matchSheet([...sheet, sheet[0]], row, dateKey), null);
   assert.equal(matchSheet(sheet, { ...row, HA: "Away" }, dateKey), null);
 });
+
+test("the captain defaults to Nick, Ricky, Rob, then Phil regardless of playing order", () => {
+  const { defaultCaptain } = require("../scripts/pick-team.js");
+  assert.equal(defaultCaptain(["Phil L", "Rob", "Ricky", "Nick"]), "Nick");
+  assert.equal(defaultCaptain(["Phil L", "Rob", "Ricky", "Nick B"]), "Ricky");
+  assert.equal(defaultCaptain(["Phil Lee", "Rob Piesse"]), "Rob Piesse");
+  assert.equal(defaultCaptain(["Phil L"]), "Phil L");
+  assert.equal(defaultCaptain(["Sam C"]), "");
+});

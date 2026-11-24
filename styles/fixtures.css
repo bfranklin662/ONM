@@ -1704,3 +1704,6 @@ html:has(.fixtureDetails[open]), body:has(.fixtureDetails[open]) {
 @media (prefers-reduced-motion: reduce) {
   .fixturePhotosSpinner { animation: none; }
 }
+.fixtureLineupName { display: inline-flex; flex-wrap: wrap; column-gap: .25em; }
+.fixtureLineupIdentity { display: flex; align-items: baseline; gap: .3em; }
+.fixtureLineupCaptain { font-size: .72rem; color: #b9d5c3; }
