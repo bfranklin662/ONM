@@ -2222,3 +2222,58 @@ td:first-child {
  .result-card-wide > .date { margin:5px 0 2px; font-size:.72rem; line-height:1.25; }
  .result-card-wide .league-pill { font-size:.58rem; line-height:1.2; padding:4px 7px; }
 }
+
+.stats-grid .stats-heading-short { display: none; }
+
+@media (max-width: 700px) {
+  .results-container #statsGrid,
+  .results-container #statsContent {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+  }
+
+  .results-container .stats-grid .league-box {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: 6px;
+  }
+
+  .results-container .stats-grid .table-container {
+    width: 100%;
+    overflow-x: visible;
+    transform: none;
+    cursor: auto;
+  }
+
+  .results-container .stats-grid .table-container table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+    transform: none;
+    padding: 0;
+  }
+
+  .results-container .stats-grid :is(th, td) {
+    padding: 5px 2px;
+    font-size: clamp(.56rem, 2.5vw, .72rem);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .results-container .stats-grid th:first-child {
+    width: 24%;
+  }
+
+  .results-container .stats-grid :is(th, td):first-child {
+    text-align: left;
+    padding-inline-start: 5px;
+  }
+
+  .results-container .stats-grid th.stats-fines-column { width: 17%; }
+  .results-container .stats-grid :is(.stats-per-game, .stats-heading-full) { display: none; }
+  .results-container .stats-grid .stats-heading-short { display: inline; text-decoration: none; }
+  .results-container .stats-grid .stats-empty-row td { text-align: center; }
+}

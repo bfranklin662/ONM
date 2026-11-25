@@ -1234,8 +1234,28 @@ async function fetchStats(season) {
   }
 
   // === Convert CSV to table ===
+  function statsColumnClass(header) {
+    const label = header?.trim().toLowerCase();
+    if (label === "checkouts/game" || label === "fines/game") return ' class="stats-per-game"';
+    if (label === "fines") return ' class="stats-fines-column"';
+    return "";
+  }
+
   function statsTableShell(bodyHTML, headers = STATS_TABLE_HEADERS) {
-    const headerHTML = headers.map(h => `<th>${h.trim()}</th>`).join("");
+    const mobileLabels = {
+      Played: "P",
+      Checkouts: "CO",
+      "Double Fines": "DF",
+      "Bull-outs": "Bull",
+      "Ton+ Outs": "Ton+"
+    };
+    const headerHTML = headers.map(header => {
+      const label = header.trim();
+      const mobileLabel = mobileLabels[label];
+      return `<th scope="col"${statsColumnClass(header)}>${mobileLabel
+        ? `<span class="stats-heading-full">${label}</span><abbr class="stats-heading-short" title="${label}">${mobileLabel}</abbr>`
+        : label}</th>`;
+    }).join("");
     return `
       <div class="table-container top-scroll">
         <div class="scrollbar-top"></div>
@@ -1279,7 +1299,7 @@ async function fetchStats(season) {
           const href = `player-profile.html?name=${encodeURIComponent(text)}`;
           return `<td><a href="${href}" class="player-link">${text}</a></td>`;
         }
-        return `<td>${text}</td>`;
+        return `<td${statsColumnClass(headers[j])}>${text}</td>`;
       }).join("")}
         </tr>
       `;
