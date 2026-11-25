@@ -160,6 +160,7 @@
   function matchTable(entries, nextId) {
     const rows = entries.map(({ item, type }) => {
       const isResult = type === "result";
+      const isNext = !isResult && item.id === nextId;
       const row = rowFor(item);
       const home = normaliseTeam(row.HomeTeam) === "oche ness monsters";
       const opponent = isResult ? (home ? row.AwayTeam : row.HomeTeam) : row.Opponent;
@@ -170,9 +171,9 @@
       const timestamp = dateValue(row.Date);
       const date = timestamp ? new Date(timestamp) : null;
       const prettyDate = date ? `${ordinal(date.getDate())} ${date.toLocaleString("en-GB", { month: "short" })}` : "Date TBA";
-      return `<tr${!isResult && item.id === nextId ? ' data-next-fixture="true"' : ""}>
+      return `<tr class="adminMatchRow--${type}"${isNext ? ' data-next-fixture="true"' : ""}>
         <td>${escapeHtml((isResult ? row.Competition : row.League) || "Competition TBA")}</td>
-        <td><span class="adminOpponent">${escapeHtml(opponent || "Opponent TBA")}</span> <span class="adminSide">(${side})</span></td>
+        <td><span class="adminOpponent">${escapeHtml(opponent || "Opponent TBA")}</span> <span class="adminSide">(${side})</span>${isNext ? ' <span class="adminNextFixture">Next</span>' : ""}</td>
         <td><time datetime="${escapeHtml(inputDate(row.Date))}" title="${escapeHtml(row.Date)}">${escapeHtml(prettyDate)}</time></td>
         <td>${isResult ? `<span class="adminScoreBox ${escapeHtml(outcome)}" aria-label="${escapeHtml(outcome || "Result")} ${escapeHtml(score)}">${escapeHtml(score)}</span>` : '<span class="adminPending">—</span>'}</td>
         <td><div class="adminRowActions"><button class="adminSmallBtn" type="button" data-edit-${type}="${escapeHtml(item.id)}">${!isResult && row.EventType !== "social" ? "Edit / pick team" : `Edit ${type}`}</button><button class="adminSmallBtn danger" type="button" data-delete-${type}="${escapeHtml(item.id)}">Delete</button></div></td>

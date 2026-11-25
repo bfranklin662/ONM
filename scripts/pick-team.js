@@ -208,7 +208,7 @@
     }
 
     function canSave(fixture, names) {
-      if (drafts.has(fixture.id)) return names.length >= requiredPlayers(fixture);
+      if (drafts.has(fixture.id)) return true;
       const { captain, override } = captainFor(fixture, names);
       const row = rowFor(fixture);
       return captain !== (row.Captain || "") || override !== (row.CaptainOverride || "");
@@ -243,7 +243,7 @@
               ${names.map(name => `<option value="${escape(name)}"${name === override ? " selected" : ""}>${escape(displayName(roster().find(player => player.publicName === name) || { publicName: name }))}</option>`).join("")}
             </select>
           </label>` : ""}
-          ${minimum && names.length < minimum ? `<small>Choose at least ${minimum} players.</small>` : ""}
+          ${minimum && names.length < minimum ? `<small>${names.length} of ${minimum} players picked. You can save this lineup and add more later.</small>` : ""}
           <button type="button" class="btn btnPrimary" data-pick-team-save${saving || !canSave(fixture, names) ? " disabled" : ""}>${saving ? "Saving…" : "Save team"}</button>
         </div>`;
     }
@@ -388,7 +388,7 @@
         ArrowRight: (current + 1) % tabs.length }[event.key];
       activateTab(tabs[next]);
     });
-    refresh.addEventListener("click", refreshSheet);
+    refresh.addEventListener("click", () => { if (!saving) void refreshSheet(); });
     document.addEventListener("click", event => {
       const current = event.target.closest(".pickTeamSettings");
       document.querySelectorAll("#pickTeamPanel .pickTeamSettings[open]").forEach(menu => {
@@ -442,15 +442,23 @@
         return;
       }
       const status = action.dataset.availabilityStatus;
+      if (status === previous) return;
+      const sheetKey = playerSheetKey(player, match);
+      function moveResponse(from, to) {
+        match.responses.set(sheetKey, to);
+        match.counts[from] -= 1;
+        match.counts[to] += 1;
+      }
       saving = true;
+      moveResponse(previous, status);
       render();
       try {
         await window.ONMFirebase.availability("setTeamAvailability", {
           playerKey: key, fixtureId: match.id, status, previousStatus: previous === "Not updated" ? "" : previous
         });
         toast("Sheet response updated.");
-        await refreshSheet();
       } catch (error) {
+        moveResponse(status, previous);
         toast(error.message || "Could not update the player.", true);
       } finally {
         saving = false;

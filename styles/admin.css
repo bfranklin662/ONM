@@ -453,6 +453,17 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminMatchTimeline .adminMatchTable { table-layout: fixed; min-width: 630px; }
 .adminMatchTimeline th { width: 20%; position: sticky; top: 0; z-index: 1; background: #284139; }
 .adminMatchTimeline td { overflow-wrap: anywhere; }
+.adminMatchTimeline .adminMatchRow--result td { background-color: #294039; }
+.adminNextFixture {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid #88783f;
+  border-radius: 999px;
+  background: #413a20;
+  color: #ffe38a;
+  font-size: .7rem;
+  font-weight: 700;
+}
 .adminMatchTimeline .adminRowActions { flex-wrap: wrap; }
 .pickTeamSelectionFooter { flex-wrap: wrap; }
 .pickTeamSelectionFooter label { display: inline-flex; align-items: center; gap: 6px; }
