@@ -832,10 +832,15 @@
 
 
 
+  function nextFixtureIndex(fixtures) {
+    const today = todayNoon();
+    return fixtures.findIndex(fixture => fixture.dateObj >= today && !fixture.completed && fixture.EventType !== "social");
+  }
+
   function initialIndex(fixtures) {
     const t = todayNoon();
     // next upcoming (date >= today and not completed OR even if completed, still future)
-    let idx = fixtures.findIndex(f => f.dateObj >= t && !f.completed);
+    let idx = nextFixtureIndex(fixtures);
     if (idx === -1) idx = fixtures.findIndex(f => f.dateObj >= t);
     if (idx === -1) idx = Math.max(0, fixtures.length - 1);
     return idx;
@@ -853,10 +858,6 @@
       if (window.matchMedia("(max-width: 650px)").matches) return 1;
       if (window.matchMedia("(max-width: 980px)").matches) return 2;
       return 3;
-    }
-
-    function nextUpcomingIndex() {
-      return fixtures.findIndex(f => f.dateObj >= todayNoon() && !f.completed);
     }
 
     function update() {
@@ -878,7 +879,7 @@
 
       indices = indices.filter((v, i, a) => a.indexOf(v) === i);
 
-      const nxtIdx = nextUpcomingIndex();
+      const nxtIdx = nextFixtureIndex(fixtures);
 
       // Render cards
       let html = indices
@@ -932,8 +933,7 @@
     });
 
     // Start anchored to next upcoming if possible
-    const t = todayNoon();
-    const upcoming = fixtures.findIndex(f => f.dateObj >= t && !f.completed);
+    const upcoming = nextFixtureIndex(fixtures);
     if (upcoming !== -1) anchor = upcoming;
 
     update();
@@ -1075,17 +1075,17 @@
     return dateISO < today ? "isPast" : dateISO === today ? "isToday" : "isFuture";
   }
 
-  function renderCalendarEvent(fixture, index) {
+  function renderCalendarEvent(fixture, index, isNextFixture) {
     const escape = escapeFixtureText;
     const resultCode = fixture.outcome === "win" ? "W" : fixture.outcome === "loss" ? "L" : "D";
     const ourScore = fixture.HA === "Home" ? fixture.homeScore : fixture.awayScore;
     const theirScore = fixture.HA === "Home" ? fixture.awayScore : fixture.homeScore;
     const resultText = fixture.completed ? `${ourScore}-${theirScore} ${resultCode}` : "";
-    const label = escape(`${fixture.Opponent}, ${fixture.HA}, ${fixture.League}, ${fixture.Date}. ${fixture.completed ? resultText : ""} ${personalFixture(fixture)?.label || ""}. View match details`);
+    const label = escape(`${fixture.Opponent}, ${fixture.HA}, ${fixture.League}, ${fixture.Date}. ${fixture.completed ? resultText : isNextFixture ? "Next fixture" : ""} ${personalFixture(fixture)?.label || ""}. View match details`);
     const attrs = `class="fixtureCalendarEvent ${fixture.leagueClass} ${calendarDateState(fixture.dateISO)}${personalClass(fixture)}"`;
     const content = `<span class="fixtureEventSummary">
       <span class="fixtureEventOpponent">${escape(fixture.Opponent)}${fixtureSide(fixture, "fixtureEventSideInline")}</span>
-      ${fixture.completed ? `<span class="fixtureEventResult ${fixture.outcome}">${escape(resultText)}</span>` : ""}
+      ${fixture.completed ? `<span class="fixtureEventResult ${fixture.outcome}">${escape(resultText)}</span>` : isNextFixture ? '<span class="fixtureEventResult nextFixtureBadge">Next</span>' : ""}
       </span><span class="fixtureEventLeague">${escape(fixtureLeagueLabel(fixture))}</span><span class="fixtureEventFooter">${personalBadge(fixture)}${fixture.Location && fixture.Location !== "TBC" ? `<span class="fixtureEventVenue" title="${escape(fixture.Location)}">${escape(fixture.Location)}</span>` : ""}</span>`;
     return `<button type="button" ${attrs} aria-label="${label}" data-fixture-index="${index}" aria-haspopup="dialog">${content}</button>`;
   }
@@ -1131,6 +1131,7 @@
       }
       const offset = (date.getDay() + 6) % 7;
       const days = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+      const nextIndex = nextFixtureIndex(fixtures);
       const cellCount = Math.ceil((offset + days) / 7) * 7;
       const today = toISODate(todayNoon());
       let cells = "";
@@ -1149,7 +1150,7 @@
               <span class="fixtureDayNumber">${day}</span>
               <span class="fixtureMobileWeekday">${cellDate.toLocaleDateString("en-GB", { weekday: "short" })}</span>
             </time>
-            <div class="fixtureDayEvents">${events.map(({ fixture, index }) => renderCalendarEvent(fixture, index)).join("")}</div>
+            <div class="fixtureDayEvents">${events.map(({ fixture, index }) => renderCalendarEvent(fixture, index, index === nextIndex)).join("")}</div>
           </td>`;
         }
         if (i % 7 === 6) cells += "</tr>";

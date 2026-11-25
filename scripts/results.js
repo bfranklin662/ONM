@@ -1059,7 +1059,6 @@ async function fetchStats(season) {
       </div>
     </div>
   `;
-  bindLeagueFilter();
 
   await new Promise(r => setTimeout(r, 50));
 

@@ -446,11 +446,8 @@ async function loadPlayersLanding() {
     }));
 
 
-    const allAppsRows = [
-      ...(Array.isArray(apps26) ? apps26 : []),
-      ...(Array.isArray(apps25) ? apps25 : []),
-      ...(Array.isArray(apps24) ? apps24 : [])
-    ];
+    const appsBySeason = { "26-27": apps26, "25-26": apps25, "24-25": apps24 };
+    const allAppsRows = Object.values(appsBySeason).filter(Array.isArray).flat();
 
     // If countWinsAndLosses isn't available on this page, define a minimal version.
     // (Replace this with your real function if you already have it globally.)
@@ -492,48 +489,52 @@ async function loadPlayersLanding() {
       return joinedDates[0].getTime();
     }
 
-    const playersWithStats = allPlayers.map(name => {
-      const keyName = name.trim().toLowerCase();
-      const rows = statIndexes.map(item => item.index.get(keyName) || {});
+    function playersForSeason(season) {
+      const indexes = season === "all" ? statIndexes : statIndexes.filter(item => item.season === season);
+      const appearances = season === "all" ? allAppsRows : (appsBySeason[season] || []);
+      return allPlayers.map(name => {
+        const keyName = name.trim().toLowerCase();
+        const rows = indexes.map(item => item.index.get(keyName) || {});
 
-      const sumStat = keys => rows.reduce((total, row) => total + getStatFromRow(row, keys), 0);
-      const played = sumStat(KEYS.played);
-      const checkouts = sumStat(KEYS.checkouts);
-      const fines = sumStat(KEYS.fines);
+        const sumStat = keys => rows.reduce((total, row) => total + getStatFromRow(row, keys), 0);
+        const played = sumStat(KEYS.played);
+        const checkouts = sumStat(KEYS.checkouts);
+        const fines = sumStat(KEYS.fines);
 
-      const specials = {
-        "180s": sumStat(KEYS.one80s),
-        Bulls: sumStat(KEYS.bulls),
-        "Ton+": sumStat(KEYS.tonPlus)
-      };
+        const specials = {
+          "180s": sumStat(KEYS.one80s),
+          Bulls: sumStat(KEYS.bulls),
+          "Ton+": sumStat(KEYS.tonPlus)
+        };
 
-      const wl = countWL(allAppsRows, name);
-      const wins = wl.wins || 0;
-      const losses = wl.losses || 0;
-      const pct = (wins + losses) ? Math.round((wins / (wins + losses)) * 100) : 0;
+        const wl = countWL(appearances, name);
+        const wins = wl.wins || 0;
+        const losses = wl.losses || 0;
+        const pct = (wins + losses) ? Math.round((wins / (wins + losses)) * 100) : 0;
 
-      const coRatio = played ? (checkouts / played) : 0;
-      const fineRatio = played ? (fines / played) : 0;
-      const joinedAt = getJoinedTimestamp(name);
+        const coRatio = played ? (checkouts / played) : 0;
+        const fineRatio = played ? (fines / played) : 0;
+        const joinedAt = getJoinedTimestamp(name);
 
-      return {
-        name,
-        played,
-        checkouts,
-        fines,
-        wins,
-        pct,
-        coRatio,
-        fineRatio,
-        joinedAt,
-        specials,
-        key: photoKey(name)
-
-      };
-    });
+        return {
+          name,
+          played,
+          checkouts,
+          fines,
+          wins,
+          pct,
+          coRatio,
+          fineRatio,
+          joinedAt,
+          specials,
+          key: photoKey(name)
+        };
+      });
+    }
 
     const sortSelect = document.getElementById("sortBySelect");
-    window.playersWithStats = playersWithStats; // keep latest stats
+    const seasonSelect = document.getElementById("playersSeasonSelect");
+    let playersWithStats = [];
 
     const sortButtons = [...document.querySelectorAll("[data-player-sort]")];
     let activeSort = "checkouts";
@@ -572,7 +573,7 @@ async function loadPlayersLanding() {
       activeSort = sortKey;
       ascending = sortAscending;
       updateSortButtons();
-      const sorted = [...window.playersWithStats].sort((a, b) => {
+      const sorted = [...playersWithStats].sort((a, b) => {
         const nameOrder = a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
         if (sortKey === "name") return sortAscending ? nameOrder : -nameOrder;
         const difference = getSortValue(a, sortKey) - getSortValue(b, sortKey);
@@ -616,57 +617,60 @@ async function loadPlayersLanding() {
       byKey.set(card.getAttribute("data-player-key"), card);
     });
 
-    // Re-order DOM + update values
-    const frag = document.createDocumentFragment();
-    playersWithStats.forEach(p => {
-      const card = byKey.get(p.key);
-      if (!card) return;
+    function renderSeason(season) {
+      playersWithStats = playersForSeason(season);
+      window.playersWithStats = playersWithStats;
+      playersWithStats.forEach(p => {
+        const card = byKey.get(p.key);
+        if (!card) return;
 
-      // Played
-      const playedEl = card.querySelector('[data-stat="played"]');
-      if (playedEl) playedEl.textContent = String(p.played);
+        // Played
+        const playedEl = card.querySelector('[data-stat="played"]');
+        if (playedEl) playedEl.textContent = String(p.played);
 
-      // Checkouts / Ratio
-      const coWrap = card.querySelector('[data-stat="coRatio"]');
-      if (coWrap) {
-        const coEl = coWrap.querySelector(".co");
-        const ratioEl = coWrap.querySelector(".ratio");
-        if (coEl) coEl.textContent = String(p.checkouts);
-        if (ratioEl) ratioEl.textContent = (p.coRatio || 0).toFixed(2);
-      }
+        // Checkouts / Ratio
+        const coWrap = card.querySelector('[data-stat="coRatio"]');
+        if (coWrap) {
+          const coEl = coWrap.querySelector(".co");
+          const ratioEl = coWrap.querySelector(".ratio");
+          if (coEl) coEl.textContent = String(p.checkouts);
+          if (ratioEl) ratioEl.textContent = (p.coRatio || 0).toFixed(2);
+        }
 
-      // Wins / %
-      const wlWrap = card.querySelector('[data-stat="wlPct"]');
-      if (wlWrap) {
-        const winsEl = wlWrap.querySelector(".wins");
-        const pctEl = wlWrap.querySelector(".pct");
-        if (winsEl) winsEl.textContent = String(p.wins);
-        if (pctEl) pctEl.textContent = `${p.pct || 0}%`;
-      }
+        // Wins / %
+        const wlWrap = card.querySelector('[data-stat="wlPct"]');
+        if (wlWrap) {
+          const winsEl = wlWrap.querySelector(".wins");
+          const pctEl = wlWrap.querySelector(".pct");
+          if (winsEl) winsEl.textContent = String(p.wins);
+          if (pctEl) pctEl.textContent = `${p.pct || 0}%`;
+        }
 
-      // Fines / Ratio
-      const fineWrap = card.querySelector('[data-stat="fineRatio"]');
-      if (fineWrap) {
-        const finesEl = fineWrap.querySelector(".fines");
-        const ratioEl = fineWrap.querySelector(".ratio");
+        // Fines / Ratio
+        const fineWrap = card.querySelector('[data-stat="fineRatio"]');
+        if (fineWrap) {
+          const finesEl = fineWrap.querySelector(".fines");
+          const ratioEl = fineWrap.querySelector(".ratio");
 
-        const finesRounded = (Number(p.fines) || 0).toFixed(2);
+          const finesRounded = (Number(p.fines) || 0).toFixed(2);
 
-        if (finesEl) finesEl.textContent = `£${finesRounded}`;
-        if (ratioEl) ratioEl.textContent = (Number(p.fineRatio) || 0).toFixed(2);
-      }
+          if (finesEl) finesEl.textContent = `£${finesRounded}`;
+          if (ratioEl) ratioEl.textContent = (Number(p.fineRatio) || 0).toFixed(2);
+        }
 
 
-      // Specials
-      const specialsEl = card.querySelector('[data-stat="specials"]');
-      if (specialsEl) specialsEl.innerHTML = makeSpecialsHtml(p.specials);
+        // Specials
+        const specialsEl = card.querySelector('[data-stat="specials"]');
+        if (specialsEl) specialsEl.innerHTML = makeSpecialsHtml(p.specials);
+      });
+      resortAndRender(activeSort, ascending);
+    }
 
-      frag.appendChild(card);
-    });
-
-    grid.appendChild(frag);
-
-    resortAndRender("checkouts");
+    if (seasonSelect) {
+      seasonSelect.disabled = false;
+      seasonSelect.addEventListener("change", () => renderSeason(seasonSelect.value));
+    }
+    renderSeason(seasonSelect?.value || "all");
 
 
   } catch (err) {

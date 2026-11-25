@@ -2361,3 +2361,49 @@ td:first-child {
   }
   .results-container .gallery-container { padding-inline: 0; }
 }
+
+
+.gallery-card .gallery-grid .result-photo-frame,
+.result-card-wide .match-image-grid .result-photo-frame {
+  width: min(100%, 108px);
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 1;
+  justify-content: center;
+}
+
+#resultsPlayersPanel .stats-header-right { width: 100%; }
+#resultsPlayersPanel .players-search { display: flex; align-items: center; gap: 5px; width: 100%; }
+#resultsPlayersPanel .stats-header .players-search .season-dropdown {
+  min-width: 0;
+  padding: .48rem .7rem;
+  border: 1px solid #00b894;
+  border-radius: 6px;
+  background-color: rgba(0, 184, 148, .18);
+  color: #fff;
+}
+#resultsPlayersPanel .stats-header .players-search select.season-dropdown {
+  flex-shrink: 0;
+  padding-right: 1.6rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right .5rem center;
+  background-repeat: no-repeat;
+}
+#resultsPlayersPanel .stats-header .players-search input {
+  flex: 1;
+  background-image: none;
+}
+
+@media (max-width: 700px) {
+  .results-container[data-results-view="results"] { padding-inline: 5px; }
+  .results-container[data-results-view="results"] .result-card-wide { width: 100%; max-width: none; margin-inline: 0; }
+  .gallery-card .gallery-grid .result-photo-frame,
+  .result-card-wide .match-image-grid .result-photo-frame,
+  .result-card-wide .player-images > .result-photo-frame {
+    width: min(100%, 76px);
+    aspect-ratio: 1;
+    flex-direction: column;
+  }
+  #resultsPlayersPanel > .stats-header.main-profile-header { grid-template-columns: auto minmax(0, 1fr); }
+  #resultsPlayersPanel .stats-header .players-search select { width: auto; }
+}
