@@ -54,10 +54,10 @@ service cloud.firestore {
     // Private player directory. Full names are visible only after sign-in.
     match /players/{playerId} {
       allow read: if activeMember();
-      allow create: if admin() || (linkedMember() && !request.resource.data.keys().hasAny(["registrationPaidSeasons"]));
+      allow create: if admin() || (linkedMember() && !request.resource.data.keys().hasAny(["registrationPaidSeasons", "pickTeamArchived"]));
       allow update: if admin() ||
         (activeMember() && userRecord().data.linkedPlayerKey == playerId &&
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(["registrationPaidSeasons"]));
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(["registrationPaidSeasons", "pickTeamArchived"]));
       allow delete: if admin();
     }
 

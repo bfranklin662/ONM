@@ -975,7 +975,7 @@
 /* --- Image Grid --- */
 .match-image-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   width: min(420px, 100%);
   height: auto;
@@ -986,8 +986,9 @@
 }
 
 .match-image-grid img {
+  display: block;
   width: 100%;
-  aspect-ratio: 1.15 / 1;
+  aspect-ratio: 1;
   object-fit: cover;
   border-radius: 5px;
 }
@@ -1009,7 +1010,7 @@
   }
 
   .match-image-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     /* 4 in one row */
     width: 100%;
     height: auto;
@@ -1060,7 +1061,7 @@
 
   .result-card-wide .match-image-grid {
     width: 100%;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -2104,7 +2105,7 @@ td:first-child {
 }
 
 /* Compact the public result summary while keeping its corner badges clear. */
-.result-card-wide { padding: 14px 14px 28px; }
+.result-card-wide { padding: 14px; }
 .result-card-wide > .resultPlayedBadge {
   position: absolute;
   top: 12px;
@@ -2124,9 +2125,10 @@ td:first-child {
   width: 136px;
   max-width: 100%;
   box-sizing: border-box;
-  height: 112px;
+  height: auto;
+  aspect-ratio: 1;
   flex: 0 0 auto;
-  margin: 0 0 10px;
+  margin: 0;
   padding: 12px;
   border: 1px dashed #558574;
   border-radius: 12px;
@@ -2160,7 +2162,7 @@ td:first-child {
 .league-cup-symbol { display:inline-block; width:13px; height:13px; vertical-align:-2px; margin-right:5px; }
 .result-card-wide .player-images { flex-direction:column; }
 .result-card-wide .match-image-grid { align-self:center; }
-.result-card-wide .match-image-grid .result-photo-frame { width:100%; min-width:0; min-height:0; height:auto; aspect-ratio:1.15/1; margin:0; padding:6px; border:1px dashed #558574; border-radius:5px; display:flex; flex-direction:column; gap:4px; font-size:.7rem; }
+.result-card-wide .match-image-grid .result-photo-frame { width:100%; min-width:0; min-height:0; height:auto; aspect-ratio:1; box-sizing:border-box; text-align:center; margin:0; padding:6px; border:1px dashed #558574; border-radius:5px; display:flex; flex-direction:column; gap:4px; font-size:.7rem; }
 .result-card-wide .match-image-grid .result-photo-plus { font:300 34px/1 system-ui,sans-serif; }
 .match-image-grid [hidden] { display:none !important; }
 
@@ -2212,7 +2214,7 @@ td:first-child {
  .results-container .results-header-bar .view-btn.active { background:#24503a; border-color:#5a9d78; }
  .result-view-icon { font-size:14px; }
  .result-view-name { display:block; font:600 9px/1.2 system-ui,sans-serif; color:#c8e1d2; }
- .result-card-wide { padding:11px 11px 26px; }
+ .result-card-wide { padding:11px; }
  .result-card-wide .teams { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:8px; padding-top:25px; margin:0; }
  .result-card-wide .teams .team { min-width:0; width:auto; font-size:.8rem; font-weight:600; line-height:1.2; overflow-wrap:anywhere; }
  .result-card-wide .teams .team.home { text-align:right; }
@@ -2335,42 +2337,58 @@ td:first-child {
   .results-container .results-view-nav .view-btn { flex-direction: column; gap: 4px; min-height: 48px; padding: 4px 2px; font-size: 10px; }
   .results-view-nav svg { width: 17px; height: 17px; }
   .results-filter-row .season-dropdown { font-size: .76rem; }
-  .result-card-wide .player-images > .result-photo-frame,
-  .result-card-wide .match-image-grid .result-photo-frame {
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    gap: 5px;
-    width: max-content;
-    max-width: 100%;
-    height: auto;
-    min-height: 36px;
-    aspect-ratio: auto;
-    padding: 4px 8px;
-    margin: 0;
-    border-radius: 7px;
-    font-size: .68rem;
-  }
-  .result-card-wide .result-photo-frame .result-photo-plus { font-size: 20px; }
-}
-
-
-@media (max-width: 700px) {
-  .results-container:is([data-results-view="gallery"], [data-results-view="players"]) {
-    padding-inline: 5px;
-  }
+  .results-container { padding-inline: 5px; }
   .results-container .gallery-container { padding-inline: 0; }
+  .results-container .result-card-wide { width: 100%; max-width: none; margin-inline: 0; }
+
+  .result-card-wide .player-images > .result-photo-frame { width: 76px; padding: 4px; font-size: .68rem; }
+  .result-card-wide .result-photo-frame .result-photo-plus { font-size: 22px; }
 }
 
-
-.gallery-card .gallery-grid .result-photo-frame,
-.result-card-wide .match-image-grid .result-photo-frame {
-  width: min(100%, 108px);
-  height: auto;
+.gallery-photo-slot {
+  position: relative;
+  display: block;
+  height: 140px;
   min-height: 0;
-  aspect-ratio: 1;
-  justify-content: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  overflow: hidden;
 }
+.gallery-photo-slot .gallery-thumb { position: absolute; inset: 0; display: block; height: 100%; }
+.gallery-card .gallery-grid .result-photo-frame { min-width: 0; padding: 3px; text-align: center; }
+
+.result-card-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.result-card-wide > .player-data.expanded { padding-bottom: 4px; }
+.result-card-footer .match-venue {
+  position: static;
+  grid-column: 1;
+  margin: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.result-card-footer .venue-icon { flex-shrink: 0; }
+.result-card-wide .player-data:not(.expanded) + .result-card-footer .match-venue { display: none; }
+.result-card-footer .toggle-players { position: relative; inset: auto; transform: none; grid-column: 2; }
+.result-card-footer .result-label { position: static; grid-column: 3; justify-self: end; }
+
+.results-container .stats-container { box-sizing: border-box; padding-inline: 0; }
+.results-container .stats-grid:is(.single-league, :has(.league-box:only-child)) .league-box {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+.results-container .stats-grid .table-container { width: 100%; }
+.results-container .stats-grid .table-container table { max-width: none; }
+.results-container .results-view-nav .view-btn { width: 100%; box-sizing: border-box; }
 
 #resultsPlayersPanel .stats-header-right { width: 100%; }
 #resultsPlayersPanel .players-search { display: flex; align-items: center; gap: 5px; width: 100%; }
@@ -2391,19 +2409,20 @@ td:first-child {
 }
 #resultsPlayersPanel .stats-header .players-search input {
   flex: 1;
+  max-width: none;
   background-image: none;
 }
 
 @media (max-width: 700px) {
-  .results-container[data-results-view="results"] { padding-inline: 5px; }
-  .results-container[data-results-view="results"] .result-card-wide { width: 100%; max-width: none; margin-inline: 0; }
-  .gallery-card .gallery-grid .result-photo-frame,
-  .result-card-wide .match-image-grid .result-photo-frame,
-  .result-card-wide .player-images > .result-photo-frame {
-    width: min(100%, 76px);
-    aspect-ratio: 1;
-    flex-direction: column;
-  }
-  #resultsPlayersPanel > .stats-header.main-profile-header { grid-template-columns: auto minmax(0, 1fr); }
+  .gallery-card .gallery-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .gallery-photo-slot,
+  .gallery-card .gallery-grid .result-photo-frame { height: auto; aspect-ratio: 1; }
+  .gallery-card .gallery-grid .result-photo-frame { gap: 2px; font-size: .68rem; }
+  .gallery-card .result-photo-frame .result-photo-plus { font-size: 22px; }
+
+  #resultsPlayersPanel > .stats-header.main-profile-header { grid-template-columns: minmax(0, 1fr); }
+  #resultsPlayersPanel .stats-header-middle { display: none; }
+  #resultsPlayersPanel .stats-header-right { grid-column: 1; }
+  #resultsPlayersPanel #playersGrid { margin-top: 0; }
   #resultsPlayersPanel .stats-header .players-search select { width: auto; }
 }

@@ -105,30 +105,42 @@ async function loadPlayersLanding() {
   }
 
   const accoladeMap = {
-    guthrie_cup_winner_25_26: { emoji: "🏆", tooltip: "Guthrie Cup Winner 25/26" },
-    banks_winner_24_25: {
+    guthrie_cup_winner_25_26: { season: "25-26", emoji: "🏆", tooltip: "Guthrie Cup Winner 25/26" },
+    banks_winner_24_25: { season: "24-25",
       emoji: "⭐",
       tooltip: "Banks Div 2 Winner 24/25"
     },
-    alex_beckett_winner_25: {
+    alex_beckett_winner_25: { season: "24-25",
       emoji: "🏆",
       tooltip: "Alex Beckett Winner 24/25"
     },
-    mpl_winner_25: {
+    mpl_winner_25: { season: "24-25",
       emoji: "🏅",
       tooltip: "MPL 2025"
     }
   };
 
 
-  function playerAccolades(profile = {}) {
+  function playerAccolades(profile = {}, season = "all") {
     const keys = Array.isArray(profile.accolades) ? profile.accolades : [];
-    return keys.map(k => {
-      if (accoladeMap[k]) return accoladeMap[k];
-      if (k.startsWith("custom:")) { try { return { emoji: "🏆", tooltip: decodeURIComponent(k.slice(7)) }; } catch (_) {} }
-      return null;
-    }).filter(Boolean);
+    return keys.map(key => {
+      if (accoladeMap[key]) return accoladeMap[key];
+      if (typeof key !== "string" || !key.startsWith("custom:")) return null;
+      try {
+        const tooltip = decodeURIComponent(key.slice(7));
+        const dateRange = tooltip.match(/\b(?:20)?(\d{2})\s*[/–-]\s*(?:20)?(\d{2})\s*$/);
+        return { emoji: "🏆", tooltip, season: dateRange ? `${dateRange[1]}-${dateRange[2]}` : null };
+      } catch {
+        return null;
+      }
+    }).filter(item => item && (season === "all" || item.season === season));
+  }
 
+  function makeAccoladeCountHtml(items, name) {
+    return items.length ? `<details class="player-accolade-details">
+      <summary aria-label="${items.length} accolades for ${escapeHtml(name)}">${items.length}</summary>
+      <ul aria-label="Accolades">${items.map(item => `<li><span aria-hidden="true">${item.emoji}</span> ${escapeHtml(item.tooltip)}</li>`).join("")}</ul>
+    </details>` : "";
   }
 
   function makeAccoladesOverlayHtml(items) {
@@ -341,7 +353,7 @@ async function loadPlayersLanding() {
           </div>
 
           <!-- ✅ Move accolades OUTSIDE the clipped frame -->
-          ${makeAccoladesOverlayHtml(accolades)}
+          <div class="player-accolades-overlay">${makeAccoladesOverlayHtml(accolades)}</div>
         </div>
 
 
@@ -382,10 +394,7 @@ async function loadPlayersLanding() {
         
 
         <div class="player-accolade-count">
-          ${accolades.length ? `<details class="player-accolade-details">
-            <summary aria-label="${accolades.length} accolades for ${escapeHtml(name)}">${accolades.length}</summary>
-            <ul aria-label="Accolades">${accolades.map(item => `<li><span aria-hidden="true">${item.emoji}</span> ${escapeHtml(item.tooltip)}</li>`).join("")}</ul>
-          </details>` : '<span class="player-no-accolades" aria-label="No accolades">0</span>'}
+          ${makeAccoladeCountHtml(accolades, name)}
         </div>
         <button class="btn player-card-btn"
           onclick="location.href='player-profile.html?name=${encodeURIComponent(name)}'">
@@ -527,6 +536,7 @@ async function loadPlayersLanding() {
           fineRatio,
           joinedAt,
           specials,
+          accolades: playerAccolades(window.playerProfiles[name], season),
           key: photoKey(name)
         };
       });
@@ -536,6 +546,8 @@ async function loadPlayersLanding() {
     const seasonSelect = document.getElementById("playersSeasonSelect");
     let playersWithStats = [];
 
+    const resultsPanel = document.getElementById("resultsPlayersPanel");
+    const accoladesButton = resultsPanel?.querySelector('[data-player-sort="accolades"]');
     const sortButtons = [...document.querySelectorAll("[data-player-sort]")];
     let activeSort = "checkouts";
     let ascending = false;
@@ -553,7 +565,7 @@ async function loadPlayersLanding() {
     function getSortValue(p, sortKey) {
       switch (sortKey) {
         case "specials": return Object.values(p.specials).reduce((total, count) => total + count, 0);
-        case "accolades": return playerAccolades(window.playerProfiles[p.name]).length;
+        case "accolades": return p.accolades.length;
         case "checkouts": return p.checkouts;
         case "joined": return p.joinedAt || 0;
         case "coRatio": return p.coRatio;
@@ -620,9 +632,24 @@ async function loadPlayersLanding() {
     function renderSeason(season) {
       playersWithStats = playersForSeason(season);
       window.playersWithStats = playersWithStats;
+      const hasAccolades = playersWithStats.some(player => player.accolades.length);
+      if (accoladesButton) {
+        accoladesButton.hidden = !hasAccolades;
+        resultsPanel.toggleAttribute("data-accolades-empty", !hasAccolades);
+        if (!hasAccolades && activeSort === "accolades") {
+          activeSort = "checkouts";
+          ascending = false;
+          if (sortSelect) sortSelect.value = activeSort;
+        }
+      }
       playersWithStats.forEach(p => {
         const card = byKey.get(p.key);
         if (!card) return;
+
+        card.querySelector(".player-accolades-overlay").innerHTML = makeAccoladesOverlayHtml(p.accolades);
+        const accoladeCount = card.querySelector(".player-accolade-count");
+        accoladeCount.innerHTML = makeAccoladeCountHtml(p.accolades, p.name);
+        accoladeCount.hidden = !hasAccolades;
 
         // Played
         const playedEl = card.querySelector('[data-stat="played"]');

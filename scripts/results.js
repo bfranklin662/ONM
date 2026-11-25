@@ -582,12 +582,20 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
             .replace(/'/g, "\\u0027");
 
           const uploadTile = match._resultId ? `<button type="button" class="addResultPhotos result-photo-frame" hidden data-add-result-photos="${encodeURIComponent(match._resultId)}" aria-label="${images.length ? "Add more match photos" : "Add match photos"}"><span class="result-photo-plus" aria-hidden="true">+</span><span>${images.length ? "Add more" : "Add photos"}</span></button>` : "";
-          const galleryImages = `<div class="gallery-grid">${images.map((src, i) => `
-            <img src="${window.ONMResultPhotos?.thumbnail(src) || src}"
-              data-drive-thumb="1" loading="lazy" decoding="async"
-              alt="Match photo ${i + 1}" class="gallery-thumb"
-              onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'>
-          `).join("")}${uploadTile}</div>${images.length ? "" : '<div class="no-images">No photos available.</div>'}`;
+          const visibleImages = images.slice(0, 11);
+          const extraPhotos = images.length - visibleImages.length;
+          const galleryImages = `<div class="gallery-grid">${visibleImages.map((src, i) => {
+            const overflow = i === visibleImages.length - 1 && extraPhotos > 0;
+            return `
+              <button type="button" class="gallery-photo-slot ${overflow ? "image-count-overlay" : ""}"
+                data-extra="${overflow ? `+${extraPhotos}` : ""}"
+                aria-label="${overflow ? `View match photos, ${extraPhotos} more` : `View match photo ${i + 1}`}"
+                onclick='openLightbox(${JSON.stringify(images)}, ${i}, event, ${matchInfoJson})'>
+                <img src="${window.ONMResultPhotos?.thumbnail(src) || src}"
+                  data-drive-thumb="1" loading="lazy" decoding="async"
+                  alt="" class="gallery-thumb">
+              </button>`;
+          }).join("")}${uploadTile}</div>${images.length ? "" : '<div class="no-images">No photos available.</div>'}`;
 
           return `
         <div class="gallery-card ${(match.Result || "").toLowerCase()} league-${meta.key}" data-result-lineup="${encodeURIComponent(JSON.stringify(Array.from({length:12},(_,i)=>getMatchValue(match,`Player${i+1}`)).filter(Boolean)))}">
@@ -774,13 +782,6 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
             ${imageGrid}
           </div>
         </div>
-
-        ${match.Venue ? `
-          <div class="match-venue">
-            <img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/map-pin.svg" alt="Venue" class="venue-icon">
-            <span class="venue-name">${match.Venue}</span>
-          </div>
-        ` : ""}
       </div>
     `;
 
@@ -815,12 +816,17 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
           </span>
         </div>
 
-        <div class="result-label-wrapper">
+        ${playerHTML}
+        <div class="result-card-footer">
+          ${match.Venue ? `
+            <div class="match-venue">
+              <img src="https://cdn.jsdelivr.net/npm/lucide-static/icons/map-pin.svg" alt="" class="venue-icon">
+              <span class="venue-name">${match.Venue}</span>
+            </div>
+          ` : ""}
+          <button class="toggle-players" title="Match details" aria-expanded="false">▽</button>
           <span class="result-label">${match.Result}</span>
         </div>
-
-        ${playerHTML}
-        <button class="toggle-players" title="Match details">▽</button>
       </div>
     `;
       })
