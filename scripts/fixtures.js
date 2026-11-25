@@ -762,7 +762,6 @@
 
   function renderCard(fx, showSeasonDivider, isNextFixture, index) {
     const pillClass = fx.leagueClass; // banks/trafalgar/cup/competition
-    const nextBadgeHtml = isNextFixture ? `<div class="nextFixtureBadge">Next Fixture</div>` : "";
     const seasonDividerHtml = showSeasonDivider
       ? `<div class="fxSeasonDivider"><span>${formatFixtureSeason(fx.season)} season starts</span></div>`
       : "";
@@ -780,7 +779,9 @@
       ? `<div class="score ${fx.outcome}">${fx.homeScore} - ${fx.awayScore}${pointsHtml}</div>`
       : fx.pendingResult
         ? `<div class="score pending"><span class="miniSpinner"></span></div>`
-        : `<div class="score vs">VS</div>`;
+        : isNextFixture
+          ? `<span class="nextFixtureBadge" aria-label="Next fixture">Next</span>`
+          : `<div class="score vs">VS</div>`;
 
 
     const venueHtml = fx.Location
@@ -809,7 +810,6 @@
         </div>
         <div class="fxCardMeta">
           <span class="fxSeasonPill">${formatFixtureSeason(fx.season)}</span>
-          ${nextBadgeHtml}
         </div>
       </div>
 
@@ -873,7 +873,7 @@
 
       let indices;
       if (view === 3) indices = [prev, anchor, next];
-      else if (view === 2) indices = [prev, next];
+      else if (view === 2) indices = anchor === max ? [prev, anchor] : [anchor, next];
       else indices = [anchor];
 
       indices = indices.filter((v, i, a) => a.indexOf(v) === i);

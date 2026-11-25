@@ -76,6 +76,7 @@ function renderLeagueFilter(matches) {
   const leagues = [...new Set(matches.map(m => m.Competition).filter(Boolean))];
 
   if (!leagues.length) return "";
+  const shortLabels = { trafalgar: "TRAF", smithfield: "SMITH" };
 
   return `
     <div class="resultsLeagueFilter">
@@ -86,7 +87,7 @@ function renderLeagueFilter(matches) {
     const meta = getLeagueMeta(league);
     return `
           <button class="${currentLeagueFilter === league ? "active" : ""}" data-league-filter="${league}" data-tooltip="${window.ONMLeagueDivisions?.label(league, currentSeason) || league}">
-            ${meta.label}
+            ${shortLabels[meta.key] || meta.label}
           </button>
         `;
   }).join("")}
@@ -1009,7 +1010,9 @@ function initPage() {
   const seasonSelect = document.getElementById("resultsSeasonSelect");
   if (seasonSelect) seasonSelect.value = currentSeason;
   document.querySelectorAll(".view-btn").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.view === currentViewMode);
+    const active = btn.dataset.view === currentViewMode;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", String(active));
   });
 
   // 3️⃣ Season switching
@@ -1035,8 +1038,10 @@ function initPage() {
     btn.addEventListener("click", () => {
       if (btn.classList.contains("active")) return;
 
-      document.querySelectorAll(".view-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
+      document.querySelectorAll(".view-btn").forEach(button => {
+        button.classList.toggle("active", button === btn);
+        button.setAttribute("aria-pressed", String(button === btn));
+      });
 
       currentViewMode = btn.dataset.view;
       resultsVisibleCount = RESULTS_PAGE_SIZE;

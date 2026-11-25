@@ -2277,3 +2277,79 @@ td:first-child {
   .results-container .stats-grid .stats-heading-short { display: inline; text-decoration: none; }
   .results-container .stats-grid .stats-empty-row td { text-align: center; }
 }
+
+.results-view-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.results-view-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  padding: 5px;
+  margin-bottom: 10px;
+  border: 1px solid #365a47;
+  border-radius: 11px;
+  background: #0a1c20;
+}
+
+.results-container .results-view-nav .view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 43px;
+  margin: 0;
+  padding: 7px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #a5bfb1;
+  font: 650 12px/1.2 system-ui, sans-serif;
+}
+
+.results-view-nav svg { width: 19px; height: 19px; flex-shrink: 0; }
+.results-container .results-view-nav .view-btn:hover { background: #1b3d2c; color: #e4f5e9; }
+.results-container .results-view-nav .view-btn.active { background: #244b37; border-color: #5c9572; color: #e4f5e9; }
+.results-view-nav .view-btn:focus-visible { outline: 2px solid #a1e6b6; outline-offset: 2px; }
+
+.results-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.results-filter-row #leagueFilterBar { flex: 1; min-width: 0; }
+.results-filter-row .resultsLeagueFilter { justify-content: flex-start; gap: 4px; margin: 0; }
+.results-filter-row .resultsLeagueFilter button { padding: 5px 7px; }
+.results-filter-row .season-dropdown { min-width: 0; flex-shrink: 0; }
+
+@media (max-width: 700px) {
+  .results-view-nav { gap: 2px; padding: 4px; }
+  .results-container .results-view-nav .view-btn { flex-direction: column; gap: 4px; min-height: 48px; padding: 4px 2px; font-size: 10px; }
+  .results-view-nav svg { width: 17px; height: 17px; }
+  .results-filter-row .season-dropdown { font-size: .76rem; }
+  .result-card-wide .player-images > .result-photo-frame,
+  .result-card-wide .match-image-grid .result-photo-frame {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: max-content;
+    max-width: 100%;
+    height: auto;
+    min-height: 36px;
+    aspect-ratio: auto;
+    padding: 4px 8px;
+    margin: 0;
+    border-radius: 7px;
+    font-size: .68rem;
+  }
+  .result-card-wide .result-photo-frame .result-photo-plus { font-size: 20px; }
+}

@@ -1052,6 +1052,7 @@
 
 .nextFixtureBadge {
   display: inline-flex;
+  justify-self: center;
   background-color: #00b89337;
   border: #00b894;
   color: #fff;
