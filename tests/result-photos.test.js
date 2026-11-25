@@ -262,6 +262,26 @@ test("the dialog combines old and new thumbnails and shows a live upload bar", a
 });
 
 
+test("batch uploads can fill the 20-photo match cap, including existing photos", async () => {
+  const h = dialogHarness();
+  h.open();
+  await new Promise(resolve => setImmediate(resolve));
+  const picker = h.get("#resultPhotoFiles");
+  const queue = count => picker.events.change({ target: {
+    files: Array.from({ length: count }, (_, index) => ({
+      name: `photo-${index}.jpg`, type: "image/jpeg", size: 1000, lastModified: index
+    })),
+    value: "photos"
+  } });
+  queue(20);
+  assert.match(h.get("#resultPhotoStatus").textContent, /18 more photos/);
+  queue(18);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.get("#resultPhotoSubmit").textContent, "Upload 18 photos");
+  await h.get("#resultPhotoSubmit").events.click();
+  assert.equal(h.uploads.length, 18);
+});
+
 test("calendar and results share deduplicated existing and uploaded match photos", async () => {
   const h = dialogHarness();
   const result = await h.api.loadMatchPhotos({ _resultId: "match-one", IMGFOLDER: "https://example.test/old.jpg\nhttps://example.test/new.jpg" });

@@ -1,4 +1,4 @@
-* {
+:is(.player-stats-container, .player-stats-container *) {
   box-sizing: border-box;
 }
 
@@ -836,4 +836,24 @@
   .players-mobile-head, #playersGrid .player-card {
     grid-template-columns: 25px minmax(0, 2fr) minmax(16px, .42fr) minmax(18px, .48fr) minmax(16px, .42fr) minmax(35px, .9fr) minmax(37px, 1.1fr) 21px;
   }
+}
+
+@media (max-width: 700px) {
+  #resultsPlayersPanel :is(.players-mobile-head, #playersGrid .player-card) {
+    grid-template-columns: 42px minmax(0, 1fr) 31px 51px 24px;
+    column-gap: 5px;
+    padding: 6px;
+  }
+
+  #resultsPlayersPanel #playersGrid .player-card { min-height: 54px; }
+  #resultsPlayersPanel #playersGrid :is(.player-card-photo-wrap, .player-card-photo-frame, .player-card-photo) {
+    width: 42px;
+    height: 42px;
+  }
+  #resultsPlayersPanel #playersGrid .player-card-name { font-size: .85rem; }
+  #resultsPlayersPanel #playersGrid .player-card-nickname { font-size: .69rem; margin-top: 3px; }
+  #resultsPlayersPanel #playersGrid .player-card-stat:has([data-stat="played"]),
+  #resultsPlayersPanel #playersGrid .player-mobile-stat { display: none; }
+  #resultsPlayersPanel #playersGrid .player-card-stat .value .co { font-size: .76rem; }
+  #resultsPlayersPanel #playersGrid .player-card-specials .stat-badge { font-size: .56rem; }
 }

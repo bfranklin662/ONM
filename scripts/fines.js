@@ -366,7 +366,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
 
-  const MAX_MATCH_IMAGES = 30;
+  const MAX_MATCH_IMAGES = 20;
   let selectedMatchImages = [];
 
   let reviewImageUrls = [];
@@ -2940,7 +2940,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const remainingSlots = MAX_MATCH_IMAGES - selectedMatchImages.length;
 
     if (remainingSlots <= 0) {
-      showToast("Maximum 30 images.");
+      showToast(`Maximum ${MAX_MATCH_IMAGES} images.`);
       matchImageInput.value = "";
       return;
     }
@@ -2951,7 +2951,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     ];
 
     if (newFiles.length > remainingSlots) {
-      showToast("Maximum 30 images.");
+      showToast(`Maximum ${MAX_MATCH_IMAGES} images.`);
     }
 
     matchImageInput.value = "";

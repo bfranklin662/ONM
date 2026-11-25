@@ -1,10 +1,12 @@
 (function () {
   "use strict";
+  const MAX_MATCH_PHOTOS = 20;
   const cache = new Map();
   const thumbnails = new Map();
   const existingPhotos = new Map();
   let dialog, currentResultId, currentUser, changed = false, busy = false;
   let pendingPhotos = [];
+  let savedPhotoCount = 0;
   const heicConverterUrl = new URL("vendor/heic-to/heic-to.mjs", document.currentScript.src).href;
   let heicConverter;
   const isHeicPhoto = file => /^image\/(heic|heif)(-sequence)?$/i.test(file.type) || /\.(heic|heif)$/i.test(file.name || "");
@@ -80,7 +82,7 @@
     dialog.setAttribute("aria-labelledby", "resultPhotoTitle");
     dialog.innerHTML = `<div class="resultPhotoHeading"><h2 id="resultPhotoTitle">Match photos</h2><button type="button" data-close-photos aria-label="Close match photos">×</button></div>
       <p>Add your photos to this result. Photos are resized for the website and visible to everyone.</p>
-      <div id="resultPhotoUploadControls" class="resultPhotoDropzone"><strong>Drop photos here or choose files</strong><label class="resultPhotoPicker">Choose photos<input id="resultPhotoFiles" type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"></label><span>Up to 10 photos at a time · JPG, PNG, WebP or HEIC</span><div id="resultPhotoPending" class="resultPhotoList"></div><button id="resultPhotoSubmit" type="button" disabled>Upload photos</button></div>
+      <div id="resultPhotoUploadControls" class="resultPhotoDropzone"><strong>Drop photos here or choose files</strong><label class="resultPhotoPicker">Choose photos<input id="resultPhotoFiles" type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"></label><span>Up to ${MAX_MATCH_PHOTOS} photos per match · JPG, PNG, WebP or HEIC</span><div id="resultPhotoPending" class="resultPhotoList"></div><button id="resultPhotoSubmit" type="button" disabled>Upload photos</button></div>
       <div id="resultPhotoProgress" class="resultPhotoProgress" hidden>
         <label id="resultPhotoProgressLabel" for="resultPhotoProgressBar">Preparing photos…</label>
         <progress id="resultPhotoProgressBar" max="100" value="0" aria-labelledby="resultPhotoProgressLabel"></progress>
@@ -142,7 +144,11 @@
   }
   async function stagePhotos(files) {
     if (busy || !currentUser || !files.length) return;
-    if (files.length + pendingPhotos.length > 10) { status("Choose up to 10 photos at a time. Remove some before adding more."); return; }
+    const remaining = Math.max(0, MAX_MATCH_PHOTOS - savedPhotoCount - pendingPhotos.length);
+    if (files.length > remaining) {
+      status(remaining ? `You can add ${remaining} more ${remaining === 1 ? "photo" : "photos"} to this match.` : `This match has reached the ${MAX_MATCH_PHOTOS}-photo limit.`);
+      return;
+    }
     let rejected = 0, conversionError = "";
     setBusy(true);
     try {
@@ -180,9 +186,10 @@
       dialog.querySelector("#resultPhotoList").innerHTML = combined.map(photo => `<figure>
       <a href="${escape(photo.url)}" target="_blank" rel="noopener"><img src="${escape(photo.thumbnailUrl)}" alt="Match photo" loading="lazy"></a>
       ${photo.id && currentUser && (photo.uploaderUid === currentUser.uid || ["admin", "owner"].includes(currentUser.role)) ? `<button type="button" data-remove-photo="${escape(photo.id)}"${busy ? " disabled" : ""}>Remove photo</button>` : ""}</figure>`).join("");
-      return combined.length;
+      savedPhotoCount = combined.length;
+      return savedPhotoCount;
     };
-    draw([]);
+    if (!savedPhotoCount) draw([]);
     const notice = dialog.querySelector("#resultPhotoGalleryNotice");
     notice.textContent = "";
     try {
@@ -200,6 +207,7 @@
     setup();
     clearPending();
     currentResultId = resultId;
+    savedPhotoCount = 0;
     currentUser = null;
     changed = false;
     dialog.querySelector("#resultPhotoList").innerHTML = "";
@@ -260,6 +268,13 @@
     progress(0, "Preparing photos…");
     let added = 0, failed = 0, firstError = "";
     try {
+      await render(true);
+      const remaining = Math.max(0, MAX_MATCH_PHOTOS - savedPhotoCount);
+      if (files.length > remaining) {
+        dialog.querySelector("#resultPhotoProgress").hidden = true;
+        status(`Only ${remaining} photo slots remain. Remove photos from this batch before uploading.`);
+        return;
+      }
       for (const [index, file] of files.entries()) {
         const label = `Photo ${index + 1} of ${files.length}`;
         progress(index / files.length * 100, `${label}: preparing…`);
@@ -271,6 +286,7 @@
             progress((index + fraction) / files.length * 100, `${label}: ${update.phase === "saving" ? "saving…" : "uploading…"}`);
           });
           added++;
+          savedPhotoCount++;
           const saved = batch[index];
           URL.revokeObjectURL(saved.url);
           pendingPhotos = pendingPhotos.filter(photo => photo !== saved);

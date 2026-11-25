@@ -2356,9 +2356,8 @@ td:first-child {
 
 
 @media (max-width: 700px) {
-  .results-container:is([data-results-view="stats"], [data-results-view="gallery"], [data-results-view="players"]) {
+  .results-container:is([data-results-view="gallery"], [data-results-view="players"]) {
     padding-inline: 5px;
   }
-  .results-container #statsContent .league-box { padding-inline: 3px; }
   .results-container .gallery-container { padding-inline: 0; }
 }
