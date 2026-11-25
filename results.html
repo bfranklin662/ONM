@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="styles/index.css">
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/players-landing.css?v=20261125-results-layout">
-  <link rel="stylesheet" href="styles/results.css?v=20261125-results-layout">
+  <link rel="stylesheet" href="styles/results.css?v=20261125-shared-controls">
   <link rel="stylesheet" href="styles/result-photos.css?v=20261124-match-indicator">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/results-personal.css?v=20261028-you-played">
@@ -92,52 +92,30 @@
     </div>
     <div id="resultsGrid" class="results-grid view active"></div>
     <div id="resultsPlayersPanel" class="player-stats-container" hidden>
-      <!-- Shared-style header, but landing-only behaviour -->
-      <div class="stats-header main-profile-header">
-
-        <!-- LEFT -->
-        <div class="stats-header-left">
-
-          <label class="sort-label" for="sortBySelect">
-            Sort by:
-            <select id="sortBySelect" class="sort-select">
-              <option value="checkouts" selected>Checkouts</option>
-              <option value="joined">Date joined</option>
-              <option value="coRatio">Checkout Ratio</option>
-              <option value="played">Games played</option>
-              <option value="wins">Wins</option>
-              <option value="fines">Fines</option>
-              <option value="fineRatio">Fine Ratio</option>
-              <option value="one80s">180 Count</option>
-              <option value="bulls">Bull-Outs</option>
-              <option value="tonPlus">Ton+ Outs</option>
-            </select>
-          </label>
-        </div>
-
-        <!-- MIDDLE -->
-        <div class="stats-header-middle">
-          <h2 class="profile-title title-middle only-desktop">
-            All players
-          </h2>
-        </div>
-
-        <!-- RIGHT -->
-        <div class="stats-header-right">
-          <div class="players-search">
-            <input id="playerSearch" class="player-search season-dropdown" type="search" placeholder="Search players…" aria-label="Search players" autocomplete="off">
-            <select id="playersSeasonSelect" class="season-dropdown" aria-label="Player stats season" disabled>
-              <option value="all" selected>All time</option>
-              <option value="26-27">2026/27</option>
-              <option value="25-26">2025/26</option>
-              <option value="24-25">2024/25</option>
-            </select>
-          </div>
-        </div>
-
-
+      <div class="results-filter-row">
+        <input id="playerSearch" class="season-dropdown" type="search" placeholder="Search players…" aria-label="Search players" autocomplete="off">
+        <select id="playersSeasonSelect" class="season-dropdown" aria-label="Player stats season" disabled>
+          <option value="all" selected>All time</option>
+          <option value="26-27">2026/27</option>
+          <option value="25-26">2025/26</option>
+          <option value="24-25">2024/25</option>
+        </select>
       </div>
-
+      <label class="sort-label results-player-sort" for="sortBySelect">
+        Sort by
+        <select id="sortBySelect" class="sort-select">
+          <option value="checkouts" selected>Checkouts</option>
+          <option value="joined">Date joined</option>
+          <option value="coRatio">Checkout Ratio</option>
+          <option value="played">Games played</option>
+          <option value="wins">Wins</option>
+          <option value="fines">Fines</option>
+          <option value="fineRatio">Fine Ratio</option>
+          <option value="one80s">180 Count</option>
+          <option value="bulls">Bull-Outs</option>
+          <option value="tonPlus">Ton+ Outs</option>
+        </select>
+      </label>
 
       <section id="playersLanding">
         <div class="players-landing-wrapper">
@@ -171,7 +149,7 @@
   <script src="scripts/season-data.js?v=20261014-admin"></script>
   <script src="scripts/result-photos.js?v=20261125-photo-limit"></script>
   <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
-  <script src="scripts/results.js?v=20261125-results-layout"></script>
+  <script src="scripts/results.js?v=20261125-shared-controls"></script>
   <script src="scripts/photo-placeholders.js?v=20261120-photo-placeholders"></script>
   <script src="scripts/results-personal.js?v=20261028-you-played"></script>
   <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>

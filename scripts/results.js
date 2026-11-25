@@ -53,6 +53,12 @@ const STATS_TABLE_HEADERS = [
   "Ton+ Outs"
 ];
 
+const statsSpecials = {
+  "180s": { label: "180", badge: "180" },
+  "bull-outs": { label: "Bull", badge: "bull" },
+  "ton+ outs": { label: "Ton+", badge: "ton" }
+};
+
 function statsPwlHtml(stats = {}) {
   return `
     <div class="pwl-grid">
@@ -1206,6 +1212,7 @@ async function fetchStats(season) {
     const label = header?.trim().toLowerCase();
     if (label === "checkouts/game" || label === "fines/game") return ' class="stats-per-game"';
     if (label === "fines") return ' class="stats-fines-column"';
+    if (Object.hasOwn(statsSpecials, label)) return ' class="stats-specials-source"';
     return "";
   }
 
@@ -1228,7 +1235,7 @@ async function fetchStats(season) {
       <div class="table-container top-scroll">
         <div class="scrollbar-top"></div>
         <table>
-          <thead><tr>${headerHTML}</tr></thead>
+          <thead><tr>${headerHTML}<th scope="col" class="stats-specials-heading">Specials</th></tr></thead>
           <tbody>${bodyHTML}</tbody>
         </table>
       </div>
@@ -1259,6 +1266,14 @@ async function fetchStats(season) {
         rowClass = "top-player-row";
       }
 
+      const specialPills = headers.map((header, column) => {
+        const special = statsSpecials[header.trim().toLowerCase()];
+        const count = numberFromCell(row[column]);
+        return special && count > 0
+          ? `<span class="badge badge-${special.badge}">${special.label}${count > 1 ? `×${count}` : ""}</span>`
+          : "";
+      }).join("");
+
       return `
         <tr class="${rowClass}">
           ${row.map((cell, j) => {
@@ -1269,6 +1284,7 @@ async function fetchStats(season) {
         }
         return `<td${statsColumnClass(headers[j])}>${text}</td>`;
       }).join("")}
+          <td class="stats-specials-cell"><div class="stats-specials-stack">${specialPills || "—"}</div></td>
         </tr>
       `;
     }).join("");
