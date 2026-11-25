@@ -72,29 +72,6 @@ function getLeagueMeta(competition, season, cup = false) {
   return label && label !== competition ? { ...meta, label: label.toUpperCase() } : meta;
 }
 
-function renderLeagueFilter(matches) {
-  const leagues = [...new Set(matches.map(m => m.Competition).filter(Boolean))];
-
-  if (!leagues.length) return "";
-  const shortLabels = { trafalgar: "TRAF", smithfield: "SMITH" };
-
-  return `
-    <div class="resultsLeagueFilter">
-      <button class="${currentLeagueFilter === "all" ? "active" : ""}" data-league-filter="all" data-tooltip="All leagues and competitions">
-        All
-      </button>
-      ${leagues.map(league => {
-    const meta = getLeagueMeta(league);
-    return `
-          <button class="${currentLeagueFilter === league ? "active" : ""}" data-league-filter="${league}" data-tooltip="${window.ONMLeagueDivisions?.label(league, currentSeason) || league}">
-            ${shortLabels[meta.key] || meta.label}
-          </button>
-        `;
-  }).join("")}
-    </div>
-  `;
-}
-
 function isAggregateStatsPlayer(name) {
   const clean = String(name || "").trim().toLowerCase();
   return ["team", "total", "totals", "overall"].includes(clean);
@@ -117,34 +94,18 @@ function availableLeagueFiltersForSeason(season, matches = ALL_LEAGUE_FILTER_MAT
   return STATIC_LEAGUE_FILTERS_BY_SEASON[season] || matches;
 }
 
-function bindLeagueFilter() {
-  document.querySelectorAll("[data-league-filter]").forEach(button => {
-    button.addEventListener("click", () => {
-      currentLeagueFilter = button.dataset.leagueFilter;
-      localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
-      resultsVisibleCount = RESULTS_PAGE_SIZE;
-      if (currentViewMode === "stats") {
-        fetchStats(currentSeason);
-      } else {
-        updateLeagueFilterBar();
-        fetchResults(currentSeason, currentViewMode);
-      }
-    });
-  });
-}
-
 function updateLeagueFilterBar(matches = availableLeagueFiltersForSeason(currentSeason)) {
-  const bar = document.getElementById("leagueFilterBar");
-  if (!bar) return;
-  if (
-    currentLeagueFilter !== "all" &&
-    !matches.some(match => match.Competition === currentLeagueFilter)
-  ) {
+  const select = document.getElementById("resultsLeagueSelect");
+  if (!select) return;
+  const leagues = [...new Set(matches.map(match => match.Competition).filter(Boolean))];
+  if (currentLeagueFilter !== "all" && !leagues.includes(currentLeagueFilter)) {
     currentLeagueFilter = "all";
     localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
   }
-  bar.innerHTML = renderLeagueFilter(matches);
-  bindLeagueFilter();
+  select.replaceChildren(new Option("All leagues", "all"), ...leagues.map(league =>
+    new Option(window.ONMLeagueDivisions?.label(league, currentSeason) || league, league)
+  ));
+  select.value = currentLeagueFilter;
 }
 
 // ✅ Reusable CSV fetch + parse
@@ -577,6 +538,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
     const mainData = (await Promise.all(
       resultSeasons.map(seasonKey => fetchJSONData(RESULTS_URLS[seasonKey]))
     )).flat();
+    if (season !== currentSeason || viewMode !== currentViewMode) return;
 
     updateLeagueFilterBar(
       availableLeagueFiltersForSeason(
@@ -642,6 +604,7 @@ async function fetchResults(season = currentSeason, viewMode = currentViewMode, 
         })
       );
 
+      if (season !== currentSeason || viewMode !== currentViewMode) return;
       const hasMoreGalleryResults = allMatches.length > resultsVisibleCount;
 
       if (appendFrom !== null) {
@@ -1006,63 +969,58 @@ function initPage() {
     localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
   }
 
-  // 2️⃣ Apply visual active states
   const seasonSelect = document.getElementById("resultsSeasonSelect");
-  if (seasonSelect) seasonSelect.value = currentSeason;
-  document.querySelectorAll(".view-btn").forEach(btn => {
-    const active = btn.dataset.view === currentViewMode;
-    btn.classList.toggle("active", active);
-    btn.setAttribute("aria-pressed", String(active));
+  seasonSelect.value = currentSeason;
+  seasonSelect.addEventListener("change", () => {
+    currentSeason = seasonSelect.value;
+    resultsVisibleCount = RESULTS_PAGE_SIZE;
+    saveUserPrefs();
+    renderCurrentView();
+  });
+  const leagueSelect = document.getElementById("resultsLeagueSelect");
+  leagueSelect.addEventListener("change", () => {
+    currentLeagueFilter = leagueSelect.value;
+    localStorage.setItem("resultsLeagueFilter", currentLeagueFilter);
+    resultsVisibleCount = RESULTS_PAGE_SIZE;
+    renderCurrentView();
   });
 
-  // 3️⃣ Season switching
-  seasonSelect?.addEventListener("change", () => {
-      currentSeason = seasonSelect.value;
+  document.querySelectorAll(".results-view-nav .view-btn").forEach(button => {
+    button.addEventListener("click", () => {
+      if (currentViewMode === button.dataset.view) return;
+      currentViewMode = button.dataset.view;
       resultsVisibleCount = RESULTS_PAGE_SIZE;
-
-      saveUserPrefs();
-      updateTitle(currentViewMode, currentSeason);
-      if (currentViewMode === "stats") {
-        fetchStats(currentSeason);
-      } else {
-        fetchResults(currentSeason, currentViewMode);
-      }
-  });
-
-  // 4️⃣ View switching
-  const resultsGrid = document.querySelector("#resultsGrid");
-  const galleryGrid = document.querySelector("#galleryGrid");
-  const statsGrid = document.querySelector("#statsGrid");
-
-  document.querySelectorAll(".view-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (btn.classList.contains("active")) return;
-
-      document.querySelectorAll(".view-btn").forEach(button => {
-        button.classList.toggle("active", button === btn);
-        button.setAttribute("aria-pressed", String(button === btn));
-      });
-
-      currentViewMode = btn.dataset.view;
-      resultsVisibleCount = RESULTS_PAGE_SIZE;
-
-      // ✅ keep URL in sync (no reload)
       history.replaceState(null, "", `#${currentViewMode}`);
       saveUserPrefs();
-      updateTitle(currentViewMode, currentSeason);
-
-      if (currentViewMode === "stats") {
-        fetchStats(currentSeason); // load the special stats layout
-      } else {
-        fetchResults(currentSeason, currentViewMode); // load normal results/gallery
-      }
+      renderCurrentView();
     });
-
   });
 
-  // 5️⃣ Initial fetch
+  window.addEventListener("hashchange", () => {
+    if (!applyHashViewMode()) return;
+    resultsVisibleCount = RESULTS_PAGE_SIZE;
+    renderCurrentView();
+  });
+  renderCurrentView();
+}
+
+function renderCurrentView() {
+  const showPlayers = currentViewMode === "players";
+  document.querySelectorAll(".results-view-nav .view-btn").forEach(button => {
+    const active = button.dataset.view === currentViewMode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  const grid = document.getElementById("resultsGrid");
+  grid.closest(".results-container").dataset.resultsView = currentViewMode;
+  grid.hidden = showPlayers;
+  document.querySelector(".results-filter-row").hidden = showPlayers;
+  const players = document.getElementById("resultsPlayersPanel");
+  players.hidden = !showPlayers;
   updateTitle(currentViewMode, currentSeason);
-  if (currentViewMode === "stats") {
+  if (showPlayers) {
+    players.dispatchEvent(new Event("onm-show-players"));
+  } else if (currentViewMode === "stats") {
     fetchStats(currentSeason);
   } else {
     fetchResults(currentSeason, currentViewMode);
@@ -1467,6 +1425,8 @@ async function fetchStats(season) {
     leagueStats = {};
   }
 
+  if (season !== currentSeason || currentViewMode !== "stats") return;
+
   // === Build HTML ===
   const combinedCsv = allCsv || combineStatsCsvs([banksCsv, trafCsv, smithfieldCsv, coldaACsv, coldaBCsv]);
   const allStatsFromSheet = leagueStats?.["All Leagues"];
@@ -1742,6 +1702,9 @@ function updateTitle(currentViewMode, currentSeason) {
     case "results":
       viewLabel = "Results";
       break;
+    case "players":
+      titleEl.textContent = "Players";
+      return;
     case "gallery":
       viewLabel = "Gallery";
       break;
@@ -1762,7 +1725,7 @@ function togglePlayers(button) {
 window.togglePlayers = togglePlayers;
 
 document.addEventListener("onm-result-photos-changed", () => {
-  fetchResults(currentSeason, currentViewMode);
+  if (currentViewMode !== "players") fetchResults(currentSeason, currentViewMode);
 });
 
 // cancel an existing animation and return the current computed height (px) if any
@@ -1887,7 +1850,7 @@ function applyHashViewMode() {
   const hash = (window.location.hash || "").replace("#", "").toLowerCase();
 
   // only allow your real modes
-  if (hash === "results" || hash === "gallery" || hash === "stats") {
+  if (["results", "players", "stats", "gallery"].includes(hash)) {
     currentViewMode = hash;
     localStorage.setItem("viewMode", currentViewMode);
     return true;

@@ -2288,7 +2288,7 @@ td:first-child {
 
 .results-view-nav {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 5px;
   padding: 5px;
   margin-bottom: 10px;
@@ -2325,10 +2325,10 @@ td:first-child {
   margin-bottom: 14px;
 }
 
-.results-filter-row #leagueFilterBar { flex: 1; min-width: 0; }
-.results-filter-row .resultsLeagueFilter { justify-content: flex-start; gap: 4px; margin: 0; }
-.results-filter-row .resultsLeagueFilter button { padding: 5px 7px; }
-.results-filter-row .season-dropdown { min-width: 0; flex-shrink: 0; }
+.results-filter-row #resultsLeagueSelect { flex: 1; }
+.results-filter-row .season-dropdown { min-width: 0; }
+.results-container > [hidden] { display: none !important; }
+.results-container > #resultsPlayersPanel { padding-inline: 0; }
 
 @media (max-width: 700px) {
   .results-view-nav { gap: 2px; padding: 4px; }
@@ -2352,4 +2352,13 @@ td:first-child {
     font-size: .68rem;
   }
   .result-card-wide .result-photo-frame .result-photo-plus { font-size: 20px; }
+}
+
+
+@media (max-width: 700px) {
+  .results-container:is([data-results-view="stats"], [data-results-view="gallery"], [data-results-view="players"]) {
+    padding-inline: 5px;
+  }
+  .results-container #statsContent .league-box { padding-inline: 3px; }
+  .results-container .gallery-container { padding-inline: 0; }
 }

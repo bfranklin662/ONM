@@ -1,6 +1,6 @@
 
 // scripts/player-landing.js
-document.addEventListener("DOMContentLoaded", async () => {
+async function loadPlayersLanding() {
   if (!window.PlayerData) {
     console.error("PlayerData not found. Is scripts/player-data.js loaded before player-landing.js?");
     return;
@@ -800,4 +800,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   })();
 
 
-});
+}
+
+const embeddedPlayers = document.getElementById("resultsPlayersPanel");
+if (embeddedPlayers) {
+  embeddedPlayers.addEventListener("onm-show-players", loadPlayersLanding, { once: true });
+} else {
+  document.addEventListener("DOMContentLoaded", loadPlayersLanding, { once: true });
+}

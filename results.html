@@ -7,7 +7,8 @@
   <title>Oche Ness Monsters | Results & Stats</title>
   <link rel="stylesheet" href="styles/index.css">
   <link rel="stylesheet" href="styles/header.css">
-  <link rel="stylesheet" href="styles/results.css?v=20261125-results-nav">
+  <link rel="stylesheet" href="styles/players-landing.css?v=20261124-player-sort">
+  <link rel="stylesheet" href="styles/results.css?v=20261125-players-tab">
   <link rel="stylesheet" href="styles/result-photos.css?v=20261124-match-indicator">
   <link rel="stylesheet" href="styles/profile.css?v=20261014-admin-link" />
   <link rel="stylesheet" href="/styles/site-theme.css?v=20261028-avatar-fill"><link rel="stylesheet" href="styles/results-personal.css?v=20261028-you-played">
@@ -50,7 +51,6 @@
       <ul>
         <li><a href="/">Home</a></li>
         <li><a href="results.html" class="active">Results & Stats</a></li>
-        <li><a href="players-landing.html">Players</a></li>
         <li><a href="/games.html">Play</a></li>
         <li><a href="/match">Match</a></li>
       </ul>
@@ -68,7 +68,6 @@
 
     <a href="/">Home</a>
     <a href="results.html" class="active">Results & Stats</a>
-    <a href="players-landing.html">Players</a>
     <a href="/games.html">Play</a>
 
     <a href="/match">Match</a>
@@ -78,11 +77,12 @@
     <h2 class="results-title results-view-heading">Match Results 26/27</h2>
     <nav class="results-view-nav" aria-label="Results views">
       <button type="button" class="view-btn active" data-view="results" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2"/></svg><span>Results</span></button>
+      <button type="button" class="view-btn" data-view="players" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-16a3 3 0 0 1 0 6m3 10v-3a6 6 0 0 0-3-5"/></svg><span>Players</span></button>
       <button type="button" class="view-btn" data-view="stats" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18M8 16v-3m5 3V8m5 8V5"/></svg><span>Stats</span></button>
       <button type="button" class="view-btn" data-view="gallery" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 16-5-5L5 21"/></svg><span>Gallery</span></button>
     </nav>
     <div class="results-filter-row">
-      <div id="leagueFilterBar"></div>
+      <select id="resultsLeagueSelect" class="season-dropdown" aria-label="Select league"><option value="all">All leagues</option></select>
         <select id="resultsSeasonSelect" class="season-dropdown" aria-label="Select season">
           <option value="26-27" selected>2026/27</option>
           <option value="25-26">2025/26</option>
@@ -91,9 +91,64 @@
         </select>
     </div>
     <div id="resultsGrid" class="results-grid view active"></div>
-    <div id="galleryGrid" class="gallery-grid view" style="display:none;"></div>
-    <div id="statsGrid" class="stats-grid view" style="display:none;"></div>
+    <div id="resultsPlayersPanel" class="player-stats-container" hidden>
+      <!-- Shared-style header, but landing-only behaviour -->
+      <div class="stats-header main-profile-header">
 
+        <!-- LEFT -->
+        <div class="stats-header-left">
+
+          <label class="sort-label" for="sortBySelect">
+            Sort by:
+            <select id="sortBySelect" class="sort-select">
+              <option value="checkouts" selected>Checkouts</option>
+              <option value="joined">Date joined</option>
+              <option value="coRatio">Checkout Ratio</option>
+              <option value="played">Games played</option>
+              <option value="wins">Wins</option>
+              <option value="fines">Fines</option>
+              <option value="fineRatio">Fine Ratio</option>
+              <option value="one80s">180 Count</option>
+              <option value="bulls">Bull-Outs</option>
+              <option value="tonPlus">Ton+ Outs</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- MIDDLE -->
+        <div class="stats-header-middle">
+          <h2 class="profile-title title-middle only-desktop">
+            All players
+          </h2>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="stats-header-right">
+          <div class="players-search">
+            <input id="playerSearch" class="player-search" type="search" placeholder="Search players…" aria-label="Search players"
+              autocomplete="off" />
+          </div>
+        </div>
+
+
+      </div>
+
+
+      <section id="playersLanding">
+        <div class="players-landing-wrapper">
+          <div class="players-mobile-head" role="group" aria-label="Sort all-time player stats">
+            <button type="button" data-player-sort="name" aria-label="Player name" aria-pressed="false" disabled>Player</button>
+            <button type="button" data-player-sort="played" aria-label="Games played" aria-pressed="false" disabled>P</button>
+            <button type="button" data-player-sort="checkouts" aria-label="Checkouts" aria-pressed="false" disabled>CO</button>
+            <button type="button" data-player-sort="wins" aria-label="Wins" aria-pressed="false" disabled>W</button>
+            <button type="button" data-player-sort="fines" aria-label="Fines" aria-pressed="false" disabled>Fines</button>
+            <button type="button" data-player-sort="specials" aria-label="Total specials" aria-pressed="false" disabled>Specials</button>
+            <button type="button" data-player-sort="accolades" aria-label="Accolades" aria-pressed="false" disabled>🏆</button>
+          </div>
+          <div id="playersGrid" class="players-grid"></div>
+        </div>
+      </section>
+    </div>
 
   </section>
 
@@ -113,10 +168,12 @@
   <script src="scripts/season-data.js?v=20261014-admin"></script>
   <script src="scripts/result-photos.js?v=20261123-fixture-photos"></script>
   <script src="scripts/league-divisions.js?v=20261120-cups-awards"></script>
-  <script src="scripts/results.js?v=20261125-results-nav"></script>
+  <script src="scripts/results.js?v=20261125-players-tab"></script>
   <script src="scripts/photo-placeholders.js?v=20261120-photo-placeholders"></script>
   <script src="scripts/results-personal.js?v=20261028-you-played"></script>
   <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
+  <script src="scripts/player-landing.js?v=20261125-players-tab"></script>
+  <script src="scripts/linked-player-badges.js?v=20261120-linked-badges"></script>
   <script src="scripts/session.js?v=20261028-avatar-fill"></script>
   <script src="scripts/profile.js?v=20261025-profile-navigation"></script>
   <script>
