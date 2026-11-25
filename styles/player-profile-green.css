@@ -19,8 +19,7 @@
 #playerProfileSection .appearances-table-simple th{background:#1b412d}
 #playerProfileSection .player-selector-inline,
 #playerProfileSection .profile-season-dropdown,
-#playerProfileSection .outstanding-fines-card{background:#183d29;border-color:#4d785b}
-.profile-edit-dialog,.payment-modal-card,.payment-details-panel{background:#122f21;border-color:#41674f}
+.profile-edit-dialog{background:#122f21;border-color:#41674f}
 .profile-edit-form input,.profile-edit-form textarea{background:#0b2117;border-color:#41674f}
 
 /* Compact player identity and actions. */

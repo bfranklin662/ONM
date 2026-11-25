@@ -935,42 +935,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const quickStatsEl = document.getElementById("playerQuickStats");
   const appsWrapper = document.getElementById("playerAppearancesWrapper");
 
-  const outstandingCard = document.getElementById("outstandingFinesCard");
-  const paymentModal = document.getElementById("paymentModal");
-  const closePaymentModal = document.getElementById("closePaymentModal");
-
-  function openPaymentModal() {
-    const modalAmount = document.getElementById("modalAmountOwed");
-    const cardAmount = document.getElementById("playerOutstandingFines");
-
-    if (modalAmount && cardAmount) {
-      modalAmount.textContent = cardAmount.textContent;
-    }
-
-    paymentModal?.classList.remove("hidden");
-    paymentModal?.setAttribute("aria-hidden", "false");
-  }
-
-  function closePaymentDetailsModal() {
-    paymentModal?.classList.add("hidden");
-    paymentModal?.setAttribute("aria-hidden", "true");
-  }
-
-  outstandingCard?.addEventListener("click", openPaymentModal);
-
-  outstandingCard?.addEventListener("keydown", e => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      openPaymentModal();
-    }
-  });
-
-  closePaymentModal?.addEventListener("click", closePaymentDetailsModal);
-
-  paymentModal?.addEventListener("click", e => {
-    if (e.target === paymentModal) closePaymentDetailsModal();
-  });
-
   const isProfileMode = !!playerName; // instead of playerName !== "All"
 
   const last5Title = document.querySelector(".last5-title");
@@ -986,29 +950,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const medalsSection = document.getElementById("medalsSection");
   if (medalsSection) medalsSection.style.display = "none";
-
-  document.addEventListener("click", async (e) => {
-    const btn = e.target.closest(".copy-btn");
-    if (!btn) return;
-
-    const value = btn.getAttribute("data-copy");
-    if (!value) return;
-
-    try {
-      await navigator.clipboard.writeText(value);
-
-      // toggle class → swaps icons
-      btn.classList.add("copied");
-
-      setTimeout(() => {
-        btn.classList.remove("copied");
-      }, 1200);
-
-    } catch (err) {
-      console.error("Copy failed", err);
-    }
-  });
-
 
   // --- 1. Instant layout: landing vs profile ---
   if (landing && profile) {
