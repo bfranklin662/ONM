@@ -57,6 +57,7 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
 .adminPanel { border:1px solid #283747; border-radius:14px; background:#132e22; overflow:hidden; }
 .adminToolbar { padding:16px; display:flex; align-items:flex-end; justify-content:space-between; gap:16px; border-bottom:1px solid #283747; }
 .adminFilters { display:flex; gap:12px; flex-wrap:wrap; }
+#exportPlayerFines { align-self:flex-end; min-height:42px; }
 .adminFilters label,.adminForm label { display:grid; gap:6px; color:#b7c5d0; font-size:12px; font-weight:800; }
 .adminFilters input,.adminFilters select,.adminForm input,.adminForm select,.adminForm textarea { width:100%; min-height:42px; padding:10px 12px; border:1px solid #3a4b5e; border-radius:8px; background:#0b2118; color:#fff; font:inherit; }
 .adminFilters input { width:min(320px,65vw); }
@@ -199,7 +200,7 @@ body { margin:0; min-height:100vh; background:radial-gradient(1200px 800px at 20
   .adminPhotoEditRow { align-items:stretch; flex-direction:column; }
 }
 .adminForm[data-editor-type="fixture"] .adminFormActions{flex-wrap:wrap}.adminFormActions .adminDeleteFixture{flex-basis:100%;border-color:#92554f;color:#ffc0b7;background:#482622}
-.adminFineOwed.fineCredit,.adminFinesTable td.fineCredit{color:#72ddb1;font-weight:800}
+.adminFineOwed.fineSettled,.adminFineOwed.fineCredit,.adminFinesTable td.fineCredit{color:#72ddb1;font-weight:800}
 
 .adminAccolades { margin-bottom:20px; padding:16px; border:1px solid #3d6951; border-radius:12px; background:#102d20; }
 .adminAccolades summary { font-weight:700; cursor:pointer; }

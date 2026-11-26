@@ -329,6 +329,7 @@
       })
       .filter(player => !query || `${player.fullName || ""} ${player.publicName || ""} ${player.nickname || ""} ${player.role || ""}`.toLowerCase().includes(query))
       .sort((a, b) => played(b) - played(a) || clean(a.publicName).localeCompare(clean(b.publicName)));
+    document.getElementById("exportPlayerFines").disabled = players.length === 0;
     if (!players.length) {
       list.innerHTML = '<div class="adminEmpty">No players match this search.</div>';
       return;
@@ -339,17 +340,80 @@
       const linked = state.linkedPlayerKeys.has(player.playerKey);
       const fullName = clean(player.fullName || player.publicName) || "Unnamed player";
       const nickname = clean(player.nickname);
+      const balanceClass = balance.owed < 0 ? "fineCredit" : balance.owed === 0 && balance.paid > 0 ? "fineSettled" : "";
       return `<tr>
         <td class="adminPlayerThumb"><img src="${escapeHtml(playerPhoto(player))}" alt=""></td>
         <td class="adminPlayerName${played(player) === 0 ? " hasNoAppearances" : ""}"><strong>${escapeHtml(fullName)}</strong>${nickname ? `<small>${escapeHtml(nickname)}</small>` : ""}</td>
         <td class="adminPlayerAppearances"><strong>${played(player)}</strong></td>
         <td><button class="adminRegistrationButton ${paid ? "isPaid" : "isOutstanding"}" type="button" data-toggle-player-registration="${escapeHtml(player.playerKey)}" data-registration-paid="${paid ? "false" : "true"}" aria-label="${paid ? "Registration paid. Mark unpaid" : "Registration outstanding. Mark £15 registration paid"}" title="${paid ? "Mark registration unpaid" : "Mark £15 registration paid"}"><span class="desktopLabel" aria-hidden="true">${paid ? "Paid" : "Outstanding"}</span><span class="mobileLabel" aria-hidden="true">${paid ? "✓" : "✕"}</span></button></td>
         <td><span class="adminLinkStatus ${linked ? "isLinked" : "isUnlinked"}"><span class="desktopLabel">${linked ? "Linked" : "Not linked"}</span><span class="mobileLabel" aria-hidden="true">${linked ? "✓" : "✕"}</span><span class="adminVisuallyHidden mobileLabel">${linked ? "Account linked" : "Account not linked"}</span></span></td>
-        <td class="adminFineOwed ${balance.owed<0?'fineCredit':''}">${balance.owed<0?`+${currencyForToast(-balance.owed)} credit`:currencyForToast(balance.owed)}</td>
-        <td>${currencyForToast(balance.paid)}</td>
+        <td class="adminFineOwed ${balanceClass}">${balance.owed<0?`+${currencyForToast(-balance.owed)} credit`:currencyForToast(balance.owed)}</td>
+        <td class="adminFinePaid">${currencyForToast(balance.paid)}</td>
         <td class="adminPlayerEdit"><button class="adminSmallBtn" type="button" data-edit-player="${escapeHtml(player.playerKey)}">Edit</button></td>
       </tr>`;
     }).join("")}</tbody></table></div>`;
+  }
+
+  async function exportPlayerFines() {
+    const rows = [...document.querySelectorAll("#playersList tbody tr")];
+    if (!rows.length) return;
+
+    try {
+      const width = 840;
+      const rowHeight = 48;
+      const bodyTop = 142;
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = bodyTop + rows.length * rowHeight + 24;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#101a16";
+      ctx.fillRect(0, 0, width, canvas.height);
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#f5faf7";
+      ctx.font = "bold 34px system-ui";
+      ctx.fillText("Oche Ness Monsters", 28, 43);
+      ctx.fillStyle = "#a8bdb2";
+      ctx.font = "22px system-ui";
+      ctx.fillText("2026/27 player fines", 28, 82);
+      ctx.fillStyle = "#21372e";
+      ctx.fillRect(24, 100, width - 48, 42);
+      ctx.fillStyle = "#f5faf7";
+      ctx.font = "bold 22px system-ui";
+      ctx.fillText("Player", 38, 122);
+      ctx.textAlign = "right";
+      ctx.fillText("Fines owed", 646, 122);
+      ctx.fillText("Paid", 802, 122);
+
+      rows.forEach((row, index) => {
+        const owed = row.querySelector(".adminFineOwed");
+        const top = bodyTop + index * rowHeight;
+        const y = top + rowHeight / 2;
+        ctx.fillStyle = index % 2 ? "#192a22" : "#14221b";
+        ctx.fillRect(24, top, width - 48, rowHeight);
+        ctx.fillStyle = "#f5faf7";
+        ctx.font = "22px system-ui";
+        ctx.textAlign = "left";
+        ctx.fillText(row.querySelector(".adminPlayerName strong").textContent, 38, y, 396);
+        ctx.textAlign = "right";
+        ctx.fillStyle = owed.matches(".fineSettled, .fineCredit") ? "#72ddb1" : "#ff8585";
+        ctx.fillText(owed.textContent, 646, y, 190);
+        ctx.fillStyle = "#72ddb1";
+        ctx.fillText(row.querySelector(".adminFinePaid").textContent, 802, y, 136);
+      });
+
+      const image = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      if (!image) throw new Error("Image generation failed");
+      const url = URL.createObjectURL(image);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "onm-player-fines-2026-27.png";
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      showToast("Could not download the fines image. Please try again.", true);
+    }
   }
 
   function finePaymentFor(playerKey, season) {
@@ -1127,6 +1191,7 @@
     document.getElementById("playerSearch").addEventListener("input", renderPlayers);
     document.getElementById("playerListView").addEventListener("change", renderPlayers);
     ["playerRegistrationFilter", "playerAccountFilter", "playerFinesFilter"].forEach(id => document.getElementById(id).addEventListener("change", renderPlayers));
+    document.getElementById("exportPlayerFines").addEventListener("click", exportPlayerFines);
     document.getElementById("quickFinePayment").addEventListener("submit", saveQuickFinePayment);
     attachPaymentSearch();
     document.getElementById("finesSeasonFilter").addEventListener("change", renderFines);

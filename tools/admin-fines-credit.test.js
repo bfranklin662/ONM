@@ -12,5 +12,5 @@ test('quick payments can exceed the outstanding fines and preserve the full paym
 });
 test('admin credit is green, payment controls have no outstanding-balance cap, and totals exclude credits',()=>{
  assert.doesNotMatch(source,/Payment exceeds the outstanding balance|cannot be more than the outstanding fine balance|max="\$\{\(player.outstandingPence/);
- assert.match(source,/owed: issued - paid/);assert.match(source,/balance.owed<0\?'fineCredit'/);assert.match(source,/Math.max\(0,item.owed\)/);assert.match(source,/Math.max\(0,player.outstandingPence\)/);
+ assert.match(source,/owed: issued - paid/);assert.match(source,/balance.owed < 0 \? "fineCredit"/);assert.match(source,/balance.owed === 0 && balance.paid > 0 \? "fineSettled"/);assert.match(source,/Math.max\(0,item.owed\)/);assert.match(source,/Math.max\(0,player.outstandingPence\)/);
 });
