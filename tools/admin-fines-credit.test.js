@@ -14,3 +14,29 @@ test('admin credit is green, payment controls have no outstanding-balance cap, a
  assert.doesNotMatch(source,/Payment exceeds the outstanding balance|cannot be more than the outstanding fine balance|max="\$\{\(player.outstandingPence/);
  assert.match(source,/owed: issued - paid/);assert.match(source,/balance.owed < 0 \? "fineCredit"/);assert.match(source,/balance.owed === 0 && balance.paid > 0 \? "fineSettled"/);assert.match(source,/Math.max\(0,item.owed\)/);assert.match(source,/Math.max\(0,player.outstandingPence\)/);
 });
+
+test("long fines lists download a self-contained PNG during the click", () => {
+ const calls = [];
+ const pngUrl = "data:image/png;base64,iVBORw0KGgo=";
+ const canvas = {
+  getContext: () => ({ scale() {}, fillRect() {}, fillText() {} }),
+  toDataURL(type) { assert.equal(type, "image/png"); return pngUrl; }
+ };
+ const link = {
+  click() { calls.push([this.href, this.download]); },
+  remove() {}
+ };
+ const row = { querySelector: () => ({ textContent: "Example", matches: () => false }) };
+ const document = {
+  querySelectorAll: () => Array(110).fill(row),
+  createElement: tag => tag === "canvas" ? canvas : link,
+  body: { append() {} }
+ };
+ const context = { document, showToast: assert.fail };
+ const start = source.indexOf("  function exportPlayerFines(");
+ const end = source.indexOf("  function finePaymentFor(", start);
+ vm.runInNewContext(source.slice(start, end), context);
+ context.exportPlayerFines();
+ assert.equal(canvas.height, 4096);
+ assert.deepEqual(calls, [[pngUrl, "onm-player-fines-2026-27.png"]]);
+});

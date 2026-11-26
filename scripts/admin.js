@@ -354,7 +354,7 @@
     }).join("")}</tbody></table></div>`;
   }
 
-  async function exportPlayerFines() {
+  function exportPlayerFines() {
     const rows = [...document.querySelectorAll("#playersList tbody tr")];
     if (!rows.length) return;
 
@@ -362,12 +362,15 @@
       const width = 840;
       const rowHeight = 48;
       const bodyTop = 142;
+      const height = bodyTop + rows.length * rowHeight + 24;
+      const scale = Math.min(1, 4096 / height);
       const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = bodyTop + rows.length * rowHeight + 24;
+      canvas.width = Math.ceil(width * scale);
+      canvas.height = Math.ceil(height * scale);
       const ctx = canvas.getContext("2d");
+      ctx.scale(scale, scale);
       ctx.fillStyle = "#101a16";
-      ctx.fillRect(0, 0, width, canvas.height);
+      ctx.fillRect(0, 0, width, height);
       ctx.textBaseline = "middle";
       ctx.fillStyle = "#f5faf7";
       ctx.font = "bold 34px system-ui";
@@ -401,16 +404,15 @@
         ctx.fillText(row.querySelector(".adminFinePaid").textContent, 802, y, 136);
       });
 
-      const image = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-      if (!image) throw new Error("Image generation failed");
-      const url = URL.createObjectURL(image);
+      // Download during the click using a self-contained image URL.
+      const image = canvas.toDataURL("image/png");
+      if (!image.startsWith("data:image/png;base64,")) throw new Error("Image generation failed");
       const link = document.createElement("a");
-      link.href = url;
+      link.href = image;
       link.download = "onm-player-fines-2026-27.png";
       document.body.append(link);
       link.click();
       link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       showToast("Could not download the fines image. Please try again.", true);
     }
