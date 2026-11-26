@@ -150,7 +150,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function matchPlayerLabel(player) {
     const name = player.fullName || findPlayerDirectoryEntry(player.name)?.fullName || player.name;
-    return String(name || "").replace(/\s+[A-Z]$/, "");
+    return splitPlayerName(name).firstName;
+  }
+
+  function matchPlayerLabelByName(name) {
+    return matchPlayerLabel(players.find(player => player.name === name) || { name });
   }
 
   async function loadSignedInPlayerDirectory() {
@@ -1264,11 +1268,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 180
     if (selectedSpecial === "S180") {
       const penceEach = 180;
-      const list = otherNames.map(n => `<li>${escapeHtml(n)} — <b>${fmtGBP(penceEach)}</b></li>`).join("");
+      const list = otherNames.map(n => `<li>${escapeHtml(matchPlayerLabelByName(n))} — <b>${fmtGBP(penceEach)}</b></li>`).join("");
       openConfirmModal({
         title: "Confirm Special",
         bodyHtml: `
-        <div style="font-weight:900; font-size:14px; margin-bottom:8px;">${escapeHtml(selectedName)} — 180 Scored</div>
+        <div style="font-weight:900; font-size:14px; margin-bottom:8px;">${escapeHtml(matchPlayerLabelByName(selectedName))} — 180 Scored</div>
         <div class="muted" style="margin-bottom:6px;">Fines for everyone else:</div>
         <ul>${list}</ul>
       `,
@@ -1286,11 +1290,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Bull-out
     if (selectedSpecial === "BULLOUT") {
       const penceEach = 200;
-      const list = otherNames.map(n => `<li>${escapeHtml(n)} — <b>${fmtGBP(penceEach)}</b></li>`).join("");
+      const list = otherNames.map(n => `<li>${escapeHtml(matchPlayerLabelByName(n))} — <b>${fmtGBP(penceEach)}</b></li>`).join("");
       openConfirmModal({
         title: "Confirm Special",
         bodyHtml: `
-        <div style="font-weight:900; font-size:14px; margin-bottom:8px;">${escapeHtml(selectedName)} — Bull-Out</div>
+        <div style="font-weight:900; font-size:14px; margin-bottom:8px;">${escapeHtml(matchPlayerLabelByName(selectedName))} — Bull-Out</div>
         <div class="muted" style="margin-bottom:6px;">Fines for everyone else:</div>
         <ul>${list}</ul>
       `,
@@ -1310,7 +1314,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       openConfirmModal({
         title: "Confirm Special",
         bodyHtml: `
-        <div style="font-weight:900; font-size:14px; margin-bottom:8px;">${escapeHtml(selectedName)} — Ton+ Out</div>
+        <div style="font-weight:900; font-size:14px; margin-bottom:8px;">${escapeHtml(matchPlayerLabelByName(selectedName))} — Ton+ Out</div>
         <div class="muted" style="margin-bottom:10px;">Enter checkout score (e.g. 116 → £1.16 each):</div>
         <input id="tonOutInput" type="text" inputmode="numeric"
           style="width:100%; height:44px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
@@ -1346,7 +1350,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
           }
           const penceEach = Number(raw);
-          const list = otherNames.map(n => `<li>${escapeHtml(n)} — <b>${fmtGBP(penceEach)}</b></li>`).join("");
+          const list = otherNames.map(n => `<li>${escapeHtml(matchPlayerLabelByName(n))} — <b>${fmtGBP(penceEach)}</b></li>`).join("");
           preview.innerHTML = `
           <div style="margin-bottom:6px;">Fines for everyone else:</div>
           <ul>${list}</ul>
@@ -1500,7 +1504,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const rows = names.map(name => `
     <tr>
-      <td>${escapeHtml(name)}</td>
+      <td>${escapeHtml(matchPlayerLabelByName(name))}</td>
       <td>${fmtGBP(store.totalsByName?.[name] ?? 0)}</td>
     </tr>
   `).join("");
@@ -2209,7 +2213,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const res = applyFine(selectedName, penceToAdd, nowIso());
     if (res.capped) showToast("Maximum fine amount reached");
-    else showToast(`Added ${fmtGBP(res.appliedPence)} to ${selectedName}`);
+    else showToast(`Added ${fmtGBP(res.appliedPence)} to ${matchPlayerLabelByName(selectedName)}`);
 
     clearFineSelection();
   });
@@ -2995,7 +2999,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const dt = new Date(entry.t);
       const time = dt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
       return `<div style="padding:10px 0; border-bottom:1px solid rgba(255,255,255,.08);">
-      <div style="font-weight:900;">${escapeHtml(entry.name)} <span class="muted" style="font-weight:700;">+ ${fmtGBP(entry.delta)}</span></div>
+      <div style="font-weight:900;">${escapeHtml(matchPlayerLabelByName(entry.name))} <span class="muted" style="font-weight:700;">+ ${fmtGBP(entry.delta)}</span></div>
       <div class="muted">${time}</div>
     </div>`;
     }).join("");
@@ -3154,7 +3158,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       ctx.textAlign = "right";
       ctx.fillStyle = (colors[i % colors.length] === "#fbfbfb") ? "#111" : "#111";
       ctx.font = "bold 16px system-ui";
-      ctx.fillText(labels[i], r - 14, 6);
+      ctx.fillText(matchPlayerLabelByName(labels[i]), r - 14, 6);
       ctx.restore();
     }
 
@@ -3341,7 +3345,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       renderResultsList();
       updateSpinButtons();
 
-      openWinnerPopup(winnerName, current, doubled);
+      openWinnerPopup(matchPlayerLabelByName(winnerName), current, doubled);
 
       if (winnerContinueBtn) {
         winnerContinueBtn.onclick = () => {

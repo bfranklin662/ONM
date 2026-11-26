@@ -10,7 +10,7 @@ async function harness({format=1,level=1,account={uid:"member"},botFinish=false,
   const scores=seedScores || Object.fromEntries(E.LEVELS.flatMap(p=>E.MODES.map(m=>[`${p.level}-${m}`,{won:E.legsNeeded(m),lost:0}])));
   if(!completed&&!casual)delete scores[`${level}-${format}`];
   const sdk={doc:(_db,c,id)=>`${c}/${id}`,getDoc:async()=>({data:()=>({firstName:"Nick",nickname:"Nickname",monsterBotWins:wins,monsterBotBestScores:scores,monsterSurvivalBest:survivalBest})}),updateDoc:async(path,data)=>writes.push({path,data}),arrayUnion:(...a)=>a,runTransaction:async(_db,fn)=>fn({get:async()=>({data:()=>({})}),update:(path,data)=>writes.push({path,data})})};
-  const ctx={BOT_MODE:true,tournamentMatch:null,params:new URLSearchParams(`level=${level}&format=${format}${casual?`&casual=1&legs=${legs}&start=${start}`:""}`),state,els,STARTING_SCORE:501,LEGS_TO_WIN:E.legsNeeded(format),MATCH_MODE:"local",STATS_MODE:"casual",pendingCheckoutPrompt:null,
+  const ctx={BOT_MODE:true,TOURNAMENT_MODE:false,tournamentMatch:null,params:new URLSearchParams(`level=${level}&format=${format}${casual?`&casual=1&legs=${legs}&start=${start}`:""}`),state,els,STARTING_SCORE:501,LEGS_TO_WIN:E.legsNeeded(format),MATCH_MODE:"local",STATS_MODE:"casual",pendingCheckoutPrompt:null,
     window:{MonsterBotEngine:{...E,botVisit:(remaining,darts,profile)=>{ctx.lastBotProfile=profile.level;return botFinish?{score:remaining,remaining:0,darts:3,attempts:1,hits:[remaining]}:{score:30,remaining:remaining-30,darts:3,attempts:0,hits:[10,10,10]};}},ONMFirebase:{currentFirebaseUser:async()=>account,ready:Promise.resolve({db:{},firestoreSdk:sdk,auth:{},authSdk:{onAuthStateChanged:(_auth,fn)=>{authChanged=fn;}}})},location:{href:"",reload(){ctx.reloaded=true;}},eventHandlers:{},addEventListener(type,fn){(this.eventHandlers[type] ||= []).push(fn);}},
     document:{body:{classList:{add(){},remove(){}}},getElementById:element,createElement:()=>element(`created${nodes.size}`),querySelector:()=>bullSelected?{dataset:{value:"Yes"}}:null},
     localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},
@@ -247,6 +247,19 @@ test("empty Submit records a zero-score visit and hands the turn to the bot",asy
   assert.equal(g.state.currentPlayer,1);
   g.bot();assert.equal(g.state.currentPlayer,0);
 });
+test("bot records its visit even if the caller never finishes",async()=>{
+  const g=await harness();
+  g.ctx.audioBusy=true;
+  g.score(60);
+  for(let polls=0;polls<80;polls++){
+    const [id,timer]=[...g.timers].find(([,timer])=>timer.delay===100);
+    g.timers.delete(id);
+    timer.fn();
+  }
+  g.bot();
+  assert.equal(g.state.players[1].score,471);
+  assert.equal(g.state.currentPlayer,0);
+});
 test("required-score announcements are for the human only, not the bot",async()=>{
   const g=await harness();g.score(60);
   assert.equal(g.ctx.requiredCalls.length,0);
@@ -384,6 +397,8 @@ test("Restart keeps the authenticated scorer and cancels the previous bot throw"
   await g.ctx.document.getElementById("botRestartGame").listeners.click();g.bot();
   assert.notEqual(g.ctx.reloaded,true);assert.equal(g.ctx.window.location.href,"");assert.equal(g.state.players[1].score,501);
   assert.equal(g.state.players[0].score,501);assert.equal(g.api.canPlay(),true);assert.equal(g.state.visitHistory.length,0);
+  g.score(60);g.bot();
+  assert.equal(g.state.players[1].score,471);assert.equal(g.state.currentPlayer,0);
 });
 test("Restart cancels loss audio and starts the combined cue without speech ducking delay",async()=>{
   const g=await harness({format:9});let cancelled=0;

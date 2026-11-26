@@ -214,16 +214,20 @@
       return;
     }
     if (!active || state.currentPlayer !== 1 || timer !== null) return;
+    let audioWaitRemaining = 8000;
+    function waitForAudio() {
+      if (audioWaitRemaining <= 0 || !isDartCalloutBusy()) return false;
+      audioWaitRemaining -= 100;
+      timer = setTimeout(waitForAnnouncement,100);
+      return true;
+    }
     function waitForAnnouncement() {
       if (!active || state.winnerIndex !== null || state.currentPlayer !== 1) { timer = null; return; }
-      if (isDartCalloutBusy()) {
-        timer = setTimeout(waitForAnnouncement,100);
-        return;
-      }
+      if (waitForAudio()) return;
       timer = setTimeout(() => {
         timer = null;
         if (!active || state.winnerIndex !== null || state.currentPlayer !== 1) return;
-        if (isDartCalloutBusy()) { waitForAnnouncement(); return; }
+        if (waitForAudio()) return;
         const player = state.players[1], previousScore = player.score;
         const visit = undoFrame?.reply || replayVisit || E.botVisit(previousScore,player.currentLegDarts,profile,Math.random,startingScore);
         if (undoFrame) undoFrame.reply = clone(visit);
@@ -250,7 +254,7 @@
     if(!casual&&knownWins.has(key)&&E.validWinningScore(key,knownScores[key])&&knownScores[key].lost===0)return;
     if(!initialized||exited||restarting)return;
     const countAttempt=state.winnerIndex!==null||state.players.some(player=>player.legs>0);
-    restarting=true;active=false;clearTimeout(timer); clearTimeout(lossVoiceTimer);
+    restarting=true;active=false;clearTimeout(timer);timer=null;clearTimeout(lossVoiceTimer);
     window.parent?.ONMBotLaunch?.prepareRestart?.(window);
     window.speechSynthesis?.cancel();
     if(typeof clearDartAudioQueue==="function")clearDartAudioQueue();
