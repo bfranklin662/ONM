@@ -168,3 +168,21 @@ body:has(#leaderboardView:not(.hidden)) {
 .versusInviteCountdown { color:#a6e2be;font-weight:850;font-variant-numeric:tabular-nums; }
 @keyframes versusDartOrbit { to { transform:rotate(360deg); } }
 @media (prefers-reduced-motion:reduce) { .versusWaitingDart { animation:none; } }
+
+
+.versusInviteDetails {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.versusInviteDetails > div {
+  padding: 8px 10px;
+  border: 1px solid #416d53;
+  border-radius: 10px;
+  background: #16382a;
+}
+
+.versusInviteDetails dt { color: #b7cfbf; font-size: .8rem; }
+.versusInviteDetails dd { margin: 3px 0 0; font-weight: 800; }

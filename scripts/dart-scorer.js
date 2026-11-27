@@ -323,11 +323,11 @@ function onlineSecondsLeft(deadline, now) {
   return Math.max(0, Math.ceil((deadline - now) / 1000));
 }
 
-function pauseOnlineMatch(match, playerKey, now) {
+function pauseOnlineMatch(match, playerKey, now, reason = "disconnected") {
   if (match?.status !== "playing" || match.reconnect || !match.game?.players?.[playerKey]) return;
   return {
     ...match,
-    reconnect: { playerKey, deadline: now + ONLINE_REJOIN_MS },
+    reconnect: { playerKey, deadline: now + ONLINE_REJOIN_MS, reason },
     presence: { ...match.presence, [playerKey]: { online: false, lastSeen: now } }
   };
 }
@@ -362,8 +362,18 @@ function advanceOnlineMatchClock(match, myKey, now) {
 
   const turnStartedAt = onlineTurnStartedAt(match);
   if (turnStartedAt && now >= turnStartedAt + ONLINE_THROW_LIMIT_MS) {
-    return pauseOnlineMatch(match, match.game.currentPlayerKey, now);
+    return pauseOnlineMatch(match, match.game.currentPlayerKey, turnStartedAt + ONLINE_THROW_LIMIT_MS, "throw-timeout");
   }
+}
+
+function canSubmitOnlineVisit(match, playerKey, now) {
+  if (match?.status !== "playing" || match.game?.currentPlayerKey !== playerKey) return false;
+  if (match.reconnect) {
+    return match.reconnect.reason === "throw-timeout" && match.reconnect.playerKey === playerKey &&
+      now < match.reconnect.deadline;
+  }
+  const startedAt = onlineTurnStartedAt(match);
+  return !startedAt || now < startedAt + ONLINE_THROW_LIMIT_MS + ONLINE_REJOIN_MS;
 }
 
 function resumeOnlineMatchState(match, myKey, now) {
@@ -420,11 +430,13 @@ function renderOnlineMatchClock(match, myKey, now = onlineMatchNow()) {
 
   if (!countdown) return;
   const startedAt = playing ? onlineTurnStartedAt(match) : 0;
-  const show = Boolean(startedAt && !match.reconnect && now >= startedAt + ONLINE_THROW_WARNING_MS);
+  const ownTimeout = playing && match.reconnect?.playerKey === myKey && match.reconnect.reason === "throw-timeout";
+  const show = ownTimeout || Boolean(startedAt && !match.reconnect && now >= startedAt + ONLINE_THROW_WARNING_MS);
   countdown.hidden = !show;
   if (!show) return;
-  const seconds = onlineSecondsLeft(startedAt + ONLINE_THROW_LIMIT_MS, now);
-  const text = match.game.currentPlayerKey === myKey ? `Throw now · ${seconds}s left` : `Opponent has ${seconds}s to throw`;
+  const seconds = onlineSecondsLeft(ownTimeout ? match.reconnect.deadline : startedAt + ONLINE_THROW_LIMIT_MS, now);
+  const text = ownTimeout ? `Submit score to rejoin · ${seconds}s left`
+    : match.game.currentPlayerKey === myKey ? `Throw now · ${seconds}s left` : `Opponent has ${seconds}s to throw`;
   if (countdown.textContent !== text) countdown.textContent = text;
 }
 
@@ -3867,7 +3879,7 @@ async function submitOnlineScore() {
       ? match.hostPlayerKey
       : match.guestPlayerKey;
 
-  if (match.game.currentPlayerKey !== myKey) return;
+  if (!canSubmitOnlineVisit(match, myKey, onlineMatchNow())) return;
 
   const player = match.game.players[myKey];
 
@@ -4486,10 +4498,8 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
   const submitVisit = includePhoto => runTransaction(matchRef, live => {
     const livePlayer = live?.game?.players?.[myKey];
     const now = onlineMatchNow();
-    const turnStartedAt = live ? onlineTurnStartedAt(live) : 0;
-    if (live?.status !== "playing" || live.reconnect ||
-        (turnStartedAt && now >= turnStartedAt + ONLINE_THROW_LIMIT_MS) || live.matchId !== match.matchId || live.resultId !== match.resultId ||
-        live.game.currentPlayerKey !== myKey || livePlayer?.score !== previousScore ||
+    if (!canSubmitOnlineVisit(live, myKey, now) || live.matchId !== match.matchId || live.resultId !== match.resultId ||
+        livePlayer?.score !== previousScore ||
         (livePlayer.dartsThrown || 0) !== currentDarts ||
         live.game.lastCallout?.id !== match.game.lastCallout?.id) return;
 
@@ -4499,6 +4509,10 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       const parent = keys.reduce((node, key) => (node[key] ??= {}), live);
       if (value === null) delete parent[field];
       else parent[field] = value;
+    }
+    if (live.reconnect) {
+      delete live.reconnect;
+      live.presence = { ...live.presence, [myKey]: { online: true, lastSeen: now } };
     }
     live.game.turnStartedAt = now;
     if (legWon) {
@@ -5320,7 +5334,7 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
     try {
       const match = (await get(ref(db, `onlineMatches/${onlineMatchId}`))).val();
       const myKey = getCurrentPlayerKey();
-      if (match?.status !== "playing" || match.game?.currentPlayerKey !== myKey ||
+      if (!canSubmitOnlineVisit(match, myKey, onlineMatchNow()) ||
           match.game?.players?.[myKey]?.score !== promptData.previousScore) {
         showOnlineNotice("The match changed before the checkout could be submitted.");
         return;
@@ -6359,6 +6373,17 @@ function closeIncomingDartInvite() {
   els.dartInviteOverlay.setAttribute("aria-hidden", "true");
 }
 
+function getIncomingDartInviteDetails(invite) {
+  const settings = invite.settings || {};
+  return {
+    sender: invite.fromName || "A player",
+    format: `${Number(invite.startScore || settings.startScore || 501)} · ${getMatchFormatLabel(
+      invite.gameType || settings.gameType || "bestOf", Number(invite.legsCount || settings.legsCount || 3)
+    )}`,
+    start: (invite.deciderType || settings.deciderType) === "bull" ? "Throw for the bull" : "Coin toss"
+  };
+}
+
 function listenForDartInvites() {
   const user = window.ONMSession?.getUser?.() || loggedInUser;
   if (!user || !window.ONMLiveDarts) return;
@@ -6381,10 +6406,10 @@ function listenForDartInvites() {
       if (invite.status !== "pending" || !inviteTimeLeft(invite) || !receiverKeys.some(key => myKeys.includes(key))) return false;
 
       activeDartInvite = { ...invite, inviteId: child.key };
-      els.dartInviteText.textContent = invite.inviteText || getMatchInviteText(
-        invite.fromName, invite.gameType || invite.settings?.gameType || "bestOf",
-        invite.legsCount || invite.settings?.legsCount || 3
-      );
+      const details = getIncomingDartInviteDetails(invite);
+      els.dartInviteText.textContent = `${details.sender} invited you to a match.`;
+      document.getElementById("dartInviteFormat").textContent = details.format;
+      document.getElementById("dartInviteStart").textContent = details.start;
       els.dartInviteOverlay.classList.remove("hidden");
       els.dartInviteOverlay.setAttribute("aria-hidden", "false");
       stopIncomingInviteCountdown = startInviteCountdown(invite, document.getElementById("incomingDartInviteCountdown"), () => {
@@ -6779,7 +6804,7 @@ function listenToOnlineMatch(matchId) {
     }
 
     if (match.status === "playing") {
-      if (match.reconnect?.playerKey === myKey) {
+      if (match.reconnect?.playerKey === myKey && match.reconnect.reason !== "throw-timeout") {
         returnToOnlineRejoin(match);
         return;
       }
@@ -6983,7 +7008,12 @@ async function leaveOnlineMatch(reason = "left", { keepLeagueMode = PAGE_MODE ==
       return;
     }
     const result = await runTransaction(matchRef,
-      match => pauseOnlineMatch(match, myKey, onlineMatchNow()), { applyLocally: false });
+      match => {
+        if (match?.status === "playing" && match.reconnect?.playerKey === myKey && match.reconnect.reason === "throw-timeout") {
+          return { ...match, reconnect: { ...match.reconnect, reason: "disconnected" } };
+        }
+        return pauseOnlineMatch(match, myKey, onlineMatchNow());
+      }, { applyLocally: false });
     const latest = result.snapshot.val();
     if (latest?.status === "playing") {
       returnToOnlineRejoin(latest, keepLeagueMode);
@@ -7369,14 +7399,14 @@ function applyOnlineGame(match) {
       <strong>${throwingName} is throwing...</strong>
       ${canEditLastOnlineScore
         ? `<button type="button" class="btn btnPrimary onlineEditScoreBtn" data-action="edit-online-score" aria-label="Edit last score" title="Edit last score"><span aria-hidden="true">✎</span> Edit last</button>`
-        : ""}
+        : '<span class="onlineEditScorePlaceholder" aria-hidden="true"></span>'}
     </div>
   `;
 
     els.onlineTurnOverlay.classList.toggle("hidden", isMyTurn);
   }
 
-  const canThrow = isMyTurn && !match.reconnect;
+  const canThrow = canSubmitOnlineVisit(match, myKey, onlineMatchNow());
   els.submit.disabled = !canThrow;
   els.keypad.classList.toggle("disabled", !canThrow);
 

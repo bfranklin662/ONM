@@ -463,3 +463,41 @@ test("refresh recovers the active match from the player's account without browse
   data["onlineMatches/live-match"].forfeitByKey = "nick";
   assert.equal(await ctx.getSavedOnlineSessionMatch(), null);
 });
+
+test("a score submitted during throw-timeout grace rejoins and advances the turn atomically", async () => {
+  const h = onlineScorerHarness();
+  const match = h.match();
+  match.game.turnStartedAt = 1000;
+  match.reconnect = { playerKey: "nick", deadline: 121000, reason: "throw-timeout" };
+  match.presence = { nick: { online: false }, test: { online: true } };
+  h.ctx.window.ONMLiveDarts.serverNow = () => 65000;
+
+  await h.ctx.applyOnlineVisit({
+    match, myKey: "nick", visitScore: 60, previousScore: 125,
+    legWon: false, dartsUsed: 3, doublesAttempted: 0
+  });
+
+  assert.equal(h.match().reconnect, undefined);
+  assert.equal(h.match().presence.nick.online, true);
+  assert.equal(h.match().game.players.nick.score, 65);
+  assert.equal(h.match().game.currentPlayerKey, "test");
+  assert.equal(h.match().game.turnStartedAt, 65000);
+  assert.equal(h.match().game.lastCallout.visitScore, 60);
+  assert.equal(h.ctx.canSubmitOnlineVisit(match, "nick", 121000), false);
+  match.reconnect.reason = "disconnected";
+  assert.equal(h.ctx.canSubmitOnlineVisit(match, "nick", 65000), false);
+});
+
+test("incoming invitations show the sender, format, and selected starting method", () => {
+  const ctx = {};
+  const start = script.indexOf("function getIncomingDartInviteDetails");
+  vm.runInNewContext(script.slice(start, script.indexOf("function listenForDartInvites", start)), ctx);
+  ctx.getMatchFormatLabel = (gameType, legs) => (gameType === "firstTo" ? "FT" : "BO") + legs;
+  const coin = ctx.getIncomingDartInviteDetails({ fromName: "Nick", startScore: 501, legsCount: 5, deciderType: "coin" });
+  assert.equal(coin.sender, "Nick");
+  assert.equal(coin.format, "501 · BO5");
+  assert.equal(coin.start, "Coin toss");
+  const bull = ctx.getIncomingDartInviteDetails({ settings: { startScore: 301, gameType: "firstTo", legsCount: 3, deciderType: "bull" } });
+  assert.equal(bull.format, "301 · FT3");
+  assert.equal(bull.start, "Throw for the bull");
+});

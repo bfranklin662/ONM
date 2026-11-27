@@ -2460,6 +2460,9 @@ body.scorer-fullscreen .startDeciderScreen {
 }
 
 #onlineTurnOverlay .onlineTurnBox {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 88px;
+  min-height: 46px;
   gap: 8px;
   box-sizing: border-box;
   width: 100%;
@@ -2476,12 +2479,14 @@ body.scorer-fullscreen .startDeciderScreen {
   box-sizing: border-box;
 }
 
-#onlineTurnOverlay .onlineEditScoreBtn {
-  flex: 0 0 auto;
-  width: auto;
+#onlineTurnOverlay .onlineEditScoreBtn,
+#onlineTurnOverlay .onlineEditScorePlaceholder {
+  width: 100%;
   min-width: 0;
-  margin-left: auto;
   min-height: 34px;
+}
+
+#onlineTurnOverlay .onlineEditScoreBtn {
   padding: 5px 9px;
   font-size: 13px;
   white-space: nowrap;
@@ -4740,7 +4745,7 @@ body.casualMode #matchModeSwitch {
 }
 
 
-/* Keep the clock in the empty half of the turn label row. */
+/* Keep the clock centred in the turn row without resizing the controls. */
 .leagueMode .scoreTurnRow {
   position: relative;
   display: flow-root;
@@ -4748,10 +4753,9 @@ body.casualMode #matchModeSwitch {
 
 .onlineThrowCountdown {
   position: absolute;
-  left: 50%;
+  inset-inline: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 50%;
   padding: 0 4px;
   text-align: center;
   color: #ffe28b;
@@ -4761,8 +4765,8 @@ body.casualMode #matchModeSwitch {
   pointer-events: none;
 }
 
-.turnMessage.playerTwoTurn ~ .onlineThrowCountdown {
-  left: 0;
+.scoreTurnRow:has(.onlineThrowCountdown:not([hidden])) .turnMessage {
+  visibility: hidden;
 }
 
 @media (max-width: 600px) {
