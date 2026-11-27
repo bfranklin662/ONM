@@ -79,7 +79,8 @@ body:has(#leaderboardView:not(.hidden)) {
 .versusPlayerHeading { display:flex;align-items:center;gap:8px;min-width:0; }
 .versusAvatar { width:28px;height:28px;flex:none;object-fit:cover;border-radius:50%;background:#101f19; }
 .versusIdentity { min-width:0; }
-.versusSettingsActions { display:flex;justify-content:flex-end;margin-top:8px; }
+.versusSettingsActions { margin-top:4px; }
+.versusSettingsActions .molInviteStatusBtn { width:100%;min-height:50px;font-size:17px; }
 .versusInviteError { margin:0;color:#ffabab; }
 .versusSummary .leagueLastActions:has([hidden]):not(:has(button:not([hidden]):not(.hidden))) { display:none; }
 .versusSummary [hidden] { display:none!important; }
@@ -99,10 +100,28 @@ body:has(#leaderboardView:not(.hidden)) {
   .versusWinStreak { font-size:10px; }
 }
 
-.versusDeciderSettings { display:flex;flex-wrap:wrap;gap:8px 16px;min-width:0;margin:0; }
-.versusDeciderSettings label { display:flex;align-items:center;gap:6px;cursor:pointer; }
-.versusDeciderSettings input { accent-color:#81d6a5; }
-
+#opponentOverlay.versusChallengeSettings .modalCard {
+  max-height:calc(100dvh - 24px);
+  background:#102a1f;border-color:#416d53;
+}
+#opponentOverlay.versusChallengeSettings .modalBody { min-height:0;overflow-y:auto; }
+.versusChallengeSettings .molInviteHead span {
+  display:block;margin-top:6px;text-transform:none;letter-spacing:0;
+  font-size:15px;color:#c7e3d1;overflow-wrap:anywhere;
+}
+.molInviteSettings > .molInviteLabel { margin-bottom:10px; }
+.versusDeciderSettings { display:grid;gap:8px;min-width:0;margin:0; }
+.versusDeciderSettings legend { margin-bottom:6px;padding-inline:4px; }
+.versusDeciderSettings label {
+  display:grid;grid-template-columns:22px minmax(0,1fr) 20px;
+  align-items:center;gap:10px;min-height:46px;padding:8px 10px;
+  border:1px solid #355d48;border-radius:8px;background:#142e23;cursor:pointer;
+}
+.versusDeciderSettings label:has(input:checked) { border-color:#81d6a5;background:#1c4633; }
+.versusDeciderSettings label input[type="radio"] {
+  appearance:auto;width:18px;height:18px;min-width:0;min-height:0;padding:0;margin:0;
+  justify-self:end;accent-color:#81d6a5;
+}
 
 .versusPresenceDot { display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:#8d9a94;vertical-align:1px; }
 .versusPresenceDot.isOnline { background:#53df93; }

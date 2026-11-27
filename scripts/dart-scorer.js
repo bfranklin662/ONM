@@ -1907,16 +1907,18 @@ async function getVersusLinkedPlayers() {
 async function openOpponentModal(playerKey = "") {
   const selectedKey = typeof playerKey === "string" ? playerKey : "";
   document.getElementById("opponentModalTitle").textContent = selectedKey ? "Match settings" : "Add opponent";
+  els.opponentOverlay.classList.toggle("versusChallengeSettings", Boolean(selectedKey));
   els.opponentOverlay.classList.remove("hidden");
   els.opponentOverlay.setAttribute("aria-hidden", "false");
 
+  const cachedOpponent = window.currentLeaderboardPlayers?.find(player => player.playerKey === selectedKey);
   els.linkedPlayersList.innerHTML = `
     <div class="molInvitePanel">
       <div class="molInviteHead">
         <img src="graphics/logoWoText.png" alt="">
         <div>
           <h2>Monsters Versus</h2>
-          <span>${selectedKey ? "Choose your match format" : "Friendly match · Averages tracked"}</span>
+          <span id="versusSettingsOpponent">${selectedKey ? escapeHtml(cachedOpponent?.playerName || "Loading opponent…") : "Friendly match · Averages tracked"}</span>
         </div>
       </div>
 
@@ -1939,8 +1941,14 @@ async function openOpponentModal(playerKey = "") {
 
       <fieldset class="molInviteSettings versusDeciderSettings">
         <legend class="molInviteLabel">Who throws first?</legend>
-        <label><input type="radio" name="versusDecider" value="coin"${competitiveDeciderType === "coin" ? " checked" : ""}> Coin toss</label>
-        <label><input type="radio" name="versusDecider" value="bull"${competitiveDeciderType === "bull" ? " checked" : ""}> Throw for bull</label>
+        <label>
+          <span aria-hidden="true">🪙</span><span>Coin toss</span>
+          <input type="radio" name="versusDecider" value="coin" required${competitiveDeciderType === "coin" ? " checked" : ""}>
+        </label>
+        <label>
+          <span aria-hidden="true">🎯</span><span>Throw for bull</span>
+          <input type="radio" name="versusDecider" value="bull" required${competitiveDeciderType === "bull" ? " checked" : ""}>
+        </label>
       </fieldset>
 
       ${selectedKey ? "" : `<div class="molInvitePlayersTop">
@@ -2055,6 +2063,11 @@ async function openOpponentModal(playerKey = "") {
         class="molInviteStatusBtn ${buttonClass}" data-player="${escapeHtml(getPlayerKey(player))}"
         ${canInvite ? "" : "disabled"}>${buttonText}</button>`;
 
+      if (selectedKey) {
+        document.getElementById("versusSettingsOpponent").textContent = fullName;
+        return { status, html: `<div class="versusSettingsActions">${inviteButton}</div>` };
+      }
+
       return { status, html: `
         <div class="molInvitePlayerRow">
           <img src="${escapeHtml(imageUrl)}" alt="">
@@ -2065,9 +2078,8 @@ async function openOpponentModal(playerKey = "") {
             </span>
           </div>
 
-          ${selectedKey ? "" : inviteButton}
+          ${inviteButton}
         </div>
-        ${selectedKey ? `<div class="versusSettingsActions">${inviteButton}</div>` : ""}
       ` };
     });
 
