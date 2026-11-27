@@ -22,7 +22,7 @@
 
   function players(profiles = [], matches = [], presence = {}) {
     const rows = new Map();
-    const newRow = playerKey => ({ playerKey, totalScored: 0, dartsThrown: 0, trackedGames: 0, wins: 0 });
+    const newRow = playerKey => ({ playerKey, totalScored: 0, dartsThrown: 0, trackedGames: 0, played: 0, wins: 0, losses: 0 });
     for (const profile of profiles) {
       const key = keyOf(profile);
       if (!key) continue;
@@ -45,9 +45,13 @@
         const darts = Number(match[prefix + "DartsThrown"]);
         const won = String(match[prefix + "Won"]).toLowerCase() === "true";
         const validVisitTotals = Number.isFinite(scored) && scored >= 0 && Number.isFinite(darts) && darts > 0;
-        if (!validVisitTotals && !won) continue;
+        const other = prefix === "playerOne" ? "playerTwo" : "playerOne";
+        const lost = String(match[other + "Won"]).toLowerCase() === "true";
+        if (!validVisitTotals && !won && !lost) continue;
         row.playerName ||= match[prefix + "Name"];
+        row.played++;
         if (won) row.wins++;
+        if (lost) row.losses++;
         if (validVisitTotals) {
           row.totalScored += scored;
           row.dartsThrown += darts;

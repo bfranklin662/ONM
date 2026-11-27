@@ -46,7 +46,11 @@
   <main class="accountShell">
     <section id="accountLoading" class="accountLoading">
       <div class="accountSpinner"></div>
-      <p>Loading your account…</p>
+      <p id="accountLoadingMessage">Loading your account…</p>
+      <p id="accountLoadingActions" hidden>
+        <a class="btn btnGhost" href="/account.html">Retry</a>
+        <a class="btn btnGhost" href="/auth.html?mode=login&amp;redirect=account.html">Sign in</a>
+      </p>
     </section>
 
     <section id="accountApp" class="hidden">
@@ -134,7 +138,7 @@
 
   <script src="scripts/firebase-client.js?v=20261124-match-checkouts"></script>
   <script src="scripts/player-data.js?v=20261016-registration"></script>
-  <script src="scripts/account.js?v=20261124-match-checkouts"></script>
+  <script src="scripts/account.js?v=20261127-connection-recovery"></script>
   <script src="scripts/account-availability.js?v=20261025-profile-navigation"></script>
 <script src="/scripts/site-ui.js?v=20261125-header-nav"></script></body>
 </html>

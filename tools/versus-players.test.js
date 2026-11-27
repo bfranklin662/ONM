@@ -19,22 +19,25 @@ test("lobby splits compact player cards, and only available opponents can be sel
  const nodes = new Map();
  const buttons = [{dataset:{versusPlayer:"other"}, addEventListener(_event, handler){this.select = handler;}, setAttribute(_name, value){this.selected = value;}}];
  const node = id => {
-  if (!nodes.has(id)) nodes.set(id, {innerHTML:"",textContent:"",classList:{add(){},toggle(){}},querySelectorAll:()=>buttons});
+  if (!nodes.has(id)) nodes.set(id, {innerHTML:"",textContent:"",classList:{add(){},toggle(){}},getAttribute:()=>null,querySelectorAll:()=>buttons});
   return nodes.get(id);
  };
  const ctx = {document:{getElementById:node,querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},
   getCurrentPlayerKey:()=>"me",leaderboardFlag:()=>"🇬🇧",escapeHtml:value=>String(value).replace(/</g,"&lt;"),
-  currentLeagueProfile:null, selectedVersusPlayerKey:"", updateLeaguePlayButton(){}};
+  getPlayerPhotoField:()=>"",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, selectedVersusPlayerKey:"", updateLeaguePlayButton(){}};
  vm.runInNewContext(part,ctx);
  ctx.renderLeaderboard([
   {playerKey:"other",playerName:"Alex",average:"52.50",status:"online",nationality:"England"},
-  {playerKey:"me",playerName:"Nick",status:"online"},
+  {playerKey:"me",playerName:"Nick",status:"online",average:"53.25",played:4,wins:3,losses:1},
   {playerKey:"away",playerName:"Zoe",status:"offline"}
  ]);
  const html = node("leaderboardRows").innerHTML;
  assert.match(html, /<h3>Online<\/h3>[\s\S]*Alex[\s\S]*<h3>Offline<\/h3>[\s\S]*Zoe/);
  assert.match(html, /🇬🇧/);
  assert.match(html, /52.50 <small>avg/);
+ assert.equal(node("versusYourAverage").textContent,"53.25");
+ assert.equal(node("versusYourWins").textContent,3);
+ assert.equal(node("versusYourWinRate").textContent,"75%");
  assert.doesNotMatch(html, /Wins|<img|data-versus-player="(?:me|away)"/);
  buttons[0].select();
  assert.equal(ctx.selectedVersusPlayerKey,"other");

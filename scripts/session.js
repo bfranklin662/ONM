@@ -127,24 +127,34 @@ function updateAuthHeader(user) {
   const authBtn = document.getElementById("authNavBtn");
   if (!authBtn) return;
 
+  const loginUrl = `/auth.html?mode=login&redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+  const accountUrl = "/account.html";
+  const fallback = user || getOnmUser() ? accountUrl : loginUrl;
   authBtn.onclick = async event => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-
+    if (authBtn.classList.contains("isProfileLoading")) return;
     authBtn.classList.add("isProfileLoading");
 
+    let timer;
     try {
-      const current=window.ONMFirebase?.firebasePrimary?await window.ONMFirebase.currentFirebaseUser():user;
-      window.location.href=current?"account.html":"auth.html?mode=register";
+      const current = window.ONMFirebase?.firebasePrimary
+        ? await Promise.race([
+          window.ONMFirebase.currentFirebaseUser(),
+          new Promise(resolve => { timer = setTimeout(() => resolve(undefined), 1200); })
+        ])
+        : user;
+      window.location.href = current === undefined ? fallback : current ? accountUrl : loginUrl;
     } catch {
-      // A slow/offline verification is not evidence of being signed out.
-      window.location.href="account.html";
+      window.location.href = fallback;
     } finally {
+      clearTimeout(timer);
       authBtn.classList.remove("isProfileLoading");
     }
   };
 
   if (!user) {
-    authBtn.setAttribute("href", "auth.html?mode=register");
+    authBtn.setAttribute("href", fallback);
     authBtn.setAttribute("aria-label", "Sign up or sign in");
     authBtn.className = "authProfileBtn";
     authBtn.innerHTML = `<span class="authProfileInitial">👤</span>`;
@@ -152,7 +162,7 @@ function updateAuthHeader(user) {
   }
 
   const profileName = user.linkedPlayerName || user.firstName || "Profile";
-  authBtn.setAttribute("href", "account.html");
+  authBtn.setAttribute("href", accountUrl);
   authBtn.setAttribute("aria-label", "My account");
   const cachedImage = user.photoUrl || getCachedProfileImage(user);
 
@@ -175,18 +185,20 @@ async function loadHeaderProfileImage(authBtn, user, profileName) {
   if (!authBtn || !user) return;
   try {
     const imageUrl = await resolveLinkedPlayerImage(user);
+    const current = getOnmUser();
+    if (current?.uid !== user.uid) return;
     if (!imageUrl) {
       renderAuthInitial(authBtn, profileName);
       return;
     }
 
-    user.photoUrl = imageUrl;
-    localStorage.setItem("onmUser", JSON.stringify(user));
-    setCachedProfileImage(user, imageUrl);
-    updateAuthHeader(user);
+    const updatedUser = { ...current, photoUrl: imageUrl };
+    localStorage.setItem("onmUser", JSON.stringify(updatedUser));
+    setCachedProfileImage(updatedUser, imageUrl);
+    updateAuthHeader(updatedUser);
   } catch (err) {
     console.warn("Could not load header image", err);
-    renderAuthInitial(authBtn, profileName);
+    if (getOnmUser()?.uid === user.uid) renderAuthInitial(authBtn, profileName);
   }
 }
 

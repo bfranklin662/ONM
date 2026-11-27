@@ -242,6 +242,10 @@
   }
 
   async function initialise() {
+    const waiting = setTimeout(() => {
+      document.getElementById("accountLoadingMessage").textContent = "Your account is taking longer than usual to load.";
+      document.getElementById("accountLoadingActions").hidden = false;
+    }, 5000);
     try {
       user = await window.ONMFirebase.loadOwnUser();
       if (!user) {
@@ -263,7 +267,9 @@
       app.classList.remove("hidden");
       linkedProfileLoading=loadLinkedPlayerProfile();
     } catch (error) {
-      loading.innerHTML = `<h2>Could not load your account</h2><p>${escapeHtml(error.message || "Please try again.")}</p><a class="btn btnGhost" href="index.html">Back to website</a>`;
+      loading.innerHTML = `<h2>Could not load your account</h2><p>${escapeHtml(error.message || "Please try again.")}</p><a class="btn btnGhost" href="/account.html">Retry</a> <a class="btn btnGhost" href="/auth.html?mode=login&amp;redirect=account.html">Sign in</a>`;
+    } finally {
+      clearTimeout(waiting);
     }
   }
 

@@ -6,7 +6,7 @@ function harness(current, fail = false) {
   const user = {uid:"member",userId:"member",firstName:"Member"};
   const storage = new Map([["onmUser",JSON.stringify(user)]]);
   let signOuts=0;
-  const context={window:{ONMFirebase:{firebasePrimary:true,currentFirebaseUser:async()=>{if(fail)throw Error("Offline");return current;},post:async()=>({success:true,user}),signOut:async()=>{signOuts++;}}},document:{getElementById:()=>null,addEventListener(){}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}};
+  const context={setTimeout,clearTimeout,window:{ONMFirebase:{firebasePrimary:true,currentFirebaseUser:async()=>{if(fail)throw Error("Offline");return current;},post:async()=>({success:true,user}),signOut:async()=>{signOuts++;}}},document:{getElementById:()=>null,addEventListener(){}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}};
   vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/session.js"),"utf8"),context);
   return {session:context.window.ONMSession,storage,context,signOuts:()=>signOuts};
 }
@@ -41,10 +41,27 @@ test("a freshly inactive account is not accepted as an active cached session",as
 test("auth and account loading are independent of optional photo/storage loading",()=>{
  const firebase=fs.readFileSync(require.resolve("../scripts/firebase-client.js"),"utf8"),account=fs.readFileSync(require.resolve("../scripts/account.js"),"utf8"),session=fs.readFileSync(require.resolve("../scripts/session.js"),"utf8");
  assert.match(firebase,/const authReady=Promise.all\(\[appReady,import\(`\$\{BASE\}\/firebase-auth.js`\)\]/);assert.match(firebase,/if\(ownUserRead&&ownUserUid===firebaseUser.uid\)return ownUserRead/);
- assert.match(account,/app.classList.remove\("hidden"\);\s*linkedProfileLoading=loadLinkedPlayerProfile\(\)/);assert.doesNotMatch(account,/await loadLinkedPlayerProfile/);assert.match(account,/!touchedFields.has\(field\)/);assert.match(session,/const current=window.ONMFirebase\?\.firebasePrimary\?await window.ONMFirebase.currentFirebaseUser\(\)/);
+ assert.match(account,/app.classList.remove\("hidden"\);\s*linkedProfileLoading=loadLinkedPlayerProfile\(\)/);assert.doesNotMatch(account,/await loadLinkedPlayerProfile/);assert.match(account,/!touchedFields.has\(field\)/);assert.match(session,/window.ONMFirebase.currentFirebaseUser\(\),\s*new Promise/);
 });
-test("clicking an unrestored header verifies Firebase instead of following the temporary sign-up link",async()=>{
- const g=harness({uid:"member"}),button={setAttribute(){},classList:{add(){},remove(){}}};g.context.document.getElementById=()=>button;g.context.window.location={href:""};g.session.updateHeader(null);await button.onclick({preventDefault(){}});assert.equal(g.context.window.location.href,"account.html");
+function headerButton(g) {
+ const button = { setAttribute(){}, classList:{ add(){}, remove(){}, contains(){return false;} } };
+ g.context.document.getElementById = () => button;
+ g.context.window.location = { href:"", pathname:"/dart-scorer.html", search:"?mode=versus" };
+ g.session.updateHeader(null);
+ return button;
+}
+test("clicking an unrestored header opens the verified account", async () => {
+ const g = harness({uid:"member"});
+ await headerButton(g).onclick({preventDefault(){}});
+ assert.equal(g.context.window.location.href,"/account.html");
+});
+test("the account button still opens sign-in when Firebase never answers and no account is cached", async () => {
+ const g = harness(null);
+ g.storage.clear();
+ g.context.window.ONMFirebase.currentFirebaseUser = () => new Promise(() => {});
+ g.context.setTimeout = callback => { callback(); return 1; };
+ await headerButton(g).onclick({preventDefault(){}});
+ assert.equal(g.context.window.location.href,"/auth.html?mode=login&redirect=%2Fdart-scorer.html%3Fmode%3Dversus");
 });
 test("simultaneous account readers share one fetch and discard it if the user signs out",async()=>{
  const source=fs.readFileSync(require.resolve("../scripts/firebase-client.js"),"utf8"),start=source.indexOf("  let ownUserRead="),end=source.indexOf("\n  async function register",start);

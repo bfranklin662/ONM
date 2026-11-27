@@ -7864,7 +7864,7 @@ document.getElementById("leaderboardPlayDockBtn")?.addEventListener("click", () 
     window.ONMSession?.getUser?.() || loggedInUser;
 
   if (!currentUser) {
-    window.location.href = "auth.html?mode=login&redirect=dart-scorer.html";
+    window.location.href = "auth.html?mode=login&redirect=dart-scorer.html%3Fmode%3Dversus";
     return;
   }
 
@@ -7983,17 +7983,38 @@ function formatStreak(streak) {
 function renderLeaderboard(players = []) {
   const rowsEl=document.getElementById("leaderboardRows");if(!rowsEl)return;
   const currentUser=window.ONMSession?.getUser?.()||loggedInUser,myKey=getCurrentPlayerKey();
-  const me=players.find(p=>p.playerKey===myKey)||null;currentLeagueProfile=me;
-  document.querySelector(".leagueHeroMeta")?.classList.add("hidden");
-  const result=document.getElementById("leagueLastResult"),opponent=document.getElementById("leagueLastOpponent"),rating=document.getElementById("leagueRatingChange"),stats=document.getElementById("openLastGameStatsBtn"),history=document.getElementById("openGameHistoryBtn");
-  if(rating)rating.textContent="";
-  if(result){result.textContent=me?.average?me.average+" three-dart average":currentUser?"Play a friend":"Play with friends";result.className="leagueResultText";}
-  if(opponent)opponent.textContent=me?.lastMatch?"Last game vs "+(me.lastMatch.opponentName||"Opponent"):"Friendly online darts · No rankings";
-  if(stats)stats.textContent=!currentUser?"Log in":me?.lastMatch?"Stats":"Play";
-  history?.classList.toggle("hidden",!currentUser||!me?.matchHistory?.length);
-  const connected = players.filter(player => player.status === "online" || player.status === "playing");
-  const offline = players.filter(player => player.status === "offline");
-  const unknown = players.some(player => player.status === "unknown");
+  const me = players.find(player => player.playerKey === myKey) || null;
+  currentLeagueProfile = me;
+  const summary = document.getElementById("versusYourStats");
+  const setSummaryText = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  };
+  summary?.classList.toggle("hidden", !currentUser);
+  if (currentUser) {
+    const photo = document.getElementById("versusYourPhoto");
+    const image = getPlayerPhotoField(me) || getPlayerPhotoField(currentUser);
+    const photoSrc = image || "graphics/logoWoText.png";
+    if (photo && photo.getAttribute("src") !== photoSrc) {
+      photo.onerror = () => {
+        photo.onerror = null;
+        photo.src = "graphics/logoWoText.png";
+      };
+      photo.src = photoSrc;
+    }
+    setSummaryText("versusYourName", getLoggedInFullName(currentUser));
+    setSummaryText("versusYourAverage", me?.average ?? "—");
+    setSummaryText("versusYourPlayed", me?.played ?? "—");
+    setSummaryText("versusYourWins", me?.wins ?? "—");
+    setSummaryText("versusYourLosses", me?.losses ?? "—");
+    setSummaryText("versusYourWinRate", me?.played ? `${Math.round(me.wins / me.played * 100)}%` : "—");
+  }
+  setSummaryText("openLastGameStatsBtn", !currentUser ? "Log in" : me?.lastMatch ? "Stats" : "Play");
+  document.getElementById("openGameHistoryBtn")?.classList.toggle("hidden", !currentUser || !me?.matchHistory?.length);
+  const opponents = players.filter(player => player.playerKey !== myKey);
+  const connected = opponents.filter(player => player.status === "online" || player.status === "playing");
+  const offline = opponents.filter(player => player.status === "offline");
+  const unknown = opponents.some(player => player.status === "unknown");
   const canSelect = player => currentUser && player.status === "online" && player.playerKey !== myKey;
   if (!players.some(player => canSelect(player) && player.playerKey === selectedVersusPlayerKey)) {
     selectedVersusPlayerKey = "";
@@ -8260,13 +8281,24 @@ async function loadLeaderboard() {
       ...profile, playerKey: profile.playerKey || key
     }));
     const roster = window.ONMVersusPlayers.inviteProfiles(linked.value, presenceByKey);
-    const rosterKeys = new Set(roster.map(player => player.playerKey));
+    const currentUser = window.ONMSession?.getUser?.() || loggedInUser;
+    const myKey = getCurrentPlayerKey();
+    const ownProfile = myKey ? [{
+      playerKey: myKey,
+      playerName: getLoggedInFullName(currentUser),
+      photo: getPlayerPhotoField(currentUser)
+    }] : [];
+    const rosterKeys = new Set([...roster, ...ownProfile].map(player => player.playerKey));
     if (presenceByKey === null) throw new Error("Could not load player availability.");
     const players = window.ONMVersusPlayers.players(
-      [...historical, ...roster],
+      [...historical, ...roster, ...ownProfile],
       matches.value?.docs.map(doc => doc.data()) || [],
       presenceByKey
     ).filter(player => rosterKeys.has(player.playerKey));
+    if (matches.status === "rejected") {
+      const me = players.find(player => player.playerKey === myKey);
+      if (me) Object.assign(me, { played: null, wins: null, losses: null });
+    }
     window.currentLeaderboardPlayers = players;
     renderLeaderboard(players);
   } catch (error) {
@@ -8287,7 +8319,7 @@ document.getElementById("openLastGameStatsBtn")?.addEventListener("click", event
   const buttonText = document.getElementById("openLastGameStatsBtn")?.textContent.trim();
 
   if (!user) {
-    window.location.href = "auth.html?mode=login&redirect=dart-scorer.html";
+    window.location.href = "auth.html?mode=login&redirect=dart-scorer.html%3Fmode%3Dversus";
     return;
   }
 
