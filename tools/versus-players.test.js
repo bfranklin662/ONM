@@ -17,7 +17,7 @@ const script=fs.readFileSync(require.resolve('../scripts/dart-scorer.js'),'utf8'
 test("lobby splits compact player cards, and only available opponents can be selected", () => {
  const part = script.slice(script.indexOf("function renderLeaderboard("), script.indexOf("async function loadExpandedPlayerStats("));
  const nodes = new Map();
- const invite = {dataset:{versusInvite:"other"}, hidden:true, addEventListener(_event, handler){this.send = handler;}};
+ const invite = {dataset:{versusInvite:"other"}, addEventListener(_event, handler){this.send = handler;}};
  const invited = [];
  const buttons = [{dataset:{versusPlayer:"other"}, addEventListener(_event, handler){this.select = handler;}, setAttribute(_name, value){this.selected = value;}}];
  const node = id => {
@@ -52,7 +52,7 @@ test("lobby splits compact player cards, and only available opponents can be sel
  buttons[0].select();
  assert.equal(ctx.selectedVersusPlayerKey,"other");
  assert.equal(buttons[0].selected,"true");
- assert.equal(invite.hidden,false);
+ assert.match(html, /data-versus-invite="other" aria-label="Invite Alex">Invite/);
  invite.send();
  assert.deepEqual(invited,["other"]);
  ctx.renderLeaderboard([{playerKey:"other",playerName:"Alex",status:"offline"}]);

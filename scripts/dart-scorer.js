@@ -8050,7 +8050,7 @@ function renderLeaderboard(players = []) {
     const selected = player.playerKey === selectedVersusPlayerKey;
     return `<div class="versusCandidate">
       <button type="button" class="versusPlayer" data-versus-player="${key}" aria-pressed="${selected}">${content}</button>
-      <button type="button" class="versusInlineInvite" data-versus-invite="${key}"${selected ? "" : " hidden"}>Invite</button>
+      <button type="button" class="versusInlineInvite" data-versus-invite="${key}" aria-label="Invite ${name}">Invite</button>
     </div>`;
   }
 
@@ -8067,9 +8067,6 @@ function renderLeaderboard(players = []) {
       selectedVersusPlayerKey = button.dataset.versusPlayer === selectedVersusPlayerKey ? "" : button.dataset.versusPlayer;
       rowsEl.querySelectorAll("[data-versus-player]").forEach(cardButton => {
         cardButton.setAttribute("aria-pressed", String(cardButton.dataset.versusPlayer === selectedVersusPlayerKey));
-      });
-      inviteButtons.forEach(invite => {
-        invite.hidden = invite.dataset.versusInvite !== selectedVersusPlayerKey;
       });
     });
   });
