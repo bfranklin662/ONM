@@ -23,6 +23,18 @@
     return [...profiles.values()];
   }
 
+  function withProfilePhotos(players, profiles, drivePhotos = {}, photoKey = name => name) {
+    const byKey = new Map(Object.entries(profiles).filter(([, profile]) => profile.playerKey)
+      .map(([name, profile]) => [profile.playerKey, { name, photo: profile.photo }]));
+    return players.map(player => {
+      const profile = byKey.get(keyOf(player));
+      const accountPhoto = clean(player.photoUrl || player.photo);
+      const usableAccountPhoto = /^\/?images\/players\//i.test(accountPhoto) ? "" : accountPhoto;
+      const photo = profile?.photo || usableAccountPhoto || (profile && drivePhotos[photoKey(profile.name)]) || "";
+      return { ...player, photo, photoUrl: photo };
+    });
+  }
+
   function matchTime(match) {
     const recordedTime = Date.parse(match.dateTime || "");
     if (Number.isFinite(recordedTime)) return recordedTime;
@@ -91,7 +103,7 @@
       a.playerName.localeCompare(b.playerName, "en", { sensitivity: "base" }));
   }
 
-  const api = { players, inviteProfiles, statusOf };
+  const api = { players, inviteProfiles, statusOf, withProfilePhotos };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.ONMVersusPlayers = api;
 })(typeof window !== "undefined" ? window : globalThis);

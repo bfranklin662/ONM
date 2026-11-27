@@ -1885,6 +1885,19 @@ function getVersusAccountDirectory() {
   return versusDirectoryCache;
 }
 
+async function loadVersusProfilePhotos(players) {
+  const playerData = window.PlayerData;
+  if (!playerData?.fetchPublicPlayerProfiles) return players;
+  const profiles = await playerData.fetchPublicPlayerProfiles();
+  const enrich = window.ONMVersusPlayers.withProfilePhotos;
+  const resolved = enrich(players, profiles);
+  const linkedKeys = new Set(Object.values(profiles).map(profile => profile.playerKey).filter(Boolean));
+  if (!playerData.fetchPlayerPhotosFromDrive ||
+      !resolved.some(player => !player.photo && linkedKeys.has(getPlayerKey(player)))) return resolved;
+  const drivePhotos = await playerData.fetchPlayerPhotosFromDrive().catch(() => ({}));
+  return enrich(resolved, profiles, drivePhotos, playerData.photoKey);
+}
+
 async function getVersusLinkedPlayers() {
   const result = await postDartMatch({ action: "getLinkedPlayers" });
   if (!result.success) throw new Error("Could not load linked players.");
@@ -2005,7 +2018,7 @@ async function openOpponentModal(playerKey = "") {
     const currentUser = window.ONMSession?.getUser?.() || loggedInUser;
     const currentPlayerKey = getCurrentPlayerKey();
 
-    const allPlayers = window.ONMVersusPlayers.inviteProfiles(linked, presence, accounts);
+    const allPlayers = await loadVersusProfilePhotos(window.ONMVersusPlayers.inviteProfiles(linked, presence, accounts));
     const currentPlayerProfile =
       allPlayers.find(player => getPlayerKey(player) === currentPlayerKey) || {};
 
@@ -2020,27 +2033,9 @@ async function openOpponentModal(playerKey = "") {
       return;
     }
 
-    let drivePhotos = {};
-
-    try {
-      if (!selectedKey && window.PlayerData?.fetchPlayerPhotosFromDrive) {
-        drivePhotos = await window.PlayerData.fetchPlayerPhotosFromDrive();
-      }
-    } catch (err) {
-      console.warn("Could not load player photos", err);
-    }
-
     const playerRows = players.map(player => {
       const fullName = getLinkedPlayerFullName(player);
-
-      const photoKey = window.PlayerData?.photoKey
-        ? window.PlayerData.photoKey(fullName)
-        : player.playerKey;
-
-      const imageUrl =
-        getPlayerPhotoField(player) ||
-        drivePhotos[photoKey] ||
-        "graphics/logoWoText.png";
+      const imageUrl = getPlayerPhotoField(player) || "graphics/logoWoText.png";
 
       const status = window.ONMVersusPlayers.statusOf(presence[getPlayerKey(player)]);
 
@@ -2111,24 +2106,8 @@ async function openOpponentModal(playerKey = "") {
           const opponentFullName = getLinkedPlayerFullName(player);
           const hostFullName = getLoggedInFullName(currentUser);
 
-          const opponentPhotoKey = window.PlayerData?.photoKey
-            ? window.PlayerData.photoKey(opponentFullName)
-            : "";
-
-          const hostPhotoKey = window.PlayerData?.photoKey
-            ? window.PlayerData.photoKey(hostFullName)
-            : "";
-
-          const opponentPhoto =
-            getPlayerPhotoField(player) ||
-            drivePhotos[opponentPhotoKey] ||
-            "";
-
-          const hostPhoto =
-            getPlayerPhotoField(currentUser) ||
-            getPlayerPhotoField(currentPlayerProfile) ||
-            drivePhotos[hostPhotoKey] ||
-            "";
+          const opponentPhoto = getPlayerPhotoField(player);
+          const hostPhoto = getPlayerPhotoField(currentPlayerProfile) || getPlayerPhotoField(currentUser);
 
           const opponentKey = getPlayerKey(player);
           const hostKey = getCurrentPlayerKey();
@@ -8204,6 +8183,11 @@ function renderLeaderboard(players = []) {
     ? '<div class="versusEmpty">Player availability couldn’t be loaded. Please try Refresh.</div>'
     : section("Online", connected, "No players online.") + section("Offline", offline, "No offline players.");
 
+  [rowsEl, board].forEach(container => {
+    container?.querySelectorAll("img.versusAvatar").forEach(photo => {
+      photo.addEventListener("error", () => { photo.src = "graphics/logoWoText.png"; }, { once: true });
+    });
+  });
   const dock = document.getElementById("versusInviteDock");
   const invite = document.getElementById("versusInviteSelected");
   const challengeStatus = document.getElementById("versusChallengeStatus");
@@ -8483,8 +8467,9 @@ async function loadLeaderboard() {
     }] : [];
     const rosterKeys = new Set([...roster, ...ownProfile].map(player => player.playerKey));
     if (presenceByKey === null) throw new Error("Could not load player availability.");
+    const currentProfiles = await loadVersusProfilePhotos([...ownProfile, ...roster]);
     const players = window.ONMVersusPlayers.players(
-      [...historical, ...roster, ...ownProfile],
+      [...historical, ...currentProfiles],
       matches.value?.docs.map(doc => doc.data()) || [],
       presenceByKey
     ).filter(player => rosterKeys.has(player.playerKey));

@@ -163,3 +163,17 @@ test("nationality options, including English and British aliases, resolve to fla
  assert.equal(ctx.countryToFlag("British"),"🇬🇧");
  assert.equal(ctx.countryToFlag("not a country"),"");
 });
+
+test("Versus photos use the linked club profile key and preserve unlinked account photos", () => {
+ const rows = E.withProfilePhotos([
+  {playerKey:"nick-h", playerName:"Nick", photo:"images/players/old.jpg"},
+  {playerKey:"nick-b", playerName:"Nick"},
+  {playerKey:"GuestUid", playerName:"Nick", photoUrl:"https://example.com/guest.jpg"}
+ ], {
+  "Nick Horne":{playerKey:"nick-h",photo:"https://example.com/current.jpg"},
+  "Nick Brown":{playerKey:"nick-b",photo:""}
+ }, {"Nick Brown":"https://example.com/brown.jpg"});
+ assert.deepEqual(rows.map(row => row.photo), [
+  "https://example.com/current.jpg","https://example.com/brown.jpg","https://example.com/guest.jpg"
+ ]);
+});
