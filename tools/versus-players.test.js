@@ -14,7 +14,7 @@ test('local, bot and invalid-dart games do not contaminate friendly averages',()
  const rows=E.players([{playerKey:'a',gamesPlayed:2,playerName:'Alex'}],[]);assert.equal(rows[0].average,null);
 });
 const script=fs.readFileSync(require.resolve('../scripts/dart-scorer.js'),'utf8');
-test("lobby splits compact player cards, and only available opponents can be selected", () => {
+test("lobby splits compact player cards, and offline opponents can be selected but cannot be invited", () => {
  const part = script.slice(script.indexOf("function renderLeaderboard("), script.indexOf("async function loadExpandedPlayerStats("));
  const nodes = new Map();
  const invite = {dataset:{versusInvite:"other"}, addEventListener(_event, handler){this.send = handler;}};
@@ -48,7 +48,7 @@ test("lobby splits compact player cards, and only available opponents can be sel
  assert.match(board, /2 wins in a row/);
  assert.doesNotMatch(board, /Losses|Win rate/);
  assert.match(html, /class="versusAvatar" src="images\/alex.jpg"/);
- assert.doesNotMatch(html, /Wins|data-versus-player="(?:me|away)"/);
+ assert.doesNotMatch(html, /Wins|data-versus-player="me"/);
  buttons[0].select();
  assert.equal(ctx.selectedVersusPlayerKey,"other");
  assert.equal(buttons[0].selected,"true");
@@ -56,7 +56,8 @@ test("lobby splits compact player cards, and only available opponents can be sel
  invite.send();
  assert.deepEqual(invited,["other"]);
  ctx.renderLeaderboard([{playerKey:"other",playerName:"Alex",status:"offline"}]);
- assert.equal(ctx.selectedVersusPlayerKey,"");
+ assert.equal(ctx.selectedVersusPlayerKey,"other");
+ assert.match(node("leaderboardRows").innerHTML, /data-versus-invite="other" aria-label="Invite Alex" disabled/);
 });
 test('friendly matches continue saving averages but do not calculate Elo or increase ranked wins',()=>{
  const completion=script.slice(script.indexOf('if (newLegs >= legsToWin)'),script.indexOf('async function',script.indexOf('if (newLegs >= legsToWin)')));

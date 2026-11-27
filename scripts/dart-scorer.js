@@ -8032,7 +8032,7 @@ function renderLeaderboard(players = []) {
   const connected = opponents.filter(player => player.status === "online" || player.status === "playing");
   const offline = opponents.filter(player => player.status === "offline");
   const unknown = opponents.some(player => player.status === "unknown");
-  const canSelect = player => currentUser && player.status === "online" && player.playerKey !== myKey;
+  const canSelect = player => currentUser && player.playerKey !== myKey;
   if (!players.some(player => canSelect(player) && player.playerKey === selectedVersusPlayerKey)) {
     selectedVersusPlayerKey = "";
   }
@@ -8048,9 +8048,10 @@ function renderLeaderboard(players = []) {
     if (!canSelect(player)) return `<div class="versusPlayer">${content}</div>`;
     const key = escapeHtml(player.playerKey);
     const selected = player.playerKey === selectedVersusPlayerKey;
+    const canInvite = player.status === "online";
     return `<div class="versusCandidate">
       <button type="button" class="versusPlayer" data-versus-player="${key}" aria-pressed="${selected}">${content}</button>
-      <button type="button" class="versusInlineInvite" data-versus-invite="${key}" aria-label="Invite ${name}">Invite</button>
+      <button type="button" class="versusInlineInvite" data-versus-invite="${key}" aria-label="Invite ${name}"${canInvite ? "" : " disabled"}>Invite</button>
     </div>`;
   }
 
@@ -8071,7 +8072,9 @@ function renderLeaderboard(players = []) {
     });
   });
   inviteButtons.forEach(button => {
-    button.addEventListener("click", () => openCompetitiveInviteFlow(button.dataset.versusInvite));
+    button.addEventListener("click", () => {
+      if (!button.disabled) openCompetitiveInviteFlow(button.dataset.versusInvite);
+    });
   });
 }
 
