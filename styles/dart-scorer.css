@@ -2492,12 +2492,28 @@ body.scorer-fullscreen .startDeciderScreen {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
+#onlineTurnOverlay .onlineTurnBox {
+  gap: 8px;
+  max-width: calc(100% - 16px);
+  padding: 5px 8px 5px 12px;
+  border-color: #416d53;
+  border-radius: 12px;
+  font-size: 13px;
+  text-transform: none;
+}
+
 .onlineEditScoreBtn {
-  width: 38px;
-  min-height: 38px;
-  padding: 0;
-  font-size: 18px;
+  min-height: 34px;
+  padding: 5px 9px;
+  font-size: 13px;
   white-space: nowrap;
+}
+
+#onlineNoticeOverlay .modalCard,
+#editOnlineScoreOverlay .modalCard,
+#quitConfirmOverlay .modalCard {
+  background: #102a1f;
+  border-color: #416d53;
 }
 
 .onlineScoreEditToast {

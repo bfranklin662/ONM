@@ -3,12 +3,14 @@
 
   const clean = value => String(value ?? "").trim();
   const keyOf = profile => clean(profile.linkedPlayerKey || profile.playerKey || profile.userId);
-  const statusOrder = { online: 0, playing: 1, offline: 2, unknown: 3 };
+  const statusOrder = { online: 0, playing: 1, "monster-bot": 2, offline: 3, unknown: 4 };
 
   function statusOf(presence, now = Date.now()) {
-    if (presence?.online === false || presence?.status === "offline") return "offline";
-    if (presence?.status === "playing" &&
+    const offline = presence?.online === false || presence?.status === "offline";
+    if (!offline && presence?.status === "playing" &&
         (!presence.updatedAt || now - Number(presence.updatedAt) <= 5 * 60 * 1000)) return "playing";
+    if (Object.values(presence?.botGames || {}).some(Boolean)) return "monster-bot";
+    if (offline) return "offline";
     return presence?.online === true || presence?.status === "online" ? "online" : "offline";
   }
 

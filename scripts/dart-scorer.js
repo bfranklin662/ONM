@@ -1691,6 +1691,7 @@ function openMolVictoryScreen(matchData) {
   populateMolVictoryStats(matchData);
 
   els.molVictoryRematchBtn.textContent = "Rematch";
+  els.molVictoryRematchBtn.hidden = false;
   els.molVictoryRematchBtn.disabled = false;
   els.molVictoryRematchBtn.classList.remove("active");
   els.molVictoryCloseBtn.disabled = false;
@@ -2793,6 +2794,9 @@ els.confirmQuitBtn.addEventListener("click", async () => {
     if (window.innerWidth < 500) {
       exitScorerFullscreen();
     }
+  } catch (err) {
+    console.warn("Could not quit match:", err);
+    showOnlineNotice("Could not leave the match. Please try again.");
   } finally {
     els.confirmQuitBtn.disabled = false;
   }
@@ -2804,6 +2808,13 @@ function openQuitConfirm() {
     els.quitConfirmOverlay.querySelector(".modalBody > p").textContent = tournamentMatch.starter == null
       ? "You can start this match from the lobby when you’re ready."
       : "This match stays in play. You can resume scoring from the tournament lobby.";
+  }
+
+  if (!tournamentMatch) {
+    const forfeiting = MATCH_MODE === "online" && window.currentOnlineMatch?.status === "playing";
+    els.quitConfirmOverlay.querySelector(".modalBody > p").textContent = forfeiting
+      ? "Leaving now forfeits the match. Your opponent will get the win."
+      : "Are you sure you want to quit this match?";
   }
 
   els.quitConfirmOverlay.classList.remove("hidden");
@@ -4093,7 +4104,7 @@ function buildDartMatchPayloadFromOnlineMatch(match, winnerKey) {
   });
 
   return {
-    matchId: match.matchId,
+    matchId: match.resultId || match.matchId,
     dateTime: new Date().toISOString(),
     startScore: match.settings?.startScore || STARTING_SCORE,
     gameType: match.settings?.gameType || GAME_TYPE,
@@ -4101,6 +4112,7 @@ function buildDartMatchPayloadFromOnlineMatch(match, winnerKey) {
     legsToWin: LEGS_TO_WIN,
     inMode: match.settings?.inMode || IN_MODE,
     matchMode: "online",
+    ...(match.forfeitByKey ? { forfeitByKey: match.forfeitByKey } : {}),
 
     playerOneName: p1.name,
     playerOneId: p1Key,
@@ -4181,7 +4193,7 @@ function buildRatingHistoryEntry({
   const legsCount = Number(match.settings?.legsCount || els.legsCount.textContent || 3);
 
   return {
-    matchId: match.matchId || `MOL-${completedAt}`,
+    matchId: match.resultId || match.matchId || `MOL-${completedAt}`,
     completedAt,
     opponentKey,
     opponentName: opponentData.name || "Opponent",
@@ -4197,8 +4209,10 @@ function buildRatingHistoryEntry({
 }
 
 async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWon, dartsUsed, doublesAttempted, bullOut, checkoutPhoto = null }) {
-  const { db, ref, update } = window.ONMLiveDarts;
-  let ratingUpdates = null;
+  const { db, ref, update, runTransaction } = window.ONMLiveDarts;
+  const matchId = onlineMatchId;
+  const matchRef = ref(db, `onlineMatches/${matchId}`);
+  let saveRatingHistory;
 
   const keys = onlinePlayerKeys(match);
   const opponentKey = keys.find(key => key !== myKey);
@@ -4340,12 +4354,6 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
     if (newLegs >= legsToWin) {
       const opponent = match.game.players[opponentKey];
 
-      const winnerProfile = await getFirebasePlayerRating(myKey, player.name || "");
-      const loserProfile = await getFirebasePlayerRating(opponentKey, opponent.name || "");
-
-      // Friendly games preserve historical ratings; no Elo or league points.
-      const elo = {winnerNewRating:winnerProfile.rating,loserNewRating:loserProfile.rating,winnerChange:0,loserChange:0};
-
       updates.status = "complete";
       updates.winnerKey = myKey;
       updates.winnerName = player.name || "";
@@ -4354,97 +4362,103 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       updates.completedAt = Date.now();
       updates.sheetSaved = false;
 
-      updates[`game/players/${myKey}/rating`] = elo.winnerNewRating;
-      updates[`game/players/${opponentKey}/rating`] = elo.loserNewRating;
-
       updates.friendly = true;
 
-      const winnerStreak = Number(winnerProfile.streak || 0);
-      const completedAt = Date.now();
-      const winnerStatsPlayer = {
-        ...player,
-        score: STARTING_SCORE,
-        legs: newLegs,
-        lastScore: visitScore,
-        dartsThrown: currentDarts + dartsUsed,
-        currentLegDarts: 0,
-        totalScored: currentTotal + visitScore,
-        highScore: Math.max(currentHighScore, visitScore),
-        checkoutHits: (player.checkoutHits || 0) + 1,
-        checkoutAttempts: (player.checkoutAttempts || 0) + Math.max(1, doublesAttempted),
-        highestOut: Math.max(player.highestOut || 0, previousScore),
-        legDarts: [...previousLegDarts, finishedLegDarts],
-        tonPlusOuts,
-        tonPlusIncomplete,
-        oneEightys: (player.oneEightys || 0) + (visitScore === 180 ? 1 : 0),
-        bullOuts: (player.bullOuts || 0) + (bullOut ? 1 : 0),
-        firstNineScored: currentFirstNineScored + firstNineScore,
-        firstNineDarts: currentFirstNineDarts + firstNineDartsUsed
-      };
-      const loserStatsPlayer = {
-        ...opponent,
-        score: STARTING_SCORE
-      };
-      const winnerHistoryEntry = buildRatingHistoryEntry({
-        match,
-        playerKey: myKey,
-        opponentKey,
-        playerData: winnerStatsPlayer,
-        opponentData: loserStatsPlayer,
-        playerLegs: newLegs,
-        opponentLegs: opponent.legs || 0,
-        won: true,
-        ratingChange: elo.winnerChange,
-        newRating: elo.winnerNewRating,
-        completedAt
-      });
-      const loserHistoryEntry = buildRatingHistoryEntry({
-        match,
-        playerKey: opponentKey,
-        opponentKey: myKey,
-        playerData: loserStatsPlayer,
-        opponentData: winnerStatsPlayer,
-        playerLegs: opponent.legs || 0,
-        opponentLegs: newLegs,
-        won: false,
-        ratingChange: -elo.loserChange,
-        newRating: elo.loserNewRating,
-        completedAt
-      });
+      saveRatingHistory = async () => {
+        const winnerProfile = await getFirebasePlayerRating(myKey, player.name || "");
+        const loserProfile = await getFirebasePlayerRating(opponentKey, opponent.name || "");
 
-      ratingUpdates = {
-        [`ratings/${myKey}`]: {
+        // Friendly games preserve historical ratings; no Elo or league points.
+        const elo = {winnerNewRating:winnerProfile.rating,loserNewRating:loserProfile.rating,winnerChange:0,loserChange:0};
+
+        const winnerStreak = Number(winnerProfile.streak || 0);
+        const completedAt = Date.now();
+        const winnerStatsPlayer = {
+          ...player,
+          score: STARTING_SCORE,
+          legs: newLegs,
+          lastScore: visitScore,
+          dartsThrown: currentDarts + dartsUsed,
+          currentLegDarts: 0,
+          totalScored: currentTotal + visitScore,
+          highScore: Math.max(currentHighScore, visitScore),
+          checkoutHits: (player.checkoutHits || 0) + 1,
+          checkoutAttempts: (player.checkoutAttempts || 0) + Math.max(1, doublesAttempted),
+          highestOut: Math.max(player.highestOut || 0, previousScore),
+          legDarts: [...previousLegDarts, finishedLegDarts],
+          tonPlusOuts,
+          tonPlusIncomplete,
+          oneEightys: (player.oneEightys || 0) + (visitScore === 180 ? 1 : 0),
+          bullOuts: (player.bullOuts || 0) + (bullOut ? 1 : 0),
+          firstNineScored: currentFirstNineScored + firstNineScore,
+          firstNineDarts: currentFirstNineDarts + firstNineDartsUsed
+        };
+        const loserStatsPlayer = {
+          ...opponent,
+          score: STARTING_SCORE
+        };
+        const winnerHistoryEntry = buildRatingHistoryEntry({
+          match,
           playerKey: myKey,
-          playerName: player.name || winnerProfile.playerName || "",
-          photo: myKey === match.hostPlayerKey ? match.hostPhoto || "" : match.guestPhoto || "",
-          nationality: myKey === match.hostPlayerKey ? match.hostNationality || "" : match.guestNationality || "",
-          rating: elo.winnerNewRating,
-          gamesPlayed: winnerProfile.gamesPlayed + 1,
-          wins: winnerProfile.wins,
-          streak: winnerStreak,
-          updatedAt: Date.now(),
-          lastResult: `${newLegs}-${opponent.legs || 0} Victory!`,
-          lastRatingChange: "",
-          lastMatch: winnerHistoryEntry,
-          matchHistory: [winnerHistoryEntry, ...(winnerProfile.matchHistory || [])].slice(0, 30),
-          form: winnerProfile.form || [],
-        },
-        [`ratings/${opponentKey}`]: {
+          opponentKey,
+          playerData: winnerStatsPlayer,
+          opponentData: loserStatsPlayer,
+          playerLegs: newLegs,
+          opponentLegs: opponent.legs || 0,
+          won: true,
+          ratingChange: elo.winnerChange,
+          newRating: elo.winnerNewRating,
+          completedAt
+        });
+        const loserHistoryEntry = buildRatingHistoryEntry({
+          match,
           playerKey: opponentKey,
-          playerName: opponent.name || loserProfile.playerName || "",
-          photo: opponentKey === match.hostPlayerKey ? match.hostPhoto || "" : match.guestPhoto || "",
-          nationality: opponentKey === match.hostPlayerKey ? match.hostNationality || "" : match.guestNationality || "",
-          rating: elo.loserNewRating,
-          gamesPlayed: loserProfile.gamesPlayed + 1,
-          wins: loserProfile.wins,
-          streak: loserProfile.streak || 0,
-          updatedAt: Date.now(),
-          lastResult: `${opponent.legs || 0}-${newLegs} Defeat!`,
-          lastRatingChange: "",
-          lastMatch: loserHistoryEntry,
-          matchHistory: [loserHistoryEntry, ...(loserProfile.matchHistory || [])].slice(0, 30),
-          form: loserProfile.form || [],
-        }
+          opponentKey: myKey,
+          playerData: loserStatsPlayer,
+          opponentData: winnerStatsPlayer,
+          playerLegs: opponent.legs || 0,
+          opponentLegs: newLegs,
+          won: false,
+          ratingChange: -elo.loserChange,
+          newRating: elo.loserNewRating,
+          completedAt
+        });
+
+        const ratingUpdates = {
+          [`ratings/${myKey}`]: {
+            playerKey: myKey,
+            playerName: player.name || winnerProfile.playerName || "",
+            photo: myKey === match.hostPlayerKey ? match.hostPhoto || "" : match.guestPhoto || "",
+            nationality: myKey === match.hostPlayerKey ? match.hostNationality || "" : match.guestNationality || "",
+            rating: elo.winnerNewRating,
+            gamesPlayed: winnerProfile.gamesPlayed + 1,
+            wins: winnerProfile.wins,
+            streak: winnerStreak,
+            updatedAt: Date.now(),
+            lastResult: `${newLegs}-${opponent.legs || 0} Victory!`,
+            lastRatingChange: "",
+            lastMatch: winnerHistoryEntry,
+            matchHistory: [winnerHistoryEntry, ...(winnerProfile.matchHistory || [])].slice(0, 30),
+            form: winnerProfile.form || [],
+          },
+          [`ratings/${opponentKey}`]: {
+            playerKey: opponentKey,
+            playerName: opponent.name || loserProfile.playerName || "",
+            photo: opponentKey === match.hostPlayerKey ? match.hostPhoto || "" : match.guestPhoto || "",
+            nationality: opponentKey === match.hostPlayerKey ? match.hostNationality || "" : match.guestNationality || "",
+            rating: elo.loserNewRating,
+            gamesPlayed: loserProfile.gamesPlayed + 1,
+            wins: loserProfile.wins,
+            streak: loserProfile.streak || 0,
+            updatedAt: Date.now(),
+            lastResult: `${opponent.legs || 0}-${newLegs} Defeat!`,
+            lastRatingChange: "",
+            lastMatch: loserHistoryEntry,
+            matchHistory: [loserHistoryEntry, ...(loserProfile.matchHistory || [])].slice(0, 30),
+            form: loserProfile.form || [],
+          }
+        };
+        await update(ref(db), ratingUpdates);
       };
     }
 
@@ -4457,13 +4471,34 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       (player.checkoutAttempts || 0) + doublesAttempted;
   }
 
-  await update(ref(db, `onlineMatches/${onlineMatchId}`), updates);
+  const submission = await runTransaction(matchRef, live => {
+    const livePlayer = live?.game?.players?.[myKey];
+    if (live?.status !== "playing" || live.matchId !== match.matchId || live.resultId !== match.resultId ||
+        live.game.currentPlayerKey !== myKey || livePlayer?.score !== previousScore ||
+        (livePlayer.dartsThrown || 0) !== currentDarts ||
+        live.game.lastCallout?.id !== match.game.lastCallout?.id) return;
+
+    for (const [path, value] of Object.entries(updates)) {
+      const keys = path.split("/");
+      const field = keys.pop();
+      const parent = keys.reduce((node, key) => (node[key] ??= {}), live);
+      if (value === null) delete parent[field];
+      else parent[field] = value;
+    }
+    return live;
+  }, { applyLocally: false });
+  if (!submission.committed) throw new Error("The match changed before the score could be submitted.");
+
+  if (updates.status === "complete") {
+    void saveCompletedOnlineMatch(matchRef);
+    saveRatingHistory?.().catch(err => console.warn("Could not save match history:", err));
+  }
 
   if (legWon && checkoutPhoto?.imageData) {
     const photoId = `photo-${calloutId}`;
 
     try {
-      await update(ref(db, `onlineMatches/${onlineMatchId}`), {
+      await update(matchRef, {
         "game/checkoutPhoto": {
           id: photoId,
           byKey: myKey,
@@ -4478,7 +4513,7 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       });
 
       setTimeout(() => {
-        clearCheckoutPhotoFromMatch(photoId);
+        clearCheckoutPhotoFromMatch(photoId, matchId);
       }, 45000);
     } catch (err) {
       console.warn("Checkout submitted, but photo could not be sent:", err);
@@ -4486,42 +4521,28 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
     }
   }
 
-  if (ratingUpdates) {
-    await update(ref(db), ratingUpdates);
-  }
-
-  if (updates.status === "complete") {
-    try {
-      const finalMatchSnap = await window.ONMLiveDarts.get(ref(db, `onlineMatches/${onlineMatchId}`));
-      const finalMatch = finalMatchSnap.val();
-
-      if (!finalMatch.sheetSaved) {
-        const saveResult = await postDartMatch({
-          action: "saveDartMatch",
-          match: buildDartMatchPayloadFromOnlineMatch(finalMatch, myKey)
-        });
-
-        if (saveResult.success) {
-          await update(ref(db, `onlineMatches/${onlineMatchId}`), {
-            sheetSaved: true,
-            sheetSavedAt: Date.now(),
-            status: "closed"
-          });
-
-          setTimeout(async () => {
-            await window.ONMLiveDarts.remove(
-              ref(db, `onlineMatches/${onlineMatchId}`)
-            );
-          }, 3000);
-        }
-      }
-    } catch (err) {
-      console.warn("Checkout submitted, but match save/cleanup failed:", err);
-    }
-  }
-
   els.input.value = "";
   syncCheckoutPhotoButton();
+}
+
+async function saveCompletedOnlineMatch(matchRef) {
+  const { get } = window.ONMLiveDarts;
+  try {
+    const match = (await get(matchRef)).val();
+    if (match?.status !== "complete" || match.sheetSaved) return;
+    const result = await postDartMatch({
+      action: "saveDartMatch",
+      match: buildDartMatchPayloadFromOnlineMatch(match, match.winnerKey)
+    });
+    if (!result.success) throw new Error(result.error || "Match result could not be saved.");
+    const { runTransaction } = window.ONMLiveDarts;
+    await runTransaction(matchRef, current => {
+      if (current?.status !== "complete" || current.resultId !== match.resultId) return;
+      return { ...current, sheetSaved: true, sheetSavedAt: Date.now() };
+    }, { applyLocally: false });
+  } catch (err) {
+    console.warn("Could not save online match result:", err);
+  }
 }
 
 function setTogglePosition(toggleEl, activeBtn) {
@@ -4957,6 +4978,7 @@ function formatMatchDate(date) {
 }
 
 function getPlayerStats(player) {
+  const legDarts = Object.values(player.legDarts || {});
   const average = player.dartsThrown
     ? ((player.totalScored / player.dartsThrown) * 3).toFixed(2)
     : "0.00";
@@ -4976,8 +4998,8 @@ function getPlayerStats(player) {
     checkoutRate,
     highestOut: player.highestOut || "-",
     highScore: player.highScore || "-",
-    bestLeg: player.legDarts.length ? `${Math.min(...player.legDarts)} darts` : "-",
-    worstLeg: player.legDarts.length ? `${Math.max(...player.legDarts)} darts` : "-",
+    bestLeg: legDarts.length ? `${Math.min(...legDarts)} darts` : "-",
+    worstLeg: legDarts.length ? `${Math.max(...legDarts)} darts` : "-",
     oneEightys: player.oneEightys || 0,
     bullOuts: player.bullOuts || 0,
   };
@@ -5283,13 +5305,17 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
 
   if (promptData.online && onlineMatchId) {
     const { db, ref, get } = window.ONMLiveDarts;
-    const matchSnap = await get(ref(db, `onlineMatches/${onlineMatchId}`));
-    if (!matchSnap.exists()) return;
-
     try {
+      const match = (await get(ref(db, `onlineMatches/${onlineMatchId}`))).val();
+      const myKey = getCurrentPlayerKey();
+      if (match?.status !== "playing" || match.game?.currentPlayerKey !== myKey ||
+          match.game?.players?.[myKey]?.score !== promptData.previousScore) {
+        showOnlineNotice("The match changed before the checkout could be submitted.");
+        return;
+      }
       await applyOnlineVisit({
-        match: matchSnap.val(),
-        myKey: getCurrentPlayerKey(),
+        match,
+        myKey,
         visitScore: promptData.visitScore,
         previousScore: promptData.previousScore,
         legWon: promptData.legWon,
@@ -6635,7 +6661,7 @@ function listenToOnlineMatch(matchId) {
   const matchRef = ref(db, `onlineMatches/${matchId}`);
 
   onValue(matchRef, snapshot => {
-    if (!snapshot.exists()) return;
+    if (!snapshot.exists() || onlineMatchId !== matchId) return;
 
     const match = snapshot.val();
     window.currentOnlineMatch = match;
@@ -6701,6 +6727,11 @@ function listenToOnlineMatch(matchId) {
     }
 
     if (match.status === "complete") {
+      if (match.forfeitByKey) {
+        if (match.forfeitByKey === myKey) return;
+        stopOnlineHeartbeat();
+        stopOnlineDisconnectWatch();
+      }
       applyOnlineGame(match);
 
       const keys = onlinePlayerKeys(match);
@@ -6710,14 +6741,20 @@ function listenToOnlineMatch(matchId) {
       els.keypad.classList.add("disabled");
       els.onlineTurnOverlay?.classList.add("hidden");
 
-      if (molVictoryShownForMatchId !== match.matchId) {
-        molVictoryShownForMatchId = match.matchId;
+      const resultId = match.resultId || match.matchId;
+      if (molVictoryShownForMatchId !== resultId) {
+        molVictoryShownForMatchId = resultId;
 
         setTimeout(() => {
+          if (onlineMatchId !== matchId) return;
           openMolVictoryScreen(buildMatchStatsData());
           applyMolRematchState(match);
+          if (match.forfeitByKey) {
+            if (els.molVictoryRematchBtn) els.molVictoryRematchBtn.hidden = true;
+            showOnlineNotice("Your opponent forfeited. You won the match.");
+          }
         }, 700);
-      } else {
+      } else if (!match.forfeitByKey) {
         applyMolRematchState(match);
       }
 
@@ -6861,6 +6898,10 @@ async function startOnlineRematch(match) {
     status: "readyLobby",
     rematchStartedAt: Date.now(),
     rematchStartedForCompletedAt: match.completedAt || Date.now(),
+    resultId: `${matchId}-${match.completedAt}`,
+    sheetSaved: false,
+    sheetSavedAt: null,
+    forfeitByKey: null,
 
     winnerKey: null,
     winnerName: null,
@@ -7061,8 +7102,41 @@ async function leaveOnlineMatch(reason = "left", { keepLeagueMode = PAGE_MODE ==
   hideOpponentMissingOverlay();
   if (!onlineMatchId || !window.ONMLiveDarts) return;
 
-  const { db, ref, update, remove, setPresenceStatus } = window.ONMLiveDarts;
+  const { db, ref, get, update, remove, setPresenceStatus, runTransaction } = window.ONMLiveDarts;
   const myKey = getCurrentPlayerKey();
+  const matchRef = ref(db, `onlineMatches/${onlineMatchId}`);
+
+  if (reason === "left" && myKey) {
+    if (!(await get(matchRef)).exists()) {
+      resetOnlineLobbyState({ keepLeagueMode });
+      return;
+    }
+    const completion = await runTransaction(matchRef, match => {
+      if (match?.status !== "playing") return;
+      const opponentKey = onlinePlayerKeys(match).find(key => key !== myKey);
+      if (!opponentKey || !match.game?.players?.[myKey]) return;
+      return {
+        ...match,
+        status: "complete",
+        winnerKey: opponentKey,
+        winnerName: match.game.players[opponentKey]?.name || "Opponent",
+        loserKey: myKey,
+        loserName: match.game.players[myKey].name || "Player",
+        forfeitByKey: myKey,
+        completedAt: Date.now(),
+        sheetSaved: false
+      };
+    }, { applyLocally: false });
+    if (completion.committed || completion.snapshot.val()?.status === "complete") {
+      clearOnlineSession();
+      resetOnlineLobbyState({ keepLeagueMode });
+      await Promise.all([
+        saveCompletedOnlineMatch(matchRef),
+        setPresenceStatus(myKey, "online").catch(err => console.warn("Could not reset presence:", err))
+      ]);
+      return;
+    }
+  }
 
   if (myKey && window.ONMLiveDarts?.setPresenceStatus) {
     await window.ONMLiveDarts.setPresenceStatus(myKey, "online");
@@ -7432,7 +7506,7 @@ function applyOnlineGame(match) {
       <span class="inlineSpinner"></span>
       <strong>${throwingName} is throwing...</strong>
       ${canEditLastOnlineScore
-        ? `<button type="button" class="btn btnPrimary onlineEditScoreBtn" data-action="edit-online-score" aria-label="Edit last score" title="Edit last score">✎</button>`
+        ? `<button type="button" class="btn btnPrimary onlineEditScoreBtn" data-action="edit-online-score" aria-label="Edit last score" title="Edit last score"><span aria-hidden="true">✎</span> Edit last</button>`
         : ""}
     </div>
   `;
@@ -7488,12 +7562,12 @@ function getCheckoutPhotoMessage(photo) {
     : `${name} checked out ${score}!`;
 }
 
-async function clearCheckoutPhotoFromMatch(photoId) {
-  if (!onlineMatchId || !photoId || !window.ONMLiveDarts) return;
+async function clearCheckoutPhotoFromMatch(photoId, matchId = onlineMatchId) {
+  if (!matchId || !photoId || !window.ONMLiveDarts) return;
 
   try {
     const { db, ref, get, update } = window.ONMLiveDarts;
-    const snap = await get(ref(db, `onlineMatches/${onlineMatchId}/game/checkoutPhoto`));
+    const snap = await get(ref(db, `onlineMatches/${matchId}/game/checkoutPhoto`));
 
     if (!snap.exists()) return;
 
@@ -7501,7 +7575,7 @@ async function clearCheckoutPhotoFromMatch(photoId) {
 
     if (currentPhoto?.id !== photoId) return;
 
-    await update(ref(db, `onlineMatches/${onlineMatchId}`), {
+    await update(ref(db, `onlineMatches/${matchId}`), {
       "game/checkoutPhoto": null
     });
   } catch (err) {
@@ -7654,6 +7728,10 @@ function playOnlineCallout(lastCallout) {
       lastCallout.previousVisitScore,
       lastCallout.visitScore
     );
+    if (!isDartAudioSuppressed()) {
+      playDartCallout("correction.m4a");
+      announceDartVisit(lastCallout.visitScore);
+    }
     return;
   }
 
@@ -8149,7 +8227,7 @@ function renderLeaderboard(players = []) {
     }).join("") : '<p class="versusEmpty">No Versus stats available.</p>';
   }
   const opponents = players.filter(player => player.playerKey !== myKey);
-  const connected = opponents.filter(player => player.status === "online" || player.status === "playing");
+  const connected = opponents.filter(player => ["online", "playing", "monster-bot"].includes(player.status));
   const offline = opponents.filter(player => player.status === "offline").sort((a, b) =>
     Number(b.played > 0) - Number(a.played > 0) ||
     (a.playerName || "").localeCompare(b.playerName || "", "en", { sensitivity: "base" }));
@@ -8165,8 +8243,9 @@ function renderLeaderboard(players = []) {
     const nationality = player.nationality || "";
     const flag = nationality ? leaderboardFlag(nationality) : "";
     const status = player.status === "offline" ? "Offline" : "Online";
+    const activity = { playing: "In-game", "monster-bot": "Monster Bot" }[player.status];
     const identity = `<span class="versusPresenceDot${status === "Online" ? " isOnline" : ""}" role="img" aria-label="${status}"></span><strong>${name}</strong>${flag ? ` <span role="img" aria-label="${escapeHtml(nationality)}">${escapeHtml(flag)}</span>` : ""}
-      ${player.status === "playing" ? '<small class="versusPlaying">Playing</small>' : ""}`;
+      ${activity ? `<small class="versusPlaying">${activity}</small>` : ""}`;
     const content = `<span class="versusPlayerHeading">${playerAvatar(player)}<span class="versusIdentity">${identity}</span></span>
       ${player.average == null ? "" : `<span class="versusAverage">${escapeHtml(player.average)} <small>avg</small></span>`}`;
     if (!canSelect(player)) return `<div class="versusPlayer">${content}</div>`;

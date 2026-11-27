@@ -89,7 +89,8 @@ test("lobby splits compact player cards, and offline opponents can be selected b
 });
 test('friendly matches continue saving averages but do not calculate Elo or increase ranked wins',()=>{
  const completion=script.slice(script.indexOf('if (newLegs >= legsToWin)'),script.indexOf('async function',script.indexOf('if (newLegs >= legsToWin)')));
- assert.doesNotMatch(completion,/calculateDartRatingChange\(/);assert.match(completion,/updates.friendly = true/);assert.match(completion,/wins: winnerProfile.wins,/);assert.match(completion,/action: "saveDartMatch"/);
+ assert.doesNotMatch(completion,/calculateDartRatingChange\(/);assert.match(completion,/updates.friendly = true/);assert.match(completion,/wins: winnerProfile.wins,/);assert.match(completion,/saveCompletedOnlineMatch\(matchRef\)/);
+ assert.match(script.slice(script.indexOf("async function saveCompletedOnlineMatch"),script.indexOf("function setTogglePosition")),/action: "saveDartMatch"/);
  const payload=script.slice(script.indexOf('function buildDartMatchPayloadFromOnlineMatch'),script.indexOf('function buildRatingHistoryEntry'));
  assert.match(payload,/TotalScored/);assert.match(payload,/DartsThrown/);
 });
@@ -227,4 +228,90 @@ test("both challenge screens use the server deadline and expired invites cannot 
  now = 160_000;
  assert.equal((await ctx.transitionPendingInvite("game","expired")).committed,false);
  assert.equal(invite.matchId,"match");
+});
+
+function onlineScorerHarness(status = "playing") {
+  const calls = { saved: [], photos: [], audio: [] };
+  let match = {
+    matchId: "versus-test", status,
+    hostPlayerKey: "nick", guestPlayerKey: "test",
+    settings: { legsCount: 3, gameType: "bestOf" },
+    game: { currentPlayerKey: "nick", players: {
+      nick: { name: "Nick", score: 125, legs: 1, legDarts: [24] },
+      test: { name: "Test", score: 105 }
+    } }
+  };
+  const snapshot = () => ({ val: () => match, exists: () => Boolean(match) });
+  const api = {
+    db: "db", ref: (_db, path) => path, get: async () => snapshot(),
+    async runTransaction(_ref, mutate) {
+      const next = mutate(structuredClone(match));
+      if (next) match = next;
+      return { committed: Boolean(next), snapshot: snapshot() };
+    },
+    async update(_ref, patch) {
+      if (patch["game/checkoutPhoto"]) calls.photos.push(patch["game/checkoutPhoto"]);
+    },
+    setPresenceStatus: async () => {}
+  };
+  const ctx = vm.createContext({
+    window: { ONMLiveDarts: api }, onlineMatchId: "versus-test", PAGE_MODE: "league",
+    STARTING_SCORE: 501, GAME_TYPE: "bestOf", LEGS_TO_WIN: 2, IN_MODE: "straight",
+    els: { legsCount: { textContent: "3" }, input: {} }, state: { players: [{}, {}] },
+    calculateFirstNineImpact: () => ({ firstNineScore: 0, firstNineDartsUsed: 0 }),
+    getFirebasePlayerRating: async () => ({ rating: 1000, gamesPlayed: 0, wins: 0 }),
+    buildMolStatRows: () => [], showOnlineScoreEditToast() {},
+    postDartMatch: async payload => (calls.saved.push(payload.match), { success: true }),
+    syncCheckoutPhotoButton() {}, setTimeout() {}, console,
+    fullyStopDartAudio() {}, stopOnlineHeartbeat() {}, stopOnlineDisconnectWatch() {},
+    hideOpponentMissingOverlay() {}, clearOnlineSession() {}, resetOnlineLobbyState() {},
+    getCurrentPlayerKey: () => "nick", clearDartAudioQueue() {},
+    isDartAudioSuppressed: () => false, playDartCallout: name => calls.audio.push(name)
+  });
+  for (const [start, end] of [
+    ["function onlinePlayerKeys", "function syncScoreCorrectionButton"],
+    ["function buildDartMatchPayloadFromOnlineMatch", "function setTogglePosition"],
+    ["function getPlayerStats", "async function submitCompetitiveResult"],
+    ["function cleanStatNumber", "function buildDartMatchPayload()"],
+    ["async function leaveOnlineMatch", "async function openOnlineBullDecider"],
+    ["function playOnlineCallout", "function lockLobbySettings"]
+  ]) vm.runInContext(script.slice(script.indexOf(start), script.indexOf(end, script.indexOf(start))), ctx);
+  vm.runInContext(script.slice(script.indexOf("function announceDartVisit"), script.indexOf("function announceRequiredScore")), ctx);
+  return { ctx, calls, match: () => match };
+}
+
+test("a 125 match checkout saves when the opponent has no leg stats, with or without a photo", async () => {
+  for (const checkoutPhoto of [null, { imageData: "data:image/jpeg;base64,test" }]) {
+    const h = onlineScorerHarness();
+    await h.ctx.applyOnlineVisit({
+      match: h.match(), myKey: "nick", visitScore: 125, previousScore: 125,
+      legWon: true, dartsUsed: 3, doublesAttempted: 1, bullOut: false, checkoutPhoto
+    });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(h.match().status, "complete");
+    assert.equal(h.calls.saved[0].playerOneWon, true);
+    assert.equal(h.calls.saved[0].playerTwoWon, false);
+    assert.equal(h.calls.photos.length, Number(Boolean(checkoutPhoto)));
+  }
+});
+
+test("quitting during play records a forfeit and saves the opponent as winner", async () => {
+  const h = onlineScorerHarness();
+  await h.ctx.leaveOnlineMatch("left");
+  assert.equal(h.match().status, "complete");
+  assert.equal(h.calls.saved[0].forfeitByKey, "nick");
+  assert.equal(h.calls.saved[0].playerOneWon, false);
+  assert.equal(h.calls.saved[0].playerTwoWon, true);
+});
+
+test("a shared score edit queues correction before the corrected number", () => {
+  const h = onlineScorerHarness();
+  h.ctx.playOnlineCallout({ type: "scoreEdit", visitScore: 60, previousVisitScore: 45 });
+  assert.deepEqual(h.calls.audio, ["correction.m4a", "score-60.mp3"]);
+});
+
+test("Monster Bot activity keeps a player visible even without a Versus session", () => {
+  assert.equal(E.statusOf({ online: false, botGames: { session: true } }), "monster-bot");
+  assert.equal(E.statusOf({ online: false, botGames: {} }), "offline");
+  assert.equal(E.statusOf({ online: true, status: "playing", botGames: { session: true } }), "playing");
 });

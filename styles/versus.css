@@ -25,7 +25,7 @@ button.versusPlayer { cursor:pointer;touch-action:pan-y; }
   button.versusPlayer:not([aria-pressed="true"]):hover { border-color:#598e70; }
 }
 .versusIdentity { font-size:14px;overflow-wrap:anywhere; }
-.versusPlaying { margin-left:4px;color:#f3d182; }
+.versusPlaying { display:inline-block;margin-left:4px;padding:2px 7px;border:1px solid #57715b;border-radius:999px;background:#1d3d2c;color:#f3d182;font-size:11px;font-weight:700;white-space:nowrap; }
 .versusAverage { white-space:nowrap;color:#80e1b7;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums; }
 .versusAverage small,.versusEmpty { color:#b7cfbf;font-weight:400; }
 .versusEmpty { grid-column:1/-1;margin:0;padding:12px 0;font-size:13px; }

@@ -155,6 +155,26 @@ async function setPlayerPresence(user) {
   });
 }
 
+function trackMonsterBotGame(playerKey) {
+  if (!playerKey) return;
+  const gameRef = push(ref(db, `presence/${playerKey}/botGames`));
+  let stopped = false;
+  const unsubscribe = onValue(ref(db, ".info/connected"), async snapshot => {
+    if (snapshot.val() !== true || stopped) return;
+    try {
+      await onDisconnect(gameRef).remove();
+      if (!stopped) await set(gameRef, true);
+    } catch (err) {
+      console.warn("Could not publish Monster Bot activity:", err);
+    }
+  });
+  return () => {
+    stopped = true;
+    unsubscribe();
+    remove(gameRef).catch(err => console.warn("Could not clear Monster Bot activity:", err));
+  };
+}
+
 async function setPresenceStatus(playerKey, status = "online") {
   if (!playerKey) return;
 
@@ -306,6 +326,8 @@ window.ONMLiveDarts = {
   orderByChild,
   equalTo,
   get,
+  runTransaction,
+  trackMonsterBotGame,
   setPlayerPresence,
   setPresenceStatus, 
   inviteTimeLeft,

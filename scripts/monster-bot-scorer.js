@@ -15,6 +15,16 @@
   let ladderSurvivalBest=0;
   const avatars = ["billy","croft","venton","istan","nick","ricky","aussie","andre","bailey","filip"];
   let user = null, active = false, timer = null, recorded = false, resultMessage = "", saving = null;
+  let botPresenceKey = "", stopBotPresence;
+  function publishBotPresence() {
+    if (!active || exited || state.winnerIndex !== null || stopBotPresence) return;
+    stopBotPresence = window.ONMLiveDarts?.trackMonsterBotGame?.(botPresenceKey);
+  }
+  function clearBotPresence() {
+    stopBotPresence?.();
+    stopBotPresence = undefined;
+  }
+  window.addEventListener?.("onmLiveDartsReady", publishBotPresence);
   let playerPhoto = "graphics/logoWoText.png";
   let knownWins = new Set(), knownScores = {};
   let undoFrame = null, replayVisit = null;
@@ -38,6 +48,7 @@
       window.ONMFirebase.ready.then(({db,firestoreSdk:sdk})=>window.ONMBotAttempts.sync(user.uid,db,sdk)).then(()=>{if(state.winnerIndex!==null)showResult();}).catch(()=>{});
     }
     active = true;
+    publishBotPresence();
     state.matchStartedAt = new Date();
     $("monsterBotSplash").hidden = true;
     document.body.classList.remove("monsterBotLoading");
@@ -136,6 +147,7 @@
     if (state.winnerIndex !== null) showResult();
   }
   function showResult() {
+    clearBotPresence();
     reportSurvivalResult();
     const kicker = els.molVictoryOverlay?.querySelector(".readyLeagueKicker");
     if (kicker) kicker.textContent = survival?"Monster Survival":casual?"Casual Bot Game":"Monster Bot Game";
@@ -239,6 +251,7 @@
     waitForAnnouncement();
   }
   function exit() {
+    clearBotPresence();
     exited = true;
     active = false; clearTimeout(timer); timer = null;
     clearTimeout(lossVoiceTimer); window.speechSynthesis?.cancel();
@@ -250,7 +263,7 @@
     else window.location.href=destination;
   }
   async function rematch() {
-    if(survival){clearTimeout(timer);clearTimeout(lossVoiceTimer);active=false;exited=true;window.speechSynthesis?.cancel();if(typeof clearDartAudioQueue==="function")clearDartAudioQueue();if(window.parent?.ONMMonsterSurvival)window.parent.ONMMonsterSurvival.returnFromGame(true);else window.location.href="monster-survival.html";return;}
+    if(survival){clearBotPresence();clearTimeout(timer);clearTimeout(lossVoiceTimer);active=false;exited=true;window.speechSynthesis?.cancel();if(typeof clearDartAudioQueue==="function")clearDartAudioQueue();if(window.parent?.ONMMonsterSurvival)window.parent.ONMMonsterSurvival.returnFromGame(true);else window.location.href="monster-survival.html";return;}
     if(!casual&&knownWins.has(key)&&E.validWinningScore(key,knownScores[key])&&knownScores[key].lost===0)return;
     if(!initialized||exited||restarting)return;
     const countAttempt=state.winnerIndex!==null||state.players.some(player=>player.legs>0);
@@ -307,6 +320,7 @@
       if (!survival&&(!E.isUnlocked(level,wins,scores,ladderSurvivalBest) || !casual&&(!E.isFormatUnlocked(level,format,wins)||wins.has(key)&&E.validWinningScore(key,scores[key])&&scores[key].lost===0))) { exit(); return; }
       knownWins = wins; knownScores = scores;
       if(!casual&&!survival)window.ONMBotAttempts?.load(user.uid,accountProfile);
+      botPresenceKey = accountProfile.linkedPlayerKey || accountProfile.playerKey || user.uid;
       loadPlayerPhoto(accountProfile);
       MATCH_MODE = "local"; STATS_MODE = "casual"; window.STATS_MODE = STATS_MODE;
       applyMatchSettings({startScore:startingScore,gameType:"bestOf",legsCount:casual?casualLegs:bullMode ? 1 : format,inMode:"straight"});
