@@ -1905,6 +1905,27 @@ async function getVersusLinkedPlayers() {
   return result.players || [];
 }
 
+function versusOpponentSummary(player) {
+  const name = player?.playerName || "Loading opponent…";
+  const nationality = player?.nationality || "";
+  const flag = leaderboardFlag(nationality);
+  const photo = getPlayerPhotoField(player) || "graphics/logoWoText.png";
+  const stats = [
+    ["Played", player?.played], ["Wins", player?.wins],
+    ...(player?.average == null ? [] : [["3-dart avg", player.average]]),
+    ["Fastest leg", player?.fastestLeg ? `${player.fastestLeg} darts` : null],
+    ["180s", player?.oneEightys], ["Bull outs", player?.bullOuts], ["Highest out", player?.highestOut]
+  ];
+
+  return `<img src="${escapeHtml(photo)}" alt="">
+    <div class="versusYourIdentity">
+      <strong>${escapeHtml(name)}${flag ? ` <span role="img" aria-label="${escapeHtml(nationality)}">${escapeHtml(flag)}</span>` : ""}</strong>
+      <dl class="versusYourTotals">
+        ${stats.map(([label, value]) => `<div><dt>${label}</dt><dd>${escapeHtml(value ?? "—")}</dd></div>`).join("")}
+      </dl>
+    </div>`;
+}
+
 async function openOpponentModal(playerKey = "") {
   const selectedKey = typeof playerKey === "string" ? playerKey : "";
   document.getElementById("opponentModalTitle").textContent = selectedKey ? "Match settings" : "Add opponent";
@@ -1915,13 +1936,15 @@ async function openOpponentModal(playerKey = "") {
   const cachedOpponent = window.currentLeaderboardPlayers?.find(player => player.playerKey === selectedKey);
   els.linkedPlayersList.innerHTML = `
     <div class="molInvitePanel">
-      <div class="molInviteHead">
+      ${selectedKey ? `<div id="versusSettingsOpponent" class="versusSummary versusYourStats">
+        ${versusOpponentSummary(cachedOpponent)}
+      </div>` : `<div class="molInviteHead">
         <img src="graphics/logoWoText.png" alt="">
         <div>
           <h2>Monsters Versus</h2>
-          <span id="versusSettingsOpponent">${selectedKey ? escapeHtml(cachedOpponent?.playerName || "Loading opponent…") : "Friendly match · Averages tracked"}</span>
+          <span>Friendly match · Averages tracked</span>
         </div>
-      </div>
+      </div>`}
 
       <div class="molInviteSettings">
         <div class="molInviteLabel">Match format</div>
@@ -2065,7 +2088,16 @@ async function openOpponentModal(playerKey = "") {
         ${canInvite ? "" : "disabled"}>${buttonText}</button>`;
 
       if (selectedKey) {
-        document.getElementById("versusSettingsOpponent").textContent = fullName;
+        const summary = document.getElementById("versusSettingsOpponent");
+        if (summary) {
+          summary.innerHTML = versusOpponentSummary({
+            ...cachedOpponent, playerName: fullName,
+            nationality: getPlayerNationality(player) || cachedOpponent?.nationality,
+            photo: getPlayerPhotoField(player) || getPlayerPhotoField(cachedOpponent)
+          });
+          const photo = summary.querySelector("img");
+          photo.addEventListener("error", () => { photo.src = "graphics/logoWoText.png"; }, { once: true });
+        }
         return { status, html: `<div class="versusSettingsActions">${inviteButton}</div>` };
       }
 

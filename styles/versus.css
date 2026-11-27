@@ -108,10 +108,6 @@ body:has(#leaderboardView:not(.hidden)) {
   background:#102a1f;border-color:#416d53;
 }
 #opponentOverlay.versusChallengeSettings .modalBody { min-height:0;overflow-y:auto; }
-.versusChallengeSettings .molInviteHead span {
-  display:block;margin-top:6px;text-transform:none;letter-spacing:0;
-  font-size:15px;color:#c7e3d1;overflow-wrap:anywhere;
-}
 .molInviteSettings > .molInviteLabel { margin-bottom:10px; }
 .versusDeciderSettings { display:grid;gap:8px;min-width:0;margin:0; }
 .versusDeciderSettings legend { margin-bottom:6px;padding-inline:4px; }
