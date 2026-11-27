@@ -13,8 +13,11 @@ body.leagueMode .leaderboardRows { display:block;padding:12px 0 24px; }
   min-width:0;padding:11px 13px;border:1px solid #3b654d;border-radius:10px;
   background:#142f22;color:#e7f6eb;font:inherit;text-align:left;
 }
-button.versusPlayer { cursor:pointer; }
-button.versusPlayer:hover, .versusPlayer[aria-pressed="true"] { border-color:#8bd9af;background:#22523a; }
+button.versusPlayer { cursor:pointer;touch-action:pan-y; }
+.versusPlayer[aria-pressed="true"] { border-color:#8bd9af;background:#22523a; }
+@media (hover:hover) and (pointer:fine) {
+  button.versusPlayer:not([aria-pressed="true"]):hover { border-color:#598e70; }
+}
 .versusIdentity { font-size:14px;overflow-wrap:anywhere; }
 .versusPlaying { margin-left:4px;color:#f3d182; }
 .versusAverage { white-space:nowrap;color:#80e1b7;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums; }
@@ -138,11 +141,15 @@ body:has(#leaderboardView:not(.hidden)) {
 }
 .versusInviteDock button:disabled { background:#263b31;color:#c0cfc6;border-color:#50695c;cursor:not-allowed; }
 
-html:has(#leaderboardView:not(.hidden)),
+html:has(#leaderboardView:not(.hidden)) {
+  height:auto!important;
+  overflow-y:auto!important;
+  touch-action:pan-y;
+}
 body:has(#leaderboardView:not(.hidden)) {
   height:auto!important;
   min-height:100dvh;
-  overflow-y:auto!important;
+  overflow:visible!important;
   touch-action:pan-y;
 }
 

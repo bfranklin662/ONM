@@ -14,19 +14,24 @@ test('local, bot and invalid-dart games do not contaminate friendly averages',()
  const rows=E.players([{playerKey:'a',gamesPlayed:2,playerName:'Alex'}],[]);assert.equal(rows[0].average,null);
 });
 const script=fs.readFileSync(require.resolve('../scripts/dart-scorer.js'),'utf8');
-test("lobby splits compact player cards, and offline opponents can be selected but cannot be invited", () => {
+test("lobby splits compact player cards, and offline opponents can be selected but cannot be invited", async () => {
  const part = script.slice(script.indexOf("function renderLeaderboard("), script.indexOf("async function loadExpandedPlayerStats("));
  const nodes = new Map();
  const invited = [];
  const notices = [];
- const buttons = [{dataset:{versusPlayer:"other"}, addEventListener(_event, handler){this.select = handler;}, setAttribute(_name, value){this.selected = value;}}];
+ const buttons = ["other","away"].map(versusPlayer => ({
+  dataset:{versusPlayer}, events:{},
+  addEventListener(event, handler){this.events[event] = handler;},
+  setAttribute(_name, value){this.selected = value;}
+ }));
+ let online = true;
  const node = id => {
   if (!nodes.has(id)) nodes.set(id, {innerHTML:"",textContent:"",classList:{add(){},toggle(){}},getAttribute:()=>null,querySelectorAll:()=>buttons});
   return nodes.get(id);
  };
  const ctx = {document:{getElementById:node,querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},
   getCurrentPlayerKey:()=>"me",leaderboardFlag:()=>"🇬🇧",escapeHtml:value=>String(value).replace(/</g,"&lt;"),
-  getPlayerPhotoField:player=>player?.photo || "",getPlayerNationality:()=> "British",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, selectedVersusPlayerKey:"", openCompetitiveInviteFlow:key=>invited.push(key), showOnlineNotice:message=>notices.push(message)};
+  getPlayerPhotoField:player=>player?.photo || "",getPlayerNationality:()=> "British",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, selectedVersusPlayerKey:"", selectedVersusPlayerWasOnline:false, isPlayerOnline:async()=>online, openCompetitiveInviteFlow:key=>invited.push(key), showOnlineNotice:message=>notices.push(message)};
  vm.runInNewContext(part,ctx);
  ctx.renderLeaderboard([
   {playerKey:"other",playerName:"Alex",average:"52.50",status:"online",nationality:"England",photo:"images/alex.jpg"},
@@ -56,20 +61,30 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  assert.doesNotMatch(html, /Wins|data-versus-player="me"/);
  assert.equal(node("versusInviteDock").hidden,true);
  assert.equal((html.match(/<small>avg<\/small>/g) || []).length,1);
- buttons[0].select();
+ buttons[0].events.pointerdown({pointerType:"touch",clientX:50,clientY:10});
+ buttons[0].events.pointermove({clientX:50,clientY:40});
+ buttons[0].events.click({detail:1});
+ assert.equal(ctx.selectedVersusPlayerKey,"");
+ buttons[0].events.pointerdown({pointerType:"touch",clientX:50,clientY:10});
+ buttons[0].events.click({detail:1});
  assert.equal(ctx.selectedVersusPlayerKey,"other");
  assert.equal(buttons[0].selected,"true");
  assert.equal(node("versusInviteDock").hidden,false);
  assert.equal(node("versusInviteSelected").textContent,"Challenge Alex");
  assert.equal(node("versusInviteSelected").disabled,false);
- node("versusInviteSelected").onclick();
+ await node("versusInviteSelected").onclick();
  assert.deepEqual(invited,["other"]);
- ctx.renderLeaderboard([{playerKey:"other",playerName:"Alex",status:"offline"}]);
- assert.equal(ctx.selectedVersusPlayerKey,"other");
- assert.equal(node("versusInviteSelected").disabled,false);
- assert.deepEqual(notices,[]);
- node("versusInviteSelected").onclick();
- assert.deepEqual(notices,["Player offline"]);
+ buttons[1].events.click({detail:0});
+ assert.equal(buttons[0].selected,"false");
+ assert.equal(buttons[1].selected,"true");
+ assert.equal(node("versusInviteSelected").disabled,true);
+ assert.equal(node("versusInviteSelected").textContent,"Challenge Zoe");
+ buttons[0].events.click({detail:0});
+ online = false;
+ await node("versusInviteSelected").onclick();
+ assert.deepEqual(notices,["This player is no longer online."]);
+ assert.equal(node("versusInviteSelected").textContent,"Challenge unavailable");
+ assert.equal(node("versusInviteSelected").disabled,true);
  assert.deepEqual(invited,["other"]);
 });
 test('friendly matches continue saving averages but do not calculate Elo or increase ranked wins',()=>{

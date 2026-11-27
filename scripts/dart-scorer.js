@@ -1825,6 +1825,7 @@ window.testCasualVictoryScreen = function testCasualVictoryScreen() {
 };
 
 let selectedVersusPlayerKey = "";
+let selectedVersusPlayerWasOnline = false;
 
 function openCompetitiveInviteFlow(playerKey = "") {
   const currentUser =
@@ -2037,7 +2038,7 @@ async function openOpponentModal(playerKey = "") {
 
     if (!players.length) {
       document.getElementById("molInvitePlayersList").innerHTML =
-        `<div class="muted">${selectedKey ? "This player is no longer available." : "No other Versus players found."}</div>`;
+        `<div class="muted">${selectedKey ? "Challenge unavailable. This player is no longer online." : "No other Versus players found."}</div>`;
       return;
     }
 
@@ -2085,7 +2086,7 @@ async function openOpponentModal(playerKey = "") {
 
     const onlineRows = playerRows.filter(row => row.status === "online").map(row => row.html);
     const unavailableRows = playerRows.filter(row => row.status !== "online").map(row => row.html);
-    const unavailableMessage = selectedKey ? "This player is no longer available to invite." : "No online players right now.";
+    const unavailableMessage = selectedKey ? "Challenge unavailable. This player is no longer online." : "No online players right now.";
 
     document.getElementById("molInvitePlayersList").innerHTML = selectedKey
       ? onlineRows.join("") || `<div class="muted">${unavailableMessage}</div>`
@@ -2124,7 +2125,7 @@ async function openOpponentModal(playerKey = "") {
           const opponentKey = getPlayerKey(player);
           const hostKey = getCurrentPlayerKey();
           if (!await isPlayerOnline(opponentKey)) {
-            throw new Error("This player is no longer available. Refresh the player list and try again.");
+            throw new Error("Challenge unavailable. This player is no longer online.");
           }
 
           if (!opponentKey) {
@@ -8124,6 +8125,7 @@ function renderLeaderboard(players = []) {
   const canSelect = player => currentUser && player.playerKey !== myKey;
   if (!players.some(player => canSelect(player) && player.playerKey === selectedVersusPlayerKey)) {
     selectedVersusPlayerKey = "";
+    selectedVersusPlayerWasOnline = false;
   }
 
   function card(player) {
@@ -8159,26 +8161,48 @@ function renderLeaderboard(players = []) {
   const syncInvite = () => {
     const player = selectedPlayer();
     dock.hidden = !player;
-    invite.disabled = !player;
-    invite.textContent = player ? `Challenge ${player.playerName || "player"}` : "Challenge";
+    invite.disabled = player?.status !== "online";
+    if (!invite.disabled) selectedVersusPlayerWasOnline = true;
+    const becameUnavailable = player && selectedVersusPlayerWasOnline && invite.disabled;
+    invite.textContent = becameUnavailable ? "Challenge unavailable" :
+      player ? `Challenge ${player.playerName || "player"}` : "Challenge";
   };
   syncInvite();
-  invite.onclick = () => {
+  invite.onclick = async () => {
     const player = selectedPlayer();
-    if (!player) return;
-    if (player.status === "online") {
-      openCompetitiveInviteFlow(player.playerKey);
-    } else {
-      showOnlineNotice(
-        player.status === "offline" ? "Player offline" : "Player is already in a match.",
-        "Challenge unavailable"
-      );
+    if (!player || invite.disabled) return;
+    invite.disabled = true;
+    try {
+      const online = await isPlayerOnline(player.playerKey);
+      if (selectedPlayer() !== player) return;
+      if (!online) {
+        player.status = "offline";
+        showOnlineNotice("This player is no longer online.", "Challenge unavailable");
+      } else {
+        openCompetitiveInviteFlow(player.playerKey);
+      }
+    } catch {
+      if (selectedPlayer() === player) showOnlineNotice("Could not check whether this player is online.", "Challenge unavailable");
+    } finally {
+      if (selectedPlayer() === player) syncInvite();
     }
   };
   const playerButtons = rowsEl.querySelectorAll("[data-versus-player]");
   playerButtons.forEach(button => {
-    button.addEventListener("click", () => {
+    let touchStart;
+    let scrolled = false;
+    button.addEventListener("pointerdown", event => {
+      scrolled = false;
+      touchStart = event.pointerType === "touch" ? { x: event.clientX, y: event.clientY } : null;
+    });
+    button.addEventListener("pointermove", event => {
+      if (touchStart && Math.hypot(event.clientX - touchStart.x, event.clientY - touchStart.y) > 8) scrolled = true;
+    });
+    button.addEventListener("pointercancel", () => { scrolled = true; });
+    button.addEventListener("click", event => {
+      if (scrolled && event?.detail !== 0) return;
       selectedVersusPlayerKey = button.dataset.versusPlayer === selectedVersusPlayerKey ? "" : button.dataset.versusPlayer;
+      selectedVersusPlayerWasOnline = selectedPlayer()?.status === "online";
       playerButtons.forEach(cardButton => {
         cardButton.setAttribute("aria-pressed", String(cardButton.dataset.versusPlayer === selectedVersusPlayerKey));
       });
