@@ -86,7 +86,6 @@ async function createOnlineInvite({ fromUser, toPlayer, settings = {} }) {
 function safeFirebaseKey(value) {
   return String(value || "")
     .trim()
-    .toLowerCase()
     .replace(/[.#$/\[\]]/g, "_");
 }
 
@@ -108,24 +107,28 @@ async function setPlayerPresence(user) {
   const presenceRef = ref(db, `presence/${playerKey}`);
   const connectedRef = ref(db, ".info/connected");
 
-  onValue(connectedRef, snapshot => {
+  onValue(connectedRef, async snapshot => {
     if (snapshot.val() !== true) return;
 
-    onDisconnect(presenceRef).set({
-      online: false,
-      status: "offline",
-      lastSeen: serverTimestamp()
-    });
-
-    set(presenceRef, {
-      online: true,
-      status: "online",
-      playerKey,
-      playerName: user.linkedPlayerName || `${user.firstName || ""} ${user.surname || ""}`.trim(),
-      photo: user.photo || user.photoUrl || "",
-      nationality: user.nationality || "",
-      updatedAt: serverTimestamp()
-    });
+    try {
+      await onDisconnect(presenceRef).update({
+        online: false,
+        status: "offline",
+        lastSeen: serverTimestamp()
+      });
+      await update(presenceRef, {
+        online: true,
+        status: "online",
+        playerKey,
+        playerName: user.fullName || user.playerName || user.linkedPlayerName ||
+          `${user.firstName || ""} ${user.surname || ""}`.trim(),
+        photo: user.photo || user.photoUrl || "",
+        nationality: user.nationality || "",
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.warn("Could not update Versus presence", error);
+    }
   });
 }
 

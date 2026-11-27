@@ -1872,29 +1872,16 @@ async function isPlayerOnline(playerKey) {
   return snapshot.exists() && snapshot.val()?.online === true;
 }
 
-async function getPlayerPresence(playerKey) {
-  if (!playerKey || !window.ONMLiveDarts) return null;
-
+async function getVersusPresence() {
   const { db, ref, get } = window.ONMLiveDarts;
-  const snapshot = await get(ref(db, `presence/${playerKey}`));
+  const snapshot = await get(ref(db, "presence"));
+  return snapshot.val() || {};
+}
 
-  if (!snapshot.exists()) return null;
-
-  const presence = snapshot.val();
-
-  if (presence?.status === "playing" && presence?.updatedAt) {
-    const ageMs = Date.now() - Number(presence.updatedAt);
-
-    if (ageMs > 5 * 60 * 1000) {
-      return {
-        ...presence,
-        status: "online",
-        online: true
-      };
-    }
-  }
-
-  return presence;
+async function getVersusLinkedPlayers() {
+  const result = await postDartMatch({ action: "getLinkedPlayers" });
+  if (!result.success) throw new Error("Could not load linked players.");
+  return result.players || [];
 }
 
 async function openOpponentModal() {
@@ -1990,18 +1977,14 @@ async function openOpponentModal() {
   syncMolLegsCount();
 
   try {
-    const result = await postDartMatch({ action: "getLinkedPlayers" });
-
-    if (!result.success) {
-      document.getElementById("molInvitePlayersList").innerHTML =
-        `<div class="muted">Could not load linked players.</div>`;
-      return;
-    }
-
+    const [linked, presence] = await Promise.all([
+      getVersusLinkedPlayers().catch(() => []),
+      getVersusPresence()
+    ]);
     const currentUser = window.ONMSession?.getUser?.() || loggedInUser;
     const currentPlayerKey = getCurrentPlayerKey();
 
-    const allPlayers = result.players || [];
+    const allPlayers = window.ONMVersusPlayers.inviteProfiles(linked, presence);
     const currentPlayerProfile =
       allPlayers.find(player => getPlayerKey(player) === currentPlayerKey) || {};
 
@@ -2011,7 +1994,7 @@ async function openOpponentModal() {
 
     if (!players.length) {
       document.getElementById("molInvitePlayersList").innerHTML =
-        `<div class="muted">No other linked players found.</div>`;
+        `<div class="muted">No other Versus players found.</div>`;
       return;
     }
 
@@ -2025,7 +2008,7 @@ async function openOpponentModal() {
       console.warn("Could not load player photos", err);
     }
 
-    const playerRows = await Promise.all(players.map(async player => {
+    const playerRows = players.map(player => {
       const fullName = getLinkedPlayerFullName(player);
 
       const photoKey = window.PlayerData?.photoKey
@@ -2037,8 +2020,7 @@ async function openOpponentModal() {
         drivePhotos[photoKey] ||
         "graphics/logoWoText.png";
 
-      const presence = await getPlayerPresence(getPresenceKey(player));
-      const status = presence?.status || (presence?.online ? "online" : "offline");
+      const status = window.ONMVersusPlayers.statusOf(presence[getPlayerKey(player)]);
 
       const buttonText =
         status === "playing" ? "Playing" :
@@ -2052,11 +2034,11 @@ async function openOpponentModal() {
 
       const canInvite = status === "online";
 
-      return `
+      return { status, html: `
         <div class="molInvitePlayerRow">
-          <img src="${imageUrl}" alt="${fullName}">
+          <img src="${escapeHtml(imageUrl)}" alt="">
           <div class="molInvitePlayerInfo">
-            <strong>${fullName}</strong>
+            <strong>${escapeHtml(fullName)}</strong>
             <span class="molPresenceText ${buttonClass}">
               ${status === "playing" ? "Currently playing" : status === "online" ? "Online now" : "Offline"}
             </span>
@@ -2065,25 +2047,17 @@ async function openOpponentModal() {
           <button
             type="button"
             class="molInviteStatusBtn ${buttonClass}"
-            data-player="${fullName}"
+            data-player="${escapeHtml(getPlayerKey(player))}"
             ${canInvite ? "" : "disabled"}
           >
             ${buttonText}
           </button>
         </div>
-      `;
-    }));
-
-    const onlineRows = [];
-    const offlineRows = [];
-
-    playerRows.forEach(row => {
-      if (row.includes("Online now")) {
-        onlineRows.push(row);
-      } else {
-        offlineRows.push(row);
-      }
+      ` };
     });
+
+    const onlineRows = playerRows.filter(row => row.status === "online").map(row => row.html);
+    const unavailableRows = playerRows.filter(row => row.status !== "online").map(row => row.html);
 
     document.getElementById("molInvitePlayersList").innerHTML = `
       <div class="molInviteGroup">
@@ -2092,15 +2066,15 @@ async function openOpponentModal() {
       </div>
 
       <details class="molInviteGroup molInviteOfflineGroup">
-        <summary>Offline players (${offlineRows.length})</summary>
-        ${offlineRows.join("")}
+        <summary>Unavailable players (${unavailableRows.length})</summary>
+        ${unavailableRows.join("")}
       </details>
     `;
 
     document.querySelectorAll("#molInvitePlayersList [data-player]").forEach(button => {
       button.addEventListener("click", async () => {
         unlockDartAudio();
-        const player = players.find(p => getLinkedPlayerFullName(p) === button.dataset.player);
+        const player = players.find(p => getPlayerKey(p) === button.dataset.player);
         if (!player) return;
 
         button.disabled = true;
@@ -2254,6 +2228,7 @@ function getLeagueUserKey(user) {
     user?.linkedPlayerKey ||
     user?.playerKey ||
     user?.userId ||
+    user?.uid ||
     safeFirebaseKey(user?.email) ||
     ""
   );
@@ -6092,10 +6067,6 @@ els.removeSetupPlayerTwoBtn?.addEventListener("click", () => {
   renderSetupPlayerCards();
 });
 
-function getPresenceKey(userOrPlayer) {
-  return getLeagueUserKey(userOrPlayer);
-}
-
 function toggleScorerFullscreen() {
   unlockDartAudio();
 
@@ -8013,12 +7984,35 @@ function renderLeaderboard(players = []) {
   if(opponent)opponent.textContent=me?.lastMatch?"Last game vs "+(me.lastMatch.opponentName||"Opponent"):"Friendly online darts · No rankings";
   if(stats)stats.textContent=!currentUser?"Log in":me?.lastMatch?"Stats":"Play";
   history?.classList.toggle("hidden",!currentUser||!me?.matchHistory?.length);
-  rowsEl.innerHTML=players.length?players.map(p=>{
-    const name=escapeHtml(p.playerName||"Player"),flag=p.nationality?leaderboardFlag(p.nationality):"",isMe=p.playerKey===myKey;
-    const photo=String(p.photo||"graphics/logoWoText.png");
-    const safePhoto=/^(https?:\/\/|(?:graphics|images)\/)/i.test(photo)?photo:"graphics/logoWoText.png";
-    return '<article class="versusPlayer '+(isMe?'me':'')+'"><img src="'+escapeHtml(safePhoto)+'" alt=""><div class="versusIdentity"><strong>'+name+'</strong><span class="versusFlag">'+escapeHtml(flag)+'</span>'+(isMe?'<span class="versusYou">You</span>':'')+'</div><div class="versusAverage"><strong>'+escapeHtml(p.average??"—")+'</strong><small>3-dart average</small></div></article>';
-  }).join(""):'<div class="versusEmpty">No completed games yet. Invite a friend to get started.</div>';
+  const statusLabels = { online: "Online", playing: "Playing", offline: "Offline", unknown: "Status unavailable" };
+  const count = document.getElementById("versusOnlineCount");
+  if (count) {
+    const connected = players.filter(player => player.status === "online" || player.status === "playing").length;
+    count.textContent = currentUser && !players.some(player => player.status === "unknown")
+      ? `${connected} online · ${players.length} players`
+      : "";
+  }
+  rowsEl.innerHTML = players.length ? players.map(player => {
+    const name = escapeHtml(player.playerName || "Player");
+    const nationality = player.nationality || "";
+    const flag = nationality ? leaderboardFlag(nationality) : "";
+    const isMe = player.playerKey === myKey;
+    const photo = String(player.photo || "");
+    const safePhoto = /^(https?:\/\/|(?:graphics|images)\/)/i.test(photo) ? photo : "graphics/logoWoText.png";
+    const status = Object.hasOwn(statusLabels, player.status) ? player.status : "unknown";
+    return `<article class="versusPlayer${isMe ? " me" : ""}">
+      <img src="${escapeHtml(safePhoto)}" alt="">
+      <div class="versusIdentity">
+        <strong>${name}</strong>${isMe ? '<span class="versusYou">You</span>' : ""}
+        ${nationality ? `<small class="versusNationality"><span aria-hidden="true">${escapeHtml(flag)}</span> ${escapeHtml(nationality)}</small>` : ""}
+        <small class="versusStatus ${status}">${statusLabels[status]}</small>
+      </div>
+      <dl class="versusStats">
+        <div><dt>3-dart avg</dt><dd>${escapeHtml(player.average ?? "—")}</dd></div>
+        <div><dt>Wins</dt><dd>${escapeHtml(player.wins ?? "—")}</dd></div>
+      </dl>
+    </article>`;
+  }).join("") : '<div class="versusEmpty">No Versus players found.</div>';
 }
 
 async function loadExpandedPlayerStats(row) {
@@ -8217,19 +8211,54 @@ function openLeagueHistory() {
   });
 }
 
-document.getElementById("refreshVersusPlayers")?.addEventListener("click",()=>loadLeaderboard());
+document.getElementById("refreshVersusPlayers")?.addEventListener("click", loadLeaderboard);
 async function loadLeaderboard() {
-  const rowsEl=document.getElementById("leaderboardRows");if(!rowsEl)return;
-  rowsEl.innerHTML='<div class="versusEmpty"><span class="inlineSpinner"></span> Loading players and averages…</div>';
-  try{
-    const user=await window.ONMFirebase.currentFirebaseUser();
-    if(!user){rowsEl.innerHTML='<div class="versusEmpty"><a href="auth.html?redirect=dart-scorer.html%3Fmode%3Dleague">Log in to view players and tracked averages</a></div>';renderLeaderboard([]);rowsEl.innerHTML='<div class="versusEmpty"><a href="auth.html?redirect=dart-scorer.html%3Fmode%3Dleague">Log in to view players and tracked averages</a></div>';return;}
-    const {db:liveDb,ref,get}=window.ONMLiveDarts,{db,firestoreSdk:s}=await window.ONMFirebase.ready;
-    const [ratings,matches]=await Promise.all([get(ref(liveDb,"ratings")),s.getDocs(s.collection(db,"dartMatches"))]);
-    const profiles=ratings.exists()?Object.values(ratings.val()):[];
-    const players=window.ONMVersusPlayers.players(profiles,matches.docs.map(d=>d.data()));
-    window.currentLeaderboardPlayers=players;renderLeaderboard(players);
-  }catch(err){console.warn("Could not load versus averages",err);rowsEl.innerHTML='<div class="versusEmpty">Couldn’t load players and averages. Please try Refresh.</div>';}
+  const rowsEl = document.getElementById("leaderboardRows");
+  const refresh = document.getElementById("refreshVersusPlayers");
+  if (!rowsEl || refresh?.disabled) return;
+  if (refresh) refresh.disabled = true;
+  rowsEl.setAttribute("aria-busy", "true");
+  if (!rowsEl.querySelector(".versusPlayer")) {
+    rowsEl.innerHTML = '<div class="versusEmpty"><span class="inlineSpinner"></span> Loading players…</div>';
+  }
+
+  try {
+    const user = await window.ONMFirebase.currentFirebaseUser();
+    if (!user) {
+      renderLeaderboard([]);
+      rowsEl.innerHTML = '<div class="versusEmpty"><a href="auth.html?redirect=dart-scorer.html%3Fmode%3Dversus">Log in to view Versus players</a></div>';
+      return;
+    }
+    const { db: liveDb, ref, get } = window.ONMLiveDarts;
+    const [presence, linked, ratings, matches] = await Promise.allSettled([
+      getVersusPresence(),
+      getVersusLinkedPlayers(),
+      get(ref(liveDb, "ratings")),
+      window.ONMFirebase.ready.then(({ db, firestoreSdk: sdk }) => sdk.getDocs(sdk.collection(db, "dartMatches")))
+    ]);
+    if ([presence, linked, ratings, matches].every(result => result.status === "rejected")) {
+      throw new Error("Could not load Versus data.");
+    }
+    const presenceByKey = presence.value ?? null;
+    const historical = Object.entries(ratings.value?.val() || {}).map(([key, profile]) => ({
+      ...profile, playerKey: profile.playerKey || key
+    }));
+    const roster = window.ONMVersusPlayers.inviteProfiles(linked.value, presenceByKey);
+    const players = window.ONMVersusPlayers.players(
+      [...historical, ...roster],
+      matches.value?.docs.map(doc => doc.data()) || [],
+      presenceByKey
+    );
+    if (matches.status === "rejected") players.forEach(player => { player.wins = null; });
+    window.currentLeaderboardPlayers = players;
+    renderLeaderboard(players);
+  } catch (error) {
+    console.warn("Could not load Versus players", error);
+    rowsEl.innerHTML = '<div class="versusEmpty">Couldn’t load players. Please try Refresh.</div>';
+  } finally {
+    rowsEl.removeAttribute("aria-busy");
+    if (refresh) refresh.disabled = false;
+  }
 }
 
 

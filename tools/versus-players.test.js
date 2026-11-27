@@ -14,11 +14,11 @@ test('local, bot and invalid-dart games do not contaminate friendly averages',()
  const rows=E.players([{playerKey:'a',gamesPlayed:2,playerName:'Alex'}],[]);assert.equal(rows[0].average,null);
 });
 const script=fs.readFileSync(require.resolve('../scripts/dart-scorer.js'),'utf8');
-test('player gallery contains pictures flags and averages, without rank or win-loss columns',()=>{
+test('player cards show photo, nationality, availability, average and wins',()=>{
  const part=script.slice(script.indexOf('function renderLeaderboard('),script.indexOf('async function loadExpandedPlayerStats(')),nodes=new Map(),node=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',textContent:'',classList:{add(){},toggle(){}}});return nodes.get(id);};
  const ctx={document:{getElementById:node,querySelector:()=>node('meta')},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},getCurrentPlayerKey:()=>'a',leaderboardFlag:()=> '🇬🇧',escapeHtml:v=>String(v).replace(/</g,'&lt;'),currentLeagueProfile:null};
- vm.runInNewContext(part,ctx);ctx.renderLeaderboard([{playerKey:'a',playerName:'Alex',average:'52.50',photo:'images/a.jpg',nationality:'England'}]);
- const html=node('leaderboardRows').innerHTML;assert.match(html,/versusPlayer/);assert.match(html,/images\/a.jpg/);assert.match(html,/🇬🇧/);assert.match(html,/52.50/);assert.doesNotMatch(html,/leaderboardRank|leaderboardRating|Wins|Losses|streak/);
+ vm.runInNewContext(part,ctx);ctx.renderLeaderboard([{playerKey:'a',playerName:'Alex',average:'52.50',wins:3,status:'online',photo:'images/a.jpg',nationality:'England'}]);
+ const html=node('leaderboardRows').innerHTML;assert.match(html,/versusPlayer/);assert.match(html,/images\/a.jpg/);assert.match(html,/🇬🇧/);assert.match(html,/52.50/);assert.match(html,/England/);assert.match(html,/Online/);assert.match(html,/<dt>Wins<\/dt><dd>3/);assert.doesNotMatch(html,/leaderboardRank|leaderboardRating|Losses|streak/);
 });
 test('friendly matches continue saving averages but do not calculate Elo or increase ranked wins',()=>{
  const completion=script.slice(script.indexOf('if (newLegs >= legsToWin)'),script.indexOf('async function',script.indexOf('if (newLegs >= legsToWin)')));
@@ -28,4 +28,30 @@ test('friendly matches continue saving averages but do not calculate Elo or incr
 });
 test('versus branding replaces the ranked league entry and retains backwards-compatible league links',()=>{
  const page=fs.readFileSync(require.resolve('../dart-scorer.html'),'utf8'),games=fs.readFileSync(require.resolve('../games.html'),'utf8');assert.match(games,/Monsters Versus/);assert.match(games,/mode=versus/);assert.doesNotMatch(games,/molGameRankPill|molGameRatingPill|Play ranked/);assert.match(page,/versus-players.js/);assert.match(script,/\["league","versus"\]/);
+});
+
+test("new accounts can appear with no matches, and their presence is keyed case-sensitively", () => {
+ const presence = {
+  TestUid: {playerName:"New Player", online:true},
+  BusyUid: {playerName:"Busy Player", online:true, status:"playing", updatedAt:Date.now()},
+  SeenUid: {playerName:"Former Visitor", online:false}
+ };
+ const roster = E.inviteProfiles([{playerKey:"linked",fullName:"Club Player"}], presence);
+ const rows = E.players(roster, [{matchMode:"online",playerOneId:"SeenUid",playerOneWon:true,playerOneTotalScored:501,playerOneDartsThrown:30}], presence);
+ assert.deepEqual(rows.map(row => [row.playerKey,row.status]), [
+  ["TestUid","online"],["BusyUid","playing"],["linked","offline"],["SeenUid","offline"]
+ ]);
+ assert.equal(rows[0].average,null);
+ assert.equal(rows[0].wins,0);
+ assert.equal(rows[3].wins,1);
+ assert.equal(rows[3].average,"50.10");
+ assert.equal(E.players(roster, [], null)[0].status,"unknown");
+});
+
+test("an invite keeps the exact mixed-case account key used by presence", () => {
+ const live = fs.readFileSync(require.resolve("../scripts/firebase-live.js"),"utf8");
+ const helpers = live.slice(live.indexOf("function safeFirebaseKey("),live.indexOf("async function setPlayerPresence("));
+ const context = {};
+ vm.runInNewContext(helpers,context);
+ assert.equal(context.getStablePlayerKey({linkedPlayerKey:"TestUid"}),"TestUid");
 });
