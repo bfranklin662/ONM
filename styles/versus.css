@@ -7,6 +7,12 @@ body.leagueMode .leaderboardRows { display:block;padding:12px 0 24px; }
 .versusToolbar button:disabled { opacity:.6;cursor:wait; }
 .versusSection + .versusSection { margin-top:20px; }
 .versusSection h3 { margin:0 0 8px;color:#c5dfd0;font-size:14px; }
+.versusOfflineSection > summary {
+  display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px;
+  padding:0 8px 0 0;color:#c5dfd0;font-size:14px;font-weight:750;cursor:pointer;list-style:none;
+}
+.versusOfflineSection > summary::-webkit-details-marker { display:none; }
+.versusOfflineSection[open] > summary .versusBoardChevron { transform:rotate(225deg); }
 .versusGrid { display:grid;grid-template-columns:minmax(0,1fr);gap:8px; }
 .versusPlayer {
   display:flex;justify-content:space-between;align-items:center;gap:10px;

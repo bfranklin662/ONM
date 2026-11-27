@@ -41,8 +41,8 @@ test("lobby splits compact player cards, and offline opponents can be selected b
   {playerKey:"b-off",playerName:"Ben",status:"offline",played:1}
  ]);
  const html = node("leaderboardRows").innerHTML;
- assert.match(html, /<h3>Online<\/h3>[\s\S]*Alex[\s\S]*<h3>Offline<\/h3>[\s\S]*Zoe/);
- assert.match(html, /<h3>Offline<\/h3>[\s\S]*Ben[\s\S]*Ada[\s\S]*Zoe/);
+ assert.match(html, /<h3>Online<\/h3>[\s\S]*Alex[\s\S]*<summary>Offline[\s\S]*Zoe/);
+ assert.match(html, /<summary>Offline[\s\S]*Ben[\s\S]*Ada[\s\S]*Zoe/);
  assert.match(html, /🇬🇧/);
  assert.match(html, /52.50 <small>avg/);
  assert.equal(node("versusYourAverage").textContent,"53.25");

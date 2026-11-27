@@ -8175,12 +8175,16 @@ function renderLeaderboard(players = []) {
     return `<button type="button" class="versusPlayer" data-versus-player="${key}" aria-pressed="${selected}">${content}</button>`;
   }
 
-  const section = (title, group, empty) => `<section class="versusSection"><h3>${title}</h3>
-    <div class="versusGrid">${group.length ? group.map(card).join("") : `<p class="versusEmpty">${empty}</p>`}</div>
-  </section>`;
+  const playerGrid = (group, empty) =>
+    `<div class="versusGrid">${group.length ? group.map(card).join("") : `<p class="versusEmpty">${empty}</p>`}</div>`;
+  const offlineWasOpen = rowsEl.querySelector?.(".versusOfflineSection")?.open ?? true;
   rowsEl.innerHTML = unknown
     ? '<div class="versusEmpty">Player availability couldn’t be loaded. Please try Refresh.</div>'
-    : section("Online", connected, "No players online.") + section("Offline", offline, "No offline players.");
+    : `<section class="versusSection"><h3>Online</h3>${playerGrid(connected, "No players online.")}</section>
+       <details class="versusSection versusOfflineSection"${offlineWasOpen ? " open" : ""}>
+         <summary>Offline <span class="versusBoardChevron" aria-hidden="true"></span></summary>
+         ${playerGrid(offline, "No offline players.")}
+       </details>`;
 
   [rowsEl, board].forEach(container => {
     container?.querySelectorAll("img.versusAvatar").forEach(photo => {
