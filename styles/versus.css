@@ -106,3 +106,6 @@ body:has(#leaderboardView:not(.hidden)) {
 .versusDeciderSettings input { accent-color:#81d6a5; }
 
 .versusInlineInvite:disabled { opacity:.45;cursor:not-allowed; }
+
+.versusPresenceDot { display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:#8d9a94;vertical-align:1px; }
+.versusPresenceDot.isOnline { background:#53df93; }

@@ -8041,7 +8041,8 @@ function renderLeaderboard(players = []) {
     const name = escapeHtml(player.playerName || "Player");
     const nationality = player.nationality || "";
     const flag = nationality ? leaderboardFlag(nationality) : "";
-    const identity = `<strong>${name}</strong>${flag ? ` <span role="img" aria-label="${escapeHtml(nationality)}">${escapeHtml(flag)}</span>` : ""}
+    const status = player.status === "offline" ? "Offline" : "Online";
+    const identity = `<span class="versusPresenceDot${status === "Online" ? " isOnline" : ""}" role="img" aria-label="${status}"></span><strong>${name}</strong>${flag ? ` <span role="img" aria-label="${escapeHtml(nationality)}">${escapeHtml(flag)}</span>` : ""}
       ${player.status === "playing" ? '<small class="versusPlaying">Playing</small>' : ""}`;
     const content = `<span class="versusPlayerHeading">${playerAvatar(player)}<span class="versusIdentity">${identity}</span></span>
       <span class="versusAverage">${escapeHtml(player.average ?? "—")} <small>avg</small></span>`;
