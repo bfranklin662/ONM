@@ -7966,11 +7966,6 @@ function renderLeaderboard(players = []) {
   const currentUser=window.ONMSession?.getUser?.()||loggedInUser,myKey=getCurrentPlayerKey();
   const me = players.find(player => player.playerKey === myKey) || null;
   currentLeagueProfile = me;
-  function tonPlusDisplay(player) {
-    if (player?.tonPlusOuts == null) return "—";
-    return player.tonPlusIncomplete ? `${player.tonPlusOuts}+` : String(player.tonPlusOuts);
-  }
-
   const summary = document.getElementById("versusYourStats");
   const setSummaryText = (id, value) => {
     const element = document.getElementById(id);
@@ -7995,7 +7990,7 @@ function renderLeaderboard(players = []) {
     setSummaryText("versusYourFastestLeg", me?.fastestLeg ? `${me.fastestLeg} darts` : "—");
     setSummaryText("versusYour180s", me?.oneEightys ?? "—");
     setSummaryText("versusYourBulls", me?.bullOuts ?? "—");
-    setSummaryText("versusYourTons", tonPlusDisplay(me));
+    setSummaryText("versusYourHighestOut", me?.highestOut ?? "—");
   }
   const lastMatchButton = document.getElementById("openLastGameStatsBtn");
   if (lastMatchButton) lastMatchButton.hidden = !currentUser || !me?.lastMatch;
@@ -8008,6 +8003,7 @@ function renderLeaderboard(players = []) {
 
   const board = document.getElementById("versusLeaderboardRows");
   if (board) {
+    const expanded = new Set([...board.querySelectorAll("details[open]")].map(row => row.dataset.playerKey));
     const standings = [...players].sort((a, b) =>
       (Number(b.average) || 0) - (Number(a.average) || 0) ||
       (b.wins || 0) - (a.wins || 0) ||
@@ -8016,16 +8012,22 @@ function renderLeaderboard(players = []) {
       const fields = [
         ["Played", player.played], ["Wins", player.wins], ["3-dart avg", player.average],
         ["Fastest leg", player.fastestLeg ? `${player.fastestLeg} darts` : null],
-        ["180s", player.oneEightys], ["Bull outs", player.bullOuts], ["Ton+ outs", tonPlusDisplay(player)]
+        ["180s", player.oneEightys], ["Bull outs", player.bullOuts], ["Highest out", player.highestOut]
       ];
       const flag = player.nationality ? leaderboardFlag(player.nationality) : "";
-      return `<article class="versusBoardCard">
-        <div class="versusPlayerHeading">${playerAvatar(player)}<strong>${escapeHtml(player.playerName || "Player")}${flag ? ` <span role="img" aria-label="${escapeHtml(player.nationality)}">${escapeHtml(flag)}</span>` : ""}</strong></div>
+      const streak = player.winStreak > 0
+        ? `<span class="versusWinStreak">${escapeHtml(player.winStreak)} ${player.winStreak === 1 ? "win" : "wins"} in a row</span>`
+        : "";
+      return `<details class="versusBoardCard" data-player-key="${escapeHtml(player.playerKey)}"${expanded.has(player.playerKey) ? " open" : ""}>
+        <summary>
+          <span class="versusPlayerHeading">${playerAvatar(player)}<strong>${escapeHtml(player.playerName || "Player")}${flag ? ` <span role="img" aria-label="${escapeHtml(player.nationality)}">${escapeHtml(flag)}</span>` : ""}</strong></span>
+          ${streak}
+          <span class="versusAverage">${escapeHtml(player.average ?? "—")} <small>avg</small></span>
+          <span class="versusBoardChevron" aria-hidden="true"></span>
+        </summary>
         <dl>${fields.map(([label, value]) => `<div><dt>${label}</dt><dd>${escapeHtml(value ?? "—")}</dd></div>`).join("")}</dl>
-      </article>`;
-    }).join("") + (standings.some(player => player.tonPlusIncomplete)
-      ? '<p class="versusEmpty">A + after a Ton+ total means older match records confirm at least that many.</p>' : "")
-      : '<p class="versusEmpty">No Versus stats available.</p>';
+      </details>`;
+    }).join("") : '<p class="versusEmpty">No Versus stats available.</p>';
   }
   const opponents = players.filter(player => player.playerKey !== myKey);
   const connected = opponents.filter(player => player.status === "online" || player.status === "playing");
@@ -8323,7 +8325,7 @@ async function loadLeaderboard() {
     ).filter(player => rosterKeys.has(player.playerKey));
     if (matches.status === "rejected") {
       players.forEach(player => Object.assign(player, {
-        played: null, wins: null, oneEightys: null, bullOuts: null, tonPlusOuts: null
+        played: null, wins: null, oneEightys: null, bullOuts: null, highestOut: null, winStreak: null
       }));
     }
     window.currentLeaderboardPlayers = players;

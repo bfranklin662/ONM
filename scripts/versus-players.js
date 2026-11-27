@@ -20,9 +20,20 @@
     });
   }
 
+  function matchTime(match) {
+    const recordedTime = Date.parse(match.dateTime || "");
+    if (Number.isFinite(recordedTime)) return recordedTime;
+    const createdAt = match.createdAt?.toMillis?.() ?? match.createdAt;
+    const timestamp = typeof createdAt === "number" ? createdAt : Date.parse(createdAt || "");
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }
+
   function players(profiles = [], matches = [], presence = {}) {
     const rows = new Map();
-    const newRow = playerKey => ({ playerKey, totalScored: 0, dartsThrown: 0, trackedGames: 0, played: 0, wins: 0, fastestLeg: null, oneEightys: 0, bullOuts: 0, tonPlusOuts: 0, tonPlusIncomplete: false });
+    const newRow = playerKey => ({
+      playerKey, totalScored: 0, dartsThrown: 0, trackedGames: 0,
+      played: 0, wins: 0, fastestLeg: null, oneEightys: 0, bullOuts: 0, highestOut: null, winStreak: 0
+    });
     for (const profile of profiles) {
       const key = keyOf(profile);
       if (!key) continue;
@@ -34,7 +45,9 @@
       row.matchHistory = profile.matchHistory || row.matchHistory;
       rows.set(key, row);
     }
-    for (const match of matches) {
+    const orderedMatches = matches.map(match => ({ match, time: matchTime(match) }))
+      .sort((a, b) => (a.time ?? 0) - (b.time ?? 0));
+    for (const { match, time } of orderedMatches) {
       if (match.mode === "bot" || match.botMode || match.casual === true ||
           (match.matchMode && match.matchMode !== "online")) continue;
       for (const prefix of ["playerOne", "playerTwo"]) {
@@ -51,18 +64,13 @@
         row.playerName ||= match[prefix + "Name"];
         row.played++;
         if (won) row.wins++;
+        if (time !== null && (won || lost)) row.winStreak = won ? row.winStreak + 1 : 0;
         const bestLeg = parseInt(match[prefix + "BestLeg"], 10);
         if (bestLeg > 0) row.fastestLeg = Math.min(row.fastestLeg ?? bestLeg, bestLeg);
         row.oneEightys += Number(match[prefix + "180s"]) || 0;
         row.bullOuts += Number(match[prefix + "BullOuts"]) || 0;
-        const recordedTons = match[prefix + "TonPlusOuts"];
-        if (recordedTons != null && recordedTons !== "") {
-          row.tonPlusOuts += Number(recordedTons) || 0;
-          row.tonPlusIncomplete ||= match[prefix + "TonPlusIncomplete"] === true;
-        } else if (Number(match[prefix + "HighestOut"]) >= 100) {
-          row.tonPlusOuts++;
-          row.tonPlusIncomplete ||= Number(match[prefix + "Legs"]) !== 1;
-        }
+        const highestOut = Number(match[prefix + "HighestOut"]);
+        if (highestOut > 0) row.highestOut = Math.max(row.highestOut ?? 0, highestOut);
         if (validVisitTotals) {
           row.totalScored += scored;
           row.dartsThrown += darts;

@@ -28,7 +28,7 @@ test("lobby splits compact player cards, and only available opponents can be sel
  vm.runInNewContext(part,ctx);
  ctx.renderLeaderboard([
   {playerKey:"other",playerName:"Alex",average:"52.50",status:"online",nationality:"England",photo:"images/alex.jpg"},
-  {playerKey:"me",playerName:"Nick",status:"online",average:"53.25",played:4,wins:3,fastestLeg:18,oneEightys:2,bullOuts:1,tonPlusOuts:3,tonPlusIncomplete:true},
+  {playerKey:"me",playerName:"Nick",status:"online",average:"53.25",played:4,wins:3,fastestLeg:18,oneEightys:2,bullOuts:1,highestOut:134,winStreak:2},
   {playerKey:"away",playerName:"Zoe",status:"offline"}
  ]);
  const html = node("leaderboardRows").innerHTML;
@@ -38,10 +38,12 @@ test("lobby splits compact player cards, and only available opponents can be sel
  assert.equal(node("versusYourAverage").textContent,"53.25");
  assert.equal(node("versusYourWins").textContent,3);
  assert.equal(node("versusYourFastestLeg").textContent,"18 darts");
- assert.equal(node("versusYourTons").textContent,"3+");
+ assert.equal(node("versusYourHighestOut").textContent,134);
  const board = node("versusLeaderboardRows").innerHTML;
  assert.match(board, /Nick[\s\S]*18 darts/);
- assert.match(board, /Ton\+ outs/);
+ assert.match(board, /<details class="versusBoardCard"/);
+ assert.match(board, /Highest out/);
+ assert.match(board, /2 wins in a row/);
  assert.doesNotMatch(board, /Losses|Win rate/);
  assert.match(html, /class="versusAvatar" src="images\/alex.jpg"/);
  assert.doesNotMatch(html, /Wins|data-versus-player="(?:me|away)"/);
@@ -88,13 +90,15 @@ test("an invite keeps the exact mixed-case account key used by presence", () => 
  assert.equal(context.getStablePlayerKey({linkedPlayerKey:"TestUid"}),"TestUid");
 });
 
-test("specials aggregate exact new counts and only a confirmed minimum from older games", () => {
+test("the highest checkout and current streak use completed Versus results in match order", () => {
  const row = E.players([{playerKey:"a",playerName:"Alex"}], [
-  {matchMode:"online",playerOneId:"a",playerOneWon:true,playerOneLegs:3,playerOneBestLeg:"21 darts",playerOne180s:1,playerOneBullOuts:1,playerOneHighestOut:120},
-  {matchMode:"online",playerOneId:"a",playerOneWon:true,playerOneBestLeg:18,playerOne180s:2,playerOneTonPlusOuts:2,playerOneHighestOut:140},
-  {matchMode:"local",playerOneId:"a",playerOneWon:true,playerOneBestLeg:9,playerOneTonPlusOuts:4}
+  {dateTime:"2026-11-04",matchMode:"online",playerOneId:"a",playerOneWon:true,playerOneBestLeg:18,playerOne180s:2,playerOneHighestOut:140},
+  {dateTime:"2026-11-01",matchMode:"online",playerOneId:"a",playerOneWon:true,playerOneBestLeg:"21 darts",playerOne180s:1,playerOneBullOuts:1,playerOneHighestOut:120},
+  {dateTime:"2026-11-02",matchMode:"online",playerOneId:"a",playerTwoWon:true},
+  {createdAt:{toMillis:()=>Date.parse("2026-11-03")},matchMode:"online",playerOneId:"a",playerOneWon:true},
+  {dateTime:"2026-11-05",matchMode:"local",playerOneId:"a",playerTwoWon:true,playerOneBestLeg:9,playerOneHighestOut:170}
  ])[0];
- assert.deepEqual([row.played,row.wins,row.fastestLeg,row.oneEightys,row.bullOuts,row.tonPlusOuts,row.tonPlusIncomplete],[2,2,18,3,1,3,true]);
+ assert.deepEqual([row.played,row.wins,row.fastestLeg,row.oneEightys,row.bullOuts,row.highestOut,row.winStreak],[4,3,18,3,1,140,2]);
 });
 
 test("selected opponents open settings and the confirmed invite uses the selected format", () => {
