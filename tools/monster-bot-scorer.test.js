@@ -338,7 +338,8 @@ test("bot matches cannot upload detailed statistics through the league save rout
 test("bot result pages omit checkout totals and rate without changing league results",()=>{
   const source=fs.readFileSync(require.resolve("../scripts/dart-scorer.js"),"utf8");
   const ctx={BOT_MODE:true,window:{},els:{molStatsPageOne:{},molStatsPageTwo:{}},buildStatsRowsHtml:rows=>rows.map(row=>row[0]).join("|"),setMolStatsPage(){}};
-  vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf("function populateMolVictoryStats("),source.indexOf("function getOnlineMatchId()")),ctx);
+  vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf("function populateMolVictoryStats("),source.indexOf("function openMolVictoryScreen(")),ctx);
+  vm.runInContext(source.slice(source.indexOf("function buildMolStatRows("),source.indexOf("function buildRatingHistoryEntry(")),ctx);
   const result={players:[{stats:{}},{stats:{}}]};ctx.populateMolVictoryStats(result);
   const botRows=ctx.els.molStatsPageOne.innerHTML+ctx.els.molStatsPageTwo.innerHTML;
   assert.doesNotMatch(botRows,/Checkouts|Checkout rate/);assert.match(botRows,/3-dart avg./);

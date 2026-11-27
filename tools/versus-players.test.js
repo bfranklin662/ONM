@@ -31,7 +31,7 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  };
  const ctx = {document:{getElementById:node,querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},
   getCurrentPlayerKey:()=>"me",leaderboardFlag:()=>"🇬🇧",escapeHtml:value=>String(value).replace(/</g,"&lt;"),
-  getPlayerPhotoField:player=>player?.photo || "",getPlayerNationality:()=> "British",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, selectedVersusPlayerKey:"", selectedVersusPlayerWasOnline:false, isPlayerOnline:async()=>online, openCompetitiveInviteFlow:key=>invited.push(key), showOnlineNotice:message=>notices.push(message)};
+  getPlayerPhotoField:player=>player?.photo || "",getPlayerNationality:()=> "British",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, getVersusMatchHistory:()=>[], selectedVersusPlayerKey:"", selectedVersusPlayerWasOnline:false, isPlayerOnline:async()=>online, openCompetitiveInviteFlow:key=>invited.push(key), showOnlineNotice:message=>notices.push(message)};
  vm.runInNewContext(part,ctx);
  ctx.renderLeaderboard([
   {playerKey:"other",playerName:"Alex",average:"52.50",status:"online",nationality:"England",photo:"images/alex.jpg"},
@@ -246,12 +246,15 @@ function onlineScorerHarness(status = "playing") {
     db: "db", ref: (_db, path) => path, get: async () => snapshot(),
     async runTransaction(_ref, mutate) {
       const next = mutate(structuredClone(match));
-      if (next) match = next;
+      if (next) {
+        if (next.game.checkoutPhoto && match.game.checkoutPhoto?.id !== next.game.checkoutPhoto.id) {
+          calls.photos.push({ status: next.status, photo: next.game.checkoutPhoto });
+        }
+        match = next;
+      }
       return { committed: Boolean(next), snapshot: snapshot() };
     },
-    async update(_ref, patch) {
-      if (patch["game/checkoutPhoto"]) calls.photos.push(patch["game/checkoutPhoto"]);
-    },
+    async update() {},
     setPresenceStatus: async () => {}
   };
   const ctx = vm.createContext({
@@ -292,6 +295,10 @@ test("a 125 match checkout saves when the opponent has no leg stats, with or wit
     assert.equal(h.calls.saved[0].playerOneWon, true);
     assert.equal(h.calls.saved[0].playerTwoWon, false);
     assert.equal(h.calls.photos.length, Number(Boolean(checkoutPhoto)));
+    if (checkoutPhoto) {
+      assert.equal(h.calls.photos[0].status, "complete");
+      assert.equal(h.calls.photos[0].photo.imageData, checkoutPhoto.imageData);
+    }
   }
 });
 
@@ -314,4 +321,54 @@ test("Monster Bot activity keeps a player visible even without a Versus session"
   assert.equal(E.statusOf({ online: false, botGames: { session: true } }), "monster-bot");
   assert.equal(E.statusOf({ online: false, botGames: {} }), "offline");
   assert.equal(E.statusOf({ online: true, status: "playing", botGames: { session: true } }), "playing");
+});
+
+test("the completed result waits until the final checkout photo is closed", () => {
+  let hidden = false;
+  const shown = [];
+  const match = { status: "complete", matchId: "test-final" };
+  const ctx = {
+    window: { currentOnlineMatch: match }, onlineMatchId: match.matchId,
+    molVictoryShownForMatchId: null, getCurrentPlayerKey: () => "test",
+    els: { checkoutPhotoOverlay: { classList: { contains: () => hidden } } },
+    buildMatchStatsData: value => value, openMolVictoryScreen: value => shown.push(value)
+  };
+  const start = script.indexOf("function showCompletedVersusResult");
+  vm.runInNewContext(script.slice(start, script.indexOf("function listenToOnlineMatch", start)), ctx);
+  ctx.showCompletedVersusResult();
+  assert.equal(shown.length, 0);
+  hidden = true;
+  ctx.showCompletedVersusResult();
+  ctx.showCompletedVersusResult();
+  assert.deepEqual(shown, [match]);
+});
+
+test("only the player whose turn it is hears the required checkout score", () => {
+  const h = onlineScorerHarness();
+  const required = [];
+  h.ctx.announceVisitAndRequire = (_score, checkout) => required.push(checkout);
+  const callout = { type: "score", visitScore: 40, requiredScore: 125 };
+  h.ctx.playOnlineCallout(callout, false);
+  h.ctx.playOnlineCallout(callout, true);
+  assert.deepEqual(required, [null, 125]);
+});
+
+test("saved and legacy result cards supply dates and valid checkout counts", () => {
+  const ctx = {
+    window: {}, getCurrentPlayerKey: () => "nick",
+    getMatchFormatLabel: (_type, count) => `BO${count}`
+  };
+  const start = script.indexOf("function buildVersusHistoryResult");
+  vm.runInNewContext(script.slice(start, script.indexOf("function openLastLeagueStats", start)), ctx);
+  const dateTime = "2026-11-27T16:30:00.000Z";
+  const saved = ctx.buildVersusHistoryResult({
+    matchMode: "online", dateTime, playerOneId: "nick", playerOneWon: true,
+    playerOneCheckoutsHit: 1, playerOneCheckoutAttempts: 2
+  });
+  assert.equal(saved.dateTime, dateTime);
+  assert.equal(saved.players[0].stats.checkouts, "1/2");
+  assert.equal(saved.players[1].stats.checkouts, "0/0");
+  const legacy = ctx.buildVersusHistoryResult({ score: "0-1", statsRows: [["Checkouts", "undefined/undefined", "1/2"]] });
+  assert.equal(legacy.players[0].stats.checkouts, "0/0");
+  assert.equal(legacy.players[1].stats.checkouts, "1/2");
 });

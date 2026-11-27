@@ -289,8 +289,8 @@ let competitiveDeciderType = "coin";
 let readyDeciderMatchId = "";
 let competitiveGameType = "bestOf";
 let molVictoryShownForMatchId = null;
-let rematchStarting = false;
 let currentLeagueProfile = null;
+let currentVersusMatches = [];
 
 let gameOnAnnouncedForMatchId = null;
 
@@ -558,8 +558,6 @@ const els = {
   checkoutPhotoText: document.getElementById("checkoutPhotoText"),
   checkoutPhotoImage: document.getElementById("checkoutPhotoImage"),
   checkoutPhotoReactionBlock: document.getElementById("checkoutPhotoReactionBlock"),
-  checkoutPhotoMessageInput: document.getElementById("checkoutPhotoMessageInput"),
-  sendCheckoutPhotoMessageBtn: document.getElementById("sendCheckoutPhotoMessageBtn"),
   closeCheckoutPhotoBtn: document.getElementById("closeCheckoutPhotoBtn"),
   dismissCheckoutPhotoBtn: document.getElementById("dismissCheckoutPhotoBtn"),
   turnMessage: document.getElementById("turnMessage"),
@@ -740,8 +738,6 @@ const els = {
   molVictoryPlayerOneWon: document.getElementById("molVictoryPlayerOneWon"),
   molVictoryPlayerTwoWon: document.getElementById("molVictoryPlayerTwoWon"),
   molVictoryRematchBtn: document.getElementById("molVictoryRematchBtn"),
-  molVictoryPlayerOneRematch: document.getElementById("molVictoryPlayerOneRematch"),
-  molVictoryPlayerTwoRematch: document.getElementById("molVictoryPlayerTwoRematch"),
 };
 
 // ✅ Hide fullscreen button on desktop/tablet
@@ -788,8 +784,6 @@ let lastOnlineCalloutId = null;
 let checkoutPhotoDraft = null;
 let lastCheckoutPhotoId = null;
 let lastCheckoutPhotoReactionId = null;
-let checkoutPhotoDismissTimer = null;
-let selectedCheckoutPhotoReaction = "";
 const dartAudioPageLoadedAt = Date.now();
 
 let dartAudioUnlocked = false;
@@ -931,6 +925,7 @@ const shortScoreCalls = new Set([67, 95]);
 function dartCalloutSource(fileName) {
   const score = /^score-(\d+)\.mp3$/.exec(fileName);
   if (score && shortScoreCalls.has(Number(score[1]))) return `audio/darts/score-${score[1]}-short.mp3`;
+  if (fileName === "correction.m4a") return "audio/darts/correction.m4a?v=20261127-trimmed";
   if (fileName === "bot-start.m4a") return "audio/darts/bot-start.m4a?v=20261031-soft-chime";
   // Boost the recordings themselves: media volume is already at its maximum,
   // and relying on per-element volume changes is inconsistent on phones.
@@ -1356,8 +1351,7 @@ function removeOpponent() {
   resetAddOpponentButton();
 }
 
-function buildMatchStatsData() {
-  const match = window.currentOnlineMatch || {};
+function buildMatchStatsData(match = window.currentOnlineMatch || {}) {
   const keys = onlinePlayerKeys(match);
   const p1Key = keys[0];
   const p2Key = keys[1];
@@ -1427,6 +1421,8 @@ function buildMatchStatsData() {
   }
 
   return {
+    dateTime: match.completedAt,
+    title: `${match.settings?.startScore || STARTING_SCORE} · ${getMatchFormatLabel(match.settings?.gameType || GAME_TYPE, Number(match.settings?.legsCount || els.legsCount.textContent))}`,
     players: [
       buildPlayerData(
         0,
@@ -1482,11 +1478,11 @@ function buildLocalMatchStatsData() {
 function buildStatsRowsHtml(rows) {
   return rows.map(([label, left, right]) => `
     <div class="statRow">
-      <div class="statValue">${left}</div>
+      <div class="statValue">${escapeHtml(left ?? "-")}</div>
       <div class="statLabelWrap">
-        <div class="statLabel">${label}</div>
+        <div class="statLabel">${escapeHtml(label)}</div>
       </div>
-      <div class="statValue">${right}</div>
+      <div class="statValue">${escapeHtml(right ?? "-")}</div>
     </div>
   `).join("");
 }
@@ -1495,126 +1491,30 @@ function populateMolVictoryStats(matchData) {
   const p1 = matchData.players[0].stats;
   const p2 = matchData.players[1].stats;
 
-  const rows = [
-    ["3-dart avg.", p1.average, p2.average],
-    ["First 9 avg.", p1.firstNineAvg, p2.firstNineAvg],
-    ...(!BOT_MODE || window.ONMMonsterScorer?.tracksCheckouts() ? [["Checkouts", p1.checkouts, p2.checkouts], ["Checkout rate", p1.checkoutRate, p2.checkoutRate]] : []),
-    ["Highest out", p1.highestOut, p2.highestOut],
-    ["High score", p1.highScore, p2.highScore],
-    ["Best leg", p1.bestLeg, p2.bestLeg],
-    ["Worst leg", p1.worstLeg, p2.worstLeg],
-    ["180s", p1.oneEightys, p2.oneEightys],
-    ["Bull-outs", p1.bullOuts, p2.bullOuts]
-  ];
+  const rows = buildMolStatRows(p1, p2);
+  if (BOT_MODE && !window.ONMMonsterScorer?.tracksCheckouts()) rows.splice(2, 2);
 
-  const pageSize = BOT_MODE ? 4 : 5;
+  const pageSize = els.molVictoryOverlay?.classList.contains("versusResult") ? rows.length : BOT_MODE ? 4 : 5;
   els.molStatsPageOne.innerHTML = buildStatsRowsHtml(rows.slice(0, pageSize));
   els.molStatsPageTwo.innerHTML = buildStatsRowsHtml(rows.slice(pageSize));
   setMolStatsPage(0);
 }
 
-function getOnlineMatchId() {
-  return onlineMatchId || window.currentOnlineMatch?.matchId || "";
-}
-
-async function updateMolResultPresence(status) {
-  const matchId = getOnlineMatchId();
-  const myKey = getCurrentPlayerKey();
-
-  if (!matchId || !myKey || !window.ONMLiveDarts) return;
-
-  const { db, ref, update } = window.ONMLiveDarts;
-
-  await update(ref(db, `onlineMatches/${matchId}`), {
-    [`resultPresence/${myKey}`]: status,
-    [`resultPresenceUpdatedAt/${myKey}`]: Date.now()
-  });
-}
-
-function applyMolRematchState(match) {
-  const rematch = match.rematch || {};
-  const presence = match.resultPresence || {};
-
-  const hostRematch = Boolean(rematch[match.hostPlayerKey]);
-  const guestRematch = Boolean(rematch[match.guestPlayerKey]);
-
-  const hostLeft = presence[match.hostPlayerKey] === "left";
-  const guestLeft = presence[match.guestPlayerKey] === "left";
-
-  const myKey = getCurrentPlayerKey();
-  const opponentKey =
-    myKey === match.hostPlayerKey
-      ? match.guestPlayerKey
-      : match.hostPlayerKey;
-
-  const amRematching = Boolean(rematch[myKey]);
-  const opponentRematching = Boolean(rematch[opponentKey]);
-  const opponentLeft = presence[opponentKey] === "left";
-
-  els.molVictoryPlayerOneRematch.textContent = hostLeft
-    ? "×"
-    : hostRematch
-      ? "✓"
-      : "R";
-
-  els.molVictoryPlayerTwoRematch.textContent = guestLeft
-    ? "×"
-    : guestRematch
-      ? "✓"
-      : "R";
-
-  els.molVictoryPlayerOneRematch.title = hostLeft
-    ? "Rematch declined"
-    : hostRematch
-      ? "Rematch requested"
-      : "Rematch";
-  els.molVictoryPlayerTwoRematch.title = guestLeft
-    ? "Rematch declined"
-    : guestRematch
-      ? "Rematch requested"
-      : "Rematch";
-
-  els.molVictoryPlayerOneRematch.classList.toggle("ready", hostRematch && !hostLeft);
-  els.molVictoryPlayerTwoRematch.classList.toggle("ready", guestRematch && !guestLeft);
-
-  els.molVictoryPlayerOneRematch.classList.toggle("pending", !hostRematch && !hostLeft);
-  els.molVictoryPlayerTwoRematch.classList.toggle("pending", !guestRematch && !guestLeft);
-
-  els.molVictoryPlayerOneRematch.classList.toggle("declined", hostLeft);
-  els.molVictoryPlayerTwoRematch.classList.toggle("declined", guestLeft);
-
-  if (opponentLeft) {
-    els.molVictoryRematchBtn.textContent = "Opponent declined";
-    els.molVictoryRematchBtn.disabled = true;
-    els.molVictoryRematchBtn.classList.remove("active");
-
-    els.molVictoryCloseBtn.disabled = false;
-    return;
-  }
-
-  els.molVictoryRematchBtn.textContent = amRematching
-    ? "Waiting for opponent..."
-    : "Rematch";
-
-  els.molVictoryRematchBtn.classList.toggle("active", amRematching);
-  els.molVictoryRematchBtn.disabled = opponentLeft;
-
-  // Once you click rematch, you cannot continue unless you untick it.
-  els.molVictoryCloseBtn.disabled = amRematching;
-}
-
 function openMolVictoryScreen(matchData) {
   const isTournamentResult = matchData.mode === "tournament";
-  const isCasualResult = isTournamentResult || matchData.mode === "casual" || MATCH_MODE !== "online";
+  const isHistory = matchData.mode === "history";
+  const isCasualResult = !isHistory && (isTournamentResult || matchData.mode === "casual" || MATCH_MODE !== "online");
+  const isVersus = !isCasualResult;
   const kicker = els.molVictoryOverlay?.querySelector(".readyLeagueKicker");
 
-  els.scorerCard?.classList.add("hidden");
+  if (!isHistory) els.scorerCard?.classList.add("hidden");
 
   els.molVictoryOverlay?.classList.remove("hidden");
   els.molVictoryOverlay?.setAttribute("aria-hidden", "false");
   els.molVictoryOverlay?.classList.toggle("casualVictory", isCasualResult);
+  els.molVictoryOverlay?.classList.toggle("versusResult", isVersus);
   if (els.molVictoryOverlay) {
-    els.molVictoryOverlay.dataset.resultMode = isTournamentResult ? "tournament" : isCasualResult ? "casual" : "online";
+    els.molVictoryOverlay.dataset.resultMode = isHistory ? "history" : isTournamentResult ? "tournament" : isCasualResult ? "casual" : "online";
   }
   if (kicker) {
     kicker.textContent = isTournamentResult ? "Tournament match" : isCasualResult ? "Casual darts match" : "Monsters Versus";
@@ -1667,18 +1567,21 @@ function openMolVictoryScreen(matchData) {
     els.molVictoryPlayerOneRank,
     els.molVictoryPlayerTwoRank,
     els.molVictoryPlayerOneRating,
-    els.molVictoryPlayerTwoRating,
-    els.molVictoryPlayerOneRematch,
-    els.molVictoryPlayerTwoRematch
+    els.molVictoryPlayerTwoRating
   ].forEach(element => element?.classList.toggle("hidden", isCasualResult));
 
   els.molVictoryMiddleScore.textContent =
     `${p1.legs} - ${p2.legs}`;
 
   els.molVictoryTitle.textContent =
-    isTournamentResult ? getGameTitle() : isCasualResult
+    matchData.title || (isTournamentResult ? getGameTitle() : isCasualResult
       ? `${STARTING_SCORE} · ${GAME_TYPE === "bestOf" ? `BO${Number(els.legsCount.textContent)}` : `FT${Number(els.legsCount.textContent)}`}`
-      : `${STARTING_SCORE} · ${getMatchFormatLabel(GAME_TYPE, Number(els.legsCount.textContent))}`;
+      : `${STARTING_SCORE} · ${getMatchFormatLabel(GAME_TYPE, Number(els.legsCount.textContent))}`);
+  const date = document.getElementById("molVictoryDate");
+  if (date) {
+    date.textContent = isVersus ? formatLeagueMatchDate(matchData.dateTime) : "";
+    date.hidden = !date.textContent;
+  }
 
   const draw = isTournamentResult && state.winnerIndex === -1;
   els.molVictoryPlayerOneWon.textContent = draw ? "DRAW" : p1.isWinner ? "WINNER" : "LOSER";
@@ -1691,15 +1594,11 @@ function openMolVictoryScreen(matchData) {
   populateMolVictoryStats(matchData);
 
   els.molVictoryRematchBtn.textContent = "Rematch";
-  els.molVictoryRematchBtn.hidden = false;
+  els.molVictoryRematchBtn.hidden = isVersus;
   els.molVictoryRematchBtn.disabled = false;
   els.molVictoryRematchBtn.classList.remove("active");
   els.molVictoryCloseBtn.disabled = false;
-  if (isTournamentResult) els.molVictoryCloseBtn.textContent = "Back to tournament";
-
-  if (!isCasualResult) {
-    updateMolResultPresence("viewing");
-  }
+  els.molVictoryCloseBtn.textContent = isTournamentResult ? "Back to tournament" : "Continue";
   if (BOT_MODE) {
     window.ONMMonsterScorer?.showResult();
     window.ONMMonsterScorer?.showUnlock();
@@ -1771,12 +1670,6 @@ window.testMolVictoryScreen = function testMolVictoryScreen() {
   STARTING_SCORE = 501;
   if (els.legsCount) els.legsCount.textContent = "7";
   openMolVictoryScreen(buildTestMolVictoryData());
-  applyMolRematchState({
-    hostPlayerKey: "test-filip",
-    guestPlayerKey: "test-seb",
-    rematch: {},
-    resultPresence: {}
-  });
 };
 
 window.testCasualVictoryScreen = function testCasualVictoryScreen() {
@@ -2578,7 +2471,6 @@ function leaveMolVictoryScreenLocally() {
   onlineBullSubmitted = false;
   onlineResultSaved = false;
   molVictoryShownForMatchId = null;
-  rematchStarting = false;
 
   clearOnlineSession();
   window.currentOnlineMatch = null;
@@ -2604,7 +2496,7 @@ function leaveMolVictoryScreenLocally() {
   }
 }
 
-els.molVictoryCloseBtn?.addEventListener("click", async () => {
+els.molVictoryCloseBtn?.addEventListener("click", () => {
   if (BOT_MODE) { window.ONMMonsterScorer?.exit(); return; }
   if (tournamentMatch) {
     fullyStopDartAudio();
@@ -2620,79 +2512,25 @@ els.molVictoryCloseBtn?.addEventListener("click", async () => {
     return;
   }
 
-  const matchId = getOnlineMatchId();
-  const myKey = getCurrentPlayerKey();
-  const match = window.currentOnlineMatch || {};
-
-  if (!matchId || !myKey || !window.ONMLiveDarts) return;
-
-  const { db, ref, update } = window.ONMLiveDarts;
-
-  await update(ref(db, `onlineMatches/${matchId}`), {
-    [`resultPresence/${myKey}`]: "left",
-    [`resultPresenceUpdatedAt/${myKey}`]: Date.now(),
-    [`rematch/${myKey}`]: null
-  });
-
-  if (window.ONMLiveDarts?.setPresenceStatus) {
-    await window.ONMLiveDarts.setPresenceStatus(myKey, "online");
-  }
-
-  leaveMolVictoryScreenLocally();
-});
-
-els.molVictoryRematchBtn?.addEventListener("click", async () => {
-  if (BOT_MODE) { window.ONMMonsterScorer?.rematch(); return; }
-  if (els.molVictoryOverlay?.dataset.resultMode === "casual") {
-    fullyStopDartAudio();
-    els.molVictoryOverlay?.classList.add("hidden");
-    newGame();
-    syncMainViews("game");
+  if (els.molVictoryOverlay?.dataset.resultMode === "history") {
+    els.molVictoryOverlay.classList.add("hidden");
+    els.molVictoryOverlay.setAttribute("aria-hidden", "true");
     return;
   }
 
-  const matchId = getOnlineMatchId();
   const myKey = getCurrentPlayerKey();
-  const match = window.currentOnlineMatch || {};
+  leaveMolVictoryScreenLocally();
+  window.ONMLiveDarts?.setPresenceStatus?.(myKey, "online")
+    .catch(err => console.warn("Could not update Versus presence:", err));
+});
 
-  if (!matchId || !myKey || !window.ONMLiveDarts) return;
-
-  const opponentKey =
-    myKey === match.hostPlayerKey
-      ? match.guestPlayerKey
-      : match.hostPlayerKey;
-
-  if (match.resultPresence?.[opponentKey] === "left") return;
-
-  const currentlyRematching = Boolean(match.rematch?.[myKey]);
-  const nextRematch = !currentlyRematching;
-
-  const { db, ref, update, get } = window.ONMLiveDarts;
-
-  await update(ref(db, `onlineMatches/${matchId}`), {
-    [`rematch/${myKey}`]: nextRematch ? true : null,
-    [`resultPresence/${myKey}`]: nextRematch ? "rematch" : "viewing",
-    [`resultPresenceUpdatedAt/${myKey}`]: Date.now()
-  });
-
-  if (!nextRematch) return;
-
-  const latestSnap = await get(ref(db, `onlineMatches/${matchId}`));
-  if (!latestSnap.exists()) return;
-
-  const latest = latestSnap.val();
-
-  const hostRematch = Boolean(latest.rematch?.[latest.hostPlayerKey]);
-  const guestRematch = Boolean(latest.rematch?.[latest.guestPlayerKey]);
-
-  const alreadyStarted =
-    latest.rematchStartedForCompletedAt &&
-    latest.rematchStartedForCompletedAt === latest.completedAt;
-
-  if (hostRematch && guestRematch && !alreadyStarted && !rematchStarting) {
-    rematchStarting = true;
-    await startOnlineRematch(latest);
-  }
+els.molVictoryRematchBtn?.addEventListener("click", () => {
+  if (BOT_MODE) { window.ONMMonsterScorer?.rematch(); return; }
+  if (els.molVictoryOverlay?.dataset.resultMode !== "casual") return;
+  fullyStopDartAudio();
+  els.molVictoryOverlay.classList.add("hidden");
+  newGame();
+  syncMainViews("game");
 });
 
 document.querySelectorAll("#startScoreSwitch .toggleBtn").forEach(button => {
@@ -3364,6 +3202,11 @@ function resetCheckoutPhotoDraft() {
   els.checkoutPhotoBtn?.setAttribute("title", "Add checkout photo");
 }
 
+function getCheckoutPhotoDraft(visitScore, previousScore) {
+  return checkoutPhotoDraft?.visitScore === visitScore &&
+    checkoutPhotoDraft.previousScore === previousScore ? checkoutPhotoDraft : null;
+}
+
 function syncCheckoutPhotoButton() {
   const opportunity = getCurrentCheckoutPhotoOpportunity();
 
@@ -3378,12 +3221,7 @@ function syncCheckoutPhotoButton() {
     return;
   }
 
-  const draftMatchesOpportunity =
-    checkoutPhotoDraft &&
-    checkoutPhotoDraft.visitScore === opportunity.visitScore &&
-    checkoutPhotoDraft.previousScore === opportunity.previousScore;
-
-  if (!draftMatchesOpportunity && checkoutPhotoDraft) {
+  if (checkoutPhotoDraft && !getCheckoutPhotoDraft(opportunity.visitScore, opportunity.previousScore)) {
     resetCheckoutPhotoDraft();
   }
 }
@@ -3908,6 +3746,11 @@ async function submitOnlineScore() {
 
   const legWon = newScore === 0;
 
+  if (legWon && els.checkoutPhotoBtn?.classList.contains("isLoading")) {
+    showOnlineNotice("Your checkout photo is still being prepared. Please try again in a moment.");
+    return;
+  }
+
   if (legWon) {
     const minimumDarts = getMinimumCheckoutDarts(previousScore);
 
@@ -3997,7 +3840,8 @@ async function submitOnlineScore() {
       legWon,
       dartsUsed: 3,
       doublesAttempted: 0,
-      bullOut: legWon && FORCED_BULL_OUTS.has(previousScore)
+      bullOut: legWon && FORCED_BULL_OUTS.has(previousScore),
+      checkoutPhoto: legWon ? getCheckoutPhotoDraft(value, previousScore) : null
     });
   } catch (err) {
     console.error("Could not submit online score:", err);
@@ -4105,7 +3949,7 @@ function buildDartMatchPayloadFromOnlineMatch(match, winnerKey) {
 
   return {
     matchId: match.resultId || match.matchId,
-    dateTime: new Date().toISOString(),
+    dateTime: new Date(match.completedAt || Date.now()).toISOString(),
     startScore: match.settings?.startScore || STARTING_SCORE,
     gameType: match.settings?.gameType || GAME_TYPE,
     legsCount: match.settings?.legsCount || Number(els.legsCount.textContent),
@@ -4115,6 +3959,8 @@ function buildDartMatchPayloadFromOnlineMatch(match, winnerKey) {
     ...(match.forfeitByKey ? { forfeitByKey: match.forfeitByKey } : {}),
 
     playerOneName: p1.name,
+    playerOnePhoto: match.hostPhoto || "",
+    playerOneNationality: match.hostNationality || "",
     playerOneId: p1Key,
     playerOneLegs: p1.legs || 0,
     playerOneWon: winnerKey === p1Key,
@@ -4137,6 +3983,8 @@ function buildDartMatchPayloadFromOnlineMatch(match, winnerKey) {
     }),
 
     playerTwoName: p2.name,
+    playerTwoPhoto: match.guestPhoto || "",
+    playerTwoNationality: match.guestNationality || "",
     playerTwoId: p2Key,
     playerTwoLegs: p2.legs || 0,
     playerTwoWon: winnerKey === p2Key,
@@ -4471,7 +4319,19 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       (player.checkoutAttempts || 0) + doublesAttempted;
   }
 
-  const submission = await runTransaction(matchRef, live => {
+  const photo = legWon && checkoutPhoto?.imageData ? {
+    id: `photo-${calloutId}`,
+    byKey: myKey,
+    byName: player.name || "Player",
+    visitScore,
+    previousScore,
+    bullOut: Boolean(bullOut),
+    imageData: checkoutPhoto.imageData,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 120000
+  } : null;
+
+  const submitVisit = includePhoto => runTransaction(matchRef, live => {
     const livePlayer = live?.game?.players?.[myKey];
     if (live?.status !== "playing" || live.matchId !== match.matchId || live.resultId !== match.resultId ||
         live.game.currentPlayerKey !== myKey || livePlayer?.score !== previousScore ||
@@ -4485,8 +4345,23 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       if (value === null) delete parent[field];
       else parent[field] = value;
     }
+    if (legWon) {
+      if (includePhoto) live.game.checkoutPhoto = photo;
+      else delete live.game.checkoutPhoto;
+    }
     return live;
   }, { applyLocally: false });
+
+  let submission;
+  let photoSent = Boolean(photo);
+  try {
+    submission = await submitVisit(photoSent);
+  } catch (err) {
+    if (!photo) throw err;
+    submission = await submitVisit(false);
+    photoSent = false;
+    if (submission.committed) showOnlineNotice("Checkout submitted, but the photo could not be sent.");
+  }
   if (!submission.committed) throw new Error("The match changed before the score could be submitted.");
 
   if (updates.status === "complete") {
@@ -4494,31 +4369,8 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
     saveRatingHistory?.().catch(err => console.warn("Could not save match history:", err));
   }
 
-  if (legWon && checkoutPhoto?.imageData) {
-    const photoId = `photo-${calloutId}`;
-
-    try {
-      await update(matchRef, {
-        "game/checkoutPhoto": {
-          id: photoId,
-          byKey: myKey,
-          byName: player.name || "Player",
-          visitScore,
-          previousScore,
-          bullOut: Boolean(bullOut),
-          imageData: checkoutPhoto.imageData,
-          createdAt: Date.now(),
-          expiresAt: Date.now() + 45000
-        }
-      });
-
-      setTimeout(() => {
-        clearCheckoutPhotoFromMatch(photoId, matchId);
-      }, 45000);
-    } catch (err) {
-      console.warn("Checkout submitted, but photo could not be sent:", err);
-      showOnlineNotice("Checkout submitted, but the photo could not be sent.");
-    }
+  if (photoSent) {
+    setTimeout(() => clearCheckoutPhotoFromMatch(photo.id, matchId), 120000);
   }
 
   els.input.value = "";
@@ -4984,7 +4836,7 @@ function getPlayerStats(player) {
     : "0.00";
 
   const checkoutRate = player.checkoutAttempts
-    ? `${((player.checkoutHits / player.checkoutAttempts) * 100).toFixed(2)}%`
+    ? `${((Number(player.checkoutHits || 0) / player.checkoutAttempts) * 100).toFixed(2)}%`
     : "0.00%";
 
   const firstNineAvg = player.firstNineDarts
@@ -4994,7 +4846,7 @@ function getPlayerStats(player) {
   return {
     average,
     firstNineAvg,
-    checkouts: `${player.checkoutHits}/${player.checkoutAttempts}`,
+    checkouts: `${Number(player.checkoutHits || 0)}/${Number(player.checkoutAttempts || 0)}`,
     checkoutRate,
     highestOut: player.highestOut || "-",
     highScore: player.highScore || "-",
@@ -5299,7 +5151,7 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
   const promptData = pendingCheckoutPrompt;
   const checkoutPhoto =
     promptData.online && promptData.legWon
-      ? checkoutPhotoDraft
+      ? getCheckoutPhotoDraft(promptData.visitScore, promptData.previousScore)
       : null;
   closeCheckoutPrompt();
 
@@ -5406,32 +5258,9 @@ els.checkoutPhotoInput?.addEventListener("change", event => {
 
 els.closeCheckoutPhotoBtn?.addEventListener("click", () => closeCheckoutPhotoOverlay());
 els.checkoutPhotoOverlay?.addEventListener("click", event => {
-  const reactionButton = event.target.closest("[data-checkout-reaction]");
-
-  if (reactionButton) {
-    selectedCheckoutPhotoReaction = reactionButton.dataset.checkoutReaction || "";
-    els.checkoutPhotoOverlay
-      ?.querySelectorAll("[data-checkout-reaction]")
-      .forEach(button => button.classList.toggle("selected", button === reactionButton));
-    return;
-  }
-
-  if (event.target !== els.checkoutPhotoOverlay) return;
-  closeCheckoutPhotoOverlay();
-});
-els.sendCheckoutPhotoMessageBtn?.addEventListener("click", () => {
-  sendCheckoutPhotoReaction({
-    emoji: selectedCheckoutPhotoReaction,
-    message: els.checkoutPhotoMessageInput?.value || ""
-  });
-});
-els.checkoutPhotoMessageInput?.addEventListener("keydown", event => {
-  if (event.key !== "Enter") return;
-  event.preventDefault();
-  sendCheckoutPhotoReaction({
-    emoji: selectedCheckoutPhotoReaction,
-    message: els.checkoutPhotoMessageInput?.value || ""
-  });
+  const reaction = event.target.closest("[data-checkout-reaction]")?.dataset.checkoutReaction;
+  if (reaction) void sendCheckoutPhotoReaction(reaction);
+  else if (event.target === els.checkoutPhotoOverlay) closeCheckoutPhotoOverlay();
 });
 
 els.input.addEventListener("keydown", event => {
@@ -6653,6 +6482,17 @@ async function exitCompletedOnlineMatch() {
   }
 }
 
+function showCompletedVersusResult() {
+  const match = window.currentOnlineMatch;
+  if (!onlineMatchId || match?.status !== "complete" || match.forfeitByKey === getCurrentPlayerKey()) return;
+  if (els.checkoutPhotoOverlay && !els.checkoutPhotoOverlay.classList.contains("hidden")) return;
+  const resultId = match.resultId || match.matchId;
+  if (molVictoryShownForMatchId === resultId) return;
+  molVictoryShownForMatchId = resultId;
+  openMolVictoryScreen(buildMatchStatsData(match));
+  if (match.forfeitByKey) showOnlineNotice("Your opponent forfeited. You won the match.");
+}
+
 function listenToOnlineMatch(matchId) {
   const { db, ref, onValue } = window.ONMLiveDarts;
   const myKey = getCurrentPlayerKey();
@@ -6661,9 +6501,16 @@ function listenToOnlineMatch(matchId) {
   const matchRef = ref(db, `onlineMatches/${matchId}`);
 
   onValue(matchRef, snapshot => {
-    if (!snapshot.exists() || onlineMatchId !== matchId) return;
-
+    if (!snapshot.exists()) return;
     const match = snapshot.val();
+    if (onlineMatchId !== matchId) {
+      const photo = match.game?.checkoutPhoto;
+      if (photo?.byKey === myKey && photo.reaction?.id && photo.reaction.id !== lastCheckoutPhotoReactionId) {
+        lastCheckoutPhotoReactionId = photo.reaction.id;
+        showCheckoutPhotoReactionToast(photo.reaction);
+      }
+      return;
+    }
     window.currentOnlineMatch = match;
 
     if (["left", "cancelled", "closed"].includes(match.status)) {
@@ -6727,59 +6574,25 @@ function listenToOnlineMatch(matchId) {
     }
 
     if (match.status === "complete") {
-      if (match.forfeitByKey) {
-        if (match.forfeitByKey === myKey) return;
-        stopOnlineHeartbeat();
-        stopOnlineDisconnectWatch();
+      if (match.forfeitByKey === myKey) return;
+      stopOnlineHeartbeat();
+      stopOnlineDisconnectWatch();
+      if (molVictoryShownForMatchId === (match.resultId || match.matchId)) {
+        handleCheckoutPhotoNotification(match);
+        return;
       }
       applyOnlineGame(match);
 
       const keys = onlinePlayerKeys(match);
       state.winnerIndex = match.winnerKey === keys[0] ? 0 : 1;
-
       els.submit.disabled = true;
       els.keypad.classList.add("disabled");
       els.onlineTurnOverlay?.classList.add("hidden");
-
-      const resultId = match.resultId || match.matchId;
-      if (molVictoryShownForMatchId !== resultId) {
-        molVictoryShownForMatchId = resultId;
-
-        setTimeout(() => {
-          if (onlineMatchId !== matchId) return;
-          openMolVictoryScreen(buildMatchStatsData());
-          applyMolRematchState(match);
-          if (match.forfeitByKey) {
-            if (els.molVictoryRematchBtn) els.molVictoryRematchBtn.hidden = true;
-            showOnlineNotice("Your opponent forfeited. You won the match.");
-          }
-        }, 700);
-      } else if (!match.forfeitByKey) {
-        applyMolRematchState(match);
-      }
-
-      const hostRematch = Boolean(match.rematch?.[match.hostPlayerKey]);
-      const guestRematch = Boolean(match.rematch?.[match.guestPlayerKey]);
-
-      const rematchAlreadyStartedForThisResult =
-        match.rematchStartedForCompletedAt &&
-        match.rematchStartedForCompletedAt === match.completedAt;
-
-      if (
-        hostRematch &&
-        guestRematch &&
-        !rematchAlreadyStartedForThisResult &&
-        !rematchStarting
-      ) {
-        rematchStarting = true;
-        startOnlineRematch(match);
-      }
-
+      showCompletedVersusResult();
       return;
     }
 
     if (match.status === "readyLobby") {
-      rematchStarting = false;
       molVictoryShownForMatchId = null;
 
       els.molVictoryOverlay?.classList.add("hidden");
@@ -6883,93 +6696,6 @@ function applyReadyLobby(match) {
   if (hostReady && guestReady && onlineRole === "host") {
     startReadyOnlineDecider();
   }
-}
-
-async function startOnlineRematch(match) {
-  const matchId = getOnlineMatchId();
-
-  if (!matchId || !window.ONMLiveDarts) return;
-
-  const { db, ref, update } = window.ONMLiveDarts;
-  const keys = onlinePlayerKeys(match);
-  const startScore = Number(match.settings?.startScore || 501);
-
-  await update(ref(db, `onlineMatches/${matchId}`), {
-    status: "readyLobby",
-    rematchStartedAt: Date.now(),
-    rematchStartedForCompletedAt: match.completedAt || Date.now(),
-    resultId: `${matchId}-${match.completedAt}`,
-    sheetSaved: false,
-    sheetSavedAt: null,
-    forfeitByKey: null,
-
-    winnerKey: null,
-    winnerName: null,
-    loserKey: null,
-    loserName: null,
-    completedAt: null,
-
-    rematch: null,
-    resultPresence: null,
-    resultPresenceUpdatedAt: null,
-
-    ready: {
-      [match.hostPlayerKey]: false,
-      [match.guestPlayerKey]: false
-    },
-
-    decider: null,
-
-    [`game/currentPlayerKey`]: null,
-    [`game/lastCallout`]: null,
-
-    [`game/players/${keys[0]}/score`]: startScore,
-    [`game/players/${keys[0]}/legs`]: 0,
-    [`game/players/${keys[0]}/totalScored`]: 0,
-    [`game/players/${keys[0]}/dartsThrown`]: 0,
-    [`game/players/${keys[0]}/lastScore`]: null,
-    [`game/players/${keys[0]}/checkoutHits`]: 0,
-    [`game/players/${keys[0]}/checkoutAttempts`]: 0,
-    [`game/players/${keys[0]}/highestOut`]: 0,
-    [`game/players/${keys[0]}/highScore`]: 0,
-    [`game/players/${keys[0]}/oneEightys`]: 0,
-    [`game/players/${keys[0]}/bullOuts`]: 0,
-    [`game/players/${keys[0]}/tonPlusOuts`]: 0,
-    [`game/players/${keys[0]}/tonPlusIncomplete`]: false,
-    [`game/players/${keys[0]}/legDarts`]: [],
-    [`game/players/${keys[0]}/currentLegDarts`]: 0,
-    [`game/players/${keys[0]}/firstNineScored`]: 0,
-    [`game/players/${keys[0]}/firstNineDarts`]: 0,
-    [`game/players/${keys[0]}/currentLegFirstNineScored`]: 0,
-    [`game/players/${keys[0]}/currentLegFirstNineDarts`]: 0,
-
-    [`game/players/${keys[1]}/score`]: startScore,
-    [`game/players/${keys[1]}/legs`]: 0,
-    [`game/players/${keys[1]}/totalScored`]: 0,
-    [`game/players/${keys[1]}/dartsThrown`]: 0,
-    [`game/players/${keys[1]}/lastScore`]: null,
-    [`game/players/${keys[1]}/checkoutHits`]: 0,
-    [`game/players/${keys[1]}/checkoutAttempts`]: 0,
-    [`game/players/${keys[1]}/highestOut`]: 0,
-    [`game/players/${keys[1]}/highScore`]: 0,
-    [`game/players/${keys[1]}/oneEightys`]: 0,
-    [`game/players/${keys[1]}/bullOuts`]: 0,
-    [`game/players/${keys[1]}/tonPlusOuts`]: 0,
-    [`game/players/${keys[1]}/tonPlusIncomplete`]: false,
-    [`game/players/${keys[1]}/legDarts`]: [],
-    [`game/players/${keys[1]}/currentLegDarts`]: 0,
-    [`game/players/${keys[1]}/firstNineScored`]: 0,
-    [`game/players/${keys[1]}/firstNineDarts`]: 0,
-    [`game/players/${keys[1]}/currentLegFirstNineScored`]: 0,
-    [`game/players/${keys[1]}/currentLegFirstNineDarts`]: 0
-  });
-
-  molVictoryShownForMatchId = null;
-  rematchStarting = false;
-  onlineCoinStarted = false;
-  onlineDeciderOpened = false;
-
-  els.molVictoryOverlay?.classList.add("hidden");
 }
 
 async function startReadyOnlineDecider() {
@@ -7520,7 +7246,7 @@ function applyOnlineGame(match) {
   if (lastCallout?.id && lastCallout.id !== lastOnlineCalloutId) {
     lastOnlineCalloutId = lastCallout.id;
     lastOnlineCalloutAt = lastCallout.createdAt || null;
-    playOnlineCallout(lastCallout);
+    playOnlineCallout(lastCallout, isMyTurn);
   }
 
   handleCheckoutPhotoNotification(match);
@@ -7566,18 +7292,9 @@ async function clearCheckoutPhotoFromMatch(photoId, matchId = onlineMatchId) {
   if (!matchId || !photoId || !window.ONMLiveDarts) return;
 
   try {
-    const { db, ref, get, update } = window.ONMLiveDarts;
-    const snap = await get(ref(db, `onlineMatches/${matchId}/game/checkoutPhoto`));
-
-    if (!snap.exists()) return;
-
-    const currentPhoto = snap.val();
-
-    if (currentPhoto?.id !== photoId) return;
-
-    await update(ref(db, `onlineMatches/${matchId}`), {
-      "game/checkoutPhoto": null
-    });
+    const { db, ref, runTransaction } = window.ONMLiveDarts;
+    await runTransaction(ref(db, `onlineMatches/${matchId}/game/checkoutPhoto`),
+      photo => photo?.id === photoId ? null : undefined, { applyLocally: false });
   } catch (err) {
     console.warn("Could not clear checkout photo:", err);
   }
@@ -7586,56 +7303,35 @@ async function clearCheckoutPhotoFromMatch(photoId, matchId = onlineMatchId) {
 function closeCheckoutPhotoOverlay({ clearRemote = true } = {}) {
   const photoId = els.checkoutPhotoOverlay?.dataset.photoId || "";
 
-  clearTimeout(checkoutPhotoDismissTimer);
-  checkoutPhotoDismissTimer = null;
-
   els.checkoutPhotoOverlay?.classList.add("hidden");
   els.checkoutPhotoOverlay?.setAttribute("aria-hidden", "true");
-
-  if (els.checkoutPhotoImage) {
-    els.checkoutPhotoImage.src = "";
-  }
-
-  if (els.checkoutPhotoMessageInput) {
-    els.checkoutPhotoMessageInput.value = "";
-  }
-
-  selectedCheckoutPhotoReaction = "";
-  els.checkoutPhotoOverlay
-    ?.querySelectorAll("[data-checkout-reaction]")
-    .forEach(button => button.classList.remove("selected"));
-
-  if (clearRemote && photoId) {
-    clearCheckoutPhotoFromMatch(photoId);
-  }
+  if (els.checkoutPhotoImage) els.checkoutPhotoImage.removeAttribute("src");
+  if (els.checkoutPhotoOverlay) delete els.checkoutPhotoOverlay.dataset.photoId;
+  if (clearRemote && photoId) void clearCheckoutPhotoFromMatch(photoId);
+  if (photoId) showCompletedVersusResult();
 }
 
-async function sendCheckoutPhotoReaction({ emoji = "", message = "" } = {}) {
-  const photoId = els.checkoutPhotoOverlay?.dataset.photoId || "";
-  if (!onlineMatchId || !photoId || !window.ONMLiveDarts) return;
+async function sendCheckoutPhotoReaction(emoji) {
+  const photoId = els.checkoutPhotoOverlay?.dataset.photoId;
+  const matchId = onlineMatchId;
+  if (!matchId || !photoId || !window.ONMLiveDarts) return;
 
-  const cleanedMessage = String(message || "").trim().slice(0, 80);
-  if (!emoji && !cleanedMessage) return;
-
+  const { db, ref, runTransaction } = window.ONMLiveDarts;
   const user = window.ONMSession?.getUser?.() || loggedInUser || {};
-  const reactionId = `reaction-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const { db, ref, update } = window.ONMLiveDarts;
-
-  await update(ref(db, `onlineMatches/${onlineMatchId}/game/checkoutPhoto/reaction`), {
-    id: reactionId,
-    photoId,
-    emoji,
-    message: cleanedMessage,
-    byKey: getCurrentPlayerKey(),
-    byName: getLoggedInFullName(user),
-    createdAt: Date.now()
-  });
-
-  closeCheckoutPhotoOverlay({ clearRemote: false });
-
-  setTimeout(() => {
-    clearCheckoutPhotoFromMatch(photoId);
-  }, 6500);
+  try {
+    await runTransaction(ref(db, `onlineMatches/${matchId}/game/checkoutPhoto`), photo => {
+      if (photo?.id !== photoId || photo.reaction) return;
+      return { ...photo, reaction: {
+        id: `reaction-${photoId}`, emoji, byName: getLoggedInFullName(user)
+      } };
+    }, { applyLocally: false });
+    if (els.checkoutPhotoOverlay?.dataset.photoId === photoId) {
+      closeCheckoutPhotoOverlay({ clearRemote: false });
+    }
+  } catch (err) {
+    console.warn("Could not send checkout reaction:", err);
+    showOnlineNotice("Could not send your reaction. Please try again.");
+  }
 }
 
 function showCheckoutPhotoReactionToast(reaction) {
@@ -7648,17 +7344,15 @@ function showCheckoutPhotoReactionToast(reaction) {
     document.body.appendChild(toast);
   }
 
-  const message = String(reaction.message || "").trim();
   const emoji = reaction.emoji || "";
 
   toast.innerHTML = `
     <div class="checkoutPhotoReactionToastKicker">
       <span class="checkoutPhotoReactionToastIcon">📷</span>
-      ${reaction.byName || "Opponent"} reacted to your checkout
+      ${escapeHtml(reaction.byName || "Opponent")} reacted to your checkout
     </div>
     <div class="checkoutPhotoReactionToastBody">
-      ${emoji ? `<span>${emoji}</span>` : ""}
-      ${message ? `<strong>${escapeHtml(message)}</strong>` : ""}
+      <span>${escapeHtml(emoji)}</span>
     </div>
   `;
 
@@ -7683,11 +7377,6 @@ function showCheckoutPhotoOverlay(photo) {
 
   els.checkoutPhotoOverlay.classList.remove("hidden");
   els.checkoutPhotoOverlay.setAttribute("aria-hidden", "false");
-
-  clearTimeout(checkoutPhotoDismissTimer);
-  checkoutPhotoDismissTimer = setTimeout(() => {
-    closeCheckoutPhotoOverlay();
-  }, 18000);
 }
 
 function handleCheckoutPhotoNotification(match) {
@@ -7719,7 +7408,7 @@ function handleCheckoutPhotoNotification(match) {
   showCheckoutPhotoOverlay(photo);
 }
 
-function playOnlineCallout(lastCallout) {
+function playOnlineCallout(lastCallout, isMyTurn) {
   clearDartAudioQueue();
 
   if (lastCallout.type === "scoreEdit") {
@@ -7748,7 +7437,7 @@ function playOnlineCallout(lastCallout) {
   } else {
     announceVisitAndRequire(
       lastCallout.visitScore,
-      lastCallout.requiredScore
+      isMyTurn ? lastCallout.requiredScore : null
     );
 
     if (lastCallout.finishHim) {
@@ -8188,9 +7877,10 @@ function renderLeaderboard(players = []) {
     setSummaryText("versusYourBulls", me?.bullOuts ?? "—");
     setSummaryText("versusYourHighestOut", me?.highestOut ?? "—");
   }
+  const hasHistory = Boolean(currentUser && getVersusMatchHistory().length);
   const lastMatchButton = document.getElementById("openLastGameStatsBtn");
-  if (lastMatchButton) lastMatchButton.hidden = !currentUser || !me?.lastMatch;
-  document.getElementById("openGameHistoryBtn")?.classList.toggle("hidden", !currentUser || !me?.matchHistory?.length);
+  if (lastMatchButton) lastMatchButton.hidden = !hasHistory;
+  document.getElementById("openGameHistoryBtn")?.classList.toggle("hidden", !hasHistory);
   function playerAvatar(player) {
     const image = getPlayerPhotoField(player);
     const src = /^(https?:\/\/|\/?(?:images|graphics)\/)/i.test(image) ? image : "graphics/logoWoText.png";
@@ -8411,10 +8101,12 @@ function formatLeagueMatchDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
 
-  return date.toLocaleDateString("en-GB", {
+  return date.toLocaleString("en-GB", {
     day: "2-digit",
     month: "short",
-    year: "numeric"
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
   });
 }
 
@@ -8455,69 +8147,113 @@ function openLeagueInfoModal(title, bodyHtml) {
   overlay.setAttribute("aria-hidden", "false");
 }
 
-function buildLeagueMatchStatsHtml(match) {
-  if (!match) {
-    return `<div class="leaderboardEmpty">No last-game stats available yet.</div>`;
+function getVersusMatchHistory() {
+  const myKey = getCurrentPlayerKey();
+  if (!myKey) return [];
+  const results = new Map();
+  const legacy = currentLeagueProfile?.matchHistory || [];
+  for (const match of [currentLeagueProfile?.lastMatch, ...legacy]) {
+    if (match?.matchId) results.set(match.matchId, match);
   }
+  for (const match of currentVersusMatches) {
+    if (match.matchMode === "online" && match.matchId &&
+        [match.playerOneId, match.playerTwoId].includes(myKey)) {
+      results.set(match.matchId, match);
+    }
+  }
+  return [...results.values()].sort((a, b) =>
+    new Date(b.dateTime || b.completedAt || 0) - new Date(a.dateTime || a.completedAt || 0));
+}
 
-  const resultClass = match.won ? "win" : "loss";
-  const rows = Array.isArray(match.statsRows) ? match.statsRows : [];
-
-  return `
-    <div class="leagueMatchSummaryHero">
-      <div>
-        <div class="leagueMatchKicker">Last game vs ${escapeHtml(match.opponentName || "Opponent")} (${escapeHtml(match.format || "BO3")})</div>
-        <div class="leagueResultText ${resultClass}">${escapeHtml(match.score || "-")} ${escapeHtml(match.result || "")}</div>
-      </div>
-      <div class="leagueMatchDate">${escapeHtml(formatLeagueMatchDate(match.completedAt))}</div>
-    </div>
-
-    <div class="leagueMatchStatsRows">
-      ${rows.map(([label, me, opponent]) => `
-        <div class="statRow">
-          <div class="statValue">${escapeHtml(me ?? "-")}</div>
-          <div class="statLabelWrap">
-            <div class="statLabel">${escapeHtml(label)}</div>
-          </div>
-          <div class="statValue">${escapeHtml(opponent ?? "-")}</div>
-        </div>
-      `).join("")}
-    </div>
-  `;
+function buildVersusHistoryResult(match) {
+  const profiles = window.currentLeaderboardPlayers || [];
+  const noMovement = { text: "", className: "" };
+  function player(key, name, legs, won, stats, photo, nationality) {
+    const profile = profiles.find(item => item.playerKey === key);
+    return {
+      key, name: name || profile?.playerName || "Player", legs, isWinner: won, stats,
+      photo: photo || profile?.photo || "graphics/logoWoText.png",
+      nationality: nationality || profile?.nationality || "",
+      rankMove: noMovement, ratingMove: noMovement
+    };
+  }
+  if (match.matchMode === "online") {
+    const fromSaved = prefix => {
+      const get = field => match[prefix + field];
+      const dartCount = field => Number(get(field)) > 0 ? `${Number(get(field))} darts` : "-";
+      return player(get("Id"), get("Name"), Number(get("Legs") || 0),
+        String(get("Won")).toLowerCase() === "true", {
+          average: Number(get("3DartAvg") || 0).toFixed(2),
+          firstNineAvg: Number(get("First9Avg") || 0).toFixed(2),
+          checkouts: `${Number(get("CheckoutsHit") || 0)}/${Number(get("CheckoutAttempts") || 0)}`,
+          checkoutRate: `${Number(get("CheckoutRate") || 0).toFixed(2)}%`,
+          highestOut: get("HighestOut") || "-", highScore: get("HighScore") || "-",
+          bestLeg: dartCount("BestLeg"), worstLeg: dartCount("WorstLeg"),
+          oneEightys: get("180s") || 0, bullOuts: get("BullOuts") || 0
+        }, get("Photo"), get("Nationality"));
+    };
+    return {
+      mode: "history", dateTime: match.dateTime,
+      title: `${match.startScore || 501} · ${getMatchFormatLabel(match.gameType || "bestOf", Number(match.legsCount || 3))}`,
+      players: [fromSaved("playerOne"), fromSaved("playerTwo")]
+    };
+  }
+  const labels = {
+    "3-dart avg.": "average", "First 9 avg.": "firstNineAvg", Checkouts: "checkouts",
+    "Checkout rate": "checkoutRate", "Highest out": "highestOut", "High score": "highScore",
+    "Best leg": "bestLeg", "Worst leg": "worstLeg", "180s": "oneEightys", "Bull-outs": "bullOuts"
+  };
+  const legacyStats = index => {
+    const stats = Object.fromEntries((match.statsRows || []).filter(row => labels[row[0]])
+      .map(row => [labels[row[0]], row[index]]));
+    if (!/^\d+\/\d+$/.test(stats.checkouts || "")) stats.checkouts = "0/0";
+    return stats;
+  };
+  const [mine = 0, theirs = 0] = String(match.score || "").split("-").map(Number);
+  return {
+    mode: "history", dateTime: match.completedAt, title: match.format || "Versus",
+    players: [
+      player(getCurrentPlayerKey(), match.playerName, mine, match.won, legacyStats(1)),
+      player(match.opponentKey, match.opponentName, theirs, !match.won, legacyStats(2))
+    ]
+  };
 }
 
 function openLastLeagueStats() {
-  openLeagueInfoModal("Last game stats", buildLeagueMatchStatsHtml(currentLeagueProfile?.lastMatch));
+  const [latest] = getVersusMatchHistory();
+  if (latest) openMolVictoryScreen(buildVersusHistoryResult(latest));
+  else openLeagueInfoModal("Last game stats", '<div class="leaderboardEmpty">No last-game stats available yet.</div>');
 }
 
 function openLeagueHistory() {
-  const history = Array.isArray(currentLeagueProfile?.matchHistory)
-    ? currentLeagueProfile.matchHistory
-    : [];
-
+  const history = getVersusMatchHistory();
   if (!history.length) {
-    openLeagueInfoModal("Game history", `<div class="leaderboardEmpty">No game history available yet.</div>`);
+    openLeagueInfoModal("Game history", '<div class="leaderboardEmpty">No game history available yet.</div>');
     return;
   }
 
+  const myKey = getCurrentPlayerKey();
   openLeagueInfoModal("Game history", `
     <div class="leagueHistoryList">
-      ${history.map(match => `
-        <button type="button" class="leagueHistoryItem" data-match-id="${escapeHtml(match.matchId || "")}">
+      ${history.map((match, index) => {
+        const result = buildVersusHistoryResult(match);
+        const me = result.players.find(player => player.key === myKey);
+        const opponent = result.players.find(player => player.key !== myKey);
+        return `<button type="button" class="leagueHistoryItem" data-history-index="${index}">
           <div>
-            <div class="leagueMatchKicker">vs ${escapeHtml(match.opponentName || "Opponent")} (${escapeHtml(match.format || "BO3")})</div>
-            <strong class="${match.won ? "win" : "loss"}">${escapeHtml(match.score || "-")} ${escapeHtml(match.result || "")}</strong>
+            <div class="leagueMatchKicker">vs ${escapeHtml(opponent?.name || "Opponent")} (${escapeHtml(result.title)})</div>
+            <strong class="${me?.isWinner ? "win" : "loss"}">${me?.legs ?? 0}-${opponent?.legs ?? 0} ${me?.isWinner ? "Win" : "Loss"}</strong>
           </div>
-          <small>${escapeHtml(formatLeagueMatchDate(match.completedAt))}</small>
-        </button>
-      `).join("")}
+          <small>${escapeHtml(formatLeagueMatchDate(result.dateTime))}</small>
+        </button>`;
+      }).join("")}
     </div>
   `);
 
   document.querySelectorAll("#leagueInfoBody .leagueHistoryItem").forEach(button => {
     button.addEventListener("click", () => {
-      const match = history.find(item => String(item.matchId || "") === button.dataset.matchId);
-      openLeagueInfoModal("Game stats", buildLeagueMatchStatsHtml(match));
+      closeLeagueInfoModal();
+      openMolVictoryScreen(buildVersusHistoryResult(history[Number(button.dataset.historyIndex)]));
     });
   });
 }
@@ -8580,9 +8316,10 @@ async function loadLeaderboard() {
     const rosterKeys = new Set([...roster, ...ownProfile].map(player => player.playerKey));
     if (presenceByKey === null) throw new Error("Could not load player availability.");
     const currentProfiles = await loadVersusProfilePhotos([...ownProfile, ...roster]);
+    currentVersusMatches = matches.value?.docs.map(doc => doc.data()) || [];
     const players = window.ONMVersusPlayers.players(
       [...historical, ...currentProfiles],
-      matches.value?.docs.map(doc => doc.data()) || [],
+      currentVersusMatches,
       presenceByKey
     ).filter(player => rosterKeys.has(player.playerKey));
     if (matches.status === "rejected") {

@@ -7,7 +7,7 @@
   <title>Oche Ness Monsters | Dart Scorer</title>
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css">
-  <link rel="stylesheet" href="styles/dart-scorer.css?v=20261127-versus-match-fixes" />
+  <link rel="stylesheet" href="styles/dart-scorer.css?v=20261127-versus-results" />
   <link rel="stylesheet" href="styles/versus.css?v=20261127-versus-match-fixes" />
   <link rel="stylesheet" href="styles/monster-bot-scorer.css?v=20261031-stable-scoreboard" />
   <link rel="stylesheet" href="styles/monster-bot-splash.css?v=20261023-branded-splash" />
@@ -445,12 +445,12 @@
     <div class="modalCard checkoutPhotoCard">
       <div class="modalHeader">
         <div class="modalTitle" id="checkoutPhotoTitle">Checkout photo</div>
-        <button id="closeCheckoutPhotoBtn" class="modalClose">✕</button>
+        <button id="closeCheckoutPhotoBtn" class="modalClose" type="button" aria-label="Close checkout photo">✕</button>
       </div>
 
       <div class="modalBody">
         <p id="checkoutPhotoText" class="checkoutPhotoText"></p>
-        <img id="checkoutPhotoImage" class="checkoutPhotoImage" src="" alt="Checkout photo">
+        <img id="checkoutPhotoImage" class="checkoutPhotoImage" alt="Checkout photo">
         <div id="checkoutPhotoReactionBlock" class="checkoutPhotoReactionBlock">
           <div class="checkoutPhotoReactionLabel">Send a reaction</div>
           <div class="checkoutPhotoReactions">
@@ -460,10 +460,6 @@
             <button type="button" data-checkout-reaction="👏">👏</button>
             <button type="button" data-checkout-reaction="🤫">🤫</button>
             <button type="button" data-checkout-reaction="🐟">🐟</button>
-          </div>
-          <div class="checkoutPhotoMessageRow">
-            <input id="checkoutPhotoMessageInput" type="text" maxlength="80" placeholder="Add a message">
-            <button id="sendCheckoutPhotoMessageBtn" type="button">Send</button>
           </div>
         </div>
       </div>
@@ -706,6 +702,7 @@
       <h2 id="molVictoryTitle">
         501 · Best of 5
       </h2>
+      <p id="molVictoryDate" class="versusResultDate" hidden></p>
       <p id="monsterBotResultAttempts" class="monsterBotAttemptPill" hidden></p>
 
       <div class="readyPlayersGrid molVictoryPlayers">
@@ -715,7 +712,6 @@
           <strong id="molVictoryPlayerOneName"></strong>
           <div id="molVictoryPlayerOneRank" class="readyPlayerMeta"></div>
           <div id="molVictoryPlayerOneRating" class="readyPlayerMeta"></div>
-          <span id="molVictoryPlayerOneRematch" class="readyStatus pending">Rematch</span>
           <span id="molVictoryPlayerOneWon" class="wonPill hidden">WINNER</span>
         </div>
 
@@ -729,7 +725,6 @@
           <strong id="molVictoryPlayerTwoName"></strong>
           <div id="molVictoryPlayerTwoRank" class="readyPlayerMeta"></div>
           <div id="molVictoryPlayerTwoRating" class="readyPlayerMeta"></div>
-          <span id="molVictoryPlayerTwoRematch" class="readyStatus pending">Rematch</span>
           <span id="molVictoryPlayerTwoWon" class="wonPill hidden">WINNER</span>
         </div>
       </div>
@@ -821,7 +816,7 @@
   <script defer src="scripts/monster-bot-engine.js?v=20261027-tier2"></script>
   <script defer src="scripts/dart-nick-clips.js?v=20261025-flow"></script>
   <script defer src="scripts/versus-players.js?v=20261127-versus-match-fixes"></script>
-<script defer src="scripts/dart-scorer.js?v=20261127-versus-match-fixes"></script>
+<script defer src="scripts/dart-scorer.js?v=20261127-versus-results"></script>
   <script defer src="scripts/monster-bot-launch.js?v=20261031-soft-chime"></script>
   <script defer src="scripts/monster-bot-scorer.js?v=20261127-versus-match-fixes"></script>
   <script>
