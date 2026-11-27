@@ -18,6 +18,7 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  const part = script.slice(script.indexOf("function renderLeaderboard("), script.indexOf("async function loadExpandedPlayerStats("));
  const nodes = new Map();
  const invited = [];
+ const notices = [];
  const buttons = [{dataset:{versusPlayer:"other"}, addEventListener(_event, handler){this.select = handler;}, setAttribute(_name, value){this.selected = value;}}];
  const node = id => {
   if (!nodes.has(id)) nodes.set(id, {innerHTML:"",textContent:"",classList:{add(){},toggle(){}},getAttribute:()=>null,querySelectorAll:()=>buttons});
@@ -25,15 +26,18 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  };
  const ctx = {document:{getElementById:node,querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},
   getCurrentPlayerKey:()=>"me",leaderboardFlag:()=>"🇬🇧",escapeHtml:value=>String(value).replace(/</g,"&lt;"),
-  getPlayerPhotoField:player=>player?.photo || "",getPlayerNationality:()=> "British",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, selectedVersusPlayerKey:"", openCompetitiveInviteFlow:key=>invited.push(key)};
+  getPlayerPhotoField:player=>player?.photo || "",getPlayerNationality:()=> "British",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, selectedVersusPlayerKey:"", openCompetitiveInviteFlow:key=>invited.push(key), showOnlineNotice:message=>notices.push(message)};
  vm.runInNewContext(part,ctx);
  ctx.renderLeaderboard([
   {playerKey:"other",playerName:"Alex",average:"52.50",status:"online",nationality:"England",photo:"images/alex.jpg"},
   {playerKey:"me",playerName:"Nick",status:"online",average:"53.25",played:4,wins:3,fastestLeg:18,oneEightys:2,bullOuts:1,highestOut:134,winStreak:2},
-  {playerKey:"away",playerName:"Zoe",status:"offline"}
+  {playerKey:"away",playerName:"Zoe",status:"offline"},
+  {playerKey:"a-off",playerName:"Ada",status:"offline"},
+  {playerKey:"b-off",playerName:"Ben",status:"offline",played:1}
  ]);
  const html = node("leaderboardRows").innerHTML;
  assert.match(html, /<h3>Online<\/h3>[\s\S]*Alex[\s\S]*<h3>Offline<\/h3>[\s\S]*Zoe/);
+ assert.match(html, /<h3>Offline<\/h3>[\s\S]*Ben[\s\S]*Ada[\s\S]*Zoe/);
  assert.match(html, /🇬🇧/);
  assert.match(html, /52.50 <small>avg/);
  assert.equal(node("versusYourAverage").textContent,"53.25");
@@ -62,9 +66,10 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  assert.deepEqual(invited,["other"]);
  ctx.renderLeaderboard([{playerKey:"other",playerName:"Alex",status:"offline"}]);
  assert.equal(ctx.selectedVersusPlayerKey,"other");
- assert.equal(node("versusInviteSelected").disabled,true);
- assert.equal(node("versusChallengeStatus").textContent,"Player offline");
+ assert.equal(node("versusInviteSelected").disabled,false);
+ assert.deepEqual(notices,[]);
  node("versusInviteSelected").onclick();
+ assert.deepEqual(notices,["Player offline"]);
  assert.deepEqual(invited,["other"]);
 });
 test('friendly matches continue saving averages but do not calculate Elo or increase ranked wins',()=>{
@@ -119,7 +124,7 @@ test("selected opponents open settings and the confirmed invite uses the selecte
  const page = fs.readFileSync(require.resolve("../dart-scorer.html"), "utf8");
  assert.match(page, /id="versusPanelTitle">Challenge an online player/);
  assert.doesNotMatch(page, /id="openLastGameStatsBtn"[^>]*>Play/);
- assert.match(script, /openCompetitiveInviteFlow\(selectedVersusPlayerKey\)/);
+ assert.match(script, /openCompetitiveInviteFlow\(player.playerKey\)/);
  assert.match(script, /selectedKey \? "Match settings"/);
  assert.match(script, /if \(!await isPlayerOnline\(opponentKey\)\)/);
  const flow = script.slice(script.indexOf("const inviteId = await window.ONMLiveDarts.createOnlineInvite"), script.indexOf('button.textContent = "Challenge sent"'));

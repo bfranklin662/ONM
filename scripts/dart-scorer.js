@@ -24,7 +24,7 @@ function lockScorerZoom() {
   document.addEventListener("touchend", event => {
     const now = Date.now();
 
-    if (now - lastTouchEnd <= 300) {
+    if (now - lastTouchEnd <= 300 && !event.target.closest("#leaderboardView")) {
       event.preventDefault();
     }
 
@@ -7776,6 +7776,7 @@ function preventFullscreenScroll(event) {
   if (!document.body.classList.contains("scorer-fullscreen")) return;
 
   if (
+    event.target.closest("#leaderboardView") ||
     event.target.closest(".keypad") ||
     event.target.closest("button") ||
     event.target.closest(".modalOverlay") ||
@@ -7871,6 +7872,7 @@ if (window.ONMLiveDarts) {
 }
 
 function syncMainViews(activeView) {
+  if (activeView === "leaderboard" && document.body.classList.contains("scorer-fullscreen")) exitScorerFullscreen();
   const leaderboardView = document.getElementById("leaderboardView");
 
   els.setupCard?.classList.toggle("hidden", activeView !== "setup");
@@ -8154,7 +8156,9 @@ function renderLeaderboard(players = []) {
   }
   const opponents = players.filter(player => player.playerKey !== myKey);
   const connected = opponents.filter(player => player.status === "online" || player.status === "playing");
-  const offline = opponents.filter(player => player.status === "offline");
+  const offline = opponents.filter(player => player.status === "offline").sort((a, b) =>
+    Number(b.played > 0) - Number(a.played > 0) ||
+    (a.playerName || "").localeCompare(b.playerName || "", "en", { sensitivity: "base" }));
   const unknown = opponents.some(player => player.status === "unknown");
   const canSelect = player => currentUser && player.playerKey !== myKey;
   if (!players.some(player => canSelect(player) && player.playerKey === selectedVersusPlayerKey)) {
@@ -8190,21 +8194,25 @@ function renderLeaderboard(players = []) {
   });
   const dock = document.getElementById("versusInviteDock");
   const invite = document.getElementById("versusInviteSelected");
-  const challengeStatus = document.getElementById("versusChallengeStatus");
   const selectedPlayer = () => opponents.find(player => player.playerKey === selectedVersusPlayerKey);
   const syncInvite = () => {
     const player = selectedPlayer();
     dock.hidden = !player;
-    invite.disabled = player?.status !== "online";
+    invite.disabled = !player;
     invite.textContent = player ? `Challenge ${player.playerName || "player"}` : "Challenge";
-    const unavailable = player?.status === "offline" ? "Player offline" :
-      player?.status === "playing" ? "Player is already in a match" : "";
-    challengeStatus.textContent = unavailable;
-    challengeStatus.hidden = !unavailable;
   };
   syncInvite();
   invite.onclick = () => {
-    if (!invite.disabled) openCompetitiveInviteFlow(selectedVersusPlayerKey);
+    const player = selectedPlayer();
+    if (!player) return;
+    if (player.status === "online") {
+      openCompetitiveInviteFlow(player.playerKey);
+    } else {
+      showOnlineNotice(
+        player.status === "offline" ? "Player offline" : "Player is already in a match.",
+        "Challenge unavailable"
+      );
+    }
   };
   const playerButtons = rowsEl.querySelectorAll("[data-versus-player]");
   playerButtons.forEach(button => {
@@ -8429,6 +8437,10 @@ async function loadLeaderboard() {
   const rowsEl = document.getElementById("leaderboardRows");
   const refresh = document.getElementById("refreshVersusPlayers");
   if (!rowsEl || refresh?.disabled) return;
+  if (document.body.classList.contains("scorer-fullscreen") &&
+      !document.getElementById("leaderboardView")?.classList.contains("hidden")) {
+    exitScorerFullscreen();
+  }
   if (refresh) refresh.disabled = true;
   rowsEl.setAttribute("aria-busy", "true");
   if (!rowsEl.querySelector(".versusPlayer")) {
