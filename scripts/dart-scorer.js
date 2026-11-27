@@ -759,7 +759,7 @@ function resetAddOpponentButton() {
   `;
 
   els.addOpponentBtn = document.getElementById("addOpponentBtn");
-  els.addOpponentBtn.addEventListener("click", () => openOpponentModal(selectedKey));
+  els.addOpponentBtn.addEventListener("click", () => openOpponentModal());
 }
 
 async function getPlayerImageByName(name) {
@@ -1834,7 +1834,8 @@ function updateLeaguePlayButton() {
   btn.textContent = currentUser
     ? "Invite"
     : "Log in / Register";
-  btn.disabled = Boolean(currentUser && !selectedVersusPlayerKey);
+  btn.hidden = Boolean(currentUser && !selectedVersusPlayerKey);
+  btn.disabled = btn.hidden;
 }
 
 function openCompetitiveInviteFlow(playerKey = "") {
@@ -1872,7 +1873,7 @@ async function isPlayerOnline(playerKey) {
   const { db, ref, get } = window.ONMLiveDarts;
   const snapshot = await get(ref(db, `presence/${playerKey}`));
 
-  return snapshot.exists() && snapshot.val()?.online === true;
+  return snapshot.exists() && window.ONMVersusPlayers.statusOf(snapshot.val()) === "online";
 }
 
 async function getVersusPresence() {
@@ -1889,6 +1890,7 @@ async function getVersusLinkedPlayers() {
 
 async function openOpponentModal(playerKey = "") {
   const selectedKey = typeof playerKey === "string" ? playerKey : "";
+  document.getElementById("opponentModalTitle").textContent = selectedKey ? "Match settings" : "Add opponent";
   els.opponentOverlay.classList.remove("hidden");
   els.opponentOverlay.setAttribute("aria-hidden", "false");
 
@@ -1898,12 +1900,12 @@ async function openOpponentModal(playerKey = "") {
         <img src="graphics/logoWoText.png" alt="">
         <div>
           <h2>Monsters Versus</h2>
-          <span>Friendly match · Averages tracked</span>
+          <span>${selectedKey ? "Choose your match format" : "Friendly match · Averages tracked"}</span>
         </div>
       </div>
 
       <div class="molInviteSettings">
-        <div class="molInviteLabel">Settings</div>
+        <div class="molInviteLabel">Match format</div>
         <div class="molMatchSettings">
           <div id="molBestFirstToggle" class="homeAwayToggle">
             <div class="toggleSlider"></div>
@@ -1919,14 +1921,15 @@ async function openOpponentModal(playerKey = "") {
         </div>
       </div>
 
-      <div class="molInvitePlayersTop">
+      ${selectedKey ? "" : `<div class="molInvitePlayersTop">
         <div>
           <div class="molInviteLabel">Players</div>
           <span>Invite an online player</span>
         </div>
         <button id="molRefreshPlayersBtn" type="button">Refresh</button>
-      </div>
+      </div>`}
 
+      <p id="molInviteError" class="versusInviteError" role="status" hidden></p>
       <div id="molInvitePlayersList" class="molInvitePlayersList molInvitePlayersScroll">
         <div class="loadingRow">
           <span class="inlineSpinner"></span>
@@ -1936,7 +1939,7 @@ async function openOpponentModal(playerKey = "") {
     </div>
   `;
 
-  document.getElementById("molRefreshPlayersBtn")?.addEventListener("click", openOpponentModal);
+  document.getElementById("molRefreshPlayersBtn")?.addEventListener("click", () => openOpponentModal(selectedKey));
 
   const molBestFirstToggle = document.getElementById("molBestFirstToggle");
   const molBestOfBtn = document.getElementById("molBestOfBtn");
@@ -2006,7 +2009,7 @@ async function openOpponentModal(playerKey = "") {
     let drivePhotos = {};
 
     try {
-      if (window.PlayerData?.fetchPlayerPhotosFromDrive) {
+      if (!selectedKey && window.PlayerData?.fetchPlayerPhotosFromDrive) {
         drivePhotos = await window.PlayerData.fetchPlayerPhotosFromDrive();
       }
     } catch (err) {
@@ -2039,6 +2042,10 @@ async function openOpponentModal(playerKey = "") {
 
       const canInvite = status === "online";
 
+      const inviteButton = `<button type="button"
+        class="molInviteStatusBtn ${buttonClass}" data-player="${escapeHtml(getPlayerKey(player))}"
+        ${canInvite ? "" : "disabled"}>${buttonText}</button>`;
+
       return { status, html: `
         <div class="molInvitePlayerRow">
           <img src="${escapeHtml(imageUrl)}" alt="">
@@ -2049,15 +2056,9 @@ async function openOpponentModal(playerKey = "") {
             </span>
           </div>
 
-          <button
-            type="button"
-            class="molInviteStatusBtn ${buttonClass}"
-            data-player="${escapeHtml(getPlayerKey(player))}"
-            ${canInvite ? "" : "disabled"}
-          >
-            ${buttonText}
-          </button>
+          ${selectedKey ? "" : inviteButton}
         </div>
+        ${selectedKey ? `<div class="versusSettingsActions">${inviteButton}</div>` : ""}
       ` };
     });
 
@@ -2065,7 +2066,9 @@ async function openOpponentModal(playerKey = "") {
     const unavailableRows = playerRows.filter(row => row.status !== "online").map(row => row.html);
     const unavailableMessage = selectedKey ? "This player is no longer available to invite." : "No online players right now.";
 
-    document.getElementById("molInvitePlayersList").innerHTML = `
+    document.getElementById("molInvitePlayersList").innerHTML = selectedKey
+      ? onlineRows.join("") || `<div class="muted">${unavailableMessage}</div>`
+      : `
       <div class="molInviteGroup">
         <div class="molInviteGroupTitle">Online players</div>
         ${onlineRows.length ? onlineRows.join("") : `<div class="muted">${unavailableMessage}</div>`}
@@ -2085,6 +2088,8 @@ async function openOpponentModal(playerKey = "") {
 
         button.disabled = true;
         button.textContent = "Inviting...";
+        const notice = document.getElementById("molInviteError");
+        notice.hidden = true;
 
         try {
           const currentUser = window.ONMSession?.getUser?.() || loggedInUser;
@@ -2113,6 +2118,9 @@ async function openOpponentModal(playerKey = "") {
 
           const opponentKey = getPlayerKey(player);
           const hostKey = getCurrentPlayerKey();
+          if (!await isPlayerOnline(opponentKey)) {
+            throw new Error("This player is no longer available. Refresh the player list and try again.");
+          }
 
           if (!opponentKey) {
             throw new Error("Opponent has no player key. They may need to relink their ONM player.");
@@ -2150,46 +2158,6 @@ async function openOpponentModal(playerKey = "") {
             }
           });
 
-          const { db, ref, update, get } = window.ONMLiveDarts;
-
-          await update(ref(db, `dartInvites/${inviteId}`), {
-            inviteId,
-            status: "pending",
-
-            fromPlayerKey: hostKey,
-            fromUserId: currentUser.userId || "",
-            fromName: hostFullName,
-
-            toPlayerKey: opponentKey,
-            toUserId: player.userId || "",
-            toName: opponentFullName,
-
-            statsMode: "competitive",
-            startScore: 501,
-            gameType: competitiveGameType,
-            legsCount: competitiveLegsCount,
-            inMode: "straight",
-
-            inviteText: getMatchInviteText(hostFullName, competitiveGameType, competitiveLegsCount),
-            createdAt: Date.now()
-          });
-
-          const checkSnap = await get(ref(db, `dartInvites/${inviteId}`));
-
-          if (!checkSnap.exists()) {
-            throw new Error("Invite was not saved to Firebase.");
-          }
-
-          const savedInvite = checkSnap.val();
-
-          if (savedInvite.toPlayerKey !== opponentKey) {
-            throw new Error("Invite was saved with the wrong receiver key.");
-          }
-
-          if (!inviteId) {
-            throw new Error("Invite was not created.");
-          }
-
           button.textContent = "Invite sent";
 
           els.setupPlayerTwoName.value = opponentFullName;
@@ -2202,16 +2170,8 @@ async function openOpponentModal(playerKey = "") {
           button.disabled = false;
           button.textContent = "Invite";
 
-          els.linkedPlayersList.innerHTML = `
-            <div class="inviteResultBox error">
-              <div class="linkErrorIcon">×</div>
-              <strong>Invite failed</strong>
-              <div class="muted">${err.message || "Could not send invite. Please try again."}</div>
-              <button type="button" class="btn btnPrimary" onclick="openOpponentModal()">
-                Try again
-              </button>
-            </div>
-          `;
+          notice.textContent = err.message || "Could not send invite. Please try again.";
+          notice.hidden = false;
         }
       });
     });
@@ -8037,8 +7997,15 @@ function renderLeaderboard(players = []) {
     setSummaryText("versusYourBulls", me?.bullOuts ?? "—");
     setSummaryText("versusYourTons", tonPlusDisplay(me));
   }
-  setSummaryText("openLastGameStatsBtn", !currentUser ? "Log in" : me?.lastMatch ? "Stats" : "Play");
+  const lastMatchButton = document.getElementById("openLastGameStatsBtn");
+  if (lastMatchButton) lastMatchButton.hidden = !currentUser || !me?.lastMatch;
   document.getElementById("openGameHistoryBtn")?.classList.toggle("hidden", !currentUser || !me?.matchHistory?.length);
+  function playerAvatar(player) {
+    const image = getPlayerPhotoField(player);
+    const src = /^(https?:\/\/|\/?(?:images|graphics)\/)/i.test(image) ? image : "graphics/logoWoText.png";
+    return `<img class="versusAvatar" src="${escapeHtml(src)}" alt="" loading="lazy">`;
+  }
+
   const board = document.getElementById("versusLeaderboardRows");
   if (board) {
     const standings = [...players].sort((a, b) =>
@@ -8053,7 +8020,7 @@ function renderLeaderboard(players = []) {
       ];
       const flag = player.nationality ? leaderboardFlag(player.nationality) : "";
       return `<article class="versusBoardCard">
-        <strong>${escapeHtml(player.playerName || "Player")}${flag ? ` <span role="img" aria-label="${escapeHtml(player.nationality)}">${escapeHtml(flag)}</span>` : ""}</strong>
+        <div class="versusPlayerHeading">${playerAvatar(player)}<strong>${escapeHtml(player.playerName || "Player")}${flag ? ` <span role="img" aria-label="${escapeHtml(player.nationality)}">${escapeHtml(flag)}</span>` : ""}</strong></div>
         <dl>${fields.map(([label, value]) => `<div><dt>${label}</dt><dd>${escapeHtml(value ?? "—")}</dd></div>`).join("")}</dl>
       </article>`;
     }).join("") + (standings.some(player => player.tonPlusIncomplete)
@@ -8076,7 +8043,7 @@ function renderLeaderboard(players = []) {
     const flag = nationality ? leaderboardFlag(nationality) : "";
     const identity = `<strong>${name}</strong>${flag ? ` <span role="img" aria-label="${escapeHtml(nationality)}">${escapeHtml(flag)}</span>` : ""}
       ${player.status === "playing" ? '<small class="versusPlaying">Playing</small>' : ""}`;
-    const content = `<span class="versusIdentity">${identity}</span>
+    const content = `<span class="versusPlayerHeading">${playerAvatar(player)}<span class="versusIdentity">${identity}</span></span>
       <span class="versusAverage">${escapeHtml(player.average ?? "—")} <small>avg</small></span>`;
     if (!canSelect(player)) return `<div class="versusPlayer">${content}</div>`;
     return `<button type="button" class="versusPlayer" data-versus-player="${escapeHtml(player.playerKey)}"
@@ -8302,7 +8269,7 @@ function showVersusPanel(leaderboard) {
   document.getElementById("versusLeaderboardTab")?.setAttribute("aria-pressed", String(leaderboard));
   document.getElementById("versusPlayPanel").hidden = leaderboard;
   document.getElementById("versusLeaderboardPanel").hidden = !leaderboard;
-  document.getElementById("versusPanelTitle").textContent = leaderboard ? "Leaderboard" : "Versus players";
+  document.getElementById("versusPanelTitle").textContent = leaderboard ? "Leaderboard" : "Invite an online player";
 }
 
 document.getElementById("versusPlayTab")?.addEventListener("click", () => showVersusPanel(false));
@@ -8372,25 +8339,7 @@ async function loadLeaderboard() {
 }
 
 
-document.getElementById("openLastGameStatsBtn")?.addEventListener("click", event => {
-  event.preventDefault();
-  event.stopPropagation();
-
-  const user = window.ONMSession?.getUser?.() || loggedInUser;
-  const buttonText = document.getElementById("openLastGameStatsBtn")?.textContent.trim();
-
-  if (!user) {
-    window.location.href = "auth.html?mode=login&redirect=dart-scorer.html%3Fmode%3Dversus";
-    return;
-  }
-
-  if (buttonText === "Play") {
-    openCompetitiveInviteFlow();
-    return;
-  }
-
-  openLastLeagueStats();
-});
+document.getElementById("openLastGameStatsBtn")?.addEventListener("click", openLastLeagueStats);
 
 document.getElementById("openGameHistoryBtn")?.addEventListener("click", () => {
   const user = window.ONMSession?.getUser?.() || loggedInUser;

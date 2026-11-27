@@ -61,6 +61,7 @@ async function createOnlineInvite({ fromUser, toPlayer, settings = {} }) {
     fromNationality: getNationalityField(fromUser),
 
     toPlayerKey,
+    toUserId: toPlayer.userId || "",
     toName,
     toPhoto: getPhotoField(toPlayer),
     toNationality: getNationalityField(toPlayer),
@@ -73,10 +74,6 @@ async function createOnlineInvite({ fromUser, toPlayer, settings = {} }) {
     competitive: Boolean(settings.competitive),
     inviteText: settings.inviteText || ""
   };
-
-  console.log("[INVITE PAYLOAD BEING SAVED]", invitePayload);
-  console.log("[FROM USER RAW]", fromUser);
-  console.log("[TO PLAYER RAW]", toPlayer);
 
   await set(inviteRef, invitePayload);
 

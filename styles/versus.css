@@ -71,8 +71,17 @@ body:has(#leaderboardView:not(.hidden)) {
 .versusBoardCard {
   display:grid;gap:8px;padding:12px;border:1px solid #355d48;border-radius:12px;background:#142b23;color:#edf7ef;
 }
-.versusBoardCard > strong { overflow-wrap:anywhere;font-size:15px; }
+.versusBoardCard .versusPlayerHeading > strong { overflow-wrap:anywhere;font-size:15px; }
 .versusBoardCard dl { display:grid;grid-template-columns:repeat(auto-fit,minmax(68px,1fr));gap:6px;margin:0; }
 .versusBoardCard dl > div { padding:6px 8px;border-radius:7px;background:#101f19; }
 .versusBoardCard dt { font-size:11px; }
 .versusBoardCard dd { margin:3px 0 0;color:#91e8c2;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums; }
+
+.versusPlayerHeading { display:flex;align-items:center;gap:8px;min-width:0; }
+.versusAvatar { width:28px;height:28px;flex:none;object-fit:cover;border-radius:50%;background:#101f19; }
+.versusIdentity { min-width:0; }
+.versusSettingsActions { display:flex;justify-content:flex-end;margin-top:8px; }
+.versusInviteError { margin:0;color:#ffabab; }
+.versusSummary .leagueLastActions:has([hidden]):not(:has(button:not([hidden]):not(.hidden))) { display:none; }
+.versusSummary [hidden], #leaderboardPlayDockBtn[hidden] { display:none!important; }
+#versusPlayPanel:not(:has(#leaderboardPlayDockBtn:not([hidden]))) .leaderboardBottomFade { display:none; }

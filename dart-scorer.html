@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css">
   <link rel="stylesheet" href="styles/dart-scorer.css?v=20261111-tournament-scoring" />
-  <link rel="stylesheet" href="styles/versus.css?v=20261127-versus-leaderboard" />
+  <link rel="stylesheet" href="styles/versus.css?v=20261127-invite-settings" />
   <link rel="stylesheet" href="styles/monster-bot-scorer.css?v=20261031-stable-scoreboard" />
   <link rel="stylesheet" href="styles/monster-bot-splash.css?v=20261023-branded-splash" />
   <link rel="stylesheet" href="styles/profile.css?v=20261127-auth-spinner" />
@@ -198,7 +198,7 @@
           </div>
         </div>
         <div class="leagueLastActions">
-          <button type="button" class="leagueHistoryBtn" id="openLastGameStatsBtn">Play</button>
+          <button type="button" class="leagueHistoryBtn" id="openLastGameStatsBtn" hidden>Last match</button>
           <button type="button" class="leagueHistoryBtn secondary hidden" id="openGameHistoryBtn">History</button>
         </div>
       </section>
@@ -216,7 +216,7 @@
       </div>
 
       <div class="versusToolbar">
-        <h2 id="versusPanelTitle">Versus players</h2>
+        <h2 id="versusPanelTitle">Invite an online player</h2>
         <button id="refreshVersusPlayers" type="button">↻ Refresh</button>
       </div>
 
@@ -587,7 +587,7 @@
   <div id="opponentOverlay" class="modalOverlay hidden" aria-hidden="true">
     <div class="modalCard">
       <div class="modalHeader">
-        <div class="modalTitle">Add opponent</div>
+        <div class="modalTitle" id="opponentModalTitle">Add opponent</div>
         <button id="closeOpponentBtn" class="modalClose" type="button">✕</button>
       </div>
 
@@ -817,14 +817,14 @@
   <script src="scripts/player-data.js?v=20261016-player-photo-map"></script>
   <script src="scripts/session.js?v=20261127-account-link"></script>
   <script src="scripts/profile.js?v=20261111-tournament-scoring"></script>
-  <script type="module" defer src="scripts/firebase-live.js?v=20261127-versus-leaderboard"></script>
+  <script type="module" defer src="scripts/firebase-live.js?v=20261127-invite-settings"></script>
   <script defer src="scripts/player-season-vote.js"></script>
   <script defer src="scripts/monster-bot-data.js?v=20261022-belgium"></script>
   <script defer src="scripts/monster-bot-attempts.js?v=20261027-tier2"></script>
   <script defer src="scripts/monster-bot-engine.js?v=20261027-tier2"></script>
   <script defer src="scripts/dart-nick-clips.js?v=20261025-flow"></script>
   <script defer src="scripts/versus-players.js?v=20261127-versus-leaderboard"></script>
-<script defer src="scripts/dart-scorer.js?v=20261127-versus-leaderboard"></script>
+<script defer src="scripts/dart-scorer.js?v=20261127-invite-settings"></script>
   <script defer src="scripts/monster-bot-launch.js?v=20261031-soft-chime"></script>
   <script defer src="scripts/monster-bot-scorer.js?v=20261126-bot-turn"></script>
   <script>

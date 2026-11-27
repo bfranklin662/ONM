@@ -24,10 +24,10 @@ test("lobby splits compact player cards, and only available opponents can be sel
  };
  const ctx = {document:{getElementById:node,querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},
   getCurrentPlayerKey:()=>"me",leaderboardFlag:()=>"🇬🇧",escapeHtml:value=>String(value).replace(/</g,"&lt;"),
-  getPlayerPhotoField:()=>"",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, selectedVersusPlayerKey:"", updateLeaguePlayButton(){}};
+  getPlayerPhotoField:player=>player?.photo || "",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, selectedVersusPlayerKey:"", updateLeaguePlayButton(){}};
  vm.runInNewContext(part,ctx);
  ctx.renderLeaderboard([
-  {playerKey:"other",playerName:"Alex",average:"52.50",status:"online",nationality:"England"},
+  {playerKey:"other",playerName:"Alex",average:"52.50",status:"online",nationality:"England",photo:"images/alex.jpg"},
   {playerKey:"me",playerName:"Nick",status:"online",average:"53.25",played:4,wins:3,fastestLeg:18,oneEightys:2,bullOuts:1,tonPlusOuts:3,tonPlusIncomplete:true},
   {playerKey:"away",playerName:"Zoe",status:"offline"}
  ]);
@@ -43,7 +43,8 @@ test("lobby splits compact player cards, and only available opponents can be sel
  assert.match(board, /Nick[\s\S]*18 darts/);
  assert.match(board, /Ton\+ outs/);
  assert.doesNotMatch(board, /Losses|Win rate/);
- assert.doesNotMatch(html, /Wins|<img|data-versus-player="(?:me|away)"/);
+ assert.match(html, /class="versusAvatar" src="images\/alex.jpg"/);
+ assert.doesNotMatch(html, /Wins|data-versus-player="(?:me|away)"/);
  buttons[0].select();
  assert.equal(ctx.selectedVersusPlayerKey,"other");
  assert.equal(buttons[0].selected,"true");
@@ -94,4 +95,16 @@ test("specials aggregate exact new counts and only a confirmed minimum from olde
   {matchMode:"local",playerOneId:"a",playerOneWon:true,playerOneBestLeg:9,playerOneTonPlusOuts:4}
  ])[0];
  assert.deepEqual([row.played,row.wins,row.fastestLeg,row.oneEightys,row.bullOuts,row.tonPlusOuts,row.tonPlusIncomplete],[2,2,18,3,1,3,true]);
+});
+
+test("selected opponents open settings and the confirmed invite uses the selected format", () => {
+ const page = fs.readFileSync(require.resolve("../dart-scorer.html"), "utf8");
+ assert.match(page, /id="versusPanelTitle">Invite an online player/);
+ assert.doesNotMatch(page, /id="openLastGameStatsBtn"[^>]*>Play/);
+ assert.match(script, /openCompetitiveInviteFlow\(selectedVersusPlayerKey\)/);
+ assert.match(script, /selectedKey \? "Match settings"/);
+ assert.match(script, /if \(!await isPlayerOnline\(opponentKey\)\)/);
+ const flow = script.slice(script.indexOf("const inviteId = await window.ONMLiveDarts.createOnlineInvite"), script.indexOf('button.textContent = "Invite sent"'));
+ assert.match(flow, /gameType: competitiveGameType/);
+ assert.match(flow, /legsCount: competitiveLegsCount/);
 });
