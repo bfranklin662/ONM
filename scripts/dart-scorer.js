@@ -300,6 +300,7 @@ let onlineClockMatchId = null;
 let onlineConnectionUnsubscribe = null;
 let onlineClockWritePending = false;
 let onlineMatchConnected = false;
+let refreshActiveOnlineMatch = null;
 let savedResumeTimer = null;
 let savedResumeMatchUnsubscribe = null;
 
@@ -419,6 +420,7 @@ function hideOpponentMissingOverlay() {
 function renderOnlineMatchClock(match, myKey, now = onlineMatchNow()) {
   const countdown = document.getElementById("onlineThrowCountdown");
   const playing = match?.status === "playing";
+  if (playing) syncVersusScoreControls();
   if (playing && match.reconnect && match.reconnect.playerKey !== myKey) {
     const seconds = onlineSecondsLeft(match.reconnect.deadline, now);
     showOpponentMissingOverlay(`Opponent disconnected. ${seconds}s to rejoin.`);
@@ -438,6 +440,32 @@ function renderOnlineMatchClock(match, myKey, now = onlineMatchNow()) {
   const text = ownTimeout ? `Submit score to rejoin · ${seconds}s left`
     : match.game.currentPlayerKey === myKey ? `Throw now · ${seconds}s left` : `Opponent has ${seconds}s to throw`;
   if (countdown.textContent !== text) countdown.textContent = text;
+}
+
+function isVersusScorer() {
+  return PAGE_MODE === "league" || MATCH_MODE === "online" || Boolean(onlineMatchId);
+}
+
+function canUseVersusKeypad() {
+  const match = window.currentOnlineMatch;
+  return Boolean(onlineMatchId && onlineMatchConnected && match?.matchId === onlineMatchId &&
+    canSubmitOnlineVisit(match, getCurrentPlayerKey(), onlineMatchNow()));
+}
+
+function syncVersusScoreControls() {
+  const enabled = canUseVersusKeypad();
+  els.submit.disabled = !enabled;
+  els.keypad.classList.toggle("disabled", !enabled);
+  els.keypad.querySelectorAll("button").forEach(button => { button.disabled = !enabled; });
+}
+
+function lockFinishedVersusScorer() {
+  closeCheckoutPrompt();
+  closeEditOnlineScore();
+  els.statsOverlay?.classList.add("hidden");
+  els.input.value = "";
+  syncVersusScoreControls();
+  els.onlineTurnOverlay?.classList.add("hidden");
 }
 
 function writeOnlineHeartbeat() {
@@ -475,21 +503,18 @@ function startOnlineMatchClock(matchId, myKey) {
   onlineClockMatchId = matchId;
   const { db, ref, onValue, runTransaction } = window.ONMLiveDarts;
   const matchRef = ref(db, `onlineMatches/${matchId}`);
-  let wasConnected = false;
-  onlineConnectionUnsubscribe = onValue(ref(db, ".info/connected"), snapshot => {
-    onlineMatchConnected = snapshot.val() === true;
-    if (!onlineMatchConnected) {
-      renderOnlineMatchClock(window.currentOnlineMatch, myKey);
-      return;
+  let connectionRevision = 0;
+  onlineConnectionUnsubscribe = onValue(ref(db, ".info/connected"), async snapshot => {
+    const revision = ++connectionRevision;
+    const connected = snapshot.val() === true;
+    onlineMatchConnected = false;
+    if (connected) {
+      const synced = await refreshActiveOnlineMatch?.();
+      if (!synced || revision !== connectionRevision || onlineClockMatchId !== matchId) return;
+      onlineMatchConnected = true;
+      writeOnlineHeartbeat();
     }
-    const match = window.currentOnlineMatch;
-    if (wasConnected && match?.status === "playing") {
-      returnToOnlineRejoin(match);
-      return;
-    }
-    wasConnected = true;
-    writeOnlineHeartbeat();
-    renderOnlineMatchClock(match, myKey);
+    renderOnlineMatchClock(window.currentOnlineMatch, myKey);
   });
   onlineHeartbeatInterval = setInterval(writeOnlineHeartbeat, ONLINE_HEARTBEAT_MS);
   onlineDisconnectInterval = setInterval(async () => {
@@ -639,6 +664,8 @@ function showLeagueResumePrompt(match) {
   const card = document.getElementById("leagueResumeMatchCard");
   const title = document.getElementById("leagueResumeMatchTitle");
   const meta = document.getElementById("leagueResumeMatchMeta");
+  const countdown = document.getElementById("leagueResumeCountdown");
+  const button = document.getElementById("leagueResumeMatchBtn");
 
   if (!card) return;
 
@@ -654,15 +681,19 @@ function showLeagueResumePrompt(match) {
     clearInterval(savedResumeTimer);
     const opponentName = getLeagueResumeOpponentName(latest);
     const format = getMatchFormatLabel(latest.settings?.gameType, Number(latest.settings?.legsCount || 3));
-    if (title) title.textContent = `Rejoin vs ${opponentName}`;
-    if (meta) meta.textContent = format;
+    const completed = latest.status === "complete";
+    if (title) title.textContent = completed ? `Result vs ${opponentName}` : `Rejoin vs ${opponentName}`;
+    if (button && !button.disabled) button.textContent = completed ? "View result" : "Rejoin game";
     const deadline = latest.reconnect?.deadline;
+    const mine = latest.reconnect?.playerKey === myKey;
+    if (meta) meta.textContent = deadline && !mine ? `${format} · Opponent disconnected` : format;
+    if (countdown) countdown.hidden = !deadline;
     if (!deadline) return;
 
     const updateCountdown = async () => {
       const seconds = onlineSecondsLeft(deadline, onlineMatchNow());
-      const mine = latest.reconnect.playerKey === myKey;
-      if (meta) meta.textContent = mine ? `${format} · ${seconds}s to rejoin` : `Opponent disconnected · ${seconds}s to rejoin`;
+      const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+      if (countdown) countdown.textContent = `${time} to rejoin`;
       if (seconds > 0 || expiryPending || !navigator.onLine) return;
       expiryPending = true;
       try {
@@ -3704,8 +3735,14 @@ function closeCheckoutPrompt() {
 
 function submitScore() {
   if (BOT_MODE) { window.ONMMonsterScorer?.submit(); return; }
-  if (onlineMatchId && MATCH_MODE === "online") {
-    submitOnlineScore();
+  if (isVersusScorer()) {
+    if (canUseVersusKeypad()) {
+      void submitOnlineScore().catch(err => {
+        console.warn("Could not synchronise the score:", err);
+        void refreshActiveOnlineMatch?.();
+        showOnlineNotice("Could not submit that score. Please try again.");
+      });
+    }
     return;
   }
 
@@ -3869,17 +3906,16 @@ async function submitOnlineScore() {
   }
 
   const { db, ref, get } = window.ONMLiveDarts;
-  const matchSnap = await get(ref(db, `onlineMatches/${onlineMatchId}`));
-  if (!matchSnap.exists()) return;
-
+  const matchId = onlineMatchId;
+  const myKey = getCurrentPlayerKey();
+  const matchSnap = await get(ref(db, `onlineMatches/${matchId}`));
+  if (onlineMatchId !== matchId) return;
   const match = matchSnap.val();
 
-  const myKey =
-    onlineRole === "host"
-      ? match.hostPlayerKey
-      : match.guestPlayerKey;
-
-  if (!canSubmitOnlineVisit(match, myKey, onlineMatchNow())) return;
+  if (!canSubmitOnlineVisit(match, myKey, onlineMatchNow())) {
+    void refreshActiveOnlineMatch?.();
+    return;
+  }
 
   const player = match.game.players[myKey];
 
@@ -4009,6 +4045,7 @@ async function submitOnlineScore() {
     });
   } catch (err) {
     console.error("Could not submit online score:", err);
+    void refreshActiveOnlineMatch?.();
     showOnlineNotice("Could not submit that score. Please try again.");
   }
 }
@@ -4218,6 +4255,16 @@ function buildRatingHistoryEntry({
     playerName: playerData.name || "Player",
     statsRows: buildMolStatRows(myStats, opponentStats)
   };
+}
+
+function applyOnlineMatchUpdates(match, updates) {
+  for (const [path, value] of Object.entries(updates)) {
+    const keys = path.split("/");
+    const field = keys.pop();
+    const parent = keys.reduce((node, key) => (node[key] ??= {}), match);
+    if (value === null) delete parent[field];
+    else parent[field] = value;
+  }
 }
 
 async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWon, dartsUsed, doublesAttempted, bullOut, checkoutPhoto = null }) {
@@ -4503,13 +4550,7 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
         (livePlayer.dartsThrown || 0) !== currentDarts ||
         live.game.lastCallout?.id !== match.game.lastCallout?.id) return;
 
-    for (const [path, value] of Object.entries(updates)) {
-      const keys = path.split("/");
-      const field = keys.pop();
-      const parent = keys.reduce((node, key) => (node[key] ??= {}), live);
-      if (value === null) delete parent[field];
-      else parent[field] = value;
-    }
+    applyOnlineMatchUpdates(live, updates);
     if (live.reconnect) {
       delete live.reconnect;
       live.presence = { ...live.presence, [myKey]: { online: true, lastSeen: now } };
@@ -4833,10 +4874,7 @@ function setEditOnlineScoreMessage(message) {
 }
 
 async function openEditOnlineScore() {
-  if (MATCH_MODE !== "online" || !onlineMatchId || !window.ONMLiveDarts) {
-    undoLastVisit();
-    return;
-  }
+  if (!onlineMatchConnected || !onlineMatchId || !window.ONMLiveDarts) return;
 
   const { db, ref, get } = window.ONMLiveDarts;
   const matchSnap = await get(ref(db, `onlineMatches/${onlineMatchId}`));
@@ -4847,7 +4885,8 @@ async function openEditOnlineScore() {
   }
 
   const match = matchSnap.val();
-  const myKey = getMyOnlinePlayerKey(match);
+  const myKey = getCurrentPlayerKey();
+  if (match.status !== "playing" || match.reconnect) return;
   const editableVisit = match.game?.players?.[myKey]?.lastEditableVisit;
 
   if (!editableVisit) {
@@ -4876,7 +4915,7 @@ async function openEditOnlineScore() {
 }
 
 async function submitEditedOnlineScore() {
-  if (!onlineMatchId || !window.ONMLiveDarts) return;
+  if (!onlineMatchConnected || !onlineMatchId || !window.ONMLiveDarts) return;
 
   const nextScore = Number(els.editOnlineScoreInput.value);
 
@@ -4886,8 +4925,11 @@ async function submitEditedOnlineScore() {
     return;
   }
 
-  const { db, ref, get, update } = window.ONMLiveDarts;
-  const matchSnap = await get(ref(db, `onlineMatches/${onlineMatchId}`));
+  const { db, ref, get, runTransaction } = window.ONMLiveDarts;
+  const matchId = onlineMatchId;
+  const matchRef = ref(db, `onlineMatches/${matchId}`);
+  const matchSnap = await get(matchRef);
+  if (onlineMatchId !== matchId) return;
 
   if (!matchSnap.exists()) {
     closeEditOnlineScore();
@@ -4900,7 +4942,7 @@ async function submitEditedOnlineScore() {
     closeEditOnlineScore();
     return;
   }
-  const myKey = getMyOnlinePlayerKey(match);
+  const myKey = getCurrentPlayerKey();
   const player = match.game?.players?.[myKey];
   const editableVisit = player?.lastEditableVisit;
 
@@ -4986,7 +5028,18 @@ async function submitEditedOnlineScore() {
     [`game/lastCallout/editedAt`]: editedAt
   };
 
-  await update(ref(db, `onlineMatches/${onlineMatchId}`), updates);
+  const result = await runTransaction(matchRef, live => {
+    if (live?.status !== "playing" || live.reconnect ||
+        live.game?.lastCallout?.id !== match.game?.lastCallout?.id ||
+        live.game?.players?.[myKey]?.lastEditableVisit?.id !== editableVisit.id) return;
+    applyOnlineMatchUpdates(live, updates);
+    return live;
+  }, { applyLocally: false });
+  if (!result.committed) {
+    closeEditOnlineScore();
+    void refreshActiveOnlineMatch?.();
+    return;
+  }
   closeEditOnlineScore();
   els.input.value = "";
 }
@@ -5307,6 +5360,10 @@ els.checkoutOverlay.addEventListener("click", event => {
 
 els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
   if (!pendingCheckoutPrompt) return;
+  if (isVersusScorer() && (!pendingCheckoutPrompt.online || !canUseVersusKeypad())) {
+    closeCheckoutPrompt();
+    return;
+  }
   if (BOT_MODE) { window.ONMMonsterScorer?.confirmCheckout(); return; }
 
   const doublesAttempted = pendingCheckoutPrompt.doubleOptions
@@ -5329,13 +5386,14 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
       : null;
   closeCheckoutPrompt();
 
-  if (promptData.online && onlineMatchId) {
+  if (promptData.online) {
     const { db, ref, get } = window.ONMLiveDarts;
     try {
       const match = (await get(ref(db, `onlineMatches/${onlineMatchId}`))).val();
       const myKey = getCurrentPlayerKey();
       if (!canSubmitOnlineVisit(match, myKey, onlineMatchNow()) ||
           match.game?.players?.[myKey]?.score !== promptData.previousScore) {
+        void refreshActiveOnlineMatch?.();
         showOnlineNotice("The match changed before the checkout could be submitted.");
         return;
       }
@@ -5507,6 +5565,7 @@ els.keypad.addEventListener("click", event => {
   if (!button) return;
   if (BOT_MODE && button.dataset.action === "undo") { undoLastVisit(); return; }
   if (BOT_MODE && (state.currentPlayer !== 0 || state.winnerIndex !== null || !window.ONMMonsterScorer?.canPlay())) return;
+  if (isVersusScorer() && !canUseVersusKeypad()) return;
 
   if (button.dataset.key) {
     const nextValue = `${els.input.value}${button.dataset.key}`;
@@ -6536,29 +6595,26 @@ async function startOnlineMatchDecider() {
   await update(ref(db, `onlineMatches/${onlineMatchId}`), settings);
 }
 
-async function startOnlinePlaying(startingIndex) {
-  if (!onlineMatchId) return;
+async function startOnlinePlaying(startingIndex, matchId = onlineMatchId) {
+  if (!matchId || onlineMatchId !== matchId) return;
 
-  const { db, ref, update, get, setPresenceStatus } = window.ONMLiveDarts;
-
-  const matchSnap = await get(ref(db, `onlineMatches/${onlineMatchId}`));
-  if (!matchSnap.exists()) return;
-
-  const match = matchSnap.val();
-  const keys = onlinePlayerKeys(match);
-  const startingKey = keys[startingIndex];
-
-  const startScore = Number(match.settings?.startScore || 501);
-
-  await update(ref(db, `onlineMatches/${onlineMatchId}`), {
-    status: "playing",
-    "game/currentPlayerKey": startingKey,
-    "game/turnStartedAt": onlineMatchNow(),
-    [`game/players/${keys[0]}/score`]: startScore,
-    [`game/players/${keys[1]}/score`]: startScore,
-    startedAt: onlineMatchNow()
-  });
-
+  const { db, ref, get, runTransaction, setPresenceStatus } = window.ONMLiveDarts;
+  const matchRef = ref(db, `onlineMatches/${matchId}`);
+  if (!(await get(matchRef)).exists() || onlineMatchId !== matchId) return;
+  const started = await runTransaction(matchRef, match => {
+    if (!["decider", "lobby"].includes(match?.status) || match.reconnect || match.completedAt) return;
+    const keys = onlinePlayerKeys(match);
+    const startingKey = keys[startingIndex];
+    if (!startingKey || !keys.every(key => match.game?.players?.[key])) return;
+    const now = onlineMatchNow();
+    const startScore = Number(match.settings?.startScore || 501);
+    match.game.currentPlayerKey = startingKey;
+    match.game.turnStartedAt = now;
+    keys.forEach(key => { match.game.players[key].score = startScore; });
+    return { ...match, status: "playing", startedAt: now };
+  }, { applyLocally: false });
+  if (!started.committed) return;
+  const match = started.snapshot.val();
   await setPresenceStatus?.(match.hostPlayerKey, "playing");
   await setPresenceStatus?.(match.guestPlayerKey, "playing");
 }
@@ -6675,17 +6731,27 @@ function showCompletedVersusResult() {
 }
 
 function listenToOnlineMatch(matchId) {
-  const { db, ref, onValue } = window.ONMLiveDarts;
+  const { db, ref, onValue, get } = window.ONMLiveDarts;
   const myKey = getCurrentPlayerKey();
   if (!myKey) return;
 
   const matchRef = ref(db, `onlineMatches/${matchId}`);
 
-  hideLeagueResumePrompt();
-  startOnlineMatchClock(matchId, myKey);
-  onValue(matchRef, snapshot => {
-    if (!snapshot.exists()) return;
-    const match = snapshot.val();
+  let snapshotRevision = 0;
+  function acceptSnapshot(snapshot) {
+    const data = snapshot.val();
+    const match = data && { ...data, matchId };
+    if (!match) {
+      if (onlineMatchId === matchId) {
+        stopOnlineMatchClock();
+        clearOnlineSession();
+        resetOnlineLobbyState();
+        lockFinishedVersusScorer();
+        initialisePageModeView();
+        showOnlineNotice("This online match is no longer available.");
+      }
+      return;
+    }
     if (onlineMatchId !== matchId) {
       const photo = match.game?.checkoutPhoto;
       if (photo?.byKey === myKey && photo.reaction?.id && photo.reaction.id !== lastCheckoutPhotoReactionId) {
@@ -6762,6 +6828,7 @@ function listenToOnlineMatch(matchId) {
 
     if (match.status === "complete") {
       stopOnlineMatchClock();
+      lockFinishedVersusScorer();
       if (match.forfeitByKey === myKey) {
         void window.ONMLiveDarts.setPresenceStatus?.(myKey, "online")?.catch(err => console.warn("Could not update presence:", err));
         clearOnlineSession();
@@ -6781,6 +6848,7 @@ function listenToOnlineMatch(matchId) {
       els.submit.disabled = true;
       els.keypad.classList.add("disabled");
       els.onlineTurnOverlay?.classList.add("hidden");
+      if (match.forfeitByKey) closeCheckoutPhotoOverlay({ clearRemote: false });
       showCompletedVersusResult();
       return;
     }
@@ -6830,8 +6898,42 @@ function listenToOnlineMatch(matchId) {
     if (match.presence && match.presence[opponentKey] === false) {
       showOnlineNotice(`${match.game?.players?.[opponentKey]?.name || "Your opponent"} has left the match.`);
     }
+  }
+
+  refreshActiveOnlineMatch = async () => {
+    if (onlineMatchId !== matchId) return false;
+    const revision = snapshotRevision;
+    try {
+      const snapshot = await get(matchRef);
+      if (onlineMatchId !== matchId) return false;
+      if (revision === snapshotRevision) acceptSnapshot(snapshot);
+      return onlineMatchId === matchId;
+    } catch (err) {
+      console.warn("Could not synchronise the Versus scorer:", err);
+      if (onlineMatchId === matchId) {
+        onlineMatchConnected = false;
+        renderOnlineMatchClock(window.currentOnlineMatch, myKey);
+      }
+      return false;
+    }
+  };
+  hideLeagueResumePrompt();
+  startOnlineMatchClock(matchId, myKey);
+  onValue(matchRef, snapshot => {
+    snapshotRevision++;
+    acceptSnapshot(snapshot);
+  }, err => {
+    if (onlineMatchId !== matchId) return;
+    console.warn("Lost the Versus match subscription:", err);
+    onlineMatchConnected = false;
+    renderOnlineMatchClock(window.currentOnlineMatch, myKey);
   });
 }
+
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState !== "visible" || !onlineMatchConnected || !onlineMatchId) return;
+  await refreshActiveOnlineMatch?.();
+});
 
 function getReadyPlayerRating(playerKey) {
   return window.currentLeaderboardPlayers?.find(p => p.playerKey === playerKey) || {};
@@ -6901,7 +7003,7 @@ async function startReadyOnlineDecider() {
 
   try {
 
-    const { db, ref, get, update } = window.ONMLiveDarts;
+    const { db, ref, get, runTransaction } = window.ONMLiveDarts;
     const matchSnap = await get(ref(db, `onlineMatches/${matchId}`));
     if (!matchSnap.exists()) return;
 
@@ -6915,11 +7017,9 @@ async function startReadyOnlineDecider() {
       decider.coinWinnerKey = onlinePlayerKeys(match)[decider.coinWinnerIndex];
     }
 
-    await update(ref(db, `onlineMatches/${matchId}`), {
-      status: "decider",
-      decider,
-      startedDeciderAt: Date.now()
-    });
+    await runTransaction(ref(db, `onlineMatches/${matchId}`), live => live?.status === "readyLobby"
+      ? { ...live, status: "decider", decider, startedDeciderAt: onlineMatchNow() }
+      : undefined, { applyLocally: false });
   } catch (error) {
     console.warn("Could not start the online decider", error);
   } finally {
@@ -6950,7 +7050,7 @@ function openOnlineCoinDecider(match) {
     els.coinWinnerText.textContent = `${winnerIndex === 0 ? match.hostName : match.guestName} throws first`;
     const localIndex = onlineRole === "host" ? 0 : 1;
     startAfterCoinCallout(winnerIndex === localIndex ? "you-throw.mp3" : "oppo-throw.mp3", () => {
-      if (onlineRole === "host") void startOnlinePlaying(winnerIndex);
+      if (onlineRole === "host") void startOnlinePlaying(winnerIndex, match.matchId);
     });
   });
 }
@@ -7158,7 +7258,7 @@ async function openOnlineBullDecider(match) {
       });
 
       setTimeout(() => {
-        startOnlinePlaying(winnerIndex);
+        void startOnlinePlaying(winnerIndex, match.matchId);
       }, 3000);
     }
   }
@@ -7311,8 +7411,6 @@ function applyOnlineGame(match) {
   }
 
   MATCH_MODE = "online";
-  onlineMatchId = match.matchId || onlineMatchId;
-
   const keys = onlinePlayerKeys(match);
   const p1Key = keys[0];
   const p2Key = keys[1];
@@ -7367,10 +7465,7 @@ function applyOnlineGame(match) {
   els.startDeciderScreen.classList.add("hidden");
   els.scorerCard.classList.remove("hidden");
 
-  const myKey =
-    onlineRole === "host"
-      ? match.hostPlayerKey
-      : match.guestPlayerKey;
+  const myKey = getCurrentPlayerKey();
 
   const isMyTurn = match.game.currentPlayerKey === myKey;
   const throwingName = playerName(state.currentPlayer);
@@ -7406,9 +7501,7 @@ function applyOnlineGame(match) {
     els.onlineTurnOverlay.classList.toggle("hidden", isMyTurn);
   }
 
-  const canThrow = canSubmitOnlineVisit(match, myKey, onlineMatchNow());
-  els.submit.disabled = !canThrow;
-  els.keypad.classList.toggle("disabled", !canThrow);
+  syncVersusScoreControls();
 
   if (lastCallout?.id && lastCallout.id !== lastOnlineCalloutId) {
     lastOnlineCalloutId = lastCallout.id;

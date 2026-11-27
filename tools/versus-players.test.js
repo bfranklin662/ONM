@@ -155,8 +155,8 @@ test("ready players use the inviter's decider and legacy matches default to a co
   const context = {onlineMatchId:"match",onlineRole:"host",readyDeciderMatchId:"",
    onlinePlayerKeys:()=>["host","guest"],window:{ONMLiveDarts:{db:{},ref:(_, path)=>path,
    get:async()=>({exists:()=>true,val:()=>({status:"readyLobby",settings:{deciderType}})}),
-   update:async(_ref,value)=>updates.push(value)}},
-   console};
+   runTransaction:async(_ref, mutate)=>updates.push(mutate({status:"readyLobby",settings:{deciderType}}))}},
+   onlineMatchNow: () => 1000, console};
   vm.runInNewContext(part,context);
   await context.startReadyOnlineDecider();
   assert.equal(updates[0].status,"decider");
@@ -258,9 +258,10 @@ function onlineScorerHarness(status = "playing") {
     setPresenceStatus: async () => {}
   };
   const ctx = vm.createContext({
-    window: { ONMLiveDarts: api }, onlineMatchId: "versus-test", PAGE_MODE: "league",
+    window: { ONMLiveDarts: api }, onlineMatchId: "versus-test", PAGE_MODE: "league", MATCH_MODE: "online",
     STARTING_SCORE: 501, GAME_TYPE: "bestOf", LEGS_TO_WIN: 2, IN_MODE: "straight",
-    els: { legsCount: { textContent: "3" }, input: {} }, state: { players: [{}, {}] },
+    els: { legsCount: { textContent: "3" }, input: {}, submit: {},
+      keypad: { classList: { toggle() {} }, querySelectorAll: () => [] } }, state: { players: [{}, {}] },
     calculateFirstNineImpact: () => ({ firstNineScore: 0, firstNineDartsUsed: 0 }),
     getFirebasePlayerRating: async () => ({ rating: 1000, gamesPlayed: 0, wins: 0 }),
     buildMolStatRows: () => [], showOnlineScoreEditToast() {},
@@ -282,6 +283,7 @@ function onlineScorerHarness(status = "playing") {
     ["function playOnlineCallout", "function lockLobbySettings"]
   ]) vm.runInContext(script.slice(script.indexOf(start), script.indexOf(end, script.indexOf(start))), ctx);
   vm.runInContext(script.slice(script.indexOf("function announceDartVisit"), script.indexOf("function announceRequiredScore")), ctx);
+  ctx.window.currentOnlineMatch = match;
   return { ctx, calls, match: () => match };
 }
 
@@ -500,4 +502,77 @@ test("incoming invitations show the sender, format, and selected starting method
   const bull = ctx.getIncomingDartInviteDetails({ settings: { startScore: 301, gameType: "firstTo", legsCount: 3, deciderType: "bull" } });
   assert.equal(bull.format, "301 · FT3");
   assert.equal(bull.start, "Throw for the bull");
+});
+
+test("Versus score controls lock on a disconnect or forfeit, even if the old turn belonged to you", () => {
+  const { ctx, match } = onlineScorerHarness();
+  vm.runInContext("onlineMatchConnected = true", ctx);
+  assert.equal(ctx.canUseVersusKeypad(), true);
+  vm.runInContext("onlineMatchConnected = false", ctx);
+  assert.equal(ctx.canUseVersusKeypad(), false);
+  vm.runInContext("onlineMatchConnected = true", ctx);
+  match().status = "complete";
+  match().forfeitByKey = "test";
+  ctx.syncVersusScoreControls();
+  assert.equal(ctx.els.submit.disabled, true);
+
+  const start = script.indexOf("function submitScore()");
+  ctx.BOT_MODE = false;
+  ctx.TOURNAMENT_MODE = false;
+  ctx.submitOnlineScore = () => assert.fail("A completed match must not submit");
+  ctx.applyVisit = () => assert.fail("Versus must never fall back to local two-player scoring");
+  vm.runInContext(script.slice(start, script.indexOf("async function submitOnlineScore", start)), ctx);
+  ctx.submitScore();
+  ctx.onlineMatchId = null;
+  ctx.MATCH_MODE = "local";
+  ctx.submitScore();
+});
+
+test("a delayed decider callback cannot restart a completed Versus match", async () => {
+  const h = onlineScorerHarness("complete");
+  h.match().forfeitByKey = "nick";
+  const start = script.indexOf("async function startOnlinePlaying");
+  vm.runInContext(script.slice(start, script.indexOf("function resetOnlineLobbyState", start)), h.ctx);
+  await h.ctx.startOnlinePlaying(0, h.match().matchId);
+  assert.equal(h.match().status, "complete");
+  assert.equal(h.match().forfeitByKey, "nick");
+  assert.equal(h.match().game.players.nick.score, 125);
+});
+
+test("both browsers leave scoring when the same shared forfeit arrives", () => {
+  const start = script.indexOf("function listenToOnlineMatch(");
+  const listenerCode = script.slice(start, script.indexOf("function getReadyPlayerRating", start));
+  const match = {
+    matchId: "test-match", status: "complete", hostPlayerKey: "winner", guestPlayerKey: "loser",
+    winnerKey: "winner", forfeitByKey: "loser", game: {}
+  };
+  function browser(playerKey) {
+    const seen = [];
+    let receive;
+    const ctx = {
+      window: { ONMLiveDarts: { db: "db", ref: (_db, path) => path,
+        onValue: (_ref, callback) => { receive = callback; },
+        setPresenceStatus: async () => {} } },
+      onlineMatchId: match.matchId, lastOnlineStatus: "playing", molVictoryShownForMatchId: null,
+      els: { submit: {}, keypad: { classList: { add() {} } } },
+      state: {}, document: { addEventListener() {} },
+      getCurrentPlayerKey: () => playerKey, onlinePlayerKeys: record => [record.hostPlayerKey, record.guestPlayerKey],
+      hideLeagueResumePrompt() {}, startOnlineMatchClock() {}, stopOnlineMatchClock() {},
+      lockFinishedVersusScorer: () => seen.push("locked"),
+      applyOnlineGame: () => seen.push("loaded result scores"),
+      clearOnlineSession() {}, resetOnlineLobbyState: () => seen.push("lobby"),
+      initialisePageModeView() {}, showOnlineNotice: message => seen.push(message),
+      closeCheckoutPhotoOverlay() {}, showCompletedVersusResult: () => seen.push("winner result"),
+      refreshActiveOnlineMatch: null
+    };
+    vm.runInNewContext(listenerCode, ctx);
+    ctx.listenToOnlineMatch(match.matchId);
+    return { seen, receive, ctx };
+  }
+  const winner = browser("winner");
+  const loser = browser("loser");
+  [winner, loser].forEach(client => client.receive({ val: () => match }));
+  assert.deepEqual(winner.seen, ["locked", "loaded result scores", "winner result"]);
+  assert.equal(winner.ctx.els.submit.disabled, true);
+  assert.deepEqual(loser.seen, ["locked", "lobby", "The rejoin window expired. You forfeited the match."]);
 });

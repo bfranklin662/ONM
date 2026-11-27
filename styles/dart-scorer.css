@@ -3108,15 +3108,12 @@ body.scorer-fullscreen .startDeciderScreen {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
-  width: min(100%, 560px);
-  margin: -4px auto 18px;
+  width: 100%;
+  margin: 14px 0 18px;
   padding: 14px 16px;
-  border: 1px solid rgba(255, 213, 59, .42);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 100% 0%, rgba(255, 213, 59, .18), transparent 44%),
-    rgba(22, 24, 30, .94);
-  box-shadow: 0 16px 34px rgba(0, 0, 0, .28);
+  border: 1px solid #416d53;
+  border-radius: 14px;
+  background: #102a1f;
 }
 
 .leagueResumeMatchCard.hidden {
@@ -3146,6 +3143,24 @@ body.scorer-fullscreen .startDeciderScreen {
   color: rgba(255, 255, 255, .62);
   font-size: 12px;
   font-weight: 800;
+}
+
+.leagueResumeMatchCard .leagueResumeCountdown:not([hidden]) {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 9px;
+  border: 1px solid #6d6340;
+  border-radius: 999px;
+  background: #302b1a;
+  color: #ffe28b;
+  font-size: .8rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.leagueResumeMatchCard .leagueResumeCountdown[hidden] {
+  display: none;
 }
 
 .leagueResumeMatchCard button {
