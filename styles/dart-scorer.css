@@ -4738,3 +4738,22 @@ body.casualMode #matchModeSwitch {
 #checkoutPhotoOverlay {
   z-index: 10001;
 }
+
+
+.onlineThrowCountdown {
+  margin: 4px auto 8px;
+  width: fit-content;
+  padding: 4px 10px;
+  border: 1px solid #7e6532;
+  border-radius: 999px;
+  background: #312918;
+  color: #ffe28b;
+  font-size: .8rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+#onlineReconnectOverlay .modalCard {
+  background: #102a1f;
+  border-color: #416d53;
+}

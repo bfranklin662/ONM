@@ -330,6 +330,7 @@ window.ONMLiveDarts = {
   trackMonsterBotGame,
   setPlayerPresence,
   setPresenceStatus, 
+  serverNow: () => Date.now() + serverTimeOffset,
   inviteTimeLeft,
   transitionPendingInvite,
   createOnlineInvite,

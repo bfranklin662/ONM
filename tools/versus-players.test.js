@@ -15,7 +15,7 @@ test('local, bot and invalid-dart games do not contaminate friendly averages',()
 });
 const script=fs.readFileSync(require.resolve('../scripts/dart-scorer.js'),'utf8');
 test("lobby splits compact player cards, and offline opponents can be selected but cannot be invited", async () => {
- const part = script.slice(script.indexOf("function renderLeaderboard("), script.indexOf("async function loadExpandedPlayerStats("));
+ const part = script.slice(script.indexOf("function formatStreak("), script.indexOf("async function loadExpandedPlayerStats("));
  const nodes = new Map();
  const invited = [];
  const notices = [];
@@ -55,7 +55,7 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  assert.doesNotMatch(board, /Zoe/);
  assert.match(board, /<details class="versusBoardCard"/);
  assert.match(board, /Highest out/);
- assert.match(board, /2 wins in a row/);
+ assert.match(board, />2 🔥<\/span>/);
  assert.doesNotMatch(board, /Losses|Win rate/);
  assert.match(html, /class="versusAvatar" src="images\/alex.jpg"/);
  assert.doesNotMatch(html, /Wins|data-versus-player="me"/);
@@ -266,13 +266,15 @@ function onlineScorerHarness(status = "playing") {
     buildMolStatRows: () => [], showOnlineScoreEditToast() {},
     postDartMatch: async payload => (calls.saved.push(payload.match), { success: true }),
     syncCheckoutPhotoButton() {}, setTimeout() {}, console,
-    fullyStopDartAudio() {}, stopOnlineHeartbeat() {}, stopOnlineDisconnectWatch() {},
-    hideOpponentMissingOverlay() {}, clearOnlineSession() {}, resetOnlineLobbyState() {},
+    fullyStopDartAudio() {}, clearOnlineSession() {}, resetOnlineLobbyState() {},
+    initialisePageModeView() {}, showLeagueResumePrompt() {},
+    document: { getElementById: () => null }, clearInterval() {},
     getCurrentPlayerKey: () => "nick", clearDartAudioQueue() {},
     isDartAudioSuppressed: () => false, playDartCallout: name => calls.audio.push(name)
   });
   for (const [start, end] of [
     ["function onlinePlayerKeys", "function syncScoreCorrectionButton"],
+    ["let onlineHeartbeatInterval", "function saveOnlineSession"],
     ["function buildDartMatchPayloadFromOnlineMatch", "function setTogglePosition"],
     ["function getPlayerStats", "async function submitCompetitiveResult"],
     ["function cleanStatNumber", "function buildDartMatchPayload()"],
@@ -302,13 +304,67 @@ test("a 125 match checkout saves when the opponent has no leg stats, with or wit
   }
 });
 
-test("quitting during play records a forfeit and saves the opponent as winner", async () => {
+test("quitting opens a full minute to rejoin before the opponent wins by forfeit", async () => {
   const h = onlineScorerHarness();
+  h.ctx.window.ONMLiveDarts.serverNow = () => 5000;
   await h.ctx.leaveOnlineMatch("left");
-  assert.equal(h.match().status, "complete");
-  assert.equal(h.calls.saved[0].forfeitByKey, "nick");
-  assert.equal(h.calls.saved[0].playerOneWon, false);
-  assert.equal(h.calls.saved[0].playerTwoWon, true);
+  const paused = h.match();
+  assert.equal(paused.status, "playing");
+  assert.equal(paused.reconnect.playerKey, "nick");
+  assert.equal(paused.reconnect.deadline, 65000);
+  assert.equal(h.calls.saved.length, 0);
+  assert.equal(h.ctx.advanceOnlineMatchClock(paused, "test", 64999), undefined);
+  const resumed = h.ctx.resumeOnlineMatchState(paused, "nick", 64999);
+  assert.equal(resumed.reconnect, undefined);
+  assert.equal(resumed.game.turnStartedAt, 64999);
+  assert.equal(resumed.game.players.nick.score, 125);
+  const expired = h.ctx.resumeOnlineMatchState(paused, "nick", 65000);
+  assert.equal(expired.status, "complete");
+  assert.equal(expired.forfeitByKey, "nick");
+  assert.equal(expired.winnerKey, "test");
+  const { playerOneWon, playerTwoWon } = h.ctx.buildDartMatchPayloadFromOnlineMatch(expired, expired.winnerKey);
+  assert.equal(playerOneWon, false);
+  assert.equal(playerTwoWon, true);
+});
+
+test("a throw expires after sixty seconds and gives the thrower a separate minute to rejoin", () => {
+  const h = onlineScorerHarness();
+  const match = h.match();
+  match.game.turnStartedAt = 1000;
+  match.presence = { nick: { lastSeen: 60000 }, test: { lastSeen: 60000 } };
+  assert.equal(h.ctx.advanceOnlineMatchClock(match, "test", 60999), undefined);
+  const paused = h.ctx.advanceOnlineMatchClock(match, "test", 61000);
+  assert.equal(paused.reconnect.playerKey, "nick");
+  assert.equal(paused.reconnect.deadline, 121000);
+  assert.equal(h.ctx.advanceOnlineMatchClock(paused, "test", 121000).winnerKey, "test");
+});
+
+test("a stale connection pauses play and lets the disconnected player rejoin", () => {
+  const h = onlineScorerHarness();
+  const match = h.match();
+  match.game.turnStartedAt = 1000;
+  match.presence = { nick: { lastSeen: 1000 }, test: { lastSeen: 24000 } };
+  assert.equal(h.ctx.advanceOnlineMatchClock(match, "test", 25999), undefined);
+  const paused = h.ctx.advanceOnlineMatchClock(match, "test", 26000);
+  assert.equal(paused.reconnect.playerKey, "nick");
+  assert.equal(paused.reconnect.deadline, 86000);
+  assert.equal(h.ctx.resumeOnlineMatchState(paused, "test", 50000).reconnect.playerKey, "nick");
+  assert.equal(h.ctx.resumeOnlineMatchState(paused, "nick", 50000).reconnect, undefined);
+});
+
+test("the visible countdown starts thirty seconds after the throw begins", () => {
+  const h = onlineScorerHarness();
+  const countdown = {};
+  h.ctx.document.getElementById = id => id === "onlineThrowCountdown" ? countdown : null;
+  vm.runInContext("onlineMatchConnected = true", h.ctx);
+  h.match().game.turnStartedAt = 1000;
+  h.ctx.renderOnlineMatchClock(h.match(), "nick", 30999);
+  assert.equal(countdown.hidden, true);
+  h.ctx.renderOnlineMatchClock(h.match(), "nick", 31000);
+  assert.equal(countdown.hidden, false);
+  assert.equal(countdown.textContent, "Throw now · 30s left");
+  h.ctx.renderOnlineMatchClock(h.match(), "test", 32000);
+  assert.equal(countdown.textContent, "Opponent has 29s to throw");
 });
 
 test("a shared score edit queues correction before the corrected number", () => {

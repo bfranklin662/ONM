@@ -296,148 +296,207 @@ let gameOnAnnouncedForMatchId = null;
 
 let onlineHeartbeatInterval = null;
 let onlineDisconnectInterval = null;
-let onlineOpponentMissingShown = false;
+let onlineClockMatchId = null;
+let onlineConnectionUnsubscribe = null;
+let onlineClockWritePending = false;
+let onlineMatchConnected = false;
+let savedResumeTimer = null;
+let savedResumeMatchUnsubscribe = null;
 
 const ONLINE_HEARTBEAT_MS = 10000;
 const ONLINE_MISSING_AFTER_MS = 25000;
-const ONLINE_ABANDON_AFTER_MS = 180000;
+const ONLINE_THROW_WARNING_MS = 30000;
+const ONLINE_THROW_LIMIT_MS = 60000;
+const ONLINE_REJOIN_MS = 60000;
 
 const ONLINE_SESSION_KEY = "onmActiveDartMatch";
 
-function getOpponentKeyFromMatch(match) {
-  const myKey = getCurrentPlayerKey();
-
-  if (myKey === match.hostPlayerKey) return match.guestPlayerKey;
-  if (myKey === match.guestPlayerKey) return match.hostPlayerKey;
-
-  return "";
+function onlineMatchNow() {
+  return window.ONMLiveDarts?.serverNow?.() ?? Date.now();
 }
 
-function showOpponentMissingOverlay(message = "Opponent disconnected. Waiting for them to rejoin...") {
-  let overlay = document.getElementById("onlineReconnectOverlay");
+function onlineTurnStartedAt(match) {
+  return Number(match.game?.turnStartedAt || match.game?.lastCallout?.createdAt || match.startedAt || 0);
+}
 
+function onlineSecondsLeft(deadline, now) {
+  return Math.max(0, Math.ceil((deadline - now) / 1000));
+}
+
+function pauseOnlineMatch(match, playerKey, now) {
+  if (match?.status !== "playing" || match.reconnect || !match.game?.players?.[playerKey]) return;
+  return {
+    ...match,
+    reconnect: { playerKey, deadline: now + ONLINE_REJOIN_MS },
+    presence: { ...match.presence, [playerKey]: { online: false, lastSeen: now } }
+  };
+}
+
+function advanceOnlineMatchClock(match, myKey, now) {
+  if (match?.status !== "playing" || !match.game?.players?.[myKey]) return;
+  const opponentKey = onlinePlayerKeys(match).find(key => key !== myKey);
+  if (match.reconnect) {
+    const { playerKey, deadline } = match.reconnect;
+    if (now < deadline) return;
+    const winnerKey = onlinePlayerKeys(match).find(key => key !== playerKey);
+    if (!winnerKey || !match.game.players[playerKey]) return;
+    const completed = { ...match };
+    delete completed.reconnect;
+    return {
+      ...completed,
+      status: "complete",
+      winnerKey,
+      winnerName: match.game.players[winnerKey]?.name || "Opponent",
+      loserKey: playerKey,
+      loserName: match.game.players[playerKey].name || "Player",
+      forfeitByKey: playerKey,
+      completedAt: now,
+      sheetSaved: false
+    };
+  }
+
+  const lastSeen = Number(match.presence?.[opponentKey]?.lastSeen || match.startedAt || 0);
+  if (lastSeen && now >= lastSeen + ONLINE_MISSING_AFTER_MS) {
+    return pauseOnlineMatch(match, opponentKey, now);
+  }
+
+  const turnStartedAt = onlineTurnStartedAt(match);
+  if (turnStartedAt && now >= turnStartedAt + ONLINE_THROW_LIMIT_MS) {
+    return pauseOnlineMatch(match, match.game.currentPlayerKey, now);
+  }
+}
+
+function resumeOnlineMatchState(match, myKey, now) {
+  if (!match || !onlinePlayerKeys(match).includes(myKey) ||
+      ["left", "cancelled", "closed", "abandoned", "complete"].includes(match.status)) return;
+  if (match.reconnect && now >= match.reconnect.deadline) {
+    return advanceOnlineMatchClock(match, myKey, now);
+  }
+
+  const resumed = {
+    ...match,
+    presence: { ...match.presence, [myKey]: { online: true, lastSeen: now } }
+  };
+  if (match.reconnect?.playerKey === myKey) {
+    delete resumed.reconnect;
+    resumed.game = { ...match.game, turnStartedAt: now };
+  }
+  return resumed;
+}
+
+function showOpponentMissingOverlay(message) {
+  let overlay = document.getElementById("onlineReconnectOverlay");
   if (!overlay) {
     document.body.insertAdjacentHTML("beforeend", `
       <div id="onlineReconnectOverlay" class="modalOverlay">
         <div class="modalCard">
-          <div class="modalHeader">
-            <div class="modalTitle">Online match paused</div>
-          </div>
-          <div class="modalBody">
-            <div class="loading-results">
-              <div class="spinner"></div>
-              <p id="onlineReconnectText">${message}</p>
-            </div>
-          </div>
+          <div class="modalHeader"><div class="modalTitle">Online match paused</div></div>
+          <div class="modalBody"><p id="onlineReconnectText" role="status"></p></div>
         </div>
       </div>
     `);
-  } else {
-    overlay.classList.remove("hidden");
-    document.getElementById("onlineReconnectText").textContent = message;
+    overlay = document.getElementById("onlineReconnectOverlay");
   }
-
-  els.onlineTurnOverlay?.classList.remove("hidden");
-  if (els.onlineTurnOverlay) {
-    els.onlineTurnOverlay.textContent = "Opponent disconnected. Please wait...";
-  }
+  overlay?.classList.remove("hidden");
+  const text = document.getElementById("onlineReconnectText");
+  if (text && text.textContent !== message) text.textContent = message;
 }
 
 function hideOpponentMissingOverlay() {
   document.getElementById("onlineReconnectOverlay")?.classList.add("hidden");
+}
 
-  if (els.onlineTurnOverlay) {
-    els.onlineTurnOverlay.classList.add("hidden");
-    els.onlineTurnOverlay.textContent = "Waiting for opponent's score...";
+function renderOnlineMatchClock(match, myKey, now = onlineMatchNow()) {
+  const countdown = document.getElementById("onlineThrowCountdown");
+  const playing = match?.status === "playing";
+  if (playing && match.reconnect && match.reconnect.playerKey !== myKey) {
+    const seconds = onlineSecondsLeft(match.reconnect.deadline, now);
+    showOpponentMissingOverlay(`Opponent disconnected. ${seconds}s to rejoin.`);
+  } else if (playing && !onlineMatchConnected) {
+    showOpponentMissingOverlay("Connection lost. Rejoin when your connection returns.");
+  } else {
+    hideOpponentMissingOverlay();
   }
 
-  onlineOpponentMissingShown = false;
+  if (!countdown) return;
+  const startedAt = playing ? onlineTurnStartedAt(match) : 0;
+  const show = Boolean(startedAt && !match.reconnect && now >= startedAt + ONLINE_THROW_WARNING_MS);
+  countdown.hidden = !show;
+  if (!show) return;
+  const seconds = onlineSecondsLeft(startedAt + ONLINE_THROW_LIMIT_MS, now);
+  const text = match.game.currentPlayerKey === myKey ? `Throw now · ${seconds}s left` : `Opponent has ${seconds}s to throw`;
+  if (countdown.textContent !== text) countdown.textContent = text;
 }
 
-async function writeOnlineHeartbeat() {
-  if (!onlineMatchId || !window.ONMLiveDarts) return;
-
+function writeOnlineHeartbeat() {
+  if (!onlineMatchConnected || !onlineMatchId || !window.ONMLiveDarts || onlineClockWritePending) return;
   const myKey = getCurrentPlayerKey();
-  if (!myKey) return;
-
+  if (!myKey || window.currentOnlineMatch?.reconnect?.playerKey === myKey) return;
   const { db, ref, update } = window.ONMLiveDarts;
-
-  await update(ref(db, `onlineMatches/${onlineMatchId}`), {
-    [`presence/${myKey}`]: {
-      online: true,
-      lastSeen: Date.now()
-    }
-  });
+  void update(ref(db, `onlineMatches/${onlineMatchId}/presence/${myKey}`), {
+    online: true, lastSeen: onlineMatchNow()
+  }).catch(err => console.warn("Could not update match presence:", err));
 }
 
-function startOnlineHeartbeat() {
+function stopOnlineMatchClock() {
   clearInterval(onlineHeartbeatInterval);
+  clearInterval(onlineDisconnectInterval);
+  onlineConnectionUnsubscribe?.();
+  onlineConnectionUnsubscribe = null;
+  onlineClockMatchId = null;
+  onlineMatchConnected = false;
+  hideOpponentMissingOverlay();
+  const countdown = document.getElementById("onlineThrowCountdown");
+  if (countdown) countdown.hidden = true;
+}
 
-  writeOnlineHeartbeat();
+function returnToOnlineRejoin(match, keepLeagueMode = true) {
+  stopOnlineMatchClock();
+  resetOnlineLobbyState({ keepLeagueMode });
+  initialisePageModeView();
+  showLeagueResumePrompt(match);
+}
 
-  onlineHeartbeatInterval = setInterval(() => {
+function startOnlineMatchClock(matchId, myKey) {
+  if (onlineClockMatchId === matchId) return;
+  stopOnlineMatchClock();
+  onlineClockMatchId = matchId;
+  const { db, ref, onValue, runTransaction } = window.ONMLiveDarts;
+  const matchRef = ref(db, `onlineMatches/${matchId}`);
+  let wasConnected = false;
+  onlineConnectionUnsubscribe = onValue(ref(db, ".info/connected"), snapshot => {
+    onlineMatchConnected = snapshot.val() === true;
+    if (!onlineMatchConnected) {
+      renderOnlineMatchClock(window.currentOnlineMatch, myKey);
+      return;
+    }
+    const match = window.currentOnlineMatch;
+    if (wasConnected && match?.status === "playing") {
+      returnToOnlineRejoin(match);
+      return;
+    }
+    wasConnected = true;
     writeOnlineHeartbeat();
-  }, ONLINE_HEARTBEAT_MS);
-}
-
-function stopOnlineHeartbeat() {
-  clearInterval(onlineHeartbeatInterval);
-  onlineHeartbeatInterval = null;
-}
-
-function startOnlineDisconnectWatch(matchId) {
-  clearInterval(onlineDisconnectInterval);
-
+    renderOnlineMatchClock(match, myKey);
+  });
+  onlineHeartbeatInterval = setInterval(writeOnlineHeartbeat, ONLINE_HEARTBEAT_MS);
   onlineDisconnectInterval = setInterval(async () => {
-    if (!matchId || !window.ONMLiveDarts) return;
+    if (onlineMatchId !== matchId) return;
+    const match = window.currentOnlineMatch;
+    const now = onlineMatchNow();
+    renderOnlineMatchClock(match, myKey, now);
+    if (!onlineMatchConnected || onlineClockWritePending || !advanceOnlineMatchClock(match, myKey, now)) return;
 
-    const { db, ref, get, update } = window.ONMLiveDarts;
-    const snap = await get(ref(db, `onlineMatches/${matchId}`));
-
-    if (!snap.exists()) {
-      clearInterval(onlineDisconnectInterval);
-      return;
+    onlineClockWritePending = true;
+    try {
+      const result = await runTransaction(matchRef, live => advanceOnlineMatchClock(live, myKey, onlineMatchNow()), { applyLocally: false });
+      if (result.committed && result.snapshot.val()?.status === "complete") await saveCompletedOnlineMatch(matchRef);
+    } catch (err) {
+      console.warn("Could not advance match clock:", err);
+    } finally {
+      onlineClockWritePending = false;
     }
-
-    const match = snap.val();
-
-    if (!["playing", "readyLobby", "decider"].includes(match.status)) {
-      hideOpponentMissingOverlay();
-      return;
-    }
-
-    const opponentKey = getOpponentKeyFromMatch(match);
-    if (!opponentKey) return;
-
-    const opponentPresence = match.presence?.[opponentKey];
-    const lastSeen = Number(opponentPresence?.lastSeen || 0);
-    const missingFor = Date.now() - lastSeen;
-
-    if (!lastSeen || missingFor > ONLINE_MISSING_AFTER_MS) {
-      if (!onlineOpponentMissingShown) {
-        onlineOpponentMissingShown = true;
-        showOpponentMissingOverlay();
-      }
-
-      if (missingFor > ONLINE_ABANDON_AFTER_MS) {
-        await update(ref(db, `onlineMatches/${matchId}`), {
-          status: "abandoned",
-          abandonedAt: Date.now(),
-          abandonedReason: "playerDisconnected",
-          abandonedPlayerKey: opponentKey
-        });
-      }
-
-      return;
-    }
-
-    hideOpponentMissingOverlay();
-  }, 5000);
-}
-
-function stopOnlineDisconnectWatch() {
-  clearInterval(onlineDisconnectInterval);
-  onlineDisconnectInterval = null;
+  }, 1000);
 }
 
 function saveOnlineSession() {
@@ -484,7 +543,8 @@ async function getSavedOnlineSessionMatch() {
 
   const match = matchSnap.val();
 
-  if (["left", "cancelled", "closed", "abandoned"].includes(match.status)) {
+  if (["left", "cancelled", "closed", "abandoned"].includes(match.status) ||
+      (match.status === "complete" && match.forfeitByKey === getCurrentPlayerKey())) {
     clearOnlineSession();
     return null;
   }
@@ -525,19 +585,65 @@ function showLeagueResumePrompt(match) {
 
   if (!card) return;
 
-  const opponentName = getLeagueResumeOpponentName(match);
-  const statusText = String(match.status || "playing").replace(/([a-z])([A-Z])/g, "$1 $2");
-  const legsCount = Number(match.settings?.legsCount || match.legsCount || els.legsCount?.textContent || 3);
-  const gameType = match.settings?.gameType || match.gameType || "bestOf";
-  const format = getMatchFormatLabel(gameType, legsCount);
-
-  if (title) title.textContent = `Continue vs ${opponentName}`;
-  if (meta) meta.textContent = `${format} · ${statusText}`;
-
+  hideLeagueResumePrompt();
   card.classList.remove("hidden");
+
+  const myKey = getCurrentPlayerKey();
+  const { db, ref, onValue, runTransaction, setPresenceStatus } = window.ONMLiveDarts;
+  const matchRef = ref(db, `onlineMatches/${match.matchId}`);
+  let expiryPending = false;
+
+  function display(latest) {
+    clearInterval(savedResumeTimer);
+    const opponentName = getLeagueResumeOpponentName(latest);
+    const format = getMatchFormatLabel(latest.settings?.gameType, Number(latest.settings?.legsCount || 3));
+    if (title) title.textContent = `Rejoin vs ${opponentName}`;
+    if (meta) meta.textContent = format;
+    const deadline = latest.reconnect?.deadline;
+    if (!deadline) return;
+
+    const updateCountdown = async () => {
+      const seconds = onlineSecondsLeft(deadline, onlineMatchNow());
+      const mine = latest.reconnect.playerKey === myKey;
+      if (meta) meta.textContent = mine ? `${format} · ${seconds}s to rejoin` : `Opponent disconnected · ${seconds}s to rejoin`;
+      if (seconds > 0 || expiryPending || !navigator.onLine) return;
+      expiryPending = true;
+      try {
+        const result = await runTransaction(matchRef, live => {
+          if (!live?.reconnect) return;
+          return advanceOnlineMatchClock(live, myKey, onlineMatchNow());
+        }, { applyLocally: false });
+        if (result.committed && result.snapshot.val()?.status === "complete") await saveCompletedOnlineMatch(matchRef);
+      } catch (err) {
+        console.warn("Could not resolve the rejoin window:", err);
+      } finally {
+        expiryPending = false;
+      }
+    };
+    void updateCountdown();
+    savedResumeTimer = setInterval(updateCountdown, 1000);
+  }
+
+  display(match);
+  savedResumeMatchUnsubscribe = onValue(matchRef, snapshot => {
+    const latest = snapshot.val();
+    if (latest?.status === "complete" && latest.forfeitByKey === myKey) {
+      clearOnlineSession();
+      if (setPresenceStatus) void setPresenceStatus(myKey, "online").catch(err => console.warn("Could not update presence:", err));
+      showOnlineNotice("The rejoin window expired. You forfeited the match.");
+    } else if (!latest || ["left", "cancelled", "closed", "abandoned"].includes(latest.status)) {
+      clearOnlineSession();
+    } else {
+      display(latest);
+    }
+  });
 }
 
 function hideLeagueResumePrompt() {
+  clearInterval(savedResumeTimer);
+  savedResumeTimer = null;
+  savedResumeMatchUnsubscribe?.();
+  savedResumeMatchUnsubscribe = null;
   document.getElementById("leagueResumeMatchCard")?.classList.add("hidden");
 }
 
@@ -2625,6 +2731,7 @@ els.confirmQuitBtn.addEventListener("click", async () => {
       STATS_MODE = "competitive";
       window.STATS_MODE = STATS_MODE;
       showLeaderboardTab();
+      showVersusPanel(false);
     } else {
       showPlayTab();
     }
@@ -2651,7 +2758,7 @@ function openQuitConfirm() {
   if (!tournamentMatch) {
     const forfeiting = MATCH_MODE === "online" && window.currentOnlineMatch?.status === "playing";
     els.quitConfirmOverlay.querySelector(".modalBody > p").textContent = forfeiting
-      ? "Leaving now forfeits the match. Your opponent will get the win."
+      ? "You’ll have one minute to rejoin. After that, your opponent gets the win."
       : "Are you sure you want to quit this match?";
   }
 
@@ -4333,7 +4440,10 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
 
   const submitVisit = includePhoto => runTransaction(matchRef, live => {
     const livePlayer = live?.game?.players?.[myKey];
-    if (live?.status !== "playing" || live.matchId !== match.matchId || live.resultId !== match.resultId ||
+    const now = onlineMatchNow();
+    const turnStartedAt = live ? onlineTurnStartedAt(live) : 0;
+    if (live?.status !== "playing" || live.reconnect ||
+        (turnStartedAt && now >= turnStartedAt + ONLINE_THROW_LIMIT_MS) || live.matchId !== match.matchId || live.resultId !== match.resultId ||
         live.game.currentPlayerKey !== myKey || livePlayer?.score !== previousScore ||
         (livePlayer.dartsThrown || 0) !== currentDarts ||
         live.game.lastCallout?.id !== match.game.lastCallout?.id) return;
@@ -4345,6 +4455,7 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       if (value === null) delete parent[field];
       else parent[field] = value;
     }
+    live.game.turnStartedAt = now;
     if (legWon) {
       if (includePhoto) live.game.checkoutPhoto = photo;
       else delete live.game.checkoutPhoto;
@@ -4726,6 +4837,10 @@ async function submitEditedOnlineScore() {
   }
 
   const match = matchSnap.val();
+  if (match.status !== "playing" || match.reconnect) {
+    closeEditOnlineScore();
+    return;
+  }
   const myKey = getMyOnlinePlayerKey(match);
   const player = match.game?.players?.[myKey];
   const editableVisit = player?.lastEditableVisit;
@@ -6373,9 +6488,10 @@ async function startOnlinePlaying(startingIndex) {
   await update(ref(db, `onlineMatches/${onlineMatchId}`), {
     status: "playing",
     "game/currentPlayerKey": startingKey,
+    "game/turnStartedAt": onlineMatchNow(),
     [`game/players/${keys[0]}/score`]: startScore,
     [`game/players/${keys[1]}/score`]: startScore,
-    startedAt: Date.now()
+    startedAt: onlineMatchNow()
   });
 
   await setPresenceStatus?.(match.hostPlayerKey, "playing");
@@ -6500,6 +6616,7 @@ function listenToOnlineMatch(matchId) {
 
   const matchRef = ref(db, `onlineMatches/${matchId}`);
 
+  startOnlineMatchClock(matchId, myKey);
   onValue(matchRef, snapshot => {
     if (!snapshot.exists()) return;
     const match = snapshot.val();
@@ -6514,6 +6631,7 @@ function listenToOnlineMatch(matchId) {
     window.currentOnlineMatch = match;
 
     if (["left", "cancelled", "closed"].includes(match.status)) {
+      stopOnlineMatchClock();
       const myKey = getCurrentPlayerKey();
 
       if (match.leftByKey && match.leftByKey !== myKey) {
@@ -6574,9 +6692,15 @@ function listenToOnlineMatch(matchId) {
     }
 
     if (match.status === "complete") {
-      if (match.forfeitByKey === myKey) return;
-      stopOnlineHeartbeat();
-      stopOnlineDisconnectWatch();
+      stopOnlineMatchClock();
+      if (match.forfeitByKey === myKey) {
+        void window.ONMLiveDarts.setPresenceStatus?.(myKey, "online")?.catch(err => console.warn("Could not update presence:", err));
+        clearOnlineSession();
+        resetOnlineLobbyState();
+        initialisePageModeView();
+        showOnlineNotice("The rejoin window expired. You forfeited the match.");
+        return;
+      }
       if (molVictoryShownForMatchId === (match.resultId || match.matchId)) {
         handleCheckoutPhotoNotification(match);
         return;
@@ -6611,13 +6735,16 @@ function listenToOnlineMatch(matchId) {
     }
 
     if (match.status === "playing") {
+      if (match.reconnect?.playerKey === myKey) {
+        returnToOnlineRejoin(match);
+        return;
+      }
       applyOnlineGame(match);
+      renderOnlineMatchClock(match, myKey);
     }
 
     if (match.status === "abandoned") {
-      stopOnlineHeartbeat();
-      stopOnlineDisconnectWatch();
-      hideOpponentMissingOverlay();
+      stopOnlineMatchClock();
       clearOnlineSession();
 
       showOnlineNotice("Match abandoned because a player disconnected for too long.");
@@ -6760,36 +6887,23 @@ function openOnlineCoinDecider(match) {
 }
 
 async function restoreOnlineSession() {
-  const saved = localStorage.getItem(ONLINE_SESSION_KEY);
-  if (!saved || !window.ONMLiveDarts) return;
+  const saved = await getSavedOnlineSessionMatch();
+  if (!saved) return false;
 
-  let session = null;
-
-  try {
-    session = JSON.parse(saved);
-  } catch {
-    clearOnlineSession();
-    return false;
-  }
-
-  if (!session?.matchId || !session?.role) {
-    clearOnlineSession();
-    return false;
-  }
-
-  const { db, ref, get, update } = window.ONMLiveDarts;
-  const matchSnap = await get(ref(db, `onlineMatches/${session.matchId}`));
-
-  if (!matchSnap.exists()) {
-    clearOnlineSession();
-    return false;
-  }
-
-  const match = matchSnap.val();
-
-  if (["left", "cancelled"].includes(match.status)) {
-    clearOnlineSession();
-    return false;
+  const { session, match } = saved;
+  const myKey = getCurrentPlayerKey();
+  if (!myKey) return false;
+  const { db, ref, runTransaction, setPresenceStatus } = window.ONMLiveDarts;
+  const matchRef = ref(db, `onlineMatches/${session.matchId}`);
+  if (match.status !== "complete") {
+    const result = await runTransaction(matchRef, live => resumeOnlineMatchState(live, myKey, onlineMatchNow()), { applyLocally: false });
+    const latest = result.snapshot.val();
+    if (latest?.forfeitByKey === myKey) {
+      if (result.committed) await saveCompletedOnlineMatch(matchRef);
+      clearOnlineSession();
+      return false;
+    }
+    if (!result.committed && latest?.status !== "complete") return false;
   }
 
   onlineInviteAccepted = true;
@@ -6800,32 +6914,19 @@ async function restoreOnlineSession() {
   STATS_MODE = match.statsMode || "casual";
   hideLeagueResumePrompt();
 
-  const myKey = getCurrentPlayerKey();
-
-  await update(ref(db, `onlineMatches/${onlineMatchId}`), {
-    [`presence/${myKey}`]: {
-      online: true,
-      lastSeen: Date.now(),
-      rejoinedAt: Date.now()
-    }
-  });
-
-  startOnlineHeartbeat();
-  startOnlineDisconnectWatch(onlineMatchId);
-
+  if (match.status === "playing") {
+    void setPresenceStatus?.(myKey, "playing")?.catch(err => console.warn("Could not update presence:", err));
+  }
   listenToOnlineMatch(onlineMatchId);
   document.body.classList.remove("scorer-fullscreen");
   window.scrollTo(0, 0);
   updateSetupPlayerMode();
-
   return true;
 }
 
 async function leaveOnlineMatch(reason = "left", { keepLeagueMode = PAGE_MODE === "league" } = {}) {
   fullyStopDartAudio();
-  stopOnlineHeartbeat();
-  stopOnlineDisconnectWatch();
-  hideOpponentMissingOverlay();
+
   if (!onlineMatchId || !window.ONMLiveDarts) return;
 
   const { db, ref, get, update, remove, setPresenceStatus, runTransaction } = window.ONMLiveDarts;
@@ -6837,32 +6938,23 @@ async function leaveOnlineMatch(reason = "left", { keepLeagueMode = PAGE_MODE ==
       resetOnlineLobbyState({ keepLeagueMode });
       return;
     }
-    const completion = await runTransaction(matchRef, match => {
-      if (match?.status !== "playing") return;
-      const opponentKey = onlinePlayerKeys(match).find(key => key !== myKey);
-      if (!opponentKey || !match.game?.players?.[myKey]) return;
-      return {
-        ...match,
-        status: "complete",
-        winnerKey: opponentKey,
-        winnerName: match.game.players[opponentKey]?.name || "Opponent",
-        loserKey: myKey,
-        loserName: match.game.players[myKey].name || "Player",
-        forfeitByKey: myKey,
-        completedAt: Date.now(),
-        sheetSaved: false
-      };
-    }, { applyLocally: false });
-    if (completion.committed || completion.snapshot.val()?.status === "complete") {
+    const result = await runTransaction(matchRef,
+      match => pauseOnlineMatch(match, myKey, onlineMatchNow()), { applyLocally: false });
+    const latest = result.snapshot.val();
+    if (latest?.status === "playing") {
+      returnToOnlineRejoin(latest, keepLeagueMode);
+      return;
+    }
+    if (latest?.status === "complete") {
+      stopOnlineMatchClock();
       clearOnlineSession();
       resetOnlineLobbyState({ keepLeagueMode });
-      await Promise.all([
-        saveCompletedOnlineMatch(matchRef),
-        setPresenceStatus(myKey, "online").catch(err => console.warn("Could not reset presence:", err))
-      ]);
       return;
     }
   }
+
+  stopOnlineMatchClock();
+  clearOnlineSession();
 
   if (myKey && window.ONMLiveDarts?.setPresenceStatus) {
     await window.ONMLiveDarts.setPresenceStatus(myKey, "online");
@@ -7211,7 +7303,7 @@ function applyOnlineGame(match) {
   const lastCallout = match.game?.lastCallout;
   const editableVisit = match.game?.players?.[myKey]?.lastEditableVisit;
   const canEditLastOnlineScore =
-    !isMyTurn &&
+    !match.reconnect && !isMyTurn &&
     editableVisit?.editSnapshot &&
     !editableVisit?.legWon;
 
@@ -7240,8 +7332,9 @@ function applyOnlineGame(match) {
     els.onlineTurnOverlay.classList.toggle("hidden", isMyTurn);
   }
 
-  els.submit.disabled = !isMyTurn;
-  els.keypad.classList.toggle("disabled", !isMyTurn);
+  const canThrow = isMyTurn && !match.reconnect;
+  els.submit.disabled = !canThrow;
+  els.keypad.classList.toggle("disabled", !canThrow);
 
   if (lastCallout?.id && lastCallout.id !== lastOnlineCalloutId) {
     lastOnlineCalloutId = lastCallout.id;
@@ -7741,17 +7834,20 @@ document.getElementById("leagueResumeMatchBtn")?.addEventListener("click", async
     button.innerHTML = `<span class="btnSpinner"></span> Opening`;
   }
 
-  const restored = await restoreOnlineSession();
-
-  if (!restored) {
-    hideLeagueResumePrompt();
-    showOnlineNotice("That online match is no longer available.");
-    initialisePageModeView();
-  }
-
-  if (button) {
-    button.disabled = false;
-    button.textContent = "Continue game";
+  try {
+    if (!(await restoreOnlineSession())) {
+      hideLeagueResumePrompt();
+      showOnlineNotice("That online match is no longer available.");
+      initialisePageModeView();
+    }
+  } catch (err) {
+    console.warn("Could not rejoin match:", err);
+    showOnlineNotice("Could not rejoin the match. Please try again.");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Rejoin game";
+    }
   }
 });
 
@@ -7839,7 +7935,7 @@ function getLeaderboardPlayerName(player) {
 
 function formatStreak(streak) {
   const value = Number(streak || 0);
-  return value > 0 ? `🔥 ${value}` : "";
+  return value > 0 ? `${value} 🔥` : "";
 }
 
 function renderLeaderboard(players = []) {
@@ -7903,7 +7999,7 @@ function renderLeaderboard(players = []) {
       ];
       const flag = player.nationality ? leaderboardFlag(player.nationality) : "";
       const streak = player.winStreak > 0
-        ? `<span class="versusWinStreak">${escapeHtml(player.winStreak)} ${player.winStreak === 1 ? "win" : "wins"} in a row</span>`
+        ? `<span class="versusWinStreak" aria-label="${Number(player.winStreak)} consecutive wins">${formatStreak(player.winStreak)}</span>`
         : "";
       return `<details class="versusBoardCard" data-player-key="${escapeHtml(player.playerKey)}"${expanded.has(player.playerKey) ? " open" : ""}>
         <summary>
