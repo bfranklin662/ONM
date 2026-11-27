@@ -82,8 +82,8 @@
         </label>
         <label>
           <span>Nationality</span>
-          <input id="registerNationality" name="nationality" type="text" list="nationalitySuggestions" placeholder="Start typing your nationality…" autocomplete="off">
-            <datalist id="nationalitySuggestions">
+          <select id="registerNationality" name="nationality" autocomplete="country-name">
+              <option value="">Select nationality</option>
               <option value="Afghanistan">Afghanistan</option>
               <option value="Albania">Albania</option>
               <option value="Algeria">Algeria</option>
@@ -273,6 +273,7 @@
               <option value="Uganda">Uganda</option>
               <option value="Ukraine">Ukraine</option>
               <option value="United Arab Emirates">United Arab Emirates</option>
+              <option value="United Kingdom">United Kingdom</option>
               <option value="United States">United States</option>
               <option value="Uruguay">Uruguay</option>
               <option value="Uzbekistan">Uzbekistan</option>
@@ -284,7 +285,7 @@
               <option value="Yemen">Yemen</option>
               <option value="Zambia">Zambia</option>
               <option value="Zimbabwe">Zimbabwe</option>
-            </datalist>
+            </select>
         </label>
 
         <label>

@@ -2046,7 +2046,7 @@ async function openOpponentModal(playerKey = "") {
 
       const buttonText =
         status === "playing" ? "Playing" :
-          status === "online" ? "Invite" :
+          status === "online" ? "Challenge" :
             "Offline";
 
       const buttonClass =
@@ -2101,7 +2101,7 @@ async function openOpponentModal(playerKey = "") {
         if (!player) return;
 
         button.disabled = true;
-        button.textContent = "Inviting...";
+        button.textContent = "Sending challenge…";
         const notice = document.getElementById("molInviteError");
         notice.hidden = true;
 
@@ -2173,7 +2173,7 @@ async function openOpponentModal(playerKey = "") {
             }
           });
 
-          button.textContent = "Invite sent";
+          button.textContent = "Challenge sent";
 
           els.setupPlayerTwoName.value = opponentFullName;
           showInviteWaiting(opponentFullName);
@@ -2183,7 +2183,7 @@ async function openOpponentModal(playerKey = "") {
           console.error("Could not create invite:", err);
 
           button.disabled = false;
-          button.textContent = "Invite";
+          button.textContent = "Challenge";
 
           notice.textContent = err.message || "Could not send invite. Please try again.";
           notice.hidden = false;
@@ -5760,109 +5760,234 @@ function leaderboardFlag(nationality) {
   return countryToFlag(nationality || "");
 }
 
+const nationalityFlagCodes = new Map(Object.entries({
+  "afghanistan": "AF",
+  "albania": "AL",
+  "algeria": "DZ",
+  "andorra": "AD",
+  "angola": "AO",
+  "antigua and barbuda": "AG",
+  "argentina": "AR",
+  "armenia": "AM",
+  "australia": "AU",
+  "austria": "AT",
+  "azerbaijan": "AZ",
+  "bahamas": "BS",
+  "bahrain": "BH",
+  "bangladesh": "BD",
+  "barbados": "BB",
+  "belarus": "BY",
+  "belgium": "BE",
+  "belize": "BZ",
+  "benin": "DY",
+  "bhutan": "BT",
+  "bolivia": "BO",
+  "bosnia and herzegovina": "BA",
+  "botswana": "BW",
+  "brazil": "BR",
+  "brunei": "BN",
+  "bulgaria": "BG",
+  "burkina faso": "HV",
+  "burundi": "BI",
+  "cabo verde": "CV",
+  "cambodia": "KH",
+  "cameroon": "CM",
+  "canada": "CA",
+  "central african republic": "CF",
+  "chad": "TD",
+  "chile": "CL",
+  "china": "CN",
+  "colombia": "CO",
+  "comoros": "KM",
+  "congo": "CG",
+  "costa rica": "CR",
+  "croatia": "HR",
+  "cuba": "CU",
+  "cyprus": "CY",
+  "czechia": "CZ",
+  "denmark": "DK",
+  "djibouti": "DJ",
+  "dominica": "DM",
+  "dominican republic": "DO",
+  "dr congo": "CD",
+  "ecuador": "EC",
+  "egypt": "EG",
+  "el salvador": "SV",
+  "england": "gbeng",
+  "equatorial guinea": "GQ",
+  "eritrea": "ER",
+  "estonia": "EE",
+  "eswatini": "SZ",
+  "ethiopia": "ET",
+  "fiji": "FJ",
+  "finland": "FI",
+  "france": "FX",
+  "gabon": "GA",
+  "gambia": "GM",
+  "georgia": "GE",
+  "germany": "DE",
+  "ghana": "GH",
+  "greece": "GR",
+  "grenada": "GD",
+  "guatemala": "GT",
+  "guinea": "GN",
+  "guinea-bissau": "GW",
+  "guyana": "GY",
+  "haiti": "HT",
+  "honduras": "HN",
+  "hungary": "HU",
+  "iceland": "IS",
+  "india": "IN",
+  "indonesia": "ID",
+  "iran": "IR",
+  "iraq": "IQ",
+  "ireland": "IE",
+  "israel": "IL",
+  "italy": "IT",
+  "ivory coast": "CI",
+  "jamaica": "JM",
+  "japan": "JP",
+  "jordan": "JO",
+  "kazakhstan": "KZ",
+  "kenya": "KE",
+  "kiribati": "KI",
+  "kosovo": "XK",
+  "kuwait": "KW",
+  "kyrgyzstan": "KG",
+  "laos": "LA",
+  "latvia": "LV",
+  "lebanon": "LB",
+  "lesotho": "LS",
+  "liberia": "LR",
+  "libya": "LY",
+  "liechtenstein": "LI",
+  "lithuania": "LT",
+  "luxembourg": "LU",
+  "madagascar": "MG",
+  "malawi": "MW",
+  "malaysia": "MY",
+  "maldives": "MV",
+  "mali": "ML",
+  "malta": "MT",
+  "marshall islands": "MH",
+  "mauritania": "MR",
+  "mauritius": "MU",
+  "mexico": "MX",
+  "micronesia": "FM",
+  "moldova": "MD",
+  "monaco": "MC",
+  "mongolia": "MN",
+  "montenegro": "ME",
+  "morocco": "MA",
+  "mozambique": "MZ",
+  "myanmar": "MM",
+  "namibia": "NA",
+  "nauru": "NR",
+  "nepal": "NP",
+  "netherlands": "NL",
+  "new zealand": "NZ",
+  "nicaragua": "NI",
+  "niger": "NE",
+  "nigeria": "NG",
+  "north korea": "KP",
+  "north macedonia": "MK",
+  "northern ireland": "GB",
+  "norway": "NO",
+  "oman": "OM",
+  "pakistan": "PK",
+  "palau": "PW",
+  "palestine": "PS",
+  "panama": "PA",
+  "papua new guinea": "PG",
+  "paraguay": "PY",
+  "peru": "PE",
+  "philippines": "PH",
+  "poland": "PL",
+  "portugal": "PT",
+  "qatar": "QA",
+  "romania": "RO",
+  "russia": "SU",
+  "rwanda": "RW",
+  "saint kitts and nevis": "KN",
+  "saint lucia": "LC",
+  "saint vincent and the grenadines": "VC",
+  "samoa": "WS",
+  "san marino": "SM",
+  "sao tome and principe": "ST",
+  "saudi arabia": "SA",
+  "scotland": "gbsct",
+  "senegal": "SN",
+  "serbia": "YU",
+  "seychelles": "SC",
+  "sierra leone": "SL",
+  "singapore": "SG",
+  "slovakia": "SK",
+  "slovenia": "SI",
+  "solomon islands": "SB",
+  "somalia": "SO",
+  "south africa": "ZA",
+  "south korea": "KR",
+  "south sudan": "SS",
+  "spain": "ES",
+  "sri lanka": "LK",
+  "sudan": "SD",
+  "suriname": "SR",
+  "sweden": "SE",
+  "switzerland": "CH",
+  "syria": "SY",
+  "taiwan": "TW",
+  "tajikistan": "TJ",
+  "tanzania": "TZ",
+  "thailand": "TH",
+  "timor-leste": "TP",
+  "togo": "TG",
+  "tonga": "TO",
+  "trinidad and tobago": "TT",
+  "tunisia": "TN",
+  "turkey": "TR",
+  "turkmenistan": "TM",
+  "tuvalu": "TV",
+  "uganda": "UG",
+  "ukraine": "UA",
+  "united arab emirates": "AE",
+  "united states": "US",
+  "uruguay": "UY",
+  "uzbekistan": "UZ",
+  "vanuatu": "VU",
+  "vatican city": "VA",
+  "venezuela": "VE",
+  "vietnam": "VN",
+  "wales": "gbwls",
+  "yemen": "YE",
+  "zambia": "ZM",
+  "zimbabwe": "ZW",
+  "united kingdom": "GB",
+  "british": "GB",
+  "great britain": "GB",
+  "britain": "GB",
+  "uk": "GB",
+  "u.k.": "GB",
+  "usa": "US",
+  "czech republic": "CZ",
+  "american": "US",
+  "irish": "IE",
+  "polish": "PL",
+  "australian": "AU",
+  "french": "FR",
+  "german": "DE",
+  "northern irish": "GB",
+  "canadian": "CA",
+  "english": "gbeng",
+  "scottish": "gbsct",
+  "welsh": "gbwls"
+}));
+
 function countryToFlag(country) {
-  const value = String(country || "").trim().toLowerCase();
-
-  const flags = {
-    england: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-    scotland: "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-    wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
-    ireland: "🇮🇪",
-    "united kingdom": "🇬🇧",
-    france: "🇫🇷",
-    germany: "🇩🇪",
-    spain: "🇪🇸",
-    portugal: "🇵🇹",
-    italy: "🇮🇹",
-    netherlands: "🇳🇱",
-    belgium: "🇧🇪",
-    luxembourg: "🇱🇺",
-    switzerland: "🇨🇭",
-    austria: "🇦🇹",
-    denmark: "🇩🇰",
-    norway: "🇳🇴",
-    sweden: "🇸🇪",
-    finland: "🇫🇮",
-    iceland: "🇮🇸",
-
-    poland: "🇵🇱",
-    "czech republic": "🇨🇿",
-    slovakia: "🇸🇰",
-    hungary: "🇭🇺",
-    romania: "🇷🇴",
-    bulgaria: "🇧🇬",
-    croatia: "🇭🇷",
-    serbia: "🇷🇸",
-    slovenia: "🇸🇮",
-    "bosnia and herzegovina": "🇧🇦",
-    montenegro: "🇲🇪",
-    "north macedonia": "🇲🇰",
-    albania: "🇦🇱",
-    kosovo: "🇽🇰",
-    greece: "🇬🇷",
-
-    ukraine: "🇺🇦",
-    lithuania: "🇱🇹",
-    latvia: "🇱🇻",
-    estonia: "🇪🇪",
-    belarus: "🇧🇾",
-    moldova: "🇲🇩",
-
-    turkey: "🇹🇷",
-
-    "united states": "🇺🇸",
-    usa: "🇺🇸",
-    canada: "🇨🇦",
-    mexico: "🇲🇽",
-
-    brazil: "🇧🇷",
-    argentina: "🇦🇷",
-    chile: "🇨🇱",
-    colombia: "🇨🇴",
-    peru: "🇵🇪",
-    uruguay: "🇺🇾",
-    paraguay: "🇵🇾",
-    venezuela: "🇻🇪",
-
-    australia: "🇦🇺",
-    "new zealand": "🇳🇿",
-
-    "south africa": "🇿🇦",
-    nigeria: "🇳🇬",
-    kenya: "🇰🇪",
-    egypt: "🇪🇬",
-    morocco: "🇲🇦",
-
-    india: "🇮🇳",
-    pakistan: "🇵🇰",
-    bangladesh: "🇧🇩",
-    "sri lanka": "🇱🇰",
-
-    china: "🇨🇳",
-    japan: "🇯🇵",
-    "south korea": "🇰🇷",
-    "north korea": "🇰🇵",
-    taiwan: "🇹🇼",
-    "hong kong": "🇭🇰",
-
-    thailand: "🇹🇭",
-    vietnam: "🇻🇳",
-    malaysia: "🇲🇾",
-    singapore: "🇸🇬",
-    indonesia: "🇮🇩",
-    philippines: "🇵🇭",
-    nepal: "🇳🇵",
-
-    "united arab emirates": "🇦🇪",
-    "saudi arabia": "🇸🇦",
-    qatar: "🇶🇦",
-    kuwait: "🇰🇼",
-    bahrain: "🇧🇭",
-    oman: "🇴🇲",
-    israel: "🇮🇱"
-  };
-
-  return flags[value] || "🌍";
+  const value = String(country || "").trim().toLowerCase().replace(/\s+/g, " ");
+  const code = nationalityFlagCodes.get(value) || (/^[a-z]{2}$/.test(value) ? (value === "uk" ? "GB" : value.toUpperCase()) : "");
+  if (code.length === 2) return String.fromCodePoint(...Array.from(code, letter => 0x1f1e6 + letter.charCodeAt(0) - 65));
+  if (code) return String.fromCodePoint(0x1f3f4, ...Array.from(code, letter => 0xe0000 + letter.charCodeAt(0)), 0xe007f);
+  return "";
 }
 
 function preloadImage(src) {
@@ -7998,6 +8123,8 @@ function renderLeaderboard(players = []) {
       photo.src = photoSrc;
     }
     setSummaryText("versusYourName", getLoggedInFullName(currentUser));
+    const nationality = getPlayerNationality(currentUser) || me?.nationality;
+    setSummaryText("versusYourFlag", leaderboardFlag(nationality));
     setSummaryText("versusYourAverage", me?.average ?? "");
     const averageStat = document.getElementById("versusYourAverage")?.parentElement;
     if (averageStat) averageStat.hidden = me?.average == null;
@@ -8079,12 +8206,17 @@ function renderLeaderboard(players = []) {
 
   const dock = document.getElementById("versusInviteDock");
   const invite = document.getElementById("versusInviteSelected");
+  const challengeStatus = document.getElementById("versusChallengeStatus");
   const selectedPlayer = () => opponents.find(player => player.playerKey === selectedVersusPlayerKey);
   const syncInvite = () => {
     const player = selectedPlayer();
     dock.hidden = !player;
     invite.disabled = player?.status !== "online";
-    invite.textContent = player ? `Invite ${player.playerName || "player"}` : "Invite";
+    invite.textContent = player ? `Challenge ${player.playerName || "player"}` : "Challenge";
+    const unavailable = player?.status === "offline" ? "Player offline" :
+      player?.status === "playing" ? "Player is already in a match" : "";
+    challengeStatus.textContent = unavailable;
+    challengeStatus.hidden = !unavailable;
   };
   syncInvite();
   invite.onclick = () => {
@@ -8303,7 +8435,7 @@ function showVersusPanel(leaderboard) {
   document.getElementById("versusLeaderboardTab")?.setAttribute("aria-pressed", String(leaderboard));
   document.getElementById("versusPlayPanel").hidden = leaderboard;
   document.getElementById("versusLeaderboardPanel").hidden = !leaderboard;
-  document.getElementById("versusPanelTitle").textContent = leaderboard ? "Leaderboard" : "Invite an online player";
+  document.getElementById("versusPanelTitle").textContent = leaderboard ? "Leaderboard" : "Challenge an online player";
 }
 
 document.getElementById("versusPlayTab")?.addEventListener("click", () => showVersusPanel(false));

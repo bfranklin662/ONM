@@ -25,7 +25,7 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  };
  const ctx = {document:{getElementById:node,querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},
   getCurrentPlayerKey:()=>"me",leaderboardFlag:()=>"🇬🇧",escapeHtml:value=>String(value).replace(/</g,"&lt;"),
-  getPlayerPhotoField:player=>player?.photo || "",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, selectedVersusPlayerKey:"", openCompetitiveInviteFlow:key=>invited.push(key)};
+  getPlayerPhotoField:player=>player?.photo || "",getPlayerNationality:()=> "British",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, selectedVersusPlayerKey:"", openCompetitiveInviteFlow:key=>invited.push(key)};
  vm.runInNewContext(part,ctx);
  ctx.renderLeaderboard([
   {playerKey:"other",playerName:"Alex",average:"52.50",status:"online",nationality:"England",photo:"images/alex.jpg"},
@@ -37,6 +37,7 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  assert.match(html, /🇬🇧/);
  assert.match(html, /52.50 <small>avg/);
  assert.equal(node("versusYourAverage").textContent,"53.25");
+ assert.equal(node("versusYourFlag").textContent,"🇬🇧");
  assert.equal(node("versusYourWins").textContent,3);
  assert.equal(node("versusYourFastestLeg").textContent,"18 darts");
  assert.equal(node("versusYourHighestOut").textContent,134);
@@ -55,13 +56,14 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  assert.equal(ctx.selectedVersusPlayerKey,"other");
  assert.equal(buttons[0].selected,"true");
  assert.equal(node("versusInviteDock").hidden,false);
- assert.equal(node("versusInviteSelected").textContent,"Invite Alex");
+ assert.equal(node("versusInviteSelected").textContent,"Challenge Alex");
  assert.equal(node("versusInviteSelected").disabled,false);
  node("versusInviteSelected").onclick();
  assert.deepEqual(invited,["other"]);
  ctx.renderLeaderboard([{playerKey:"other",playerName:"Alex",status:"offline"}]);
  assert.equal(ctx.selectedVersusPlayerKey,"other");
  assert.equal(node("versusInviteSelected").disabled,true);
+ assert.equal(node("versusChallengeStatus").textContent,"Player offline");
  node("versusInviteSelected").onclick();
  assert.deepEqual(invited,["other"]);
 });
@@ -115,12 +117,12 @@ test("the highest checkout and current streak use completed Versus results in ma
 
 test("selected opponents open settings and the confirmed invite uses the selected format", () => {
  const page = fs.readFileSync(require.resolve("../dart-scorer.html"), "utf8");
- assert.match(page, /id="versusPanelTitle">Invite an online player/);
+ assert.match(page, /id="versusPanelTitle">Challenge an online player/);
  assert.doesNotMatch(page, /id="openLastGameStatsBtn"[^>]*>Play/);
  assert.match(script, /openCompetitiveInviteFlow\(selectedVersusPlayerKey\)/);
  assert.match(script, /selectedKey \? "Match settings"/);
  assert.match(script, /if \(!await isPlayerOnline\(opponentKey\)\)/);
- const flow = script.slice(script.indexOf("const inviteId = await window.ONMLiveDarts.createOnlineInvite"), script.indexOf('button.textContent = "Invite sent"'));
+ const flow = script.slice(script.indexOf("const inviteId = await window.ONMLiveDarts.createOnlineInvite"), script.indexOf('button.textContent = "Challenge sent"'));
  assert.match(flow, /gameType: competitiveGameType/);
  assert.match(flow, /legsCount: competitiveLegsCount/);
 });
@@ -148,4 +150,16 @@ test("an active account that has never opened Versus appears offline", () => {
  const [player] = E.players(roster);
  assert.equal(player.status,"offline");
  assert.equal(player.played,0);
+});
+
+test("nationality options, including English and British aliases, resolve to flags", () => {
+ const auth = fs.readFileSync(require.resolve("../auth.html"),"utf8");
+ const select = auth.match(/<select id="registerNationality"[\s\S]*?<\/select>/)[0];
+ const part = script.slice(script.indexOf("const nationalityFlagCodes"),script.indexOf("function preloadImage("));
+ const ctx = {};
+ vm.runInNewContext(part,ctx);
+ for(const [,value] of select.matchAll(/<option value="([^"]+)"/g)) assert.ok(ctx.countryToFlag(value),value);
+ assert.equal(ctx.countryToFlag("English"),ctx.countryToFlag("England"));
+ assert.equal(ctx.countryToFlag("British"),"🇬🇧");
+ assert.equal(ctx.countryToFlag("not a country"),"");
 });

@@ -118,3 +118,9 @@ body:has(#leaderboardView:not(.hidden)) {
   background:#ffd740;color:#172018;font-weight:850;cursor:pointer;
 }
 .versusInviteDock button:disabled { background:#263b31;color:#c0cfc6;border-color:#50695c;cursor:not-allowed; }
+
+.versusChallengeStatus {
+  margin:0 0 6px;padding:8px 12px;border:1px solid #935252;border-radius:8px;
+  background:#2a1d1d;color:#ffc5c5;text-align:center;font-size:13px;font-weight:750;
+}
+#versusPlayPanel:has(.versusChallengeStatus:not([hidden])) { padding-bottom:112px; }
