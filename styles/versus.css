@@ -1,52 +1,23 @@
 /* Friendly versus directory: player cards with live availability. */
 body.leagueMode .leagueHeroMeta,body.leagueMode .leaderboardHeader,body.leagueMode .leagueRatingChange,body.leagueMode #readyHostRank,body.leagueMode #readyGuestRank,body.leagueMode #readyHostRating,body.leagueMode #readyGuestRating,body.leagueMode #molVictoryPlayerOneRank,body.leagueMode #molVictoryPlayerTwoRank,body.leagueMode #molVictoryPlayerOneRating,body.leagueMode #molVictoryPlayerTwoRating{display:none!important}
-body.leagueMode .leaderboardRows {
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:12px;
-  padding:12px 0 90px;
-}
-.versusToolbar { display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;color:#adc5b6;font-size:13px; }
-.versusToolbar h2 { margin:0 0 3px;color:#e7f6eb;font-size:20px; }
+body.leagueMode .leaderboardRows { display:block;padding:12px 0 90px; }
+.versusToolbar { display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;color:#adc5b6; }
+.versusToolbar h2 { margin:0;color:#e7f6eb;font-size:20px; }
 .versusToolbar button { background:#214a33;color:#e4f8eb;border:1px solid #58836a;border-radius:8px;padding:10px 13px;cursor:pointer; }
 .versusToolbar button:disabled { opacity:.6;cursor:wait; }
+.versusSection + .versusSection { margin-top:20px; }
+.versusSection h3 { margin:0 0 8px;color:#c5dfd0;font-size:14px; }
+.versusGrid { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:8px; }
 .versusPlayer {
-  display:grid;
-  grid-template-columns:46px minmax(0,1fr);
-  gap:12px;
-  align-items:center;
-  min-width:0;
-  padding:14px;
-  border:1px solid #3b654d;
-  border-radius:14px;
-  background:linear-gradient(135deg,#173b29,#10291e);
-  color:#e7f6eb;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  min-width:0;padding:11px 13px;border:1px solid #3b654d;border-radius:10px;
+  background:#142f22;color:#e7f6eb;font:inherit;text-align:left;
 }
-.versusPlayer.me { border-color:#8bd9af; }
-.versusPlayer img { width:46px;height:46px;object-fit:cover;border-radius:50%;background:#0d2017; }
-.versusIdentity strong { font-size:15px;overflow-wrap:anywhere; }
-.versusYou { margin-left:6px;color:#a7c8b3;font-size:11px; }
-.versusNationality,.versusStatus { display:block;margin-top:4px;color:#b7cfbf;font-size:12px; }
-.versusStatus::before { content:"";display:inline-block;width:7px;height:7px;margin-right:5px;border-radius:50%;background:currentColor; }
-.versusStatus.online { color:#83edba; }
-.versusStatus.playing { color:#f3d182; }
-.versusStats { grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:0;padding-top:10px;border-top:1px solid #345644; }
-.versusStats div { display:flex;align-items:baseline;justify-content:space-between;gap:4px;padding:0 8px; }
-.versusStats div + div { border-left:1px solid #345644; }
-.versusStats dt { color:#b7cfbf;font-size:12px; }
-.versusStats dd { margin:0;color:#80e1b7;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums; }
-.versusEmpty { grid-column:1/-1;padding:28px;text-align:center;color:#b2c9bc; }
-
-@media (max-width:950px) {
-  body.leagueMode .leaderboardRows { grid-template-columns:repeat(2,minmax(0,1fr)); }
-}
-@media (max-width:600px) {
-  body.leagueMode .leaderboardRows { grid-template-columns:1fr;gap:9px; }
-  .versusPlayer { grid-template-columns:40px minmax(0,1fr) auto;padding:11px;gap:9px; }
-  .versusPlayer img { width:40px;height:40px; }
-  .versusStats { grid-column:auto;gap:8px;padding:0;border-top:0;text-align:right; }
-  .versusStats div { display:flex;flex-direction:column-reverse;align-items:flex-end;padding:0; }
-  .versusStats div + div { border-left:0; }
-  .versusStats dt { font-size:10px;white-space:nowrap; }
-  .versusStats dd { font-size:16px; }
-}
+button.versusPlayer { cursor:pointer; }
+button.versusPlayer:hover, .versusPlayer[aria-pressed="true"] { border-color:#8bd9af;background:#22523a; }
+.versusIdentity { font-size:14px;overflow-wrap:anywhere; }
+.versusPlaying { margin-left:4px;color:#f3d182; }
+.versusAverage { white-space:nowrap;color:#80e1b7;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums; }
+.versusAverage small,.versusEmpty { color:#b7cfbf;font-weight:400; }
+.versusEmpty { grid-column:1/-1;margin:0;padding:12px 0;font-size:13px; }
+#leaderboardPlayDockBtn:disabled { opacity:.5;cursor:default; }

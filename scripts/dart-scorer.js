@@ -759,7 +759,7 @@ function resetAddOpponentButton() {
   `;
 
   els.addOpponentBtn = document.getElementById("addOpponentBtn");
-  els.addOpponentBtn.addEventListener("click", openOpponentModal);
+  els.addOpponentBtn.addEventListener("click", () => openOpponentModal(selectedKey));
 }
 
 async function getPlayerImageByName(name) {
@@ -1822,6 +1822,8 @@ window.testCasualVictoryScreen = function testCasualVictoryScreen() {
   openMolVictoryScreen(buildLocalMatchStatsData());
 };
 
+let selectedVersusPlayerKey = "";
+
 function updateLeaguePlayButton() {
   const btn = document.getElementById("leaderboardPlayDockBtn");
   if (!btn) return;
@@ -1830,11 +1832,12 @@ function updateLeaguePlayButton() {
     window.ONMSession?.getUser?.() || loggedInUser;
 
   btn.textContent = currentUser
-    ? "Play match"
+    ? "Invite"
     : "Log in / Register";
+  btn.disabled = Boolean(currentUser && !selectedVersusPlayerKey);
 }
 
-function openCompetitiveInviteFlow() {
+function openCompetitiveInviteFlow(playerKey = "") {
   const currentUser =
     window.ONMSession?.getUser?.() || loggedInUser;
 
@@ -1860,7 +1863,7 @@ function openCompetitiveInviteFlow() {
   els.scorerCard?.classList.add("hidden");
   els.startDeciderScreen?.classList.add("hidden");
 
-  openOpponentModal();
+  openOpponentModal(playerKey);
 }
 
 async function isPlayerOnline(playerKey) {
@@ -1884,7 +1887,8 @@ async function getVersusLinkedPlayers() {
   return result.players || [];
 }
 
-async function openOpponentModal() {
+async function openOpponentModal(playerKey = "") {
+  const selectedKey = typeof playerKey === "string" ? playerKey : "";
   els.opponentOverlay.classList.remove("hidden");
   els.opponentOverlay.setAttribute("aria-hidden", "false");
 
@@ -1989,12 +1993,13 @@ async function openOpponentModal() {
       allPlayers.find(player => getPlayerKey(player) === currentPlayerKey) || {};
 
     const players = allPlayers.filter(player => {
-      return getPlayerKey(player) !== currentPlayerKey;
+      const key = getPlayerKey(player);
+      return key !== currentPlayerKey && (!selectedKey || key === selectedKey);
     });
 
     if (!players.length) {
       document.getElementById("molInvitePlayersList").innerHTML =
-        `<div class="muted">No other Versus players found.</div>`;
+        `<div class="muted">${selectedKey ? "This player is no longer available." : "No other Versus players found."}</div>`;
       return;
     }
 
@@ -2058,11 +2063,12 @@ async function openOpponentModal() {
 
     const onlineRows = playerRows.filter(row => row.status === "online").map(row => row.html);
     const unavailableRows = playerRows.filter(row => row.status !== "online").map(row => row.html);
+    const unavailableMessage = selectedKey ? "This player is no longer available to invite." : "No online players right now.";
 
     document.getElementById("molInvitePlayersList").innerHTML = `
       <div class="molInviteGroup">
         <div class="molInviteGroupTitle">Online players</div>
-        ${onlineRows.length ? onlineRows.join("") : `<div class="muted">No online players right now.</div>`}
+        ${onlineRows.length ? onlineRows.join("") : `<div class="muted">${unavailableMessage}</div>`}
       </div>
 
       <details class="molInviteGroup molInviteOfflineGroup">
@@ -6142,6 +6148,7 @@ async function initDartScorerAuth() {
 
   window.ONMLiveDarts?.setPlayerPresence?.({
     ...user,
+    versusAccount: PAGE_MODE === "league",
     linkedPlayerKey: myKey,
     playerKey: myKey,
     fullName: getLoggedInFullName(user),
@@ -7861,7 +7868,7 @@ document.getElementById("leaderboardPlayDockBtn")?.addEventListener("click", () 
     return;
   }
 
-  openCompetitiveInviteFlow();
+  if (selectedVersusPlayerKey) openCompetitiveInviteFlow(selectedVersusPlayerKey);
 });
 
 document.getElementById("leagueResumeMatchBtn")?.addEventListener("click", async () => {
@@ -7984,35 +7991,44 @@ function renderLeaderboard(players = []) {
   if(opponent)opponent.textContent=me?.lastMatch?"Last game vs "+(me.lastMatch.opponentName||"Opponent"):"Friendly online darts · No rankings";
   if(stats)stats.textContent=!currentUser?"Log in":me?.lastMatch?"Stats":"Play";
   history?.classList.toggle("hidden",!currentUser||!me?.matchHistory?.length);
-  const statusLabels = { online: "Online", playing: "Playing", offline: "Offline", unknown: "Status unavailable" };
-  const count = document.getElementById("versusOnlineCount");
-  if (count) {
-    const connected = players.filter(player => player.status === "online" || player.status === "playing").length;
-    count.textContent = currentUser && !players.some(player => player.status === "unknown")
-      ? `${connected} online · ${players.length} players`
-      : "";
+  const connected = players.filter(player => player.status === "online" || player.status === "playing");
+  const offline = players.filter(player => player.status === "offline");
+  const unknown = players.some(player => player.status === "unknown");
+  const canSelect = player => currentUser && player.status === "online" && player.playerKey !== myKey;
+  if (!players.some(player => canSelect(player) && player.playerKey === selectedVersusPlayerKey)) {
+    selectedVersusPlayerKey = "";
   }
-  rowsEl.innerHTML = players.length ? players.map(player => {
+  updateLeaguePlayButton();
+
+  function card(player) {
     const name = escapeHtml(player.playerName || "Player");
     const nationality = player.nationality || "";
     const flag = nationality ? leaderboardFlag(nationality) : "";
-    const isMe = player.playerKey === myKey;
-    const photo = String(player.photo || "");
-    const safePhoto = /^(https?:\/\/|(?:graphics|images)\/)/i.test(photo) ? photo : "graphics/logoWoText.png";
-    const status = Object.hasOwn(statusLabels, player.status) ? player.status : "unknown";
-    return `<article class="versusPlayer${isMe ? " me" : ""}">
-      <img src="${escapeHtml(safePhoto)}" alt="">
-      <div class="versusIdentity">
-        <strong>${name}</strong>${isMe ? '<span class="versusYou">You</span>' : ""}
-        ${nationality ? `<small class="versusNationality"><span aria-hidden="true">${escapeHtml(flag)}</span> ${escapeHtml(nationality)}</small>` : ""}
-        <small class="versusStatus ${status}">${statusLabels[status]}</small>
-      </div>
-      <dl class="versusStats">
-        <div><dt>3-dart avg</dt><dd>${escapeHtml(player.average ?? "—")}</dd></div>
-        <div><dt>Wins</dt><dd>${escapeHtml(player.wins ?? "—")}</dd></div>
-      </dl>
-    </article>`;
-  }).join("") : '<div class="versusEmpty">No Versus players found.</div>';
+    const identity = `<strong>${name}</strong>${flag ? ` <span role="img" aria-label="${escapeHtml(nationality)}">${escapeHtml(flag)}</span>` : ""}
+      ${player.status === "playing" ? '<small class="versusPlaying">Playing</small>' : ""}`;
+    const content = `<span class="versusIdentity">${identity}</span>
+      <span class="versusAverage">${escapeHtml(player.average ?? "—")} <small>avg</small></span>`;
+    if (!canSelect(player)) return `<div class="versusPlayer">${content}</div>`;
+    return `<button type="button" class="versusPlayer" data-versus-player="${escapeHtml(player.playerKey)}"
+      aria-pressed="${player.playerKey === selectedVersusPlayerKey}">${content}</button>`;
+  }
+
+  const section = (title, group, empty) => `<section class="versusSection"><h3>${title}</h3>
+    <div class="versusGrid">${group.length ? group.map(card).join("") : `<p class="versusEmpty">${empty}</p>`}</div>
+  </section>`;
+  rowsEl.innerHTML = unknown
+    ? '<div class="versusEmpty">Player availability couldn’t be loaded. Please try Refresh.</div>'
+    : section("Online", connected, "No players online.") + section("Offline", offline, "No offline players.");
+
+  rowsEl.querySelectorAll("[data-versus-player]").forEach(button => {
+    button.addEventListener("click", () => {
+      selectedVersusPlayerKey = button.dataset.versusPlayer === selectedVersusPlayerKey ? "" : button.dataset.versusPlayer;
+      rowsEl.querySelectorAll("[data-versus-player]").forEach(cardButton => {
+        cardButton.setAttribute("aria-pressed", String(cardButton.dataset.versusPlayer === selectedVersusPlayerKey));
+      });
+      updateLeaguePlayButton();
+    });
+  });
 }
 
 async function loadExpandedPlayerStats(row) {
@@ -8244,12 +8260,13 @@ async function loadLeaderboard() {
       ...profile, playerKey: profile.playerKey || key
     }));
     const roster = window.ONMVersusPlayers.inviteProfiles(linked.value, presenceByKey);
+    const rosterKeys = new Set(roster.map(player => player.playerKey));
+    if (presenceByKey === null) throw new Error("Could not load player availability.");
     const players = window.ONMVersusPlayers.players(
       [...historical, ...roster],
       matches.value?.docs.map(doc => doc.data()) || [],
       presenceByKey
-    );
-    if (matches.status === "rejected") players.forEach(player => { player.wins = null; });
+    ).filter(player => rosterKeys.has(player.playerKey));
     window.currentLeaderboardPlayers = players;
     renderLeaderboard(players);
   } catch (error) {

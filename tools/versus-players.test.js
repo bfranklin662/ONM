@@ -14,11 +14,33 @@ test('local, bot and invalid-dart games do not contaminate friendly averages',()
  const rows=E.players([{playerKey:'a',gamesPlayed:2,playerName:'Alex'}],[]);assert.equal(rows[0].average,null);
 });
 const script=fs.readFileSync(require.resolve('../scripts/dart-scorer.js'),'utf8');
-test('player cards show photo, nationality, availability, average and wins',()=>{
- const part=script.slice(script.indexOf('function renderLeaderboard('),script.indexOf('async function loadExpandedPlayerStats(')),nodes=new Map(),node=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',textContent:'',classList:{add(){},toggle(){}}});return nodes.get(id);};
- const ctx={document:{getElementById:node,querySelector:()=>node('meta')},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},getCurrentPlayerKey:()=>'a',leaderboardFlag:()=> '🇬🇧',escapeHtml:v=>String(v).replace(/</g,'&lt;'),currentLeagueProfile:null};
- vm.runInNewContext(part,ctx);ctx.renderLeaderboard([{playerKey:'a',playerName:'Alex',average:'52.50',wins:3,status:'online',photo:'images/a.jpg',nationality:'England'}]);
- const html=node('leaderboardRows').innerHTML;assert.match(html,/versusPlayer/);assert.match(html,/images\/a.jpg/);assert.match(html,/🇬🇧/);assert.match(html,/52.50/);assert.match(html,/England/);assert.match(html,/Online/);assert.match(html,/<dt>Wins<\/dt><dd>3/);assert.doesNotMatch(html,/leaderboardRank|leaderboardRating|Losses|streak/);
+test("lobby splits compact player cards, and only available opponents can be selected", () => {
+ const part = script.slice(script.indexOf("function renderLeaderboard("), script.indexOf("async function loadExpandedPlayerStats("));
+ const nodes = new Map();
+ const buttons = [{dataset:{versusPlayer:"other"}, addEventListener(_event, handler){this.select = handler;}, setAttribute(_name, value){this.selected = value;}}];
+ const node = id => {
+  if (!nodes.has(id)) nodes.set(id, {innerHTML:"",textContent:"",classList:{add(){},toggle(){}},querySelectorAll:()=>buttons});
+  return nodes.get(id);
+ };
+ const ctx = {document:{getElementById:node,querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},
+  getCurrentPlayerKey:()=>"me",leaderboardFlag:()=>"🇬🇧",escapeHtml:value=>String(value).replace(/</g,"&lt;"),
+  currentLeagueProfile:null, selectedVersusPlayerKey:"", updateLeaguePlayButton(){}};
+ vm.runInNewContext(part,ctx);
+ ctx.renderLeaderboard([
+  {playerKey:"other",playerName:"Alex",average:"52.50",status:"online",nationality:"England"},
+  {playerKey:"me",playerName:"Nick",status:"online"},
+  {playerKey:"away",playerName:"Zoe",status:"offline"}
+ ]);
+ const html = node("leaderboardRows").innerHTML;
+ assert.match(html, /<h3>Online<\/h3>[\s\S]*Alex[\s\S]*<h3>Offline<\/h3>[\s\S]*Zoe/);
+ assert.match(html, /🇬🇧/);
+ assert.match(html, /52.50 <small>avg/);
+ assert.doesNotMatch(html, /Wins|<img|data-versus-player="(?:me|away)"/);
+ buttons[0].select();
+ assert.equal(ctx.selectedVersusPlayerKey,"other");
+ assert.equal(buttons[0].selected,"true");
+ ctx.renderLeaderboard([{playerKey:"other",playerName:"Alex",status:"offline"}]);
+ assert.equal(ctx.selectedVersusPlayerKey,"");
 });
 test('friendly matches continue saving averages but do not calculate Elo or increase ranked wins',()=>{
  const completion=script.slice(script.indexOf('if (newLegs >= legsToWin)'),script.indexOf('async function',script.indexOf('if (newLegs >= legsToWin)')));
@@ -32,19 +54,20 @@ test('versus branding replaces the ranked league entry and retains backwards-com
 
 test("new accounts can appear with no matches, and their presence is keyed case-sensitively", () => {
  const presence = {
-  TestUid: {playerName:"New Player", online:true},
-  BusyUid: {playerName:"Busy Player", online:true, status:"playing", updatedAt:Date.now()},
-  SeenUid: {playerName:"Former Visitor", online:false}
+  TestUid: {playerName:"New Player", online:true, versusAccount:true},
+  BusyUid: {playerName:"Busy Player", online:true, status:"playing", updatedAt:Date.now(), versusAccount:true},
+  SeenUid: {playerName:"Former Visitor", online:false, versusAccount:true},
+  OldUid: {playerName:"Old Account", online:true}
  };
  const roster = E.inviteProfiles([{playerKey:"linked",fullName:"Club Player"}], presence);
  const rows = E.players(roster, [{matchMode:"online",playerOneId:"SeenUid",playerOneWon:true,playerOneTotalScored:501,playerOneDartsThrown:30}], presence);
  assert.deepEqual(rows.map(row => [row.playerKey,row.status]), [
-  ["TestUid","online"],["BusyUid","playing"],["linked","offline"],["SeenUid","offline"]
+  ["TestUid","online"],["BusyUid","playing"],["SeenUid","offline"]
  ]);
  assert.equal(rows[0].average,null);
  assert.equal(rows[0].wins,0);
- assert.equal(rows[3].wins,1);
- assert.equal(rows[3].average,"50.10");
+ assert.equal(rows[2].wins,1);
+ assert.equal(rows[2].average,"50.10");
  assert.equal(E.players(roster, [], null)[0].status,"unknown");
 });
 

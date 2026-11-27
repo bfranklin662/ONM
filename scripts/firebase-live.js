@@ -120,6 +120,7 @@ async function setPlayerPresence(user) {
         online: true,
         status: "online",
         playerKey,
+        ...(user.versusAccount ? { versusAccount: true } : {}),
         playerName: user.fullName || user.playerName || user.linkedPlayerName ||
           `${user.firstName || ""} ${user.surname || ""}`.trim(),
         photo: user.photo || user.photoUrl || "",

@@ -13,15 +13,11 @@
   }
 
   function inviteProfiles(linked = [], presence = {}) {
-    const profiles = new Map();
-    for (const player of linked) {
-      const key = keyOf(player);
-      if (key) profiles.set(key, { ...player, playerKey: key });
-    }
-    for (const [key, profile] of Object.entries(presence || {})) {
-      if (profile?.playerName && !profiles.has(key)) profiles.set(key, { ...profile, playerKey: key });
-    }
-    return [...profiles.values()];
+    const profiles = new Map(linked.map(player => [keyOf(player), player]));
+    return Object.entries(presence || {}).flatMap(([key, profile]) => {
+      if (profile?.versusAccount !== true || !profile.playerName) return [];
+      return [{ ...profile, ...profiles.get(key), playerKey: key }];
+    });
   }
 
   function players(profiles = [], matches = [], presence = {}) {
