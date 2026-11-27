@@ -7,7 +7,7 @@ body.leagueMode .leaderboardRows { display:block;padding:12px 0 24px; }
 .versusToolbar button:disabled { opacity:.6;cursor:wait; }
 .versusSection + .versusSection { margin-top:20px; }
 .versusSection h3 { margin:0 0 8px;color:#c5dfd0;font-size:14px; }
-.versusGrid { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:8px; }
+.versusGrid { display:grid;grid-template-columns:minmax(0,1fr);gap:8px; }
 .versusPlayer {
   display:flex;justify-content:space-between;align-items:center;gap:10px;
   min-width:0;padding:11px 13px;border:1px solid #3b654d;border-radius:10px;
@@ -99,13 +99,22 @@ body:has(#leaderboardView:not(.hidden)) {
   .versusWinStreak { font-size:10px; }
 }
 
-.versusCandidate { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:stretch;min-width:0; }
-.versusInlineInvite { padding:8px 12px;border:0;border-radius:8px;background:#ffd740;color:#172018;font-weight:800;cursor:pointer; }
 .versusDeciderSettings { display:flex;flex-wrap:wrap;gap:8px 16px;min-width:0;margin:0; }
 .versusDeciderSettings label { display:flex;align-items:center;gap:6px;cursor:pointer; }
 .versusDeciderSettings input { accent-color:#81d6a5; }
 
-.versusInlineInvite:disabled { opacity:.45;cursor:not-allowed; }
 
 .versusPresenceDot { display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:#8d9a94;vertical-align:1px; }
 .versusPresenceDot.isOnline { background:#53df93; }
+
+#versusPlayPanel:has(.versusInviteDock:not([hidden])) { padding-bottom:76px; }
+.versusInviteDock {
+  position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
+  width:min(calc(100% - 28px),520px);z-index:72;
+}
+.versusInviteDock[hidden] { display:none; }
+.versusInviteDock button {
+  width:100%;min-height:46px;padding:10px 16px;border:1px solid #e0bd40;border-radius:999px;
+  background:#ffd740;color:#172018;font-weight:850;cursor:pointer;
+}
+.versusInviteDock button:disabled { background:#263b31;color:#c0cfc6;border-color:#50695c;cursor:not-allowed; }

@@ -17,11 +17,10 @@ const script=fs.readFileSync(require.resolve('../scripts/dart-scorer.js'),'utf8'
 test("lobby splits compact player cards, and offline opponents can be selected but cannot be invited", () => {
  const part = script.slice(script.indexOf("function renderLeaderboard("), script.indexOf("async function loadExpandedPlayerStats("));
  const nodes = new Map();
- const invite = {dataset:{versusInvite:"other"}, addEventListener(_event, handler){this.send = handler;}};
  const invited = [];
  const buttons = [{dataset:{versusPlayer:"other"}, addEventListener(_event, handler){this.select = handler;}, setAttribute(_name, value){this.selected = value;}}];
  const node = id => {
-  if (!nodes.has(id)) nodes.set(id, {innerHTML:"",textContent:"",classList:{add(){},toggle(){}},getAttribute:()=>null,querySelectorAll:selector=>selector === "[data-versus-invite]" ? [invite] : buttons});
+  if (!nodes.has(id)) nodes.set(id, {innerHTML:"",textContent:"",classList:{add(){},toggle(){}},getAttribute:()=>null,querySelectorAll:()=>buttons});
   return nodes.get(id);
  };
  const ctx = {document:{getElementById:node,querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},
@@ -50,15 +49,21 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  assert.doesNotMatch(board, /Losses|Win rate/);
  assert.match(html, /class="versusAvatar" src="images\/alex.jpg"/);
  assert.doesNotMatch(html, /Wins|data-versus-player="me"/);
+ assert.equal(node("versusInviteDock").hidden,true);
+ assert.equal((html.match(/<small>avg<\/small>/g) || []).length,1);
  buttons[0].select();
  assert.equal(ctx.selectedVersusPlayerKey,"other");
  assert.equal(buttons[0].selected,"true");
- assert.match(html, /data-versus-invite="other" aria-label="Invite Alex">Invite/);
- invite.send();
+ assert.equal(node("versusInviteDock").hidden,false);
+ assert.equal(node("versusInviteSelected").textContent,"Invite Alex");
+ assert.equal(node("versusInviteSelected").disabled,false);
+ node("versusInviteSelected").onclick();
  assert.deepEqual(invited,["other"]);
  ctx.renderLeaderboard([{playerKey:"other",playerName:"Alex",status:"offline"}]);
  assert.equal(ctx.selectedVersusPlayerKey,"other");
- assert.match(node("leaderboardRows").innerHTML, /data-versus-invite="other" aria-label="Invite Alex" disabled/);
+ assert.equal(node("versusInviteSelected").disabled,true);
+ node("versusInviteSelected").onclick();
+ assert.deepEqual(invited,["other"]);
 });
 test('friendly matches continue saving averages but do not calculate Elo or increase ranked wins',()=>{
  const completion=script.slice(script.indexOf('if (newLegs >= legsToWin)'),script.indexOf('async function',script.indexOf('if (newLegs >= legsToWin)')));
@@ -112,7 +117,7 @@ test("selected opponents open settings and the confirmed invite uses the selecte
  const page = fs.readFileSync(require.resolve("../dart-scorer.html"), "utf8");
  assert.match(page, /id="versusPanelTitle">Invite an online player/);
  assert.doesNotMatch(page, /id="openLastGameStatsBtn"[^>]*>Play/);
- assert.match(script, /openCompetitiveInviteFlow\(button.dataset.versusInvite\)/);
+ assert.match(script, /openCompetitiveInviteFlow\(selectedVersusPlayerKey\)/);
  assert.match(script, /selectedKey \? "Match settings"/);
  assert.match(script, /if \(!await isPlayerOnline\(opponentKey\)\)/);
  const flow = script.slice(script.indexOf("const inviteId = await window.ONMLiveDarts.createOnlineInvite"), script.indexOf('button.textContent = "Invite sent"'));

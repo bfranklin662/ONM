@@ -7998,7 +7998,9 @@ function renderLeaderboard(players = []) {
       photo.src = photoSrc;
     }
     setSummaryText("versusYourName", getLoggedInFullName(currentUser));
-    setSummaryText("versusYourAverage", me?.average ?? "—");
+    setSummaryText("versusYourAverage", me?.average ?? "");
+    const averageStat = document.getElementById("versusYourAverage")?.parentElement;
+    if (averageStat) averageStat.hidden = me?.average == null;
     setSummaryText("versusYourPlayed", me?.played ?? "—");
     setSummaryText("versusYourWins", me?.wins ?? "—");
     setSummaryText("versusYourFastestLeg", me?.fastestLeg ? `${me.fastestLeg} darts` : "—");
@@ -8024,7 +8026,8 @@ function renderLeaderboard(players = []) {
       (a.playerName || "").localeCompare(b.playerName || ""));
     board.innerHTML = standings.length ? standings.map(player => {
       const fields = [
-        ["Played", player.played], ["Wins", player.wins], ["3-dart avg", player.average],
+        ["Played", player.played], ["Wins", player.wins],
+        ...(player.average == null ? [] : [["3-dart avg", player.average]]),
         ["Fastest leg", player.fastestLeg ? `${player.fastestLeg} darts` : null],
         ["180s", player.oneEightys], ["Bull outs", player.bullOuts], ["Highest out", player.highestOut]
       ];
@@ -8036,7 +8039,7 @@ function renderLeaderboard(players = []) {
         <summary>
           <span class="versusPlayerHeading">${playerAvatar(player)}<strong>${escapeHtml(player.playerName || "Player")}${flag ? ` <span role="img" aria-label="${escapeHtml(player.nationality)}">${escapeHtml(flag)}</span>` : ""}</strong></span>
           ${streak}
-          <span class="versusAverage">${escapeHtml(player.average ?? "—")} <small>avg</small></span>
+          ${player.average == null ? "" : `<span class="versusAverage">${escapeHtml(player.average)} <small>avg</small></span>`}
           <span class="versusBoardChevron" aria-hidden="true"></span>
         </summary>
         <dl>${fields.map(([label, value]) => `<div><dt>${label}</dt><dd>${escapeHtml(value ?? "—")}</dd></div>`).join("")}</dl>
@@ -8060,15 +8063,11 @@ function renderLeaderboard(players = []) {
     const identity = `<span class="versusPresenceDot${status === "Online" ? " isOnline" : ""}" role="img" aria-label="${status}"></span><strong>${name}</strong>${flag ? ` <span role="img" aria-label="${escapeHtml(nationality)}">${escapeHtml(flag)}</span>` : ""}
       ${player.status === "playing" ? '<small class="versusPlaying">Playing</small>' : ""}`;
     const content = `<span class="versusPlayerHeading">${playerAvatar(player)}<span class="versusIdentity">${identity}</span></span>
-      <span class="versusAverage">${escapeHtml(player.average ?? "—")} <small>avg</small></span>`;
+      ${player.average == null ? "" : `<span class="versusAverage">${escapeHtml(player.average)} <small>avg</small></span>`}`;
     if (!canSelect(player)) return `<div class="versusPlayer">${content}</div>`;
     const key = escapeHtml(player.playerKey);
     const selected = player.playerKey === selectedVersusPlayerKey;
-    const canInvite = player.status === "online";
-    return `<div class="versusCandidate">
-      <button type="button" class="versusPlayer" data-versus-player="${key}" aria-pressed="${selected}">${content}</button>
-      <button type="button" class="versusInlineInvite" data-versus-invite="${key}" aria-label="Invite ${name}"${canInvite ? "" : " disabled"}>Invite</button>
-    </div>`;
+    return `<button type="button" class="versusPlayer" data-versus-player="${key}" aria-pressed="${selected}">${content}</button>`;
   }
 
   const section = (title, group, empty) => `<section class="versusSection"><h3>${title}</h3>
@@ -8078,18 +8077,27 @@ function renderLeaderboard(players = []) {
     ? '<div class="versusEmpty">Player availability couldn’t be loaded. Please try Refresh.</div>'
     : section("Online", connected, "No players online.") + section("Offline", offline, "No offline players.");
 
-  const inviteButtons = rowsEl.querySelectorAll("[data-versus-invite]");
-  rowsEl.querySelectorAll("[data-versus-player]").forEach(button => {
+  const dock = document.getElementById("versusInviteDock");
+  const invite = document.getElementById("versusInviteSelected");
+  const selectedPlayer = () => opponents.find(player => player.playerKey === selectedVersusPlayerKey);
+  const syncInvite = () => {
+    const player = selectedPlayer();
+    dock.hidden = !player;
+    invite.disabled = player?.status !== "online";
+    invite.textContent = player ? `Invite ${player.playerName || "player"}` : "Invite";
+  };
+  syncInvite();
+  invite.onclick = () => {
+    if (!invite.disabled) openCompetitiveInviteFlow(selectedVersusPlayerKey);
+  };
+  const playerButtons = rowsEl.querySelectorAll("[data-versus-player]");
+  playerButtons.forEach(button => {
     button.addEventListener("click", () => {
       selectedVersusPlayerKey = button.dataset.versusPlayer === selectedVersusPlayerKey ? "" : button.dataset.versusPlayer;
-      rowsEl.querySelectorAll("[data-versus-player]").forEach(cardButton => {
+      playerButtons.forEach(cardButton => {
         cardButton.setAttribute("aria-pressed", String(cardButton.dataset.versusPlayer === selectedVersusPlayerKey));
       });
-    });
-  });
-  inviteButtons.forEach(button => {
-    button.addEventListener("click", () => {
-      if (!button.disabled) openCompetitiveInviteFlow(button.dataset.versusInvite);
+      syncInvite();
     });
   });
 }
