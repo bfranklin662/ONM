@@ -428,3 +428,38 @@ test("saved and legacy result cards supply dates and valid checkout counts", () 
   assert.equal(legacy.players[0].stats.checkouts, "0/0");
   assert.equal(legacy.players[1].stats.checkouts, "1/2");
 });
+
+test("refresh recovers the active match from the player's account without browser storage", async () => {
+  const data = {
+    "presence/nick/activeMatchId": "live-match",
+    "onlineMatches/live-match": {
+      status: "playing", hostPlayerKey: "test", guestPlayerKey: "nick",
+      inviteId: "challenge-1", reconnect: { playerKey: "nick", deadline: 80000 }
+    }
+  };
+  const stored = new Map();
+  const ctx = {
+    window: { ONMLiveDarts: { db: "db", ref: (_db, path) => path,
+      get: async path => ({ val: () => data[path] ?? null }) } },
+    ONLINE_SESSION_KEY: "active",
+    localStorage: {
+      getItem: key => stored.get(key),
+      setItem: (key, value) => stored.set(key, value)
+    },
+    getCurrentPlayerKey: () => "nick", console
+  };
+  const start = script.indexOf("function cacheOnlineSession");
+  vm.runInNewContext(script.slice(start, script.indexOf("function watchForVersusRejoin", start)), ctx);
+  const recovered = await ctx.getSavedOnlineSessionMatch();
+  assert.equal(recovered.session.matchId, "live-match");
+  assert.equal(recovered.session.role, "guest");
+  assert.equal(recovered.match.reconnect.deadline, 80000);
+  assert.equal(JSON.parse(stored.get("active")).inviteId, "challenge-1");
+
+  stored.set("active", JSON.stringify({ matchId: "stale-game" }));
+  data["onlineMatches/stale-game"] = { status: "playing", hostPlayerKey: "another-account" };
+  assert.equal((await ctx.getSavedOnlineSessionMatch()).session.matchId, "live-match");
+  data["onlineMatches/live-match"].status = "complete";
+  data["onlineMatches/live-match"].forfeitByKey = "nick";
+  assert.equal(await ctx.getSavedOnlineSessionMatch(), null);
+});

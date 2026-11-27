@@ -297,6 +297,8 @@ async function createOnlineMatchFromInvite(invite, settings = {}) {
   try {
     await update(ref(db), {
       [`onlineMatches/${matchRef.key}`]: matchData,
+      [`presence/${invite.fromPlayerKey}/activeMatchId`]: matchRef.key,
+      [`presence/${invite.toPlayerKey}/activeMatchId`]: matchRef.key,
       [`dartInvites/${invite.inviteId}/status`]: "accepted",
       [`dartInvites/${invite.inviteId}/acceptedAt`]: serverTimestamp()
     });

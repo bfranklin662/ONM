@@ -499,65 +499,110 @@ function startOnlineMatchClock(matchId, myKey) {
   }, 1000);
 }
 
+function cacheOnlineSession(session) {
+  try {
+    if (session) localStorage.setItem(ONLINE_SESSION_KEY, JSON.stringify(session));
+    else localStorage.removeItem(ONLINE_SESSION_KEY);
+  } catch (err) {
+    console.warn("Could not cache the Versus session:", err);
+  }
+}
+
 function saveOnlineSession() {
   if (!onlineMatchId || !onlineRole) return;
-
-  localStorage.setItem(ONLINE_SESSION_KEY, JSON.stringify({
+  cacheOnlineSession({
     matchId: onlineMatchId,
     role: onlineRole,
     inviteId: onlineInviteId,
     savedAt: Date.now()
-  }));
+  });
 }
 
 function clearOnlineSession() {
-  localStorage.removeItem(ONLINE_SESSION_KEY);
+  cacheOnlineSession(null);
   hideLeagueResumePrompt();
 }
 
 async function getSavedOnlineSessionMatch() {
-  const saved = localStorage.getItem(ONLINE_SESSION_KEY);
-  if (!saved || !window.ONMLiveDarts) return null;
-
-  let session = null;
-
-  try {
-    session = JSON.parse(saved);
-  } catch {
-    clearOnlineSession();
-    return null;
-  }
-
-  if (!session?.matchId || !session?.role) {
-    clearOnlineSession();
-    return null;
-  }
-
-  const { db, ref, get } = window.ONMLiveDarts;
-  const matchSnap = await get(ref(db, `onlineMatches/${session.matchId}`));
-
-  if (!matchSnap.exists()) {
-    clearOnlineSession();
-    return null;
-  }
-
-  const match = matchSnap.val();
-
-  if (["left", "cancelled", "closed", "abandoned"].includes(match.status) ||
-      (match.status === "complete" && match.forfeitByKey === getCurrentPlayerKey())) {
-    clearOnlineSession();
-    return null;
-  }
-
+  const live = window.ONMLiveDarts;
   const myKey = getCurrentPlayerKey();
-  const keys = onlinePlayerKeys(match);
+  if (!live || !myKey) return null;
 
-  if (myKey && !keys.includes(myKey)) {
-    clearOnlineSession();
-    return null;
+  let cached;
+  try {
+    cached = JSON.parse(localStorage.getItem(ONLINE_SESSION_KEY) || "null");
+  } catch {
+    // The account's active match can still be recovered from Firebase.
   }
 
-  return { session, match };
+  const { db, ref, get } = live;
+  async function inspect(matchId) {
+    if (typeof matchId !== "string" || !matchId || !/^[a-zA-Z0-9_-]+$/.test(matchId)) return null;
+    const match = (await get(ref(db, `onlineMatches/${matchId}`))).val();
+    if (!match || ["left", "cancelled", "closed", "abandoned"].includes(match.status) ||
+        (match.status === "complete" && match.forfeitByKey === myKey)) return null;
+
+    const role = match.hostPlayerKey === myKey ? "host" : match.guestPlayerKey === myKey ? "guest" : "";
+    if (!role) return null;
+    if (match.status === "complete" && matchId !== cached?.matchId) return null;
+    const session = { matchId, role, inviteId: match.inviteId || (matchId === cached?.matchId ? cached?.inviteId : null) || null, savedAt: Date.now() };
+    cacheOnlineSession(session);
+    return { session, match: { ...match, matchId } };
+  }
+
+  const local = await inspect(cached?.matchId);
+  if (local && local.match.status !== "complete") return local;
+
+  const activeMatchId = (await get(ref(db, `presence/${myKey}/activeMatchId`))).val();
+  if (activeMatchId && activeMatchId !== cached?.matchId) {
+    const active = await inspect(activeMatchId);
+    if (active) return active;
+  }
+  return local;
+}
+
+function watchForVersusRejoin(playerKey) {
+  const live = window.ONMLiveDarts;
+  const { db, ref, onValue } = live;
+  let checking = false;
+  let checkAgain = false;
+
+  async function check() {
+    if (onlineMatchId || getCurrentPlayerKey() !== playerKey) return;
+    if (checking) {
+      checkAgain = true;
+      return;
+    }
+
+    checking = true;
+    try {
+      const saved = await getSavedOnlineSessionMatch();
+      if (saved && !onlineMatchId && getCurrentPlayerKey() === playerKey &&
+          document.getElementById("leagueResumeMatchCard")?.classList.contains("hidden")) {
+        showLeagueResumePrompt(saved.match);
+        showVersusPanel(false);
+      }
+    } catch (err) {
+      console.warn("Could not check for a Versus match to rejoin:", err);
+    } finally {
+      checking = false;
+      if (checkAgain) {
+        checkAgain = false;
+        void check();
+      }
+    }
+  }
+
+  onValue(ref(db, `presence/${playerKey}/activeMatchId`), check, err => {
+    console.warn("Could not watch the active Versus match:", err);
+  });
+  onValue(ref(db, ".info/connected"), snapshot => {
+    if (snapshot.val()) void check();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void check();
+  });
+  void check();
 }
 
 function getLeagueResumeOpponentName(match) {
@@ -6245,18 +6290,13 @@ async function initDartScorerAuth() {
     console.error("[DART DEBUG] updateSetupPlayerMode failed:", err);
   }
 
-  await loadLoggedInPlayer(user);
-
   if (PAGE_MODE === "league") {
-    const savedOnlineGame = await getSavedOnlineSessionMatch();
-
-    if (savedOnlineGame) {
-      initialisePageModeView();
-      showLeagueResumePrompt(savedOnlineGame.match);
-      console.log("[DART DEBUG] active online session prompt shown");
-      return;
-    }
+    watchForVersusRejoin(myKey);
+    await loadLoggedInPlayer(user);
+    return;
   }
+
+  await loadLoggedInPlayer(user);
 
   console.log("[DART DEBUG] restoring session now");
   const restoredOnlineGame = await restoreOnlineSession();
@@ -6616,6 +6656,7 @@ function listenToOnlineMatch(matchId) {
 
   const matchRef = ref(db, `onlineMatches/${matchId}`);
 
+  hideLeagueResumePrompt();
   startOnlineMatchClock(matchId, myKey);
   onValue(matchRef, snapshot => {
     if (!snapshot.exists()) return;
@@ -6688,6 +6729,9 @@ function listenToOnlineMatch(matchId) {
 
       if (match.status === "playing") {
         closeStartDecider();
+        const { update } = window.ONMLiveDarts;
+        void update(ref(db, `presence/${myKey}`), { activeMatchId: matchId })
+          .catch(err => console.warn("Could not link the Versus session to your account:", err));
       }
     }
 
