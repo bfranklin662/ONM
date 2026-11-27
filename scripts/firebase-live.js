@@ -12,7 +12,8 @@ import {
   orderByChild,
   equalTo,
   get,
-  remove
+  remove,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 
 const firebaseConfig = {
@@ -28,6 +29,28 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getDatabase(app);
+
+const INVITE_DURATION_MS = 30_000;
+let serverTimeOffset = 0;
+onValue(ref(db, ".info/serverTimeOffset"), snapshot => {
+  serverTimeOffset = Number(snapshot.val()) || 0;
+});
+
+function inviteTimeLeft(invite) {
+  const createdAt = Number(invite?.createdAt);
+  if (!createdAt) return 0;
+  return Math.max(0, createdAt + (Number(invite.durationMs) || INVITE_DURATION_MS) - (Date.now() + serverTimeOffset));
+}
+
+async function transitionPendingInvite(inviteId, status, changes = {}) {
+  const inviteRef = ref(db, `dartInvites/${inviteId}`);
+  await get(inviteRef);
+  return runTransaction(inviteRef, invite => {
+    if (invite?.status !== "pending") return;
+    if ((inviteTimeLeft(invite) === 0) !== (status === "expired")) return;
+    return { ...invite, ...changes, status };
+  }, { applyLocally: false });
+}
 
 async function createOnlineInvite({ fromUser, toPlayer, settings = {} }) {
   const inviteRef = push(ref(db, "dartInvites"));
@@ -53,6 +76,7 @@ async function createOnlineInvite({ fromUser, toPlayer, settings = {} }) {
     inviteId: inviteRef.key,
     status: "pending",
     createdAt: serverTimestamp(),
+    durationMs: INVITE_DURATION_MS,
 
     fromUserId: fromUser.userId || "",
     fromPlayerKey,
@@ -247,13 +271,23 @@ async function createOnlineMatchFromInvite(invite, settings = {}) {
     }
   };
 
-  await set(matchRef, matchData);
+  const claim = await transitionPendingInvite(invite.inviteId, "accepting", { matchId: matchRef.key });
+  if (!claim.committed) throw new Error("This challenge is no longer available.");
 
-  await update(ref(db, `dartInvites/${invite.inviteId}`), {
-    status: "accepted",
-    acceptedAt: Date.now(),
-    matchId: matchRef.key
-  });
+  try {
+    await update(ref(db), {
+      [`onlineMatches/${matchRef.key}`]: matchData,
+      [`dartInvites/${invite.inviteId}/status`]: "accepted",
+      [`dartInvites/${invite.inviteId}/acceptedAt`]: serverTimestamp()
+    });
+  } catch (error) {
+    await runTransaction(ref(db, `dartInvites/${invite.inviteId}`), current => {
+      if (current?.status !== "accepting" || current.matchId !== matchRef.key) return;
+      const { matchId, ...pending } = current;
+      return { ...pending, status: inviteTimeLeft(pending) ? "pending" : "expired" };
+    }, { applyLocally: false }).catch(rollbackError => console.warn("Could not release challenge", rollbackError));
+    throw error;
+  }
 
   return matchRef.key;
 }
@@ -274,6 +308,8 @@ window.ONMLiveDarts = {
   get,
   setPlayerPresence,
   setPresenceStatus, 
+  inviteTimeLeft,
+  transitionPendingInvite,
   createOnlineInvite,
   createOnlineMatchFromInvite,
 };

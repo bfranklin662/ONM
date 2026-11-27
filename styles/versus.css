@@ -145,3 +145,17 @@ body:has(#leaderboardView:not(.hidden)) {
   overflow-y:auto!important;
   touch-action:pan-y;
 }
+
+#dartInviteOverlay .modalCard {
+  background:#102a1f;border-color:#416d53;
+}
+#dartInviteOverlay .modalBody .row { gap:10px; }
+.versusWaiting { gap:12px;text-align:center; }
+.versusWaitingDart {
+  display:grid;place-items:center;width:60px;height:60px;margin:auto;
+  border:1px solid #579670;border-radius:50%;background:#1b4431;color:#ffd740;
+  font-size:38px;line-height:1;animation:versusDartOrbit 1.6s linear infinite;
+}
+.versusInviteCountdown { color:#a6e2be;font-weight:850;font-variant-numeric:tabular-nums; }
+@keyframes versusDartOrbit { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) { .versusWaitingDart { animation:none; } }

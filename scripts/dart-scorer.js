@@ -2298,118 +2298,90 @@ function closeOpponentModal() {
 }
 
 function showInviteWaiting(playerName) {
+  document.getElementById("opponentModalTitle").textContent = "Challenge sent";
   els.linkedPlayersList.innerHTML = `
-    <div class="inviteWaitingBox">
-      <span class="inlineSpinner"></span>
-      <strong>Waiting for ${playerName} to accept match invitation...</strong>
+    <div class="inviteWaitingBox versusWaiting">
+      <span class="versusWaitingDart" aria-hidden="true">➳</span>
+      <strong>Waiting for ${escapeHtml(playerName)} to respond</strong>
+      <span class="versusInviteCountdown" id="outgoingDartInviteCountdown"></span>
     </div>
   `;
 }
 
+function startInviteCountdown(invite, element, onExpiry) {
+  let interval;
+  const tick = () => {
+    const remaining = window.ONMLiveDarts.inviteTimeLeft(invite);
+    if (element) element.textContent = `${Math.ceil(remaining / 1000)}s remaining`;
+    if (!remaining) {
+      clearInterval(interval);
+      onExpiry();
+    }
+  };
+  interval = setInterval(tick, 250);
+  tick();
+  return () => clearInterval(interval);
+}
+
+function expireDartInvite(inviteId) {
+  return window.ONMLiveDarts.transitionPendingInvite(inviteId, "expired")
+    .catch(error => console.warn("Could not mark challenge expired", error));
+}
+
 function listenForInviteResponse(inviteId, playerName) {
   const { db, ref, onValue, update } = window.ONMLiveDarts;
-
-  console.log("[INVITE DEBUG] listening for invite response:", inviteId);
-
-  let delivered = false;
+  let stopCountdown;
+  let stopListening;
   let finished = false;
-
-  const deliveryTimer = setTimeout(async () => {
-    if (delivered || finished) return;
-
-    console.error("[INVITE DEBUG] invite was not delivered:", inviteId);
-
-    els.linkedPlayersList.innerHTML = `
-      <div class="inviteResultBox error">
-        <div class="linkErrorIcon">×</div>
-        <strong>Invite not delivered</strong>
-        <div class="muted">
-          ${playerName} did not receive the invite. They may need to refresh the Monsters Versus page.
-        </div>
-        <button type="button" class="btn btnPrimary" onclick="openOpponentModal()">
-          Try again
-        </button>
-      </div>
-    `;
-  }, 8000);
-
-  const expiryTimer = setTimeout(async () => {
-    if (finished) return;
-
+  const finish = message => {
     finished = true;
-
-    await update(ref(db, `dartInvites/${inviteId}`), {
-      status: "expired",
-      expiredAt: Date.now()
-    });
-
-    els.linkedPlayersList.innerHTML = `
-      <div class="inviteResultBox error">
-        <div class="linkErrorIcon">×</div>
-        <strong>Invite expired</strong>
-        <div class="muted">${playerName} did not respond in time.</div>
-        <button type="button" class="btn btnPrimary" onclick="openOpponentModal()">
-          Try again
-        </button>
-      </div>
-    `;
-  }, 30000);
-
-  onValue(ref(db, `dartInvites/${inviteId}`), async snapshot => {
-    console.log("[INVITE DEBUG] invite response snapshot:", snapshot.val());
-
-    if (!snapshot.exists()) return;
-
-    const invite = snapshot.val();
-
-    if (invite.deliveredAt && !delivered) {
-      delivered = true;
-      clearTimeout(deliveryTimer);
-
-      els.waitingInviteText.textContent =
-        `Invite delivered to ${playerName}. Waiting for response...`;
+    stopCountdown?.();
+    stopListening?.();
+    if (message) {
+      els.linkedPlayersList.innerHTML = `<div class="inviteResultBox error">
+        <strong>${escapeHtml(message)}</strong>
+        <button type="button" class="btn btnPrimary" id="closeChallengeResult">Back</button>
+      </div>`;
+      document.getElementById("closeChallengeResult").addEventListener("click", closeOpponentModal);
     }
+  };
 
-    if (invite.status === "accepted") {
-      finished = true;
-      clearTimeout(deliveryTimer);
-      clearTimeout(expiryTimer);
+  stopListening = onValue(ref(db, `dartInvites/${inviteId}`), async snapshot => {
+    const invite = snapshot.val();
+    if (!invite || finished) return;
 
+    if (invite.status === "pending") {
+      if (!stopCountdown) {
+        stopCountdown = startInviteCountdown(invite, document.getElementById("outgoingDartInviteCountdown"), () => {
+          void expireDartInvite(inviteId);
+        });
+      }
+      return;
+    }
+    if (invite.status === "accepting") {
+      stopCountdown?.();
+      stopCountdown = undefined;
+      const countdown = document.getElementById("outgoingDartInviteCountdown");
+      if (countdown) countdown.textContent = "Starting match…";
+      return;
+    }
+    if (invite.status === "accepted" && invite.matchId) {
+      finish();
       onlineInviteAccepted = true;
       onlineInviteId = inviteId;
       onlineMatchId = invite.matchId;
       onlineRole = "host";
-
       saveOnlineSession();
       closeOpponentModal();
-
-      if (invite.matchId) {
-        listenToOnlineMatch(invite.matchId);
-
-        await update(ref(db, `onlineMatches/${invite.matchId}`), {
-          status: "readyLobby",
-          [`ready/${getCurrentPlayerKey()}`]: false
-        });
-      }
-
+      listenToOnlineMatch(invite.matchId);
+      await update(ref(db, `onlineMatches/${invite.matchId}`), {
+        status: "readyLobby",
+        [`ready/${getCurrentPlayerKey()}`]: false
+      });
       return;
     }
-
-    if (invite.status === "declined") {
-      finished = true;
-      clearTimeout(deliveryTimer);
-      clearTimeout(expiryTimer);
-
-      els.linkedPlayersList.innerHTML = `
-        <div class="inviteResultBox error">
-          <div class="linkErrorIcon">×</div>
-          <strong>${playerName} declined</strong>
-          <button type="button" class="btn btnPrimary" onclick="openOpponentModal()">
-            Back
-          </button>
-        </div>
-      `;
-    }
+    if (invite.status === "expired") finish("Challenge expired");
+    if (invite.status === "declined") finish(`${playerName} declined`);
   });
 }
 
@@ -6309,98 +6281,80 @@ function getMyInviteKeys() {
     .map(String);
 }
 
+let stopIncomingInviteCountdown;
+let inviteNotificationAudio;
+
+function prepareInviteSound() {
+  inviteNotificationAudio ||= createDartAudioElement();
+  inviteNotificationAudio.src = "audio/darts/notification.mp3";
+  inviteNotificationAudio.volume = 0.01;
+  inviteNotificationAudio.play().then(() => {
+    inviteNotificationAudio.pause();
+    inviteNotificationAudio.currentTime = 0;
+    inviteNotificationAudio.volume = 1;
+  }).catch(() => { inviteNotificationAudio.volume = 1; });
+}
+
+if (PAGE_MODE === "league") {
+  document.addEventListener("click", prepareInviteSound, { once: true, capture: true });
+}
+
+function playInviteSound() {
+  if (!inviteNotificationAudio) {
+    inviteNotificationAudio = createDartAudioElement();
+    inviteNotificationAudio.src = "audio/darts/notification.mp3";
+  }
+  inviteNotificationAudio.volume = 1;
+  inviteNotificationAudio.currentTime = 0;
+  inviteNotificationAudio.play().catch(error => console.warn("Could not play invite sound", error));
+}
+
+function closeIncomingDartInvite() {
+  stopIncomingInviteCountdown?.();
+  activeDartInvite = null;
+  els.dartInviteOverlay.classList.add("hidden");
+  els.dartInviteOverlay.setAttribute("aria-hidden", "true");
+}
+
 function listenForDartInvites() {
   const user = window.ONMSession?.getUser?.() || loggedInUser;
-
-  console.log("[INVITE DEBUG] listenForDartInvites called");
-  console.log("[INVITE DEBUG] user:", user);
-
-  if (!user || !window.ONMLiveDarts) {
-    console.error("[INVITE DEBUG] listener blocked", {
-      hasUser: !!user,
-      hasONMLiveDarts: !!window.ONMLiveDarts
-    });
-    return;
-  }
-
+  if (!user || !window.ONMLiveDarts) return;
   const myKeys = getMyInviteKeys();
+  if (!myKeys.length) return;
+  const { db, ref, onValue, update, inviteTimeLeft } = window.ONMLiveDarts;
 
-  console.log("[INVITE DEBUG] receiver keys:", myKeys);
-
-  if (!myKeys.length) {
-    console.error("[INVITE DEBUG] No receiver keys available");
-    return;
-  }
-
-  const { db, ref, onValue, update } = window.ONMLiveDarts;
-
-  onValue(ref(db, "dartInvites"), async snapshot => {
-    console.log("[INVITE DEBUG] all invites snapshot exists:", snapshot.exists());
-    console.log("[INVITE DEBUG] all invites value:", snapshot.val());
-
-    if (!snapshot.exists()) return;
+  onValue(ref(db, "dartInvites"), snapshot => {
+    if (activeDartInvite && snapshot.child(activeDartInvite.inviteId).val()?.status !== "pending") {
+      closeIncomingDartInvite();
+    }
+    if (activeDartInvite || els.acceptDartInviteBtn.disabled || onlineMatchId) return;
 
     snapshot.forEach(child => {
       const invite = child.val();
-      const inviteId = child.key;
+      const receiverKeys = [
+        invite.toPlayerKey, invite.toUserId, invite.toLinkedPlayerKey,
+        invite.toPlayer?.playerKey, invite.toPlayer?.linkedPlayerKey, invite.toPlayer?.userId
+      ].filter(Boolean).map(String);
+      if (invite.status !== "pending" || !inviteTimeLeft(invite) || !receiverKeys.some(key => myKeys.includes(key))) return false;
 
-      const inviteReceiverKeys = [
-        invite.toPlayerKey,
-        invite.toUserId,
-        invite.toLinkedPlayerKey,
-        invite.toPlayer?.playerKey,
-        invite.toPlayer?.linkedPlayerKey,
-        invite.toPlayer?.userId
-      ]
-        .filter(Boolean)
-        .map(String);
-
-      const isForMe = inviteReceiverKeys.some(key => myKeys.includes(key));
-
-      console.log("[INVITE DEBUG] checking invite", {
-        inviteId,
-        status: invite.status,
-        inviteReceiverKeys,
-        myKeys,
-        isForMe
-      });
-
-      if (!isForMe) return;
-      if (invite.status !== "pending") return;
-      if (activeDartInvite?.inviteId === invite.inviteId) return;
-
-      activeDartInvite = {
-        ...invite,
-        inviteId: invite.inviteId || inviteId
-      };
-
-      update(ref(db, `dartInvites/${inviteId}`), {
-        deliveredAt: Date.now(),
-        deliveredToKey: myKeys[0],
-        deliveredToName: getLoggedInFullName(user)
-      }).catch(err => {
-        console.warn("[INVITE DEBUG] could not mark invite delivered", err);
-      });
-
-      const inviteText =
-        invite.inviteText ||
-        getMatchInviteText(
-          invite.fromName,
-          invite.gameType || invite.settings?.gameType || "bestOf",
-          invite.legsCount || invite.settings?.legsCount || 3
-        );
-
-      els.dartInviteText.textContent = inviteText;
+      activeDartInvite = { ...invite, inviteId: child.key };
+      els.dartInviteText.textContent = invite.inviteText || getMatchInviteText(
+        invite.fromName, invite.gameType || invite.settings?.gameType || "bestOf",
+        invite.legsCount || invite.settings?.legsCount || 3
+      );
       els.dartInviteOverlay.classList.remove("hidden");
       els.dartInviteOverlay.setAttribute("aria-hidden", "false");
-
-      playInstantDartSfx?.("notification.mp3");
-
-      console.log("[INVITE DEBUG] invite overlay shown", activeDartInvite);
+      stopIncomingInviteCountdown = startInviteCountdown(invite, document.getElementById("incomingDartInviteCountdown"), () => {
+        closeIncomingDartInvite();
+        void expireDartInvite(child.key);
+      });
+      playInviteSound();
+      update(ref(db, `dartInvites/${child.key}`), {
+        deliveredAt: Date.now(), deliveredToKey: myKeys[0], deliveredToName: getLoggedInFullName(user)
+      }).catch(error => console.warn("Could not mark challenge delivered", error));
+      return true;
     });
-  }, error => {
-    console.error("[INVITE DEBUG] invite listener Firebase error:", error);
-  });
+  }, error => console.error("Could not listen for darts challenges", error));
 }
 
 async function acceptDartInvite(invite) {
@@ -6449,38 +6403,33 @@ async function acceptDartInvite(invite) {
   console.log("Invite accepted, match created:", matchId);
 }
 
-async function declineDartInvite(invite) {
-  const { db, ref, update } = window.ONMLiveDarts;
-
-  await update(ref(db, `dartInvites/${invite.inviteId}`), {
-    status: "declined",
-    declinedAt: Date.now()
-  });
-
-  console.log("Invite declined:", invite.inviteId);
-}
-
 els.acceptDartInviteBtn?.addEventListener("click", async () => {
   unlockDartAudio();
-  if (!activeDartInvite) return;
-
-  await acceptDartInvite(activeDartInvite);
-
-  els.dartInviteOverlay.classList.add("hidden");
-  els.dartInviteOverlay.setAttribute("aria-hidden", "true");
-
-  activeDartInvite = null;
+  const invite = activeDartInvite;
+  if (!invite || !window.ONMLiveDarts.inviteTimeLeft(invite)) return;
+  els.acceptDartInviteBtn.disabled = true;
+  els.declineDartInviteBtn.disabled = true;
+  try {
+    await acceptDartInvite(invite);
+    if (activeDartInvite?.inviteId === invite.inviteId) closeIncomingDartInvite();
+  } catch (error) {
+    if (activeDartInvite?.inviteId === invite.inviteId) closeIncomingDartInvite();
+    showOnlineNotice(error.message || "Could not accept this challenge.", "Challenge unavailable");
+  } finally {
+    els.acceptDartInviteBtn.disabled = false;
+    els.declineDartInviteBtn.disabled = false;
+  }
 });
 
 els.declineDartInviteBtn?.addEventListener("click", async () => {
-  if (!activeDartInvite) return;
-
-  await declineDartInvite(activeDartInvite);
-
-  els.dartInviteOverlay.classList.add("hidden");
-  els.dartInviteOverlay.setAttribute("aria-hidden", "true");
-
-  activeDartInvite = null;
+  const invite = activeDartInvite;
+  if (!invite || els.acceptDartInviteBtn.disabled) return;
+  try {
+    await window.ONMLiveDarts.transitionPendingInvite(invite.inviteId, "declined", { declinedAt: Date.now() });
+    if (activeDartInvite?.inviteId === invite.inviteId) closeIncomingDartInvite();
+  } catch (error) {
+    showOnlineNotice("Could not decline this challenge. Please try again.", "Challenge");
+  }
 });
 
 async function startOnlineMatchDecider() {

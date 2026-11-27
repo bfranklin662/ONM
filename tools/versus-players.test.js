@@ -182,3 +182,34 @@ test("Versus photos use the linked club profile key and preserve unlinked accoun
   "https://example.com/current.jpg","https://example.com/brown.jpg","https://example.com/guest.jpg"
  ]);
 });
+
+test("both challenge screens use the server deadline and expired invites cannot be accepted", async () => {
+ const live = fs.readFileSync(require.resolve("../scripts/firebase-live.js"), "utf8");
+ const part = live.slice(live.indexOf("const INVITE_DURATION_MS"), live.indexOf("async function createOnlineInvite"));
+ let now = 100_000;
+ let invite = {status:"pending",createdAt:100_000,durationMs:30_000};
+ const ctx = {
+  db:{}, ref:(_,path)=>path, get:async()=>({}), Date:{now:()=>now},
+  onValue:(_ref,callback)=>callback({val:()=>1000}),
+  runTransaction:async(_ref,change)=>{
+   const next = change(invite);
+   if (next) invite = next;
+   return {committed:Boolean(next)};
+  }
+ };
+ vm.runInNewContext(part,ctx);
+ assert.equal(ctx.inviteTimeLeft(invite),29_000);
+ assert.equal((await ctx.transitionPendingInvite("game","expired")).committed,false);
+ now = 129_000;
+ assert.equal(ctx.inviteTimeLeft(invite),0);
+ assert.equal((await ctx.transitionPendingInvite("game","accepting")).committed,false);
+ assert.equal((await ctx.transitionPendingInvite("game","expired")).committed,true);
+ assert.equal(invite.status,"expired");
+
+ invite = {status:"pending",createdAt:130_000,durationMs:30_000};
+ now = 130_000;
+ assert.equal((await ctx.transitionPendingInvite("game","accepting",{matchId:"match"})).committed,true);
+ now = 160_000;
+ assert.equal((await ctx.transitionPendingInvite("game","expired")).committed,false);
+ assert.equal(invite.matchId,"match");
+});
