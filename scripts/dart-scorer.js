@@ -395,20 +395,28 @@ function resumeOnlineMatchState(match, myKey, now) {
   return resumed;
 }
 
-function showOpponentMissingOverlay(message) {
+function showOpponentMissingOverlay(message, { idle = false } = {}) {
   let overlay = document.getElementById("onlineReconnectOverlay");
   if (!overlay) {
     document.body.insertAdjacentHTML("beforeend", `
       <div id="onlineReconnectOverlay" class="modalOverlay">
         <div class="modalCard">
-          <div class="modalHeader"><div class="modalTitle">Online match paused</div></div>
-          <div class="modalBody"><p id="onlineReconnectText" role="status"></p></div>
+          <div class="modalHeader"><div id="onlineReconnectTitle" class="modalTitle">Online match paused</div></div>
+          <div class="modalBody">
+            <p id="onlineReconnectText" role="status"></p>
+            <button id="onlineIdleRejoinBtn" type="button" class="btn btnPrimary" hidden>Rejoin and throw</button>
+          </div>
         </div>
       </div>
     `);
     overlay = document.getElementById("onlineReconnectOverlay");
+    document.getElementById("onlineIdleRejoinBtn")?.addEventListener("click", rejoinIdleOnlineTurn);
   }
   overlay?.classList.remove("hidden");
+  const title = document.getElementById("onlineReconnectTitle");
+  if (title) title.textContent = idle ? "You’re idle" : "Online match paused";
+  const button = document.getElementById("onlineIdleRejoinBtn");
+  if (button) button.hidden = !idle;
   const text = document.getElementById("onlineReconnectText");
   if (text && text.textContent !== message) text.textContent = message;
 }
@@ -417,28 +425,55 @@ function hideOpponentMissingOverlay() {
   document.getElementById("onlineReconnectOverlay")?.classList.add("hidden");
 }
 
+async function rejoinIdleOnlineTurn(event) {
+  prepareVersusCalloutAudio();
+  const button = event.currentTarget;
+  const matchId = onlineMatchId;
+  const myKey = getCurrentPlayerKey();
+  if (!matchId || !onlineMatchConnected) return;
+  const { db, ref, runTransaction } = window.ONMLiveDarts;
+  button.disabled = true;
+  try {
+    const matchRef = ref(db, `onlineMatches/${matchId}`);
+    const result = await runTransaction(matchRef, live => {
+      if (live?.reconnect?.reason !== "throw-timeout" || live.reconnect.playerKey !== myKey) return;
+      return resumeOnlineMatchState(live, myKey, onlineMatchNow());
+    }, { applyLocally: false });
+    if (result.committed && result.snapshot.val()?.status === "complete") {
+      await saveCompletedOnlineMatch(matchRef);
+    }
+  } catch (err) {
+    console.warn("Could not resume the idle turn:", err);
+    showOnlineNotice("Could not rejoin the match. Please try again.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
 function renderOnlineMatchClock(match, myKey, now = onlineMatchNow()) {
-  const countdown = document.getElementById("onlineThrowCountdown");
-  const playing = match?.status === "playing";
-  if (playing) syncVersusScoreControls();
-  if (playing && match.reconnect && match.reconnect.playerKey !== myKey) {
+  if (match?.status !== "playing") return;
+  syncVersusScoreControls();
+  const idle = match.reconnect?.playerKey === myKey && match.reconnect.reason === "throw-timeout";
+  if (!onlineMatchConnected) {
+    showOpponentMissingOverlay("Connection lost. Rejoin when your connection returns.");
+  } else if (idle) {
+    const seconds = onlineSecondsLeft(match.reconnect.deadline, now);
+    showOpponentMissingOverlay(`${seconds}s to rejoin and take your throw.`, { idle: true });
+  } else if (match.reconnect && match.reconnect.playerKey !== myKey) {
     const seconds = onlineSecondsLeft(match.reconnect.deadline, now);
     showOpponentMissingOverlay(`Opponent disconnected. ${seconds}s to rejoin.`);
-  } else if (playing && !onlineMatchConnected) {
-    showOpponentMissingOverlay("Connection lost. Rejoin when your connection returns.");
   } else {
     hideOpponentMissingOverlay();
   }
 
+  const countdown = document.getElementById("onlineThrowCountdown");
   if (!countdown) return;
-  const startedAt = playing ? onlineTurnStartedAt(match) : 0;
-  const ownTimeout = playing && match.reconnect?.playerKey === myKey && match.reconnect.reason === "throw-timeout";
-  const show = ownTimeout || Boolean(startedAt && !match.reconnect && now >= startedAt + ONLINE_THROW_WARNING_MS);
+  const startedAt = onlineTurnStartedAt(match);
+  const show = Boolean(startedAt && !match.reconnect && now >= startedAt + ONLINE_THROW_WARNING_MS);
   countdown.hidden = !show;
   if (!show) return;
-  const seconds = onlineSecondsLeft(ownTimeout ? match.reconnect.deadline : startedAt + ONLINE_THROW_LIMIT_MS, now);
-  const text = ownTimeout ? `Submit score to rejoin · ${seconds}s left`
-    : match.game.currentPlayerKey === myKey ? `Throw now · ${seconds}s left` : `Opponent has ${seconds}s to throw`;
+  const seconds = onlineSecondsLeft(startedAt + ONLINE_THROW_LIMIT_MS, now);
+  const text = match.game.currentPlayerKey === myKey ? `${seconds}s to throw` : `Opponent has ${seconds}s to throw`;
   if (countdown.textContent !== text) countdown.textContent = text;
 }
 
@@ -448,7 +483,7 @@ function isVersusScorer() {
 
 function canUseVersusKeypad() {
   const match = window.currentOnlineMatch;
-  return Boolean(onlineMatchId && onlineMatchConnected && match?.matchId === onlineMatchId &&
+  return Boolean(onlineMatchId && onlineMatchConnected && match?.matchId === onlineMatchId && !match.reconnect &&
     canSubmitOnlineVisit(match, getCurrentPlayerKey(), onlineMatchNow()));
 }
 
@@ -1060,6 +1095,20 @@ function unlockDartAudio() {
     });
 }
 
+function prepareVersusCalloutAudio() {
+  dartAudioSuppressedUntil = 0;
+  dartAudioPlayer ||= createDartAudioElement();
+  if (dartAudioPlaying || !dartAudioPlayer.paused) return;
+  dartAudioPlayer.src = "audio/darts/silence.mp3";
+  const silentSource = dartAudioPlayer.src;
+  dartAudioPlayer.play().then(() => {
+    if (dartAudioPlayer.src !== silentSource || dartAudioPlaying) return;
+    dartAudioPlayer.pause();
+    dartAudioPlayer.currentTime = 0;
+    dartAudioUnlocked = true;
+  }).catch(err => console.warn("Could not prepare the Versus announcer:", err));
+}
+
 function announceVisitAndRequire(visitScore, requiredScore) {
   announceDartVisit(visitScore);
   announceRequiredScore(requiredScore);
@@ -1616,6 +1665,7 @@ function buildMatchStatsData(match = window.currentOnlineMatch || {}) {
 
   return {
     dateTime: match.completedAt,
+    forfeitByKey: match.forfeitByKey,
     title: `${match.settings?.startScore || STARTING_SCORE} · ${getMatchFormatLabel(match.settings?.gameType || GAME_TYPE, Number(match.settings?.legsCount || els.legsCount.textContent))}`,
     players: [
       buildPlayerData(
@@ -1748,9 +1798,8 @@ function openMolVictoryScreen(matchData) {
     <span class="${p2.ratingMove.className}">${p2.ratingMove.text}</span>
   `;
 
-  els.molVictoryPlayerOneName.textContent = p1.name;
-
-  els.molVictoryPlayerTwoName.textContent = p2.name;
+  els.molVictoryPlayerOneName.querySelector(".resultPlayerName").textContent = p1.name;
+  els.molVictoryPlayerTwoName.querySelector(".resultPlayerName").textContent = p2.name;
 
   els.molVictoryPlayerOneFlag.textContent = countryToFlag(p1.nationality);
   els.molVictoryPlayerTwoFlag.textContent = countryToFlag(p2.nationality);
@@ -1773,13 +1822,18 @@ function openMolVictoryScreen(matchData) {
       : `${STARTING_SCORE} · ${getMatchFormatLabel(GAME_TYPE, Number(els.legsCount.textContent))}`);
   const date = document.getElementById("molVictoryDate");
   if (date) {
-    date.textContent = isVersus ? formatLeagueMatchDate(matchData.dateTime) : "";
+    date.textContent = isVersus ? formatLeagueMatchDate(matchData.dateTime, { compact: true }) : "";
+    if (date.textContent) date.dateTime = new Date(matchData.dateTime).toISOString();
+    else date.removeAttribute("datetime");
     date.hidden = !date.textContent;
   }
 
   const draw = isTournamentResult && state.winnerIndex === -1;
-  els.molVictoryPlayerOneWon.textContent = draw ? "DRAW" : p1.isWinner ? "WINNER" : "LOSER";
-  els.molVictoryPlayerTwoWon.textContent = draw ? "DRAW" : p2.isWinner ? "WINNER" : "LOSER";
+  const playerLabel = player => draw ? "DRAW"
+    : matchData.forfeitByKey ? (player.isWinner ? "Win by forfeit" : "Forfeited")
+    : player.isWinner ? "WINNER" : "LOSER";
+  els.molVictoryPlayerOneWon.textContent = playerLabel(p1);
+  els.molVictoryPlayerTwoWon.textContent = playerLabel(p2);
   els.molVictoryPlayerOneWon.classList.remove("hidden");
   els.molVictoryPlayerTwoWon.classList.remove("hidden");
   els.molVictoryPlayerOneWon.classList.toggle("loser", !draw && !p1.isWinner);
@@ -2681,7 +2735,6 @@ function leaveMolVictoryScreenLocally() {
   els.competitiveReadyOverlay?.classList.add("hidden");
   els.setupCard?.classList.add("hidden");
 
-  fullyStopDartAudio();
   syncMainViews("leaderboard");
   loadLeaderboard();
 
@@ -2697,9 +2750,8 @@ els.molVictoryCloseBtn?.addEventListener("click", () => {
     location.href = tournamentMatch.back;
     return;
   }
-  fullyStopDartAudio();
-
   if (els.molVictoryOverlay?.dataset.resultMode === "casual") {
+    fullyStopDartAudio();
     els.molVictoryOverlay?.classList.add("hidden");
     newGame();
     syncMainViews("setup");
@@ -4556,9 +4608,14 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       live.presence = { ...live.presence, [myKey]: { online: true, lastSeen: now } };
     }
     live.game.turnStartedAt = now;
+    delete live.game.lastCallout.checkoutPhoto;
     if (legWon) {
-      if (includePhoto) live.game.checkoutPhoto = photo;
-      else delete live.game.checkoutPhoto;
+      if (includePhoto) {
+        live.game.checkoutPhoto = photo;
+        live.game.lastCallout.checkoutPhoto = true;
+      } else {
+        delete live.game.checkoutPhoto;
+      }
     }
     return live;
   }, { applyLocally: false });
@@ -5431,7 +5488,7 @@ els.confirmCheckoutPromptBtn.addEventListener("click", async () => {
 });
 
 els.markReadyBtn?.addEventListener("click", async () => {
-  unlockDartAudio();
+  prepareVersusCalloutAudio();
 
   if (window.innerWidth < 500) {
     enterScorerFullscreen();
@@ -6399,34 +6456,74 @@ function getMyInviteKeys() {
 
 let stopIncomingInviteCountdown;
 let inviteNotificationAudio;
+let inviteSoundPrimed = false;
+let inviteSoundPending = false;
+let inviteSoundGeneration = 0;
 
-function prepareInviteSound() {
-  inviteNotificationAudio ||= createDartAudioElement();
-  inviteNotificationAudio.src = "audio/darts/notification.mp3";
-  inviteNotificationAudio.volume = 0.01;
-  inviteNotificationAudio.play().then(() => {
-    inviteNotificationAudio.pause();
-    inviteNotificationAudio.currentTime = 0;
-    inviteNotificationAudio.volume = 1;
-  }).catch(() => { inviteNotificationAudio.volume = 1; });
-}
-
-if (PAGE_MODE === "league") {
-  document.addEventListener("click", prepareInviteSound, { once: true, capture: true });
-}
-
-function playInviteSound() {
+function getInviteSound() {
   if (!inviteNotificationAudio) {
     inviteNotificationAudio = createDartAudioElement();
     inviteNotificationAudio.src = "audio/darts/notification.mp3";
   }
-  inviteNotificationAudio.volume = 1;
-  inviteNotificationAudio.currentTime = 0;
-  inviteNotificationAudio.play().catch(error => console.warn("Could not play invite sound", error));
+  return inviteNotificationAudio;
 }
+
+function prepareInviteSound() {
+  if (inviteSoundPending) {
+    void playInviteSound();
+    return;
+  }
+  if (inviteSoundPrimed || activeDartInvite) return;
+  const audio = getInviteSound();
+  const generation = ++inviteSoundGeneration;
+  audio.volume = 0.01;
+  audio.play().then(() => {
+    if (generation !== inviteSoundGeneration) return;
+    audio.pause();
+    audio.currentTime = 0;
+    audio.volume = 1;
+    inviteSoundPrimed = true;
+  }).catch(() => {
+    if (generation === inviteSoundGeneration) audio.volume = 1;
+  });
+}
+
+if (PAGE_MODE === "league") {
+  document.addEventListener("click", prepareInviteSound, { capture: true });
+  document.addEventListener("keydown", prepareInviteSound, { capture: true });
+}
+
+async function playInviteSound() {
+  if (!activeDartInvite) return;
+  const generation = ++inviteSoundGeneration;
+  const soundButton = document.getElementById("dartInviteSoundBtn");
+  inviteSoundPending = false;
+  const audio = getInviteSound();
+  audio.volume = 1;
+  audio.currentTime = 0;
+  try {
+    await audio.play();
+    if (generation !== inviteSoundGeneration) return;
+    inviteSoundPrimed = true;
+    if (soundButton) soundButton.hidden = true;
+  } catch (err) {
+    if (generation !== inviteSoundGeneration) return;
+    inviteSoundPending = Boolean(activeDartInvite);
+    if (soundButton) soundButton.hidden = !inviteSoundPending;
+    console.warn("Could not play invite sound:", err);
+  }
+}
+
+document.getElementById("dartInviteSoundBtn")?.addEventListener("click", event => {
+  if (event.detail === 0 && inviteSoundPending) void playInviteSound();
+});
 
 function closeIncomingDartInvite() {
   stopIncomingInviteCountdown?.();
+  inviteSoundPending = false;
+  ++inviteSoundGeneration;
+  const soundButton = document.getElementById("dartInviteSoundBtn");
+  if (soundButton) soundButton.hidden = true;
   activeDartInvite = null;
   els.dartInviteOverlay.classList.add("hidden");
   els.dartInviteOverlay.setAttribute("aria-hidden", "true");
@@ -6469,6 +6566,7 @@ function listenForDartInvites() {
       els.dartInviteText.textContent = `${details.sender} invited you to a match.`;
       document.getElementById("dartInviteFormat").textContent = details.format;
       document.getElementById("dartInviteStart").textContent = details.start;
+      document.getElementById("dartInviteStartIcon").textContent = details.start === "Coin toss" ? "🪙" : "🎯";
       els.dartInviteOverlay.classList.remove("hidden");
       els.dartInviteOverlay.setAttribute("aria-hidden", "false");
       stopIncomingInviteCountdown = startInviteCountdown(invite, document.getElementById("incomingDartInviteCountdown"), () => {
@@ -6531,7 +6629,7 @@ async function acceptDartInvite(invite) {
 }
 
 els.acceptDartInviteBtn?.addEventListener("click", async () => {
-  unlockDartAudio();
+  prepareVersusCalloutAudio();
   const invite = activeDartInvite;
   if (!invite || !window.ONMLiveDarts.inviteTimeLeft(invite)) return;
   els.acceptDartInviteBtn.disabled = true;
@@ -6727,7 +6825,6 @@ function showCompletedVersusResult() {
   if (molVictoryShownForMatchId === resultId) return;
   molVictoryShownForMatchId = resultId;
   openMolVictoryScreen(buildMatchStatsData(match));
-  if (match.forfeitByKey) showOnlineNotice("Your opponent forfeited. You won the match.");
 }
 
 function listenToOnlineMatch(matchId) {
@@ -7086,6 +7183,8 @@ async function restoreOnlineSession() {
   if (match.status === "playing") {
     void setPresenceStatus?.(myKey, "playing")?.catch(err => console.warn("Could not update presence:", err));
   }
+  lastOnlineCalloutId = match.game?.lastCallout?.id || null;
+  lastOnlineCalloutAt = match.game?.lastCallout?.createdAt || null;
   listenToOnlineMatch(onlineMatchId);
   document.body.classList.remove("scorer-fullscreen");
   window.scrollTo(0, 0);
@@ -7684,17 +7783,13 @@ function playOnlineCallout(lastCallout, isMyTurn) {
     return;
   }
 
-  if (isDartAudioSuppressed()) return;
-
-  if (lastCallout.type === "gameShot") {
-    announceLegWon(false, Boolean(lastCallout.bullOut));
-  } else if (lastCallout.type === "matchShot") {
-    announceLegWon(true, Boolean(lastCallout.bullOut));
-
-    if (lastCallout.winnerKey) {
-      announceMatchResultForMe(lastCallout.winnerKey);
-    }
-  } else {
+  if (lastCallout.type === "gameShot" || lastCallout.type === "matchShot") {
+    dartAudioSuppressedUntil = 0;
+    if (lastCallout.checkoutPhoto) playDartCallout("checkout-camera.wav");
+    playDartCallout(lastCallout.type === "matchShot" ? "match-shot.mp3" : "game-shot.mp3");
+    if (lastCallout.bullOut) playDartCallout("bull-out.mp3");
+    if (lastCallout.type === "matchShot" && lastCallout.winnerKey) announceMatchResultForMe(lastCallout.winnerKey);
+  } else if (!isDartAudioSuppressed()) {
     announceVisitAndRequire(
       lastCallout.visitScore,
       isMyTurn ? lastCallout.requiredScore : null
@@ -7976,24 +8071,8 @@ function showLeaderboardTab() {
   loadLeaderboard();
 }
 
-els.molVictoryCloseBtn?.addEventListener("click", () => {
-  if(BOT_MODE || tournamentMatch)return;
-  if (els.molVictoryOverlay?.dataset.resultMode === "casual") return;
-
-  els.molVictoryOverlay?.classList.add("hidden");
-
-  MATCH_MODE = "online";
-  STATS_MODE = "competitive";
-
-  fullyStopDartAudio();
-  syncMainViews("leaderboard");
-
-  loadLeaderboard();
-
-  newGame();
-});
-
 document.getElementById("leagueResumeMatchBtn")?.addEventListener("click", async () => {
+  prepareVersusCalloutAudio();
   const button = document.getElementById("leagueResumeMatchBtn");
 
   if (button) {
@@ -8358,7 +8437,7 @@ function escapeHtml(value = "") {
     .replaceAll("'", "&#039;");
 }
 
-function formatLeagueMatchDate(value) {
+function formatLeagueMatchDate(value, { compact = false } = {}) {
   if (!value) return "";
 
   const date = new Date(value);
@@ -8367,7 +8446,7 @@ function formatLeagueMatchDate(value) {
   return date.toLocaleString("en-GB", {
     day: "2-digit",
     month: "short",
-    year: "numeric",
+    ...(!compact && { year: "numeric" }),
     hour: "2-digit",
     minute: "2-digit"
   });
@@ -8456,7 +8535,7 @@ function buildVersusHistoryResult(match) {
         }, get("Photo"), get("Nationality"));
     };
     return {
-      mode: "history", dateTime: match.dateTime,
+      mode: "history", dateTime: match.dateTime, forfeitByKey: match.forfeitByKey,
       title: `${match.startScore || 501} · ${getMatchFormatLabel(match.gameType || "bestOf", Number(match.legsCount || 3))}`,
       players: [fromSaved("playerOne"), fromSaved("playerTwo")]
     };
@@ -8505,7 +8584,7 @@ function openLeagueHistory() {
         return `<button type="button" class="leagueHistoryItem" data-history-index="${index}">
           <div>
             <div class="leagueMatchKicker">vs ${escapeHtml(opponent?.name || "Opponent")} (${escapeHtml(result.title)})</div>
-            <strong class="${me?.isWinner ? "win" : "loss"}">${me?.legs ?? 0}-${opponent?.legs ?? 0} ${me?.isWinner ? "Win" : "Loss"}</strong>
+            <strong class="${me?.isWinner ? "win" : "loss"}">${me?.legs ?? 0}-${opponent?.legs ?? 0} ${result.forfeitByKey ? (me?.isWinner ? "Win by forfeit" : "Loss by forfeit") : me?.isWinner ? "Win" : "Loss"}</strong>
           </div>
           <small>${escapeHtml(formatLeagueMatchDate(result.dateTime))}</small>
         </button>`;

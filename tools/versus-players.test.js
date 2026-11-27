@@ -302,6 +302,7 @@ test("a 125 match checkout saves when the opponent has no leg stats, with or wit
     if (checkoutPhoto) {
       assert.equal(h.calls.photos[0].status, "complete");
       assert.equal(h.calls.photos[0].photo.imageData, checkoutPhoto.imageData);
+      assert.equal(h.match().game.lastCallout.checkoutPhoto, true);
     }
   }
 });
@@ -364,7 +365,7 @@ test("the visible countdown starts thirty seconds after the throw begins", () =>
   assert.equal(countdown.hidden, true);
   h.ctx.renderOnlineMatchClock(h.match(), "nick", 31000);
   assert.equal(countdown.hidden, false);
-  assert.equal(countdown.textContent, "Throw now · 30s left");
+  assert.equal(countdown.textContent, "30s to throw");
   h.ctx.renderOnlineMatchClock(h.match(), "test", 32000);
   assert.equal(countdown.textContent, "Opponent has 29s to throw");
 });
@@ -420,10 +421,11 @@ test("saved and legacy result cards supply dates and valid checkout counts", () 
   vm.runInNewContext(script.slice(start, script.indexOf("function openLastLeagueStats", start)), ctx);
   const dateTime = "2026-11-27T16:30:00.000Z";
   const saved = ctx.buildVersusHistoryResult({
-    matchMode: "online", dateTime, playerOneId: "nick", playerOneWon: true,
+    matchMode: "online", dateTime, playerOneId: "nick", playerOneWon: true, forfeitByKey: "test",
     playerOneCheckoutsHit: 1, playerOneCheckoutAttempts: 2
   });
   assert.equal(saved.dateTime, dateTime);
+  assert.equal(saved.forfeitByKey, "test");
   assert.equal(saved.players[0].stats.checkouts, "1/2");
   assert.equal(saved.players[1].stats.checkouts, "0/0");
   const legacy = ctx.buildVersusHistoryResult({ score: "0-1", statsRows: [["Checkouts", "undefined/undefined", "1/2"]] });
@@ -575,4 +577,38 @@ test("both browsers leave scoring when the same shared forfeit arrives", () => {
   assert.deepEqual(winner.seen, ["locked", "loaded result scores", "winner result"]);
   assert.equal(winner.ctx.els.submit.disabled, true);
   assert.deepEqual(loser.seen, ["locked", "lobby", "The rejoin window expired. You forfeited the match."]);
+});
+
+test("a checkout photo queues the shutter, match shot and the result on both clients", () => {
+  const { ctx, calls } = onlineScorerHarness();
+  ctx.isDartAudioSuppressed = () => true;
+  ctx.announceMatchResultForMe = winner => calls.audio.push(`result:${winner}`);
+  ctx.playOnlineCallout({ type: "matchShot", checkoutPhoto: true, winnerKey: "nick" }, false);
+  assert.deepEqual(calls.audio, ["checkout-camera.wav", "match-shot.mp3", "result:nick"]);
+  calls.audio.length = 0;
+  ctx.playOnlineCallout({ type: "gameShot", checkoutPhoto: true }, true);
+  assert.deepEqual(calls.audio, ["checkout-camera.wav", "game-shot.mp3"]);
+});
+
+test("an invite retries its alert after a browser blocks autoplay", async () => {
+  const start = script.indexOf("let stopIncomingInviteCountdown;");
+  const end = script.indexOf("function closeIncomingDartInvite", start);
+  let attempts = 0;
+  const button = { hidden: true, addEventListener() {} };
+  const audio = { play: async () => {
+    if (++attempts === 1) throw new Error("Autoplay blocked");
+  } };
+  const ctx = {
+    PAGE_MODE: "league", activeDartInvite: {}, createDartAudioElement: () => audio,
+    document: { addEventListener() {}, getElementById: () => button },
+    console: { warn() {} }
+  };
+  vm.runInNewContext(script.slice(start, end), ctx);
+  await ctx.playInviteSound();
+  assert.equal(button.hidden, false);
+  ctx.prepareInviteSound();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(attempts, 2);
+  assert.equal(button.hidden, true);
+  assert.equal(audio.volume, 1);
 });

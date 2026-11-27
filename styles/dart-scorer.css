@@ -4748,11 +4748,56 @@ body.casualMode #matchModeSwitch {
   padding-block: 8px;
 }
 
+.versusResult .resultMatchHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px 10px;
+  margin-top: 4px;
+}
+
+.versusResult .resultMatchHeading h2 {
+  margin: 0;
+}
+
 .versusResultDate {
-  margin: 4px 0 12px;
   color: #c3d8ca;
-  font-size: .85rem;
-  text-align: center;
+  font-size: .75rem;
+  white-space: nowrap;
+}
+
+.molVictoryPlayerCard strong .readyFlag {
+  order: initial;
+  min-height: 0;
+  font-size: .85em;
+  flex-shrink: 0;
+}
+
+.molVictoryPlayerCard strong {
+  gap: 4px;
+}
+
+@media (max-width: 600px), (max-height: 740px) {
+  #molVictoryOverlay.versusResult .molVictoryCard {
+    width: min(100%, 620px);
+    max-height: calc(100dvh - 20px);
+    padding: 10px 12px;
+    border-radius: 16px;
+  }
+
+  .versusResult .molVictoryPlayers { margin: 8px 0 4px; gap: 6px; }
+  .versusResult .molVictoryPlayerCard { min-height: 0; padding: 5px 3px; gap: 3px; }
+  .versusResult .molVictoryPlayerCard .readyPlayerPhoto { width: 36px; height: 36px; }
+  .versusResult .molVictoryPlayerCard strong { min-height: 0; font-size: .8rem; overflow-wrap: anywhere; }
+  .versusResult .molVictoryVs span { min-width: 0; padding: 4px 8px; }
+  .versusResult .wonPill { padding: 2px 6px; font-size: .64rem; line-height: 1.15; }
+  .versusResult .molStatsCarousel { margin-top: 4px; }
+  .versusResult .statRow { padding-block: 3px; gap: 3px; }
+  .versusResult .statValue { font-size: .85rem; line-height: 1.05; }
+  .versusResult .statLabel { font-size: .68rem; line-height: 1.05; padding: 3px 6px; }
+  .versusResult .readyActions { margin-top: 6px; }
+  .versusResult #molVictoryCloseBtn { min-height: 38px; padding-block: 5px; }
 }
 
 #checkoutPhotoOverlay {
@@ -4760,7 +4805,7 @@ body.casualMode #matchModeSwitch {
 }
 
 
-/* Keep the clock centred in the turn row without resizing the controls. */
+/* Replace the active player's turn label without moving the controls. */
 .leagueMode .scoreTurnRow {
   position: relative;
   display: flow-root;
@@ -4768,16 +4813,21 @@ body.casualMode #matchModeSwitch {
 
 .onlineThrowCountdown {
   position: absolute;
-  inset-inline: 0;
+  left: 0;
   top: 50%;
-  transform: translateY(-50%);
+  width: 50%;
+  transform: translateY(calc(-50% + 3px));
   padding: 0 4px;
   text-align: center;
   color: #ffe28b;
-  font-size: .8rem;
-  font-weight: 750;
+  font-size: 16px;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
   pointer-events: none;
+}
+
+.turnMessage.playerTwoTurn ~ .onlineThrowCountdown {
+  left: 50%;
 }
 
 .scoreTurnRow:has(.onlineThrowCountdown:not([hidden])) .turnMessage {
@@ -4797,4 +4847,13 @@ body.casualMode #matchModeSwitch {
 #onlineReconnectOverlay .modalCard {
   background: #102a1f;
   border-color: #416d53;
+}
+
+
+.leagueMode #dartVoiceToast {
+  bottom: max(10px, env(safe-area-inset-bottom));
+}
+
+#onlineIdleRejoinBtn[hidden] {
+  display: none;
 }

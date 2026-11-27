@@ -186,3 +186,11 @@ body:has(#leaderboardView:not(.hidden)) {
 
 .versusInviteDetails dt { color: #b7cfbf; font-size: .8rem; }
 .versusInviteDetails dd { margin: 3px 0 0; font-weight: 800; }
+
+
+#dartInviteText { margin: 0 0 12px; font-weight: 850; font-size: 1.05rem; }
+.versusInviteDetails > div { padding: 10px 12px; }
+.versusInviteDetails dt { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+.versusInviteDetails dd { margin-top: 6px; font-size: 1rem; color: #f2fbf5; }
+.versusInviteFooter { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+#dartInviteSoundBtn[hidden] { display: none; }
