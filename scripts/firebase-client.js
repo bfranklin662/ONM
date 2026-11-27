@@ -1037,6 +1037,7 @@
     currentFirebaseUser,
     availability,
     tournamentScoring,
+    getVersusAccountDirectory: () => callRegionalFunction("getVersusAccountDirectory", {}),
     resultPhotos: { list: listResultPhotos, upload: uploadSharedResultPhoto, remove: removeSharedResultPhoto },
     importSiteData,
     playerKey,

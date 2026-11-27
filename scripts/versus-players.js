@@ -12,12 +12,15 @@
     return presence?.online === true || presence?.status === "online" ? "online" : "offline";
   }
 
-  function inviteProfiles(linked = [], presence = {}) {
-    const profiles = new Map(linked.map(player => [keyOf(player), player]));
-    return Object.entries(presence || {}).flatMap(([key, profile]) => {
-      if (profile?.versusAccount !== true || !profile.playerName) return [];
-      return [{ ...profile, ...profiles.get(key), playerKey: key }];
-    });
+  function inviteProfiles(linked = [], presence = {}, accounts = null) {
+    if (accounts) return accounts;
+    const profiles = new Map(linked.filter(player => keyOf(player)).map(player => [keyOf(player), player]));
+    for (const [key, profile] of Object.entries(presence || {})) {
+      if (profile?.versusAccount === true && profile.playerName) {
+        profiles.set(key, { ...profile, ...profiles.get(key), playerKey: key });
+      }
+    }
+    return [...profiles.values()];
   }
 
   function matchTime(match) {

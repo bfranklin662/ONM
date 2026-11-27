@@ -43,6 +43,7 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  assert.equal(node("versusYourHighestOut").textContent,134);
  const board = node("versusLeaderboardRows").innerHTML;
  assert.match(board, /Nick[\s\S]*18 darts/);
+ assert.doesNotMatch(board, /Zoe/);
  assert.match(board, /<details class="versusBoardCard"/);
  assert.match(board, /Highest out/);
  assert.match(board, /2 wins in a row/);
@@ -79,12 +80,12 @@ test("new accounts can appear with no matches, and their presence is keyed case-
  const roster = E.inviteProfiles([{playerKey:"linked",fullName:"Club Player"}], presence);
  const rows = E.players(roster, [{matchMode:"online",playerOneId:"SeenUid",playerOneWon:true,playerOneTotalScored:501,playerOneDartsThrown:30}], presence);
  assert.deepEqual(rows.map(row => [row.playerKey,row.status]), [
-  ["TestUid","online"],["BusyUid","playing"],["SeenUid","offline"]
+  ["TestUid","online"],["BusyUid","playing"],["linked","offline"],["SeenUid","offline"]
  ]);
  assert.equal(rows[0].average,null);
  assert.equal(rows[0].wins,0);
- assert.equal(rows[2].wins,1);
- assert.equal(rows[2].average,"50.10");
+ assert.equal(rows[3].wins,1);
+ assert.equal(rows[3].average,"50.10");
  assert.equal(E.players(roster, [], null)[0].status,"unknown");
 });
 
@@ -134,4 +135,12 @@ test("ready players use the inviter's decider and legacy matches default to a co
   assert.equal(updates[0].decider.type,deciderType || "coin");
   assert.equal("coinWinnerIndex" in updates[0].decider,deciderType !== "bull");
  }
+});
+
+test("an active account that has never opened Versus appears offline", () => {
+ const accounts = [{playerKey:"NewUid",playerName:"New Account"}];
+ const roster = E.inviteProfiles([], {}, accounts);
+ const [player] = E.players(roster);
+ assert.equal(player.status,"offline");
+ assert.equal(player.played,0);
 });

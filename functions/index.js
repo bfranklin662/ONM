@@ -112,6 +112,28 @@ function callable(handler) {
     }
   });
 }
+exports.getVersusAccountDirectory = onCall(options, async request => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Sign in to view Versus players.");
+  const viewer = await db.collection("users").doc(request.auth.uid).get();
+  if (viewer.get("status") !== "Active") {
+    throw new HttpsError("permission-denied", "An active account is required.");
+  }
+
+  const accounts = await db.collection("users").where("status", "==", "Active")
+    .select("firstName", "surname", "linkedPlayerName", "linkedPlayerKey", "photoUrl", "nationality").get();
+  return { players: accounts.docs.map(account => {
+    const profile = account.data();
+    return {
+      playerKey: profile.linkedPlayerKey || account.id,
+      playerName: (profile.linkedPlayerKey
+        ? [profile.firstName, profile.surname].filter(Boolean).join(" ") || profile.linkedPlayerName
+        : profile.firstName) || "Player",
+      photoUrl: profile.photoUrl || "",
+      nationality: profile.nationality || ""
+    };
+  }) };
+});
+
 exports.getPlayerAvailability = callable(uid => service.get(uid));
 exports.getTeamAvailability = callable(uid => service.getTeamSheet(uid));
 exports.syncAvailabilityRoster = callable((uid, data) => service.syncRoster(uid, data));

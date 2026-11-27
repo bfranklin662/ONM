@@ -1871,6 +1871,20 @@ async function getVersusPresence() {
   return snapshot.val() || {};
 }
 
+let versusDirectoryCache = null;
+let versusDirectoryExpires = 0;
+function getVersusAccountDirectory() {
+  if (versusDirectoryCache && Date.now() < versusDirectoryExpires) return versusDirectoryCache;
+  versusDirectoryExpires = Date.now() + 60_000;
+  versusDirectoryCache = window.ONMFirebase.getVersusAccountDirectory()
+    .then(result => result.players)
+    .catch(error => {
+      console.warn("Could not load all Versus accounts", error);
+      return null;
+    });
+  return versusDirectoryCache;
+}
+
 async function getVersusLinkedPlayers() {
   const result = await postDartMatch({ action: "getLinkedPlayers" });
   if (!result.success) throw new Error("Could not load linked players.");
@@ -1983,14 +1997,15 @@ async function openOpponentModal(playerKey = "") {
   syncMolLegsCount();
 
   try {
-    const [linked, presence] = await Promise.all([
+    const [linked, presence, accounts] = await Promise.all([
       getVersusLinkedPlayers().catch(() => []),
-      getVersusPresence()
+      getVersusPresence(),
+      getVersusAccountDirectory()
     ]);
     const currentUser = window.ONMSession?.getUser?.() || loggedInUser;
     const currentPlayerKey = getCurrentPlayerKey();
 
-    const allPlayers = window.ONMVersusPlayers.inviteProfiles(linked, presence);
+    const allPlayers = window.ONMVersusPlayers.inviteProfiles(linked, presence, accounts);
     const currentPlayerProfile =
       allPlayers.find(player => getPlayerKey(player) === currentPlayerKey) || {};
 
@@ -8003,7 +8018,7 @@ function renderLeaderboard(players = []) {
   const board = document.getElementById("versusLeaderboardRows");
   if (board) {
     const expanded = new Set([...board.querySelectorAll("details[open]")].map(row => row.dataset.playerKey));
-    const standings = [...players].sort((a, b) =>
+    const standings = players.filter(player => player.played > 0).sort((a, b) =>
       (Number(b.average) || 0) - (Number(a.average) || 0) ||
       (b.wins || 0) - (a.wins || 0) ||
       (a.playerName || "").localeCompare(b.playerName || ""));
@@ -8304,11 +8319,12 @@ async function loadLeaderboard() {
       return;
     }
     const { db: liveDb, ref, get } = window.ONMLiveDarts;
-    const [presence, linked, ratings, matches] = await Promise.allSettled([
+    const [presence, linked, ratings, matches, accounts] = await Promise.allSettled([
       getVersusPresence(),
       getVersusLinkedPlayers(),
       get(ref(liveDb, "ratings")),
-      window.ONMFirebase.ready.then(({ db, firestoreSdk: sdk }) => sdk.getDocs(sdk.collection(db, "dartMatches")))
+      window.ONMFirebase.ready.then(({ db, firestoreSdk: sdk }) => sdk.getDocs(sdk.collection(db, "dartMatches"))),
+      getVersusAccountDirectory()
     ]);
     if ([presence, linked, ratings, matches].every(result => result.status === "rejected")) {
       throw new Error("Could not load Versus data.");
@@ -8317,7 +8333,7 @@ async function loadLeaderboard() {
     const historical = Object.entries(ratings.value?.val() || {}).map(([key, profile]) => ({
       ...profile, playerKey: profile.playerKey || key
     }));
-    const roster = window.ONMVersusPlayers.inviteProfiles(linked.value, presenceByKey);
+    const roster = window.ONMVersusPlayers.inviteProfiles(linked.value, presenceByKey, accounts.value);
     const currentUser = window.ONMSession?.getUser?.() || loggedInUser;
     const myKey = getCurrentPlayerKey();
     const ownProfile = myKey ? [{
