@@ -22,7 +22,7 @@
 
   function players(profiles = [], matches = [], presence = {}) {
     const rows = new Map();
-    const newRow = playerKey => ({ playerKey, totalScored: 0, dartsThrown: 0, trackedGames: 0, played: 0, wins: 0, losses: 0 });
+    const newRow = playerKey => ({ playerKey, totalScored: 0, dartsThrown: 0, trackedGames: 0, played: 0, wins: 0, fastestLeg: null, oneEightys: 0, bullOuts: 0, tonPlusOuts: 0, tonPlusIncomplete: false });
     for (const profile of profiles) {
       const key = keyOf(profile);
       if (!key) continue;
@@ -51,7 +51,18 @@
         row.playerName ||= match[prefix + "Name"];
         row.played++;
         if (won) row.wins++;
-        if (lost) row.losses++;
+        const bestLeg = parseInt(match[prefix + "BestLeg"], 10);
+        if (bestLeg > 0) row.fastestLeg = Math.min(row.fastestLeg ?? bestLeg, bestLeg);
+        row.oneEightys += Number(match[prefix + "180s"]) || 0;
+        row.bullOuts += Number(match[prefix + "BullOuts"]) || 0;
+        const recordedTons = match[prefix + "TonPlusOuts"];
+        if (recordedTons != null && recordedTons !== "") {
+          row.tonPlusOuts += Number(recordedTons) || 0;
+          row.tonPlusIncomplete ||= match[prefix + "TonPlusIncomplete"] === true;
+        } else if (Number(match[prefix + "HighestOut"]) >= 100) {
+          row.tonPlusOuts++;
+          row.tonPlusIncomplete ||= Number(match[prefix + "Legs"]) !== 1;
+        }
         if (validVisitTotals) {
           row.totalScored += scored;
           row.dartsThrown += darts;

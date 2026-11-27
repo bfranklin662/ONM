@@ -28,7 +28,7 @@ test("lobby splits compact player cards, and only available opponents can be sel
  vm.runInNewContext(part,ctx);
  ctx.renderLeaderboard([
   {playerKey:"other",playerName:"Alex",average:"52.50",status:"online",nationality:"England"},
-  {playerKey:"me",playerName:"Nick",status:"online",average:"53.25",played:4,wins:3,losses:1},
+  {playerKey:"me",playerName:"Nick",status:"online",average:"53.25",played:4,wins:3,fastestLeg:18,oneEightys:2,bullOuts:1,tonPlusOuts:3,tonPlusIncomplete:true},
   {playerKey:"away",playerName:"Zoe",status:"offline"}
  ]);
  const html = node("leaderboardRows").innerHTML;
@@ -37,7 +37,12 @@ test("lobby splits compact player cards, and only available opponents can be sel
  assert.match(html, /52.50 <small>avg/);
  assert.equal(node("versusYourAverage").textContent,"53.25");
  assert.equal(node("versusYourWins").textContent,3);
- assert.equal(node("versusYourWinRate").textContent,"75%");
+ assert.equal(node("versusYourFastestLeg").textContent,"18 darts");
+ assert.equal(node("versusYourTons").textContent,"3+");
+ const board = node("versusLeaderboardRows").innerHTML;
+ assert.match(board, /Nick[\s\S]*18 darts/);
+ assert.match(board, /Ton\+ outs/);
+ assert.doesNotMatch(board, /Losses|Win rate/);
  assert.doesNotMatch(html, /Wins|<img|data-versus-player="(?:me|away)"/);
  buttons[0].select();
  assert.equal(ctx.selectedVersusPlayerKey,"other");
@@ -80,4 +85,13 @@ test("an invite keeps the exact mixed-case account key used by presence", () => 
  const context = {};
  vm.runInNewContext(helpers,context);
  assert.equal(context.getStablePlayerKey({linkedPlayerKey:"TestUid"}),"TestUid");
+});
+
+test("specials aggregate exact new counts and only a confirmed minimum from older games", () => {
+ const row = E.players([{playerKey:"a",playerName:"Alex"}], [
+  {matchMode:"online",playerOneId:"a",playerOneWon:true,playerOneLegs:3,playerOneBestLeg:"21 darts",playerOne180s:1,playerOneBullOuts:1,playerOneHighestOut:120},
+  {matchMode:"online",playerOneId:"a",playerOneWon:true,playerOneBestLeg:18,playerOne180s:2,playerOneTonPlusOuts:2,playerOneHighestOut:140},
+  {matchMode:"local",playerOneId:"a",playerOneWon:true,playerOneBestLeg:9,playerOneTonPlusOuts:4}
+ ])[0];
+ assert.deepEqual([row.played,row.wins,row.fastestLeg,row.oneEightys,row.bullOuts,row.tonPlusOuts,row.tonPlusIncomplete],[2,2,18,3,1,3,true]);
 });

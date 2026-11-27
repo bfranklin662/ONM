@@ -44,3 +44,35 @@ button.versusPlayer:hover, .versusPlayer[aria-pressed="true"] { border-color:#8b
   .versusYourStats > img { width:44px;height:44px; }
   .versusYourTotals { gap:4px 10px;font-size:11px; }
 }
+
+body:has(#leaderboardView:not(.hidden)) {
+  background:radial-gradient(ellipse at top right,#173e37,transparent 55%),#0c1714;
+}
+.versusMenu {
+  display:flex;gap:5px;margin:0 0 12px;padding:5px;border:1px solid #334e43;
+  border-radius:12px;background:#101f19;
+}
+.versusMenu button {
+  display:flex;flex:1;align-items:center;justify-content:center;gap:7px;min-height:44px;
+  padding:8px 12px;border:0;border-radius:8px;background:transparent;color:#a1bcaa;
+  font-size:13px;font-weight:800;cursor:pointer;
+}
+.versusMenu button[aria-pressed="true"] { color:#edf7ef;background:#254a37;box-shadow:inset 0 0 0 1px #598f6a; }
+.versusMenu button:focus-visible { outline:2px solid #ffd740;outline-offset:1px; }
+.versusMenu svg { width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round; }
+.versusSummary { background:#142b23;border-color:#355d48; }
+.versusYourStats > img { background:#101f19; }
+.versusYourTotals dt,.versusBoardCard dt { color:#a1bcaa; }
+#versusPlayPanel[hidden], #versusLeaderboardPanel[hidden] { display:none!important; }
+#versusPlayPanel .leaderboardBottomFade {
+  background:linear-gradient(to bottom,transparent,rgba(12,23,20,.86) 45%,#0c1714);
+}
+.versusBoard { display:grid;gap:9px;margin:12px 0 30px; }
+.versusBoardCard {
+  display:grid;gap:8px;padding:12px;border:1px solid #355d48;border-radius:12px;background:#142b23;color:#edf7ef;
+}
+.versusBoardCard > strong { overflow-wrap:anywhere;font-size:15px; }
+.versusBoardCard dl { display:grid;grid-template-columns:repeat(auto-fit,minmax(68px,1fr));gap:6px;margin:0; }
+.versusBoardCard dl > div { padding:6px 8px;border-radius:7px;background:#101f19; }
+.versusBoardCard dt { font-size:11px; }
+.versusBoardCard dd { margin:3px 0 0;color:#91e8c2;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums; }

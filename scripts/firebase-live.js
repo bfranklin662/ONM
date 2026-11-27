@@ -228,14 +228,16 @@ async function createOnlineMatchFromInvite(invite, settings = {}) {
           score: settings.startScore || 501,
           legs: 0,
           lastScore: "-",
-          dartsThrown: 0
+          dartsThrown: 0,
+          tonPlusOuts: 0
         },
         [invite.toPlayerKey]: {
           name: invite.toName,
           score: settings.startScore || 501,
           legs: 0,
           lastScore: "-",
-          dartsThrown: 0
+          dartsThrown: 0,
+          tonPlusOuts: 0
         }
       }
     },

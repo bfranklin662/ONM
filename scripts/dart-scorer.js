@@ -4148,6 +4148,10 @@ function buildDartMatchPayloadFromOnlineMatch(match, winnerKey) {
     playerOneWorstLeg: cleanStatNumber(s1.worstLeg),
     playerOne180s: p1.oneEightys || 0,
     playerOneBullOuts: p1.bullOuts || 0,
+    ...(p1.tonPlusOuts == null ? {} : {
+      playerOneTonPlusOuts: p1.tonPlusOuts,
+      playerOneTonPlusIncomplete: Boolean(p1.tonPlusIncomplete)
+    }),
 
     playerTwoName: p2.name,
     playerTwoId: p2Key,
@@ -4165,7 +4169,11 @@ function buildDartMatchPayloadFromOnlineMatch(match, winnerKey) {
     playerTwoBestLeg: cleanStatNumber(s2.bestLeg),
     playerTwoWorstLeg: cleanStatNumber(s2.worstLeg),
     playerTwo180s: p2.oneEightys || 0,
-    playerTwoBullOuts: p2.bullOuts || 0
+    playerTwoBullOuts: p2.bullOuts || 0,
+    ...(p2.tonPlusOuts == null ? {} : {
+      playerTwoTonPlusOuts: p2.tonPlusOuts,
+      playerTwoTonPlusIncomplete: Boolean(p2.tonPlusIncomplete)
+    })
   };
 }
 
@@ -4331,6 +4339,13 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
       (player.checkoutAttempts || 0) + Math.max(1, doublesAttempted);
     updates[`game/players/${myKey}/highestOut`] = Math.max(player.highestOut || 0, previousScore);
 
+    const previousTonPlusOuts = player.tonPlusOuts ?? (player.highestOut >= 100 ? 1 : 0);
+    const tonPlusOuts = previousTonPlusOuts + (previousScore >= 100 ? 1 : 0);
+    const tonPlusIncomplete = Boolean(player.tonPlusIncomplete ||
+      (player.tonPlusOuts == null && player.highestOut >= 100 && player.legs > 1));
+    updates[`game/players/${myKey}/tonPlusOuts`] = tonPlusOuts;
+    updates[`game/players/${myKey}/tonPlusIncomplete`] = tonPlusIncomplete;
+
     const finishedLegDarts = currentLegDarts + dartsUsed;
     const previousLegDarts = player.legDarts || [];
 
@@ -4388,6 +4403,8 @@ async function applyOnlineVisit({ match, myKey, visitScore, previousScore, legWo
         checkoutAttempts: (player.checkoutAttempts || 0) + Math.max(1, doublesAttempted),
         highestOut: Math.max(player.highestOut || 0, previousScore),
         legDarts: [...previousLegDarts, finishedLegDarts],
+        tonPlusOuts,
+        tonPlusIncomplete,
         oneEightys: (player.oneEightys || 0) + (visitScore === 180 ? 1 : 0),
         bullOuts: (player.bullOuts || 0) + (bullOut ? 1 : 0),
         firstNineScored: currentFirstNineScored + firstNineScore,
@@ -6802,6 +6819,8 @@ async function startOnlineRematch(match) {
     [`game/players/${keys[0]}/highScore`]: 0,
     [`game/players/${keys[0]}/oneEightys`]: 0,
     [`game/players/${keys[0]}/bullOuts`]: 0,
+    [`game/players/${keys[0]}/tonPlusOuts`]: 0,
+    [`game/players/${keys[0]}/tonPlusIncomplete`]: false,
     [`game/players/${keys[0]}/legDarts`]: [],
     [`game/players/${keys[0]}/currentLegDarts`]: 0,
     [`game/players/${keys[0]}/firstNineScored`]: 0,
@@ -6820,6 +6839,8 @@ async function startOnlineRematch(match) {
     [`game/players/${keys[1]}/highScore`]: 0,
     [`game/players/${keys[1]}/oneEightys`]: 0,
     [`game/players/${keys[1]}/bullOuts`]: 0,
+    [`game/players/${keys[1]}/tonPlusOuts`]: 0,
+    [`game/players/${keys[1]}/tonPlusIncomplete`]: false,
     [`game/players/${keys[1]}/legDarts`]: [],
     [`game/players/${keys[1]}/currentLegDarts`]: 0,
     [`game/players/${keys[1]}/firstNineScored`]: 0,
@@ -7985,6 +8006,11 @@ function renderLeaderboard(players = []) {
   const currentUser=window.ONMSession?.getUser?.()||loggedInUser,myKey=getCurrentPlayerKey();
   const me = players.find(player => player.playerKey === myKey) || null;
   currentLeagueProfile = me;
+  function tonPlusDisplay(player) {
+    if (player?.tonPlusOuts == null) return "—";
+    return player.tonPlusIncomplete ? `${player.tonPlusOuts}+` : String(player.tonPlusOuts);
+  }
+
   const summary = document.getElementById("versusYourStats");
   const setSummaryText = (id, value) => {
     const element = document.getElementById(id);
@@ -8006,11 +8032,34 @@ function renderLeaderboard(players = []) {
     setSummaryText("versusYourAverage", me?.average ?? "—");
     setSummaryText("versusYourPlayed", me?.played ?? "—");
     setSummaryText("versusYourWins", me?.wins ?? "—");
-    setSummaryText("versusYourLosses", me?.losses ?? "—");
-    setSummaryText("versusYourWinRate", me?.played ? `${Math.round(me.wins / me.played * 100)}%` : "—");
+    setSummaryText("versusYourFastestLeg", me?.fastestLeg ? `${me.fastestLeg} darts` : "—");
+    setSummaryText("versusYour180s", me?.oneEightys ?? "—");
+    setSummaryText("versusYourBulls", me?.bullOuts ?? "—");
+    setSummaryText("versusYourTons", tonPlusDisplay(me));
   }
   setSummaryText("openLastGameStatsBtn", !currentUser ? "Log in" : me?.lastMatch ? "Stats" : "Play");
   document.getElementById("openGameHistoryBtn")?.classList.toggle("hidden", !currentUser || !me?.matchHistory?.length);
+  const board = document.getElementById("versusLeaderboardRows");
+  if (board) {
+    const standings = [...players].sort((a, b) =>
+      (Number(b.average) || 0) - (Number(a.average) || 0) ||
+      (b.wins || 0) - (a.wins || 0) ||
+      (a.playerName || "").localeCompare(b.playerName || ""));
+    board.innerHTML = standings.length ? standings.map(player => {
+      const fields = [
+        ["Played", player.played], ["Wins", player.wins], ["3-dart avg", player.average],
+        ["Fastest leg", player.fastestLeg ? `${player.fastestLeg} darts` : null],
+        ["180s", player.oneEightys], ["Bull outs", player.bullOuts], ["Ton+ outs", tonPlusDisplay(player)]
+      ];
+      const flag = player.nationality ? leaderboardFlag(player.nationality) : "";
+      return `<article class="versusBoardCard">
+        <strong>${escapeHtml(player.playerName || "Player")}${flag ? ` <span role="img" aria-label="${escapeHtml(player.nationality)}">${escapeHtml(flag)}</span>` : ""}</strong>
+        <dl>${fields.map(([label, value]) => `<div><dt>${label}</dt><dd>${escapeHtml(value ?? "—")}</dd></div>`).join("")}</dl>
+      </article>`;
+    }).join("") + (standings.some(player => player.tonPlusIncomplete)
+      ? '<p class="versusEmpty">A + after a Ton+ total means older match records confirm at least that many.</p>' : "")
+      : '<p class="versusEmpty">No Versus stats available.</p>';
+  }
   const opponents = players.filter(player => player.playerKey !== myKey);
   const connected = opponents.filter(player => player.status === "online" || player.status === "playing");
   const offline = opponents.filter(player => player.status === "offline");
@@ -8248,6 +8297,16 @@ function openLeagueHistory() {
   });
 }
 
+function showVersusPanel(leaderboard) {
+  document.getElementById("versusPlayTab")?.setAttribute("aria-pressed", String(!leaderboard));
+  document.getElementById("versusLeaderboardTab")?.setAttribute("aria-pressed", String(leaderboard));
+  document.getElementById("versusPlayPanel").hidden = leaderboard;
+  document.getElementById("versusLeaderboardPanel").hidden = !leaderboard;
+  document.getElementById("versusPanelTitle").textContent = leaderboard ? "Leaderboard" : "Versus players";
+}
+
+document.getElementById("versusPlayTab")?.addEventListener("click", () => showVersusPanel(false));
+document.getElementById("versusLeaderboardTab")?.addEventListener("click", () => showVersusPanel(true));
 document.getElementById("refreshVersusPlayers")?.addEventListener("click", loadLeaderboard);
 async function loadLeaderboard() {
   const rowsEl = document.getElementById("leaderboardRows");
@@ -8296,13 +8355,15 @@ async function loadLeaderboard() {
       presenceByKey
     ).filter(player => rosterKeys.has(player.playerKey));
     if (matches.status === "rejected") {
-      const me = players.find(player => player.playerKey === myKey);
-      if (me) Object.assign(me, { played: null, wins: null, losses: null });
+      players.forEach(player => Object.assign(player, {
+        played: null, wins: null, oneEightys: null, bullOuts: null, tonPlusOuts: null
+      }));
     }
     window.currentLeaderboardPlayers = players;
     renderLeaderboard(players);
   } catch (error) {
     console.warn("Could not load Versus players", error);
+    renderLeaderboard([]);
     rowsEl.innerHTML = '<div class="versusEmpty">Couldn’t load players. Please try Refresh.</div>';
   } finally {
     rowsEl.removeAttribute("aria-busy");
