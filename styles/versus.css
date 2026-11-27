@@ -1,6 +1,6 @@
 /* Friendly versus directory: player cards with live availability. */
 body.leagueMode .leagueHeroMeta,body.leagueMode .leaderboardHeader,body.leagueMode .leagueRatingChange,body.leagueMode #readyHostRank,body.leagueMode #readyGuestRank,body.leagueMode #readyHostRating,body.leagueMode #readyGuestRating,body.leagueMode #molVictoryPlayerOneRank,body.leagueMode #molVictoryPlayerTwoRank,body.leagueMode #molVictoryPlayerOneRating,body.leagueMode #molVictoryPlayerTwoRating{display:none!important}
-body.leagueMode .leaderboardRows { display:block;padding:12px 0 90px; }
+body.leagueMode .leaderboardRows { display:block;padding:12px 0 24px; }
 .versusToolbar { display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;color:#adc5b6; }
 .versusToolbar h2 { margin:0;color:#e7f6eb;font-size:20px; }
 .versusToolbar button { background:#214a33;color:#e4f8eb;border:1px solid #58836a;border-radius:8px;padding:10px 13px;cursor:pointer; }
@@ -20,7 +20,6 @@ button.versusPlayer:hover, .versusPlayer[aria-pressed="true"] { border-color:#8b
 .versusAverage { white-space:nowrap;color:#80e1b7;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums; }
 .versusAverage small,.versusEmpty { color:#b7cfbf;font-weight:400; }
 .versusEmpty { grid-column:1/-1;margin:0;padding:12px 0;font-size:13px; }
-#leaderboardPlayDockBtn:disabled { opacity:.5;cursor:default; }
 
 .versusSummary {
   padding:12px 14px;
@@ -83,8 +82,7 @@ body:has(#leaderboardView:not(.hidden)) {
 .versusSettingsActions { display:flex;justify-content:flex-end;margin-top:8px; }
 .versusInviteError { margin:0;color:#ffabab; }
 .versusSummary .leagueLastActions:has([hidden]):not(:has(button:not([hidden]):not(.hidden))) { display:none; }
-.versusSummary [hidden], #leaderboardPlayDockBtn[hidden] { display:none!important; }
-#versusPlayPanel:not(:has(#leaderboardPlayDockBtn:not([hidden]))) .leaderboardBottomFade { display:none; }
+.versusSummary [hidden], .versusInlineInvite[hidden] { display:none!important; }
 
 .versusBoardCard > summary {
   display:flex;align-items:center;gap:10px;padding:12px;cursor:pointer;list-style:none;border-radius:12px;
@@ -100,3 +98,9 @@ body:has(#leaderboardView:not(.hidden)) {
   .versusBoardCard > summary { gap:7px;padding:10px; }
   .versusWinStreak { font-size:10px; }
 }
+
+.versusCandidate { display:grid;gap:6px;align-content:start;min-width:0; }
+.versusInlineInvite { justify-self:end;padding:8px 16px;border:0;border-radius:8px;background:#ffd740;color:#172018;font-weight:800;cursor:pointer; }
+.versusDeciderSettings { display:flex;flex-wrap:wrap;gap:8px 16px;min-width:0;margin:0; }
+.versusDeciderSettings label { display:flex;align-items:center;gap:6px;cursor:pointer; }
+.versusDeciderSettings input { accent-color:#81d6a5; }

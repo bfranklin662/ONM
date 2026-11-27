@@ -72,6 +72,7 @@ async function createOnlineInvite({ fromUser, toPlayer, settings = {} }) {
     legsCount: settings.legsCount || 3,
     inMode: settings.inMode || "straight",
     competitive: Boolean(settings.competitive),
+    deciderType: settings.deciderType === "bull" ? "bull" : "coin",
     inviteText: settings.inviteText || ""
   };
 
@@ -207,7 +208,8 @@ async function createOnlineMatchFromInvite(invite, settings = {}) {
       startScore: settings.startScore || 501,
       gameType: settings.gameType || "bestOf",
       legsCount: settings.legsCount || 3,
-      inMode: settings.inMode || "straight"
+      inMode: settings.inMode || "straight",
+      deciderType: (invite.deciderType || invite.settings?.deciderType) === "bull" ? "bull" : "coin"
     },
 
     decider: {

@@ -285,6 +285,8 @@ let onlineBullSubmitted = false;
 let onlineResultSaved = false;
 let competitiveLobbyMode = false;
 let competitiveLegsCount = 3;
+let competitiveDeciderType = "coin";
+let readyDeciderMatchId = "";
 let competitiveGameType = "bestOf";
 let molVictoryShownForMatchId = null;
 let rematchStarting = false;
@@ -1824,20 +1826,6 @@ window.testCasualVictoryScreen = function testCasualVictoryScreen() {
 
 let selectedVersusPlayerKey = "";
 
-function updateLeaguePlayButton() {
-  const btn = document.getElementById("leaderboardPlayDockBtn");
-  if (!btn) return;
-
-  const currentUser =
-    window.ONMSession?.getUser?.() || loggedInUser;
-
-  btn.textContent = currentUser
-    ? "Invite"
-    : "Log in / Register";
-  btn.hidden = Boolean(currentUser && !selectedVersusPlayerKey);
-  btn.disabled = btn.hidden;
-}
-
 function openCompetitiveInviteFlow(playerKey = "") {
   const currentUser =
     window.ONMSession?.getUser?.() || loggedInUser;
@@ -1851,6 +1839,7 @@ function openCompetitiveInviteFlow(playerKey = "") {
   competitiveLobbyMode = true;
   competitiveLegsCount = 3;
   competitiveGameType = "bestOf";
+  competitiveDeciderType = "coin";
 
   MATCH_MODE = "online";
   STATS_MODE = "competitive";
@@ -1921,6 +1910,12 @@ async function openOpponentModal(playerKey = "") {
         </div>
       </div>
 
+      <fieldset class="molInviteSettings versusDeciderSettings">
+        <legend class="molInviteLabel">Who throws first?</legend>
+        <label><input type="radio" name="versusDecider" value="coin"${competitiveDeciderType === "coin" ? " checked" : ""}> Coin toss</label>
+        <label><input type="radio" name="versusDecider" value="bull"${competitiveDeciderType === "bull" ? " checked" : ""}> Throw for bull</label>
+      </fieldset>
+
       ${selectedKey ? "" : `<div class="molInvitePlayersTop">
         <div>
           <div class="molInviteLabel">Players</div>
@@ -1940,6 +1935,10 @@ async function openOpponentModal(playerKey = "") {
   `;
 
   document.getElementById("molRefreshPlayersBtn")?.addEventListener("click", () => openOpponentModal(selectedKey));
+
+  els.linkedPlayersList.querySelectorAll('input[name="versusDecider"]').forEach(input => {
+    input.addEventListener("change", () => { if (input.checked) competitiveDeciderType = input.value; });
+  });
 
   const molBestFirstToggle = document.getElementById("molBestFirstToggle");
   const molBestOfBtn = document.getElementById("molBestOfBtn");
@@ -2153,6 +2152,7 @@ async function openOpponentModal(playerKey = "") {
               gameType: competitiveGameType,
               legsCount: competitiveLegsCount,
               inMode: "straight",
+              deciderType: competitiveDeciderType,
               competitive: true,
               inviteText: getMatchInviteText(hostFullName, competitiveGameType, competitiveLegsCount)
             }
@@ -6084,7 +6084,6 @@ async function initDartScorerAuth() {
 
   if (!user) {
     loggedInUser = null;
-    updateLeaguePlayButton();
 
     if (PAGE_MODE === "league") {
       MATCH_MODE = "online";
@@ -6117,7 +6116,6 @@ async function initDartScorerAuth() {
 
   loggedInUser = user;
 
-  updateLeaguePlayButton();
 
   const myKey = getCurrentPlayerKey();
 
@@ -6374,7 +6372,10 @@ async function startOnlineMatchDecider() {
     startedDeciderAt: Date.now()
   };
 
-  if (isCompetitive) {
+  if (isCompetitive && match.settings?.deciderType === "bull") {
+    settings["decider/type"] = "bull";
+    settings["decider/status"] = "chosen";
+  } else if (isCompetitive) {
     const coinWinnerIndex = Math.random() < 0.5 ? 0 : 1;
     const keys = onlinePlayerKeys(match);
 
@@ -6730,7 +6731,7 @@ function applyReadyLobby(match) {
   els.markReadyBtn.disabled = amReady;
 
   if (hostReady && guestReady && onlineRole === "host") {
-    startOnlineCoinOnlyDecider();
+    startReadyOnlineDecider();
   }
 }
 
@@ -6817,27 +6818,37 @@ async function startOnlineRematch(match) {
   els.molVictoryOverlay?.classList.add("hidden");
 }
 
-async function startOnlineCoinOnlyDecider() {
-  if (!onlineMatchId || onlineRole !== "host") return;
+async function startReadyOnlineDecider() {
+  const matchId = onlineMatchId;
+  if (!matchId || onlineRole !== "host" || readyDeciderMatchId === matchId) return;
+  readyDeciderMatchId = matchId;
 
-  const { db, ref, get, update } = window.ONMLiveDarts;
-  const matchSnap = await get(ref(db, `onlineMatches/${onlineMatchId}`));
-  if (!matchSnap.exists()) return;
+  try {
 
-  const match = matchSnap.val();
-  if (match.status !== "readyLobby") return;
+    const { db, ref, get, update } = window.ONMLiveDarts;
+    const matchSnap = await get(ref(db, `onlineMatches/${matchId}`));
+    if (!matchSnap.exists()) return;
 
-  const coinWinnerIndex = Math.random() < 0.5 ? 0 : 1;
-  const keys = onlinePlayerKeys(match);
+    const match = matchSnap.val();
+    if (match.status !== "readyLobby" || onlineMatchId !== matchId) return;
 
-  await update(ref(db, `onlineMatches/${onlineMatchId}`), {
-    status: "decider",
-    "decider/type": "coin",
-    "decider/status": "chosen",
-    "decider/coinWinnerKey": keys[coinWinnerIndex],
-    "decider/coinWinnerIndex": coinWinnerIndex,
-    startedDeciderAt: Date.now()
-  });
+    const type = match.settings?.deciderType === "bull" ? "bull" : "coin";
+    const decider = { type, status: "chosen" };
+    if (type === "coin") {
+      decider.coinWinnerIndex = Math.random() < 0.5 ? 0 : 1;
+      decider.coinWinnerKey = onlinePlayerKeys(match)[decider.coinWinnerIndex];
+    }
+
+    await update(ref(db, `onlineMatches/${matchId}`), {
+      status: "decider",
+      decider,
+      startedDeciderAt: Date.now()
+    });
+  } catch (error) {
+    console.warn("Could not start the online decider", error);
+  } finally {
+    if (readyDeciderMatchId === matchId) readyDeciderMatchId = "";
+  }
 }
 
 function openOnlineCoinDecider(match) {
@@ -7840,18 +7851,6 @@ els.molVictoryCloseBtn?.addEventListener("click", () => {
   newGame();
 });
 
-document.getElementById("leaderboardPlayDockBtn")?.addEventListener("click", () => {
-  const currentUser =
-    window.ONMSession?.getUser?.() || loggedInUser;
-
-  if (!currentUser) {
-    window.location.href = "auth.html?mode=login&redirect=dart-scorer.html%3Fmode%3Dversus";
-    return;
-  }
-
-  if (selectedVersusPlayerKey) openCompetitiveInviteFlow(selectedVersusPlayerKey);
-});
-
 document.getElementById("leagueResumeMatchBtn")?.addEventListener("click", async () => {
   const button = document.getElementById("leagueResumeMatchBtn");
 
@@ -8037,7 +8036,6 @@ function renderLeaderboard(players = []) {
   if (!players.some(player => canSelect(player) && player.playerKey === selectedVersusPlayerKey)) {
     selectedVersusPlayerKey = "";
   }
-  updateLeaguePlayButton();
 
   function card(player) {
     const name = escapeHtml(player.playerName || "Player");
@@ -8048,8 +8046,12 @@ function renderLeaderboard(players = []) {
     const content = `<span class="versusPlayerHeading">${playerAvatar(player)}<span class="versusIdentity">${identity}</span></span>
       <span class="versusAverage">${escapeHtml(player.average ?? "—")} <small>avg</small></span>`;
     if (!canSelect(player)) return `<div class="versusPlayer">${content}</div>`;
-    return `<button type="button" class="versusPlayer" data-versus-player="${escapeHtml(player.playerKey)}"
-      aria-pressed="${player.playerKey === selectedVersusPlayerKey}">${content}</button>`;
+    const key = escapeHtml(player.playerKey);
+    const selected = player.playerKey === selectedVersusPlayerKey;
+    return `<div class="versusCandidate">
+      <button type="button" class="versusPlayer" data-versus-player="${key}" aria-pressed="${selected}">${content}</button>
+      <button type="button" class="versusInlineInvite" data-versus-invite="${key}"${selected ? "" : " hidden"}>Invite</button>
+    </div>`;
   }
 
   const section = (title, group, empty) => `<section class="versusSection"><h3>${title}</h3>
@@ -8059,14 +8061,20 @@ function renderLeaderboard(players = []) {
     ? '<div class="versusEmpty">Player availability couldn’t be loaded. Please try Refresh.</div>'
     : section("Online", connected, "No players online.") + section("Offline", offline, "No offline players.");
 
+  const inviteButtons = rowsEl.querySelectorAll("[data-versus-invite]");
   rowsEl.querySelectorAll("[data-versus-player]").forEach(button => {
     button.addEventListener("click", () => {
       selectedVersusPlayerKey = button.dataset.versusPlayer === selectedVersusPlayerKey ? "" : button.dataset.versusPlayer;
       rowsEl.querySelectorAll("[data-versus-player]").forEach(cardButton => {
         cardButton.setAttribute("aria-pressed", String(cardButton.dataset.versusPlayer === selectedVersusPlayerKey));
       });
-      updateLeaguePlayButton();
+      inviteButtons.forEach(invite => {
+        invite.hidden = invite.dataset.versusInvite !== selectedVersusPlayerKey;
+      });
     });
+  });
+  inviteButtons.forEach(button => {
+    button.addEventListener("click", () => openCompetitiveInviteFlow(button.dataset.versusInvite));
   });
 }
 

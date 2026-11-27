@@ -17,14 +17,16 @@ const script=fs.readFileSync(require.resolve('../scripts/dart-scorer.js'),'utf8'
 test("lobby splits compact player cards, and only available opponents can be selected", () => {
  const part = script.slice(script.indexOf("function renderLeaderboard("), script.indexOf("async function loadExpandedPlayerStats("));
  const nodes = new Map();
+ const invite = {dataset:{versusInvite:"other"}, hidden:true, addEventListener(_event, handler){this.send = handler;}};
+ const invited = [];
  const buttons = [{dataset:{versusPlayer:"other"}, addEventListener(_event, handler){this.select = handler;}, setAttribute(_name, value){this.selected = value;}}];
  const node = id => {
-  if (!nodes.has(id)) nodes.set(id, {innerHTML:"",textContent:"",classList:{add(){},toggle(){}},getAttribute:()=>null,querySelectorAll:()=>buttons});
+  if (!nodes.has(id)) nodes.set(id, {innerHTML:"",textContent:"",classList:{add(){},toggle(){}},getAttribute:()=>null,querySelectorAll:selector=>selector === "[data-versus-invite]" ? [invite] : buttons});
   return nodes.get(id);
  };
  const ctx = {document:{getElementById:node,querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},
   getCurrentPlayerKey:()=>"me",leaderboardFlag:()=>"🇬🇧",escapeHtml:value=>String(value).replace(/</g,"&lt;"),
-  getPlayerPhotoField:player=>player?.photo || "",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, selectedVersusPlayerKey:"", updateLeaguePlayButton(){}};
+  getPlayerPhotoField:player=>player?.photo || "",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, selectedVersusPlayerKey:"", openCompetitiveInviteFlow:key=>invited.push(key)};
  vm.runInNewContext(part,ctx);
  ctx.renderLeaderboard([
   {playerKey:"other",playerName:"Alex",average:"52.50",status:"online",nationality:"England",photo:"images/alex.jpg"},
@@ -50,6 +52,9 @@ test("lobby splits compact player cards, and only available opponents can be sel
  buttons[0].select();
  assert.equal(ctx.selectedVersusPlayerKey,"other");
  assert.equal(buttons[0].selected,"true");
+ assert.equal(invite.hidden,false);
+ invite.send();
+ assert.deepEqual(invited,["other"]);
  ctx.renderLeaderboard([{playerKey:"other",playerName:"Alex",status:"offline"}]);
  assert.equal(ctx.selectedVersusPlayerKey,"");
 });
@@ -105,10 +110,27 @@ test("selected opponents open settings and the confirmed invite uses the selecte
  const page = fs.readFileSync(require.resolve("../dart-scorer.html"), "utf8");
  assert.match(page, /id="versusPanelTitle">Invite an online player/);
  assert.doesNotMatch(page, /id="openLastGameStatsBtn"[^>]*>Play/);
- assert.match(script, /openCompetitiveInviteFlow\(selectedVersusPlayerKey\)/);
+ assert.match(script, /openCompetitiveInviteFlow\(button.dataset.versusInvite\)/);
  assert.match(script, /selectedKey \? "Match settings"/);
  assert.match(script, /if \(!await isPlayerOnline\(opponentKey\)\)/);
  const flow = script.slice(script.indexOf("const inviteId = await window.ONMLiveDarts.createOnlineInvite"), script.indexOf('button.textContent = "Invite sent"'));
  assert.match(flow, /gameType: competitiveGameType/);
  assert.match(flow, /legsCount: competitiveLegsCount/);
+});
+
+test("ready players use the inviter's decider and legacy matches default to a coin toss", async () => {
+ const part = script.slice(script.indexOf("async function startReadyOnlineDecider("),script.indexOf("function openOnlineCoinDecider("));
+ for (const deciderType of ["bull", "coin", undefined]) {
+  const updates = [];
+  const context = {onlineMatchId:"match",onlineRole:"host",readyDeciderMatchId:"",
+   onlinePlayerKeys:()=>["host","guest"],window:{ONMLiveDarts:{db:{},ref:(_, path)=>path,
+   get:async()=>({exists:()=>true,val:()=>({status:"readyLobby",settings:{deciderType}})}),
+   update:async(_ref,value)=>updates.push(value)}},
+   console};
+  vm.runInNewContext(part,context);
+  await context.startReadyOnlineDecider();
+  assert.equal(updates[0].status,"decider");
+  assert.equal(updates[0].decider.type,deciderType || "coin");
+  assert.equal("coinWinnerIndex" in updates[0].decider,deciderType !== "bull");
+ }
 });
