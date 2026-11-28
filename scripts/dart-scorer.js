@@ -8236,7 +8236,7 @@ function renderVersusSummaryStats(profile, playerKey) {
   const values = {
     Challenges: (monthly ? challenges?.completed : challenges?.totalCompleted) ?? "—",
     Wins: stats?.wins ?? "—",
-    Streak: stats?.winStreak ?? "—",
+    Average: stats?.average ?? "—",
     FastestLeg: stats?.fastestLeg ? `${stats.fastestLeg} darts` : "—",
     "180s": stats?.oneEightys ?? "—",
     Bulls: stats?.bullOuts ?? "—",
@@ -8298,7 +8298,7 @@ function renderVersusRankings(players, myKey) {
             ${flag ? `<span role="img" aria-label="${escapeHtml(profile.nationality)}">${escapeHtml(flag)}</span>` : ""}</span></th>
           <td>${stats.wins ?? "—"}</td><td>${escapeHtml(formatStreak(stats.winStreak))}</td>
           <td>${escapeHtml(stats.average ?? "—")}</td>
-          <td><strong class="versusChallengeTicks">${completed} ✓</strong></td></tr>`;
+          <td><strong class="versusChallengeTicks">${completed}</strong></td></tr>`;
       }).join("")}</tbody>
     </table></div>`;
   }
@@ -8730,8 +8730,11 @@ function renderVersusChallenges() {
   const panel = document.getElementById("versusChallengesPanel");
   const playerKey = getCurrentPlayerKey();
   if (!panel || panel.hidden || !challengeDataReady || !playerKey) return;
-  const { tiers } = window.ONMVersusChallenges.challengesFor(playerKey, challengeMatches, outgoingVersusInvites);
+  const { tiers, completed } = window.ONMVersusChallenges.challengesFor(playerKey, challengeMatches, outgoingVersusInvites);
   panel.innerHTML = `
+    <div class="versusChallengeLine versusChallengeSectionHeading">
+      <h3>Challenges</h3><strong class="versusChallengeTicks versusCompactTick">${completed}/9</strong>
+    </div>
     <div class="versusChallengeCards">${tiers.map(tier => {
       const difficulty = tier.difficulty.toLowerCase();
       const difficultyLabel = `<span class="versusChallengeDifficulty" data-difficulty="${difficulty}">${tier.difficulty.toUpperCase()}</span>`;
@@ -8740,14 +8743,12 @@ function renderVersusChallenges() {
         <progress max="${tier.active.target}" value="${tier.active.value}" aria-label="${tier.active.label}"></progress>
         <div class="versusChallengeLine"><small>${tier.active.value}/${tier.active.target}</small>${difficultyLabel}</div>`
         : `
-        <div class="versusChallengeLine">
-          <h4>${tier.availableAt ? `${tier.completed}/3 monthly ${difficulty} challenges complete` : `All ${difficulty} challenges complete`}</h4>
-          ${difficultyLabel}
-        </div>
         ${tier.availableAt ? `<div class="versusCooldown" data-challenge-unlock="${tier.availableAt}">
-          <span>Next challenge in</span><span class="versusCooldownTime" role="timer" aria-label="Time until next challenge"></span>
+          <div class="versusChallengeLine"><span>Next challenge in</span><span class="versusCooldownTime" role="timer" aria-label="Time until next challenge"></span></div>
           <progress max="86400" aria-label="Time elapsed until next challenge"></progress>
-        </div>` : ""}`;
+        </div>
+        <div class="versusChallengeLine"><small>${tier.completed}/3 ${difficulty} challenges complete</small>${difficultyLabel}</div>`
+        : `<h4>All ${difficulty} challenges complete</h4><div class="versusChallengeLine versusFinishedDifficulty">${difficultyLabel}</div>`}`;
       return `<article class="versusChallengeTask">${content}</article>`;
     }).join("")}</div>`;
   updateChallengeCountdowns(panel);

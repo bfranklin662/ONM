@@ -264,23 +264,27 @@ body:has(#leaderboardView:not(.hidden)) {
 .versusPrimaryStats dd { margin:2px 0 0;font-size:1.15rem;font-weight:800;color:#a6ebbd; }
 .versusSpecials summary { color:#bdd6c6;font-size:.78rem;cursor:pointer; }
 .versusRankingPlayer { display:inline-flex;align-items:center;gap:6px;white-space:nowrap; }
-.versusChallengeCards .versusChallengeTask { position:relative;box-sizing:border-box;min-height:124px;margin:0;padding:12px 12px 30px; }
+.versusChallengeCards .versusChallengeTask { box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;min-height:88px;margin:0;padding:10px 12px; }
 .versusChallengeTask .versusChallengeDifficulty { position:absolute;right:12px;bottom:9px;font-size:.65rem;font-weight:800; }
 .versusChallengeTask [data-difficulty="medium"] { color:#f7ce82; }
 .versusChallengeTask [data-difficulty="hard"] { color:#f0a6bd; }
 .versusChallengeTask [data-challenge-unlock] { font-size:.8rem;color:#b9d5c2;margin:8px 0 0; }
 .versusChallengeCards { grid-auto-rows:1fr; }
 
-.versusSpecials .versusYourTotals { display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px; }
-.versusSpecials .versusYourTotals div { display:grid;gap:4px;justify-items:center;text-align:center;padding:6px 1px;background:#10241c;border:1px solid #416d53;border-radius:7px;line-height:1.15; }
-.versusSpecials .versusYourTotals dt { font-size:clamp(.58rem,2.5vw,.72rem); }
-.versusChallengeCards .versusChallengeTask { padding:12px; }
+.versusYourTotals.versusSpecials { display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px; }
+.versusYourTotals.versusSpecials div { display:grid;gap:4px;justify-items:center;text-align:center;padding:6px 1px;background:#10241c;border:1px solid #416d53;border-radius:7px;line-height:1.15; }
+.versusYourTotals.versusSpecials dt { font-size:clamp(.58rem,2.5vw,.72rem); }
+
 .versusChallengeTask .versusChallengeDifficulty { position:static;flex:none; }
 .versusChallengeTask > .versusChallengeLine { flex-wrap:nowrap; }
 .versusCompactTick { padding:2px 7px;line-height:1.25;font-size:.82rem; }
 .versusPrimaryStats .versusCompactTick { justify-self:center; }
-.versusCooldown { display:grid;justify-items:center;gap:4px;margin-top:8px;text-align:center;color:#b9d5c2;font-size:.7rem; }
+.versusCooldown { color:#b9d5c2;font-size:.8rem; }
 .versusCooldownTime { padding:3px 9px;border-radius:6px;background:#234b35;color:#e4f8e9;font-size:1rem;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.08em; }
-.versusChallengeTask .versusCooldown progress { width:min(100%,180px);height:5px;margin:2px 0 0; }
+.versusChallengeTask .versusCooldown progress { width:100%;margin:9px 0 4px; }
 #refreshVersusPlayers { display:grid;place-items:center;width:32px;height:32px;padding:0; }
 #refreshVersusPlayers svg { width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }
+
+.versusChallengeSectionHeading { margin-top:14px; }
+.versusChallengeSectionHeading h3 { margin:0;font-size:1rem; }
+.versusFinishedDifficulty { justify-content:flex-end; }

@@ -49,7 +49,7 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  assert.match(html, /52.50 <small>avg/);
  assert.equal(node("versusYourFlag").textContent,"🇬🇧");
  assert.equal(node("versusYourWins").textContent,3);
- assert.equal(node("versusYourStreak").textContent,2);
+ assert.equal(node("versusYourAverage").textContent,"53.25");
  assert.equal(node("versusYourFastestLeg").textContent,"18 darts");
  assert.equal(node("versusYourHighestOut").textContent,134);
  const board = node("versusLeaderboardRows").innerHTML;
