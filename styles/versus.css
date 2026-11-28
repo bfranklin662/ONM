@@ -205,3 +205,5 @@ body:has(#leaderboardView:not(.hidden)) {
   font-size: .8rem;
   font-variant-numeric: tabular-nums;
 }
+
+.versusOfflineSection > summary .versusSectionCount { margin-inline-end: auto; }
