@@ -8218,7 +8218,7 @@ function getMonthlyVersusMatches(now) {
   const month = monthKey(now);
   return currentVersusMatches.filter(match => {
     const time = matchTime(match);
-    return time !== null && time <= now && monthKey(time) === month;
+    return time !== null && monthKey(time) === month;
   });
 }
 
@@ -8226,8 +8226,9 @@ function renderVersusSummaryStats(profile, playerKey) {
   const engine = window.ONMVersusChallenges;
   const monthly = versusSummaryPeriod === "monthly";
   const now = Date.now();
-  const stats = monthly && engine && versusMatchHistoryAvailable
-    ? window.ONMVersusPlayers.players([profile ?? { playerKey }], getMonthlyVersusMatches(now))[0]
+  const stats = engine && versusMatchHistoryAvailable
+    ? window.ONMVersusPlayers.players([profile ?? { playerKey }], monthly ? getMonthlyVersusMatches(now) : currentVersusMatches)
+      .find(player => player.playerKey === playerKey)
     : profile;
   const challenges = engine && versusRankingInvites && versusMatchHistoryAvailable
     ? engine.challengesFor(playerKey, currentVersusMatches, versusRankingInvites, now)
@@ -8284,16 +8285,17 @@ function renderVersusRankings(players, myKey) {
         a.profile.playerName.localeCompare(b.profile.playerName));
     if (!entries.length) return '<p class="versusEmpty">No results for this period yet.</p>';
     return `<div class="versusRankingScroll"><table class="versusMonthlyTable versusRankingTable">
-      <thead><tr><th scope="col" aria-label="Player image"></th><th scope="col">Player</th><th scope="col" aria-label="Flag"></th>
+      <thead><tr><th scope="col">Rank</th><th scope="col">Player</th>
         <th scope="col">Wins</th><th scope="col">Streak</th><th scope="col">Average</th><th scope="col" aria-sort="descending">Challenges</th></tr></thead>
-      <tbody>${entries.map(({ profile, stats, completed }) => {
+      <tbody>${entries.map(({ profile, stats, completed }, index) => {
         const photo = getPlayerPhotoField(profile);
         const src = /^(https?:\/\/|\/?(?:images|graphics)\/)/i.test(photo) ? photo : "graphics/logoWoText.png";
         const flag = profile.nationality ? leaderboardFlag(profile.nationality) : "";
-        return `<tr><td><img class="versusAvatar" src="${escapeHtml(src)}" alt="" loading="lazy"></td>
-          <th scope="row">${escapeHtml(profile.playerName)}</th>
-          <td>${flag ? `<span role="img" aria-label="${escapeHtml(profile.nationality)}">${escapeHtml(flag)}</span>` : ""}</td>
-          <td>${stats.wins ?? "—"}</td><td>${escapeHtml(formatStreak(stats.winStreak) || "—")}</td>
+        return `<tr><td>${index + 1}</td>
+          <th scope="row"><span class="versusRankingPlayer"><img class="versusAvatar" src="${escapeHtml(src)}" alt="" loading="lazy">
+            ${escapeHtml(profile.playerName)}
+            ${flag ? `<span role="img" aria-label="${escapeHtml(profile.nationality)}">${escapeHtml(flag)}</span>` : ""}</span></th>
+          <td>${stats.wins ?? "—"}</td><td>${escapeHtml(formatStreak(stats.winStreak))}</td>
           <td>${escapeHtml(stats.average ?? "—")}</td>
           <td><strong class="versusChallengeTicks">${completed} ✓</strong></td></tr>`;
       }).join("")}</tbody>
@@ -8725,28 +8727,21 @@ function renderVersusChallenges() {
   const panel = document.getElementById("versusChallengesPanel");
   const playerKey = getCurrentPlayerKey();
   if (!panel || panel.hidden || !challengeDataReady || !playerKey) return;
-  const { tiers, completed } = window.ONMVersusChallenges.challengesFor(playerKey, challengeMatches, outgoingVersusInvites);
-  const month = new Intl.DateTimeFormat("en-GB", { month: "long", timeZone: "Europe/London" }).format(Date.now());
-  const profile = window.currentLeaderboardPlayers?.find(player => player.playerKey === playerKey);
-  const photo = getPlayerPhotoField(profile || loggedInUser || {});
-  const photoSrc = /^(https?:\/\/|\/?(?:images|graphics)\/)/i.test(photo) ? photo : "graphics/logoWoText.png";
+  const { tiers } = window.ONMVersusChallenges.challengesFor(playerKey, challengeMatches, outgoingVersusInvites);
   panel.innerHTML = `
-    <div class="versusChallengeBrief versusChallengeProfile">
-      <img src="${escapeHtml(photoSrc)}" alt="" class="versusAvatar">
-      <div><h3>${escapeHtml(month)} challenges</h3></div>
-      <strong class="versusChallengeTicks">${completed} complete</strong>
-    </div>
-    <div class="versusChallengeCards">${tiers.map(tier => `
-      <article class="versusChallengeBrief">
-        <div class="versusChallengeLine"><h3 class="versusChallengeDifficulty">${tier.difficulty.toUpperCase()}</h3><span>${tier.completed}/3 complete</span></div>
-        ${tier.active ? `
-          <div class="versusChallengeTask">
-            <div class="versusChallengeLine"><h4>${tier.active.label}</h4><strong class="versusChallengeTicks">+1</strong></div>
-            <progress max="${tier.active.target}" value="${tier.active.value}" aria-label="${tier.active.label}"></progress>
-            <small>${tier.active.value}/${tier.active.target}</small>
-          </div>`
-          : tier.availableAt ? `<p data-challenge-unlock="${tier.availableAt}"></p>` : '<p>All three challenges completed</p>'}
-      </article>`).join("")}</div>`;
+    <div class="versusChallengeCards">${tiers.map(tier => {
+      const difficulty = tier.difficulty.toLowerCase();
+      const content = tier.active ? `
+        <div class="versusChallengeLine"><h4>${tier.active.label}</h4><strong class="versusChallengeTicks">+1</strong></div>
+        <progress max="${tier.active.target}" value="${tier.active.value}" aria-label="${tier.active.label}"></progress>
+        <small>${tier.active.value}/${tier.active.target}</small>`
+        : tier.availableAt ? `<h4>${tier.completed}/3 monthly ${difficulty} challenges complete</h4>
+          <p data-challenge-unlock="${tier.availableAt}"></p>`
+          : `<h4>All ${difficulty} challenges complete</h4>`;
+      return `<article class="versusChallengeTask">
+        ${content}<span class="versusChallengeDifficulty" data-difficulty="${difficulty}">${tier.difficulty.toUpperCase()}</span>
+      </article>`;
+    }).join("")}</div>`;
   updateChallengeCountdowns(panel);
 }
 

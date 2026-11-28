@@ -31,7 +31,7 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  };
  const ctx = {document:{getElementById:node,querySelectorAll:()=>[],querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})},ONMVersusPlayers:E,ONMVersusChallenges:{
    monthKey:()=>"2026-11",challengesFor:key=>({completed:key==="b-off"?2:0,totalCompleted:key==="b-off"?2:0})
-  }},loggedInUser:{},currentVersusMatches:[],versusRankingInvites:[],versusSummaryPeriod:"total",versusMatchHistoryAvailable:true,
+  }},loggedInUser:{},currentVersusMatches:[],versusRankingInvites:[],versusSummaryPeriod:"total",versusMatchHistoryAvailable:false,
   getCurrentPlayerKey:()=>"me",leaderboardFlag:()=>"🇬🇧",escapeHtml:value=>String(value).replace(/</g,"&lt;"),
   getPlayerPhotoField:player=>player?.photo || "",getPlayerNationality:()=> "British",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, getVersusMatchHistory:()=>[], selectedVersusPlayerKey:"", selectedVersusPlayerWasOnline:false, isPlayerOnline:async()=>online, openCompetitiveInviteFlow:key=>invited.push(key), showOnlineNotice:message=>notices.push(message)};
  vm.runInNewContext(part,ctx);
@@ -679,4 +679,14 @@ test("post-match bests use earlier completed Versus matches and ignore ties and 
     { ...previous, forfeitByKey: "b", playerTwo3DartAvg: 75 }];
   assert.deepEqual(E.personalBests("a", stats, history, Date.parse("2026-11-28T18:00:00Z"), "current"),
     ["Best leg", "3-dart avg."]);
+});
+
+test("Versus monthly stats include matches carrying their completion or Firestore timestamp", () => {
+ const monthKey = require("../scripts/versus-challenges").monthKey;
+ const timestamp = Date.parse("2026-11-21T20:00:00Z");
+ const match = { matchMode: "online", playerOneId: "a", playerOneWon: true, playerOneBestLeg: 19 };
+ const history = [{ ...match, completedAt: timestamp }, { ...match, createdAt: { toMillis: () => timestamp } }];
+ const monthly = history.filter(row => monthKey(E.matchTime(row)) === "2026-11");
+ assert.deepEqual(E.players([], monthly), E.players([], history));
+ assert.equal(E.players([], monthly)[0].wins, 2);
 });

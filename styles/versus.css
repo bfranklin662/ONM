@@ -252,3 +252,21 @@ body:has(#leaderboardView:not(.hidden)) {
 .versusChallengeTask h4 { margin:0;font-size:1rem; }
 .versusChallengeTask progress { display:block;margin:9px 0 4px; }
 .versusChallengeTask small { color:#b9d5c2; }
+
+.versusYourStats { display:block; }
+.versusYourProfile { display:flex;align-items:center;gap:8px; }
+.versusYourProfile img { width:42px;height:42px;border-radius:50%;object-fit:cover;flex:none; }
+.versusYourProfile strong { min-width:0;overflow-wrap:anywhere; }
+.versusYourProfile .versusSummaryPeriods { margin:0 0 0 auto;flex:none; }
+.versusPrimaryStats { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0; }
+.versusPrimaryStats div { padding:8px 4px;text-align:center;border:1px solid #416d53;border-radius:9px;background:#10241c; }
+.versusPrimaryStats dt { font-size:.72rem;color:#bdd6c6; }
+.versusPrimaryStats dd { margin:2px 0 0;font-size:1.15rem;font-weight:800;color:#a6ebbd; }
+.versusSpecials summary { color:#bdd6c6;font-size:.78rem;cursor:pointer; }
+.versusRankingPlayer { display:inline-flex;align-items:center;gap:6px;white-space:nowrap; }
+.versusChallengeCards .versusChallengeTask { position:relative;box-sizing:border-box;min-height:124px;margin:0;padding:12px 12px 30px; }
+.versusChallengeTask .versusChallengeDifficulty { position:absolute;right:12px;bottom:9px;font-size:.65rem;font-weight:800; }
+.versusChallengeTask [data-difficulty="medium"] { color:#f7ce82; }
+.versusChallengeTask [data-difficulty="hard"] { color:#f0a6bd; }
+.versusChallengeTask [data-challenge-unlock] { font-size:.8rem;color:#b9d5c2;margin:8px 0 0; }
+.versusChallengeCards { grid-auto-rows:1fr; }

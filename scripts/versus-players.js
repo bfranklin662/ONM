@@ -38,11 +38,12 @@
   }
 
   function matchTime(match) {
-    const recordedTime = Date.parse(match.dateTime || "");
-    if (Number.isFinite(recordedTime)) return recordedTime;
-    const createdAt = match.createdAt?.toMillis?.() ?? match.createdAt;
-    const timestamp = typeof createdAt === "number" ? createdAt : Date.parse(createdAt || "");
-    return Number.isFinite(timestamp) ? timestamp : null;
+    for (const value of [match.dateTime, match.completedAt, match.createdAt]) {
+      const timestamp = value?.toMillis?.() ?? value;
+      const time = typeof timestamp === "number" ? timestamp : Date.parse(timestamp || "");
+      if (Number.isFinite(time) && time > 0) return time;
+    }
+    return null;
   }
 
   function players(profiles = [], matches = [], presence = {}) {
