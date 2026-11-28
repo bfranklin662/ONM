@@ -36,7 +36,8 @@ button.versusPlayer { cursor:pointer;touch-action:pan-y; }
   border-radius:12px;
   background:#121f2e;
 }
-.versusSummary h2 { margin:0 0 10px;font-size:20px; }
+.versusSummaryHeader { display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px; }
+.versusSummary h2 { margin:0;font-size:20px; }
 .versusYourStats { display:flex;align-items:center;gap:12px; }
 .versusYourStats.hidden { display:none; }
 .versusYourStats > img { width:52px;height:52px;border-radius:50%;object-fit:cover;flex:none;background:#0b1420; }
@@ -46,7 +47,8 @@ button.versusPlayer { cursor:pointer;touch-action:pan-y; }
 .versusYourTotals div { display:flex;gap:4px;align-items:baseline; }
 .versusYourTotals dt { color:#c0cdd7; }
 .versusYourTotals dd { margin:0;color:#67e0bd;font-weight:800; }
-.versusSummary .leagueLastActions { margin-top:10px; }
+.versusSummary .leagueLastActions { display:flex;gap:5px;margin-left:auto; }
+.versusSummary .leagueHistoryBtn { padding:5px 8px;min-height:30px;font-size:.7rem;white-space:nowrap;box-shadow:none;background:#214432;border:1px solid #50765e; }
 @media (max-width:600px) {
   .versusYourStats { gap:9px; }
   .versusYourStats > img { width:44px;height:44px; }

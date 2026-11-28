@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="styles/header.css">
   <link rel="stylesheet" href="styles/buttons.css">
   <link rel="stylesheet" href="styles/dart-scorer.css?v=20261128-versus-polish" />
-  <link rel="stylesheet" href="styles/versus.css?v=20261128-versus-polish" />
+  <link rel="stylesheet" href="styles/versus.css?v=20261128-summary-buttons" />
   <link rel="stylesheet" href="styles/monster-bot-scorer.css?v=20261031-stable-scoreboard" />
   <link rel="stylesheet" href="styles/monster-bot-splash.css?v=20261023-branded-splash" />
   <link rel="stylesheet" href="styles/profile.css?v=20261127-auth-spinner" />
@@ -181,7 +181,13 @@
       </nav>
 
       <section class="versusSummary" aria-labelledby="versusTitle">
-        <h2 id="versusTitle">Monsters Versus</h2>
+        <div class="versusSummaryHeader">
+          <h2 id="versusTitle">Monsters Versus</h2>
+          <div class="leagueLastActions">
+            <button type="button" class="leagueHistoryBtn" id="openLastGameStatsBtn" hidden>Last match</button>
+            <button type="button" class="leagueHistoryBtn secondary hidden" id="openGameHistoryBtn">History</button>
+          </div>
+        </div>
         <div id="versusYourStats" class="versusYourStats hidden">
           <img id="versusYourPhoto" src="graphics/logoWoText.png" alt="">
           <div class="versusYourIdentity">
@@ -196,10 +202,6 @@
               <div><dt>Highest out</dt><dd id="versusYourHighestOut">—</dd></div>
             </dl>
           </div>
-        </div>
-        <div class="leagueLastActions">
-          <button type="button" class="leagueHistoryBtn" id="openLastGameStatsBtn" hidden>Last match</button>
-          <button type="button" class="leagueHistoryBtn secondary hidden" id="openGameHistoryBtn">History</button>
         </div>
       </section>
 
