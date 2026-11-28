@@ -292,6 +292,8 @@ let molVictoryShownForMatchId = null;
 let currentLeagueProfile = null;
 let currentVersusMatches = [];
 let versusRankingInvites = null;
+let versusSummaryPeriod = "monthly";
+let versusMatchHistoryAvailable = false;
 
 let gameOnAnnouncedForMatchId = null;
 
@@ -1648,13 +1650,18 @@ function buildMatchStatsData(match = window.currentOnlineMatch || {}) {
     const ratingMove = formatMovement(oldRating, newRating);
     const rankData = getProjectedRankData(key, newRating);
 
+    const stats = index === 0 ? p1Stats : p2Stats;
+    const bests = versusMatchHistoryAvailable && !match.forfeitByKey
+      ? window.ONMVersusPlayers?.personalBests(key, stats, currentVersusMatches, Number(match.completedAt), match.resultId || match.matchId)
+      : [];
     return {
       key,
       name,
       nationality,
       photo,
       legs: Number(firebasePlayer.legs || 0),
-      stats: index === 0 ? p1Stats : p2Stats,
+      stats,
+      bests,
       isWinner,
       oldRating,
       newRating,
@@ -1721,14 +1728,14 @@ function buildLocalMatchStatsData() {
   };
 }
 
-function buildStatsRowsHtml(rows) {
+function buildStatsRowsHtml(rows, players = []) {
   return rows.map(([label, left, right]) => `
     <div class="statRow">
-      <div class="statValue">${escapeHtml(left ?? "-")}</div>
+      <div class="statValue">${escapeHtml(left ?? "-")}${players[0]?.bests?.includes(label) ? '<span class="versusBestPill">Best</span>' : ""}</div>
       <div class="statLabelWrap">
         <div class="statLabel">${escapeHtml(label)}</div>
       </div>
-      <div class="statValue">${escapeHtml(right ?? "-")}</div>
+      <div class="statValue">${escapeHtml(right ?? "-")}${players[1]?.bests?.includes(label) ? '<span class="versusBestPill">Best</span>' : ""}</div>
     </div>
   `).join("");
 }
@@ -1741,8 +1748,8 @@ function populateMolVictoryStats(matchData) {
   if (BOT_MODE && !window.ONMMonsterScorer?.tracksCheckouts()) rows.splice(2, 2);
 
   const pageSize = els.molVictoryOverlay?.classList.contains("versusResult") ? rows.length : BOT_MODE ? 4 : 5;
-  els.molStatsPageOne.innerHTML = buildStatsRowsHtml(rows.slice(0, pageSize));
-  els.molStatsPageTwo.innerHTML = buildStatsRowsHtml(rows.slice(pageSize));
+  els.molStatsPageOne.innerHTML = buildStatsRowsHtml(rows.slice(0, pageSize), matchData.players);
+  els.molStatsPageTwo.innerHTML = buildStatsRowsHtml(rows.slice(pageSize), matchData.players);
   setMolStatsPage(0);
 }
 
@@ -6560,7 +6567,11 @@ function listenForDartInvites() {
 
   onValue(ref(db, "dartInvites"), snapshot => {
     versusRankingInvites = Object.values(snapshot.val() || {});
-    if (window.currentLeaderboardPlayers) renderVersusRankings(window.currentLeaderboardPlayers, getCurrentPlayerKey());
+    if (window.currentLeaderboardPlayers) {
+      const playerKey = getCurrentPlayerKey();
+      renderVersusSummaryStats(currentLeagueProfile, playerKey);
+      renderVersusRankings(window.currentLeaderboardPlayers, playerKey);
+    }
     if (activeDartInvite && snapshot.child(activeDartInvite.inviteId).val()?.status !== "pending") {
       closeIncomingDartInvite();
     }
@@ -8201,6 +8212,50 @@ function formatStreak(streak) {
   return value > 0 ? `${value} 🔥` : "";
 }
 
+function getMonthlyVersusMatches(now) {
+  const { monthKey } = window.ONMVersusChallenges;
+  const { matchTime } = window.ONMVersusPlayers;
+  const month = monthKey(now);
+  return currentVersusMatches.filter(match => {
+    const time = matchTime(match);
+    return time !== null && time <= now && monthKey(time) === month;
+  });
+}
+
+function renderVersusSummaryStats(profile, playerKey) {
+  const engine = window.ONMVersusChallenges;
+  const monthly = versusSummaryPeriod === "monthly";
+  const now = Date.now();
+  const stats = monthly && engine && versusMatchHistoryAvailable
+    ? window.ONMVersusPlayers.players([profile ?? { playerKey }], getMonthlyVersusMatches(now))[0]
+    : profile;
+  const challenges = engine && versusRankingInvites && versusMatchHistoryAvailable
+    ? engine.challengesFor(playerKey, currentVersusMatches, versusRankingInvites, now)
+    : null;
+  const values = {
+    Challenges: (monthly ? challenges?.completed : challenges?.totalCompleted) ?? "—",
+    Wins: stats?.wins ?? "—",
+    Streak: stats?.winStreak ?? "—",
+    FastestLeg: stats?.fastestLeg ? `${stats.fastestLeg} darts` : "—",
+    "180s": stats?.oneEightys ?? "—",
+    Bulls: stats?.bullOuts ?? "—",
+    HighestOut: stats?.highestOut ?? "—"
+  };
+  for (const [name, value] of Object.entries(values)) {
+    const stat = document.getElementById(`versusYour${name}`);
+    if (stat) stat.textContent = value;
+  }
+}
+
+document.querySelectorAll("[data-versus-summary-period]").forEach(button => {
+  button.addEventListener("click", () => {
+    versusSummaryPeriod = button.dataset.versusSummaryPeriod;
+    document.querySelectorAll("[data-versus-summary-period]").forEach(tab =>
+      tab.setAttribute("aria-pressed", String(tab === button)));
+    renderVersusSummaryStats(currentLeagueProfile, getCurrentPlayerKey());
+  });
+});
+
 function renderVersusRankings(players, myKey) {
   const challengeEngine = window.ONMVersusChallenges;
   const monthly = document.getElementById("versusMonthlyBoard");
@@ -8212,12 +8267,8 @@ function renderVersusRankings(players, myKey) {
   }
 
   const now = Date.now();
-  const month = challengeEngine.monthKey(now);
-  const { players: getStats, matchTime } = window.ONMVersusPlayers;
-  const monthlyMatches = currentVersusMatches.filter(match => {
-    const time = matchTime(match);
-    return time !== null && time <= now && challengeEngine.monthKey(time) === month;
-  });
+  const { players: getStats } = window.ONMVersusPlayers;
+  const monthlyMatches = getMonthlyVersusMatches(now);
   const monthlyStats = new Map(getStats(players, monthlyMatches).map(player => [player.playerKey, player]));
   const scores = new Map(players.map(player => [player.playerKey,
     challengeEngine.challengesFor(player.playerKey, currentVersusMatches, versusRankingInvites, now)]));
@@ -8287,15 +8338,7 @@ function renderLeaderboard(players = []) {
     setSummaryText("versusYourName", getLoggedInFullName(currentUser));
     const nationality = getPlayerNationality(currentUser) || me?.nationality;
     setSummaryText("versusYourFlag", leaderboardFlag(nationality));
-    setSummaryText("versusYourAverage", me?.average ?? "");
-    const averageStat = document.getElementById("versusYourAverage")?.parentElement;
-    if (averageStat) averageStat.hidden = me?.average == null;
-    setSummaryText("versusYourPlayed", me?.played ?? "—");
-    setSummaryText("versusYourWins", me?.wins ?? "—");
-    setSummaryText("versusYourFastestLeg", me?.fastestLeg ? `${me.fastestLeg} darts` : "—");
-    setSummaryText("versusYour180s", me?.oneEightys ?? "—");
-    setSummaryText("versusYourBulls", me?.bullOuts ?? "—");
-    setSummaryText("versusYourHighestOut", me?.highestOut ?? "—");
+    renderVersusSummaryStats(me, myKey);
   }
   const hasHistory = Boolean(currentUser && getVersusMatchHistory().length);
   const lastMatchButton = document.getElementById("openLastGameStatsBtn");
@@ -8690,16 +8733,18 @@ function renderVersusChallenges() {
   panel.innerHTML = `
     <div class="versusChallengeBrief versusChallengeProfile">
       <img src="${escapeHtml(photoSrc)}" alt="" class="versusAvatar">
-      <div><h3>${escapeHtml(month)} challenges</h3><p>${completed}/9 completed</p></div>
-      <strong class="versusChallengeTicks">${completed} ✓</strong>
+      <div><h3>${escapeHtml(month)} challenges</h3></div>
+      <strong class="versusChallengeTicks">${completed} complete</strong>
     </div>
     <div class="versusChallengeCards">${tiers.map(tier => `
       <article class="versusChallengeBrief">
         <div class="versusChallengeLine"><h3 class="versusChallengeDifficulty">${tier.difficulty.toUpperCase()}</h3><span>${tier.completed}/3 complete</span></div>
         ${tier.active ? `
-          <h4>${tier.active.label}</h4>
-          <progress max="${tier.active.target}" value="${tier.active.value}" aria-label="${tier.active.label}"></progress>
-          <div class="versusChallengeLine"><span>${tier.active.value}/${tier.active.target}</span><strong class="versusChallengeTicks">+1 ✓</strong></div>`
+          <div class="versusChallengeTask">
+            <div class="versusChallengeLine"><h4>${tier.active.label}</h4><strong class="versusChallengeTicks">+1</strong></div>
+            <progress max="${tier.active.target}" value="${tier.active.value}" aria-label="${tier.active.label}"></progress>
+            <small>${tier.active.value}/${tier.active.target}</small>
+          </div>`
           : tier.availableAt ? `<p data-challenge-unlock="${tier.availableAt}"></p>` : '<p>All three challenges completed</p>'}
       </article>`).join("")}</div>`;
   updateChallengeCountdowns(panel);
@@ -8740,6 +8785,7 @@ function showVersusPanel(selection) {
   document.getElementById("versusChallengesTab")?.setAttribute("aria-pressed", String(challenges));
   document.getElementById("versusLeaderboardTab")?.setAttribute("aria-pressed", String(leaderboard));
   document.getElementById("versusPlayPanel").hidden = !play;
+  document.getElementById("versusToolbar").hidden = challenges;
   const challengesPanel = document.getElementById("versusChallengesPanel");
   challengesPanel.hidden = !challenges;
   document.getElementById("versusLeaderboardPanel").hidden = !leaderboard;
@@ -8802,6 +8848,7 @@ async function loadLeaderboard() {
     const rosterKeys = new Set([...roster, ...ownProfile].map(player => player.playerKey));
     if (presenceByKey === null) throw new Error("Could not load player availability.");
     const currentProfiles = await loadVersusProfilePhotos([...ownProfile, ...roster]);
+    versusMatchHistoryAvailable = matches.status === "fulfilled";
     currentVersusMatches = matches.value?.docs.map(doc => doc.data()) || [];
     const players = window.ONMVersusPlayers.players(
       [...historical, ...currentProfiles],
@@ -8830,14 +8877,8 @@ document.getElementById("openLastGameStatsBtn")?.addEventListener("click", openL
 
 document.getElementById("openGameHistoryBtn")?.addEventListener("click", () => {
   const user = window.ONMSession?.getUser?.() || loggedInUser;
-  const buttonText = document.getElementById("openGameHistoryBtn")?.textContent.trim();
 
   if (!user) {
-    window.location.href = "auth.html?mode=register&redirect=dart-scorer.html";
-    return;
-  }
-
-  if (buttonText === "Register") {
     window.location.href = "auth.html?mode=register&redirect=dart-scorer.html";
     return;
   }

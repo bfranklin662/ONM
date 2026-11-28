@@ -31,7 +31,7 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  };
  const ctx = {document:{getElementById:node,querySelectorAll:()=>[],querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})},ONMVersusPlayers:E,ONMVersusChallenges:{
    monthKey:()=>"2026-11",challengesFor:key=>({completed:key==="b-off"?2:0,totalCompleted:key==="b-off"?2:0})
-  }},loggedInUser:{},currentVersusMatches:[],versusRankingInvites:[],
+  }},loggedInUser:{},currentVersusMatches:[],versusRankingInvites:[],versusSummaryPeriod:"total",versusMatchHistoryAvailable:true,
   getCurrentPlayerKey:()=>"me",leaderboardFlag:()=>"🇬🇧",escapeHtml:value=>String(value).replace(/</g,"&lt;"),
   getPlayerPhotoField:player=>player?.photo || "",getPlayerNationality:()=> "British",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, getVersusMatchHistory:()=>[], selectedVersusPlayerKey:"", selectedVersusPlayerWasOnline:false, isPlayerOnline:async()=>online, openCompetitiveInviteFlow:key=>invited.push(key), showOnlineNotice:message=>notices.push(message)};
  vm.runInNewContext(part,ctx);
@@ -47,9 +47,9 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  assert.match(html, /<summary>Offline[\s\S]*Ben[\s\S]*Ada[\s\S]*Zoe/);
  assert.match(html, /🇬🇧/);
  assert.match(html, /52.50 <small>avg/);
- assert.equal(node("versusYourAverage").textContent,"53.25");
  assert.equal(node("versusYourFlag").textContent,"🇬🇧");
  assert.equal(node("versusYourWins").textContent,3);
+ assert.equal(node("versusYourStreak").textContent,2);
  assert.equal(node("versusYourFastestLeg").textContent,"18 darts");
  assert.equal(node("versusYourHighestOut").textContent,134);
  const board = node("versusLeaderboardRows").innerHTML;
@@ -667,4 +667,16 @@ test("Versus challenges rotate one slot per tier after a full day and award at m
   const january = challengesFor("a", matches, invites, Date.parse("2027-01-01T00:00:00Z"));
   assert.equal(january.completed, 0);
   assert.equal(january.totalCompleted, 9);
+});
+
+test("post-match bests use earlier completed Versus matches and ignore ties and forfeits", () => {
+  const previous = {
+    matchMode: "online", dateTime: "2026-11-26T18:00:00Z", playerTwoId: "a",
+    playerTwoBestLeg: 24, playerTwoHighestOut: 80, playerTwo3DartAvg: 45.5, playerTwoHighScore: 140
+  };
+  const stats = { bestLeg: "21 darts", highestOut: 80, average: "46.00", highScore: 100 };
+  const history = [previous, { ...previous, matchId: "current", playerTwoBestLeg: 12 },
+    { ...previous, forfeitByKey: "b", playerTwo3DartAvg: 75 }];
+  assert.deepEqual(E.personalBests("a", stats, history, Date.parse("2026-11-28T18:00:00Z"), "current"),
+    ["Best leg", "3-dart avg."]);
 });

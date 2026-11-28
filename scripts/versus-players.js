@@ -145,7 +145,31 @@
     return { month, goal: monthlyGoal, progress };
   }
 
-  const api = { players, inviteProfiles, statusOf, withProfilePhotos, monthlyChallenges, matchTime };
+  function personalBests(playerKey, stats, history, completedAt, matchId) {
+    if (!playerKey || !Number.isFinite(completedAt)) return [];
+    const metrics = [
+      ["Best leg", "bestLeg", "BestLeg", true],
+      ["Highest out", "highestOut", "HighestOut", false],
+      ["3-dart avg.", "average", "3DartAvg", false],
+      ["High score", "highScore", "HighScore", false]
+    ];
+    const previous = history.flatMap(match => {
+      const time = matchTime(match);
+      if (match.matchMode !== "online" || match.forfeitByKey || (matchId && match.matchId === matchId) ||
+          time === null || time >= completedAt) return [];
+      const prefix = match.playerOneId === playerKey ? "playerOne" : match.playerTwoId === playerKey ? "playerTwo" : null;
+      return prefix ? [{ match, prefix }] : [];
+    });
+    return metrics.filter(([, statKey, field, lower]) => {
+      const value = parseFloat(stats[statKey]);
+      return value > 0 && previous.every(({ match, prefix }) => {
+        const past = parseFloat(match[prefix + field]);
+        return !(past > 0) || (lower ? value < past : value > past);
+      });
+    }).map(([label]) => label);
+  }
+
+  const api = { players, inviteProfiles, statusOf, withProfilePhotos, monthlyChallenges, matchTime, personalBests };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.ONMVersusPlayers = api;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -4859,3 +4859,14 @@ body.casualMode #matchModeSwitch {
   color: #e9f5ec;
   white-space: nowrap;
 }
+
+.versusBestPill {
+  display: inline-block;
+  margin-inline-start: 4px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: #255339;
+  color: #c2f4cd;
+  font-size: .62rem;
+  vertical-align: middle;
+}

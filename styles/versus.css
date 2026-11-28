@@ -241,3 +241,14 @@ body:has(#leaderboardView:not(.hidden)) {
 .versusRankingTable th,.versusRankingTable td { vertical-align:middle;text-align:center; }
 .versusRankingTable th[scope="row"],.versusRankingTable th:nth-child(2) { text-align:left; }
 .versusRankingTable td:first-child img { display:block; }
+
+.versusToolbar[hidden] { display:none; }
+.versusSummary .leagueHistoryBtn { display:grid;place-items:center;width:32px;height:32px;padding:0; }
+.versusSummary .leagueHistoryBtn svg { width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }
+.versusSummaryPeriods { display:flex;gap:4px;margin-top:8px; }
+.versusSummaryPeriods button { color:#aac8b6;background:transparent;border:1px solid #416d53;border-radius:7px;padding:4px 9px;font-size:.75rem;cursor:pointer; }
+.versusSummaryPeriods button[aria-pressed="true"] { color:#eef9f1;background:#28543d;border-color:#7baa8d; }
+.versusChallengeTask { margin-top:10px;padding:10px 12px;border-radius:9px;background:#0f221b;border:1px solid #345945; }
+.versusChallengeTask h4 { margin:0;font-size:1rem; }
+.versusChallengeTask progress { display:block;margin:9px 0 4px; }
+.versusChallengeTask small { color:#b9d5c2; }
