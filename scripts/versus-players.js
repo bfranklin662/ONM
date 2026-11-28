@@ -105,7 +105,47 @@
       a.playerName.localeCompare(b.playerName, "en", { sensitivity: "base" }));
   }
 
-  const api = { players, inviteProfiles, statusOf, withProfilePhotos };
+  const monthlyGoal = 4;
+  const monthFormatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London", year: "numeric", month: "long"
+  });
+
+  function monthlyChallenges(matches = [], now = Date.now()) {
+    const month = monthFormatter.format(now);
+    const progress = new Map();
+    const previousWins = new Set();
+    const previousOut = new Map();
+    const seen = new Set();
+    const ordered = matches.map(match => ({ match, time: matchTime(match) }))
+      .filter(({ time }) => time !== null && time <= now).sort((a, b) => a.time - b.time);
+    for (const { match, time } of ordered) {
+      if (match.matchMode !== "online" || match.mode === "bot" || match.botMode || match.casual || match.forfeitByKey) continue;
+      const keys = [clean(match.playerOneId), clean(match.playerTwoId)];
+      const wins = [match.playerOneWon, match.playerTwoWon].map(value => String(value).toLowerCase() === "true");
+      if (!keys[0] || !keys[1] || keys[0] === keys[1] || wins[0] === wins[1]) continue;
+      if (match.matchId && seen.has(match.matchId)) continue;
+      if (match.matchId) seen.add(match.matchId);
+      const inMonth = monthFormatter.format(time) === month;
+      const legs = [Number(match.playerOneLegs || 0), Number(match.playerTwoLegs || 0)];
+      keys.forEach((key, index) => {
+        const checkout = Number(match[index === 0 ? "playerOneHighestOut" : "playerTwoHighestOut"] || 0);
+        const best = previousOut.get(key) || 0;
+        if (inMonth) {
+          const row = progress.get(key) || { opponents: new Set(), firstWin: false, personalBest: 0, decidingLeg: false };
+          row.opponents.add(keys[1 - index]);
+          if (wins[index] && !previousWins.has(key)) row.firstWin = true;
+          if (best > 0 && checkout > best) row.personalBest = checkout;
+          if (Math.min(...legs) > 0 && Math.abs(legs[0] - legs[1]) === 1) row.decidingLeg = true;
+          progress.set(key, row);
+        }
+        if (wins[index]) previousWins.add(key);
+        if (checkout > best) previousOut.set(key, checkout);
+      });
+    }
+    return { month, goal: monthlyGoal, progress };
+  }
+
+  const api = { players, inviteProfiles, statusOf, withProfilePhotos, monthlyChallenges };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.ONMVersusPlayers = api;
 })(typeof window !== "undefined" ? window : globalThis);

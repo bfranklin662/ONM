@@ -8198,6 +8198,48 @@ function formatStreak(streak) {
   return value > 0 ? `${value} 🔥` : "";
 }
 
+function renderMonthlyVersusBoard(players, myKey) {
+  const board = document.getElementById("versusMonthlyBoard");
+  const monthly = window.ONMVersusPlayers?.monthlyChallenges;
+  if (!board || !monthly) return;
+  if (!myKey) { board.textContent = "Log in to view monthly challenges."; return; }
+  const { month, goal, progress } = monthly(currentVersusMatches);
+  const rows = players.filter(player => progress.has(player.playerKey) || player.playerKey === myKey)
+    .sort((a, b) => (progress.get(b.playerKey)?.opponents.size || 0) - (progress.get(a.playerKey)?.opponents.size || 0) ||
+      a.playerName.localeCompare(b.playerName));
+  board.innerHTML = `
+    <div class="versusChallengeBrief">
+      <h3>${escapeHtml(month)} · Play four different opponents</h3>
+      <p>Finish a Versus match and you both get credit. Play four different opponents to earn the monthly badge.</p>
+    </div>
+    <table class="versusMonthlyTable">
+      <thead><tr><th scope="col">Player</th><th scope="col">Opponents</th><th scope="col">Milestones</th></tr></thead>
+      <tbody>${rows.map(player => {
+        const row = progress.get(player.playerKey);
+        const count = row?.opponents.size || 0;
+        const badges = [
+          count >= goal && "Challenge complete",
+          row?.firstWin && "First Versus win",
+          row?.personalBest && `Best checkout · ${row.personalBest}`,
+          row?.decidingLeg && "Deciding leg"
+        ].filter(Boolean);
+        return `<tr><th scope="row">${escapeHtml(player.playerName)}</th>
+          <td>${Math.min(count, goal)}/${goal}</td>
+          <td>${badges.map(badge => `<span class="versusChallengeBadge">${escapeHtml(badge)}</span>`).join("") || "—"}</td></tr>`;
+      }).join("")}</tbody>
+    </table>`;
+}
+
+document.querySelectorAll("[data-versus-period]").forEach(button => {
+  button.addEventListener("click", () => {
+    const monthly = button.dataset.versusPeriod === "monthly";
+    document.getElementById("versusMonthlyBoard").hidden = !monthly;
+    document.getElementById("versusLeaderboardRows").hidden = monthly;
+    document.querySelectorAll("[data-versus-period]").forEach(tab =>
+      tab.setAttribute("aria-pressed", String(tab === button)));
+  });
+});
+
 function renderLeaderboard(players = []) {
   const rowsEl=document.getElementById("leaderboardRows");if(!rowsEl)return;
   const currentUser=window.ONMSession?.getUser?.()||loggedInUser,myKey=getCurrentPlayerKey();
@@ -8243,6 +8285,7 @@ function renderLeaderboard(players = []) {
     return `<img class="versusAvatar" src="${escapeHtml(src)}" alt="" loading="lazy">`;
   }
 
+  if (typeof renderMonthlyVersusBoard === "function") renderMonthlyVersusBoard(players, myKey);
   const board = document.getElementById("versusLeaderboardRows");
   if (board) {
     const expanded = new Set([...board.querySelectorAll("details[open]")].map(row => row.dataset.playerKey));

@@ -209,3 +209,14 @@ body:has(#leaderboardView:not(.hidden)) {
 }
 
 .versusOfflineSection > summary .versusSectionCount { margin-inline-end: auto; }
+
+.versusPeriodSwitch { display:flex;gap:6px;margin:12px 0; }
+.versusPeriodSwitch button { padding:7px 12px;border:1px solid #416d53;border-radius:8px;color:#e9f5ec;background:#11291f;cursor:pointer; }
+.versusPeriodSwitch button[aria-pressed="true"] { background:#28543d;border-color:#7baa8d; }
+.versusChallengeBrief { padding:12px;border:1px solid #416d53;border-radius:12px;background:#142b23; }
+.versusChallengeBrief h3 { margin:0;font-size:1rem; }
+.versusChallengeBrief p { margin:6px 0 0;color:#bbd5c5;font-size:.85rem; }
+.versusMonthlyTable { width:100%;margin:10px 0;border-collapse:collapse;font-size:.85rem; }
+.versusMonthlyTable th,.versusMonthlyTable td { padding:8px 5px;border-bottom:1px solid #365444;text-align:left;vertical-align:top; }
+.versusChallengeBadge { display:inline-block;margin:0 4px 4px 0;padding:3px 6px;border-radius:6px;background:#234b35;color:#e5f7eb; }
+#versusLeaderboardRows[hidden],#versusMonthlyBoard[hidden] { display:none; }
