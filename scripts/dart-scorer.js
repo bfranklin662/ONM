@@ -8664,15 +8664,96 @@ function openLeagueHistory() {
   });
 }
 
-function showVersusPanel(leaderboard) {
-  document.getElementById("versusPlayTab")?.setAttribute("aria-pressed", String(!leaderboard));
+let challengeRefreshTimer;
+let outgoingVersusInvites = [];
+let challengeMatches = [];
+let challengeDataReady = false;
+let challengeLoadVersion = 0;
+
+function updateChallengeCountdowns(panel) {
+  for (const timer of panel.querySelectorAll("[data-challenge-unlock]")) {
+    const remaining = Math.ceil((Number(timer.dataset.challengeUnlock) - Date.now()) / 1000);
+    if (remaining <= 0) {
+      renderVersusChallenges();
+      return;
+    }
+    const hours = Math.floor(remaining / 3600);
+    const minutes = Math.floor(remaining % 3600 / 60);
+    const seconds = remaining % 60;
+    timer.textContent = `Next challenge in ${hours}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+  }
+}
+
+function renderVersusChallenges() {
+  const panel = document.getElementById("versusChallengesPanel");
+  const playerKey = getCurrentPlayerKey();
+  if (!panel || panel.hidden || !challengeDataReady || !playerKey) return;
+  const { coins, tiers, completed } = window.ONMVersusChallenges.challengesFor(playerKey, challengeMatches, outgoingVersusInvites);
+  panel.innerHTML = `
+    <div class="versusChallengeBrief versusCoinSummary">
+      <div><h3>Monthly challenges</h3><p>${completed}/9 completed this month</p></div>
+      <strong>${coins} Monster ${coins === 1 ? "Coin" : "Coins"}</strong>
+    </div>
+    <div class="versusChallengeCards">${tiers.map(tier => `
+      <article class="versusChallengeBrief">
+        <div class="versusCoinSummary"><h3>${tier.difficulty}</h3><span>${tier.completed}/3 complete</span></div>
+        ${tier.active ? `
+          <h4>${tier.active.label}</h4>
+          <progress max="${tier.active.target}" value="${tier.active.value}" aria-label="${tier.active.label}"></progress>
+          <div class="versusCoinSummary"><span>${tier.active.value}/${tier.active.target}</span><strong>+${tier.reward} Monster ${tier.reward === 1 ? "Coin" : "Coins"}</strong></div>`
+          : tier.availableAt ? `<p data-challenge-unlock="${tier.availableAt}"></p>` : '<p>All three challenges completed</p>'}
+      </article>`).join("")}</div>`;
+  updateChallengeCountdowns(panel);
+}
+
+async function loadVersusChallenges() {
+  const panel = document.getElementById("versusChallengesPanel");
+  const playerKey = getCurrentPlayerKey();
+  const version = ++challengeLoadVersion;
+  challengeDataReady = false;
+  if (!playerKey || !window.ONMLiveDarts) {
+    panel.textContent = "Log in to view your challenges.";
+    return;
+  }
+  panel.textContent = "Loading challenges…";
+  try {
+    const { db, ref, get, query, orderByChild, equalTo } = window.ONMLiveDarts;
+    const [matches, invites] = await Promise.all([
+      window.ONMFirebase.ready.then(({ db: firestore, firestoreSdk: sdk }) => sdk.getDocs(sdk.collection(firestore, "dartMatches"))),
+      get(query(ref(db, "dartInvites"), orderByChild("fromPlayerKey"), equalTo(playerKey)))
+    ]);
+    if (version !== challengeLoadVersion || getCurrentPlayerKey() !== playerKey) return;
+    challengeMatches = matches.docs.map(doc => doc.data());
+    outgoingVersusInvites = Object.values(invites.val() || {});
+    challengeDataReady = true;
+    renderVersusChallenges();
+  } catch (error) {
+    if (version === challengeLoadVersion) panel.textContent = "Could not load challenges. Reopen the tab to retry.";
+    console.warn("Could not load Versus challenges:", error);
+  }
+}
+
+function showVersusPanel(selection) {
+  const challenges = selection === "challenges";
+  const leaderboard = selection === true;
+  const play = !challenges && !leaderboard;
+  document.getElementById("versusPlayTab")?.setAttribute("aria-pressed", String(play));
+  document.getElementById("versusChallengesTab")?.setAttribute("aria-pressed", String(challenges));
   document.getElementById("versusLeaderboardTab")?.setAttribute("aria-pressed", String(leaderboard));
-  document.getElementById("versusPlayPanel").hidden = leaderboard;
+  document.getElementById("versusPlayPanel").hidden = !play;
+  const challengesPanel = document.getElementById("versusChallengesPanel");
+  challengesPanel.hidden = !challenges;
   document.getElementById("versusLeaderboardPanel").hidden = !leaderboard;
   document.getElementById("versusPanelTitle").textContent = leaderboard ? "Leaderboard" : "Challenge an online player";
+  clearInterval(challengeRefreshTimer);
+  if (challenges) {
+    void loadVersusChallenges();
+    challengeRefreshTimer = setInterval(() => updateChallengeCountdowns(challengesPanel), 1000);
+  }
 }
 
 document.getElementById("versusPlayTab")?.addEventListener("click", () => showVersusPanel(false));
+document.getElementById("versusChallengesTab")?.addEventListener("click", () => showVersusPanel("challenges"));
 document.getElementById("versusLeaderboardTab")?.addEventListener("click", () => showVersusPanel(true));
 document.getElementById("refreshVersusPlayers")?.addEventListener("click", loadLeaderboard);
 async function loadLeaderboard() {

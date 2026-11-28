@@ -636,3 +636,34 @@ test("monthly challenges use the UK month and reward both players once per oppon
   assert.equal(result.progress.has("d"), false);
   assert.equal(result.progress.has("e"), false);
 });
+
+test("Monster Coin challenges rotate one slot per tier after a full day and award at most nine monthly completions", () => {
+  const { challengesFor } = require("../scripts/versus-challenges");
+  const start = Date.parse("2026-12-01T12:00:00Z");
+  const first = {
+    matchId: "first", dateTime: new Date(start).toISOString(), matchMode: "online",
+    playerOneId: "a", playerTwoId: "b", playerOneWon: true,
+    playerOneHighestOut: 120, playerOneHighScore: 180, playerOneBullOuts: 1
+  };
+  const initial = challengesFor("a", [], [], start);
+  assert.equal(initial.tiers.filter(tier => tier.active).length, 3);
+  const matches = Array.from({ length: 30 }, (_, day) => ({
+    ...first, matchId: String(day), dateTime: new Date(start + day * 86400000).toISOString()
+  }));
+  const invites = Array.from({ length: 30 * 4 }, (_, index) => ({
+    fromPlayerKey: "a", toPlayerKey: "opponent" + index % 4,
+    createdAt: start + Math.floor(index / 4) * 86400000 + index % 4
+  }));
+  const early = challengesFor("a", matches, invites, start + 1000);
+  const waiting = early.tiers.find(tier => tier.availableAt);
+  assert.ok(waiting);
+  assert.equal(waiting.active, null);
+  assert.equal(challengesFor("a", matches, invites, waiting.availableAt - 1).tiers.find(tier => tier.difficulty === waiting.difficulty).active, null);
+  const done = challengesFor("a", matches, invites, start + 30 * 86400000);
+  assert.equal(done.completed, 9);
+  assert.equal(done.coins, 18);
+  assert.ok(done.tiers.every(tier => !tier.active && !tier.availableAt));
+  const january = challengesFor("a", matches, invites, Date.parse("2027-01-01T00:00:00Z"));
+  assert.equal(january.completed, 0);
+  assert.equal(january.coins, 18);
+});
