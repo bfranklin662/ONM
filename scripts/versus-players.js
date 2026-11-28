@@ -50,7 +50,7 @@
     const rows = new Map();
     const newRow = playerKey => ({
       playerKey, totalScored: 0, dartsThrown: 0, trackedGames: 0,
-      played: 0, wins: 0, fastestLeg: null, oneEightys: 0, bullOuts: 0, highestOut: null, winStreak: 0
+      played: 0, wins: 0, fastestLeg: null, oneEightys: 0, bullOuts: 0, highestOut: null, tonPlusOuts: 0, tonPlusIncomplete: false, winStreak: 0
     });
     for (const profile of profiles) {
       const key = keyOf(profile);
@@ -89,6 +89,11 @@
         row.bullOuts += Number(match[prefix + "BullOuts"]) || 0;
         const highestOut = Number(match[prefix + "HighestOut"]);
         if (highestOut > 0) row.highestOut = Math.max(row.highestOut ?? 0, highestOut);
+        const countedOuts = match[prefix + "TonPlusOuts"];
+        const exactCount = countedOuts != null && countedOuts !== "" && Number.isFinite(Number(countedOuts));
+        row.tonPlusOuts += exactCount ? Number(countedOuts) : Number(highestOut >= 100);
+        row.tonPlusIncomplete ||= match[prefix + "TonPlusIncomplete"] === true ||
+          (!exactCount && highestOut >= 100 && Number(match[prefix + "Legs"]) > 1);
         if (validVisitTotals) {
           row.totalScored += scored;
           row.dartsThrown += darts;

@@ -8240,7 +8240,8 @@ function renderVersusSummaryStats(profile, playerKey) {
     FastestLeg: stats?.fastestLeg ? `${stats.fastestLeg} darts` : "—",
     "180s": stats?.oneEightys ?? "—",
     Bulls: stats?.bullOuts ?? "—",
-    HighestOut: stats?.highestOut ?? "—"
+    HighestOut: stats?.highestOut ?? "—",
+    TonPlus: stats?.tonPlusIncomplete ? `${stats.tonPlusOuts}+` : stats?.tonPlusOuts ?? "—"
   };
   for (const [name, value] of Object.entries(values)) {
     const stat = document.getElementById(`versusYour${name}`);
@@ -8719,7 +8720,9 @@ function updateChallengeCountdowns(panel) {
     const hours = Math.floor(remaining / 3600);
     const minutes = Math.floor(remaining % 3600 / 60);
     const seconds = remaining % 60;
-    timer.textContent = `Next challenge in ${hours}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+    timer.querySelector(".versusCooldownTime").textContent = [hours, minutes, seconds]
+      .map(value => String(value).padStart(2, "0")).join(":");
+    timer.querySelector("progress").value = Math.max(0, 86400 - remaining);
   }
 }
 
@@ -8731,16 +8734,21 @@ function renderVersusChallenges() {
   panel.innerHTML = `
     <div class="versusChallengeCards">${tiers.map(tier => {
       const difficulty = tier.difficulty.toLowerCase();
+      const difficultyLabel = `<span class="versusChallengeDifficulty" data-difficulty="${difficulty}">${tier.difficulty.toUpperCase()}</span>`;
       const content = tier.active ? `
-        <div class="versusChallengeLine"><h4>${tier.active.label}</h4><strong class="versusChallengeTicks">+1</strong></div>
+        <div class="versusChallengeLine"><h4>${tier.active.label}</h4><strong class="versusChallengeTicks versusCompactTick">+1</strong></div>
         <progress max="${tier.active.target}" value="${tier.active.value}" aria-label="${tier.active.label}"></progress>
-        <small>${tier.active.value}/${tier.active.target}</small>`
-        : tier.availableAt ? `<h4>${tier.completed}/3 monthly ${difficulty} challenges complete</h4>
-          <p data-challenge-unlock="${tier.availableAt}"></p>`
-          : `<h4>All ${difficulty} challenges complete</h4>`;
-      return `<article class="versusChallengeTask">
-        ${content}<span class="versusChallengeDifficulty" data-difficulty="${difficulty}">${tier.difficulty.toUpperCase()}</span>
-      </article>`;
+        <div class="versusChallengeLine"><small>${tier.active.value}/${tier.active.target}</small>${difficultyLabel}</div>`
+        : `
+        <div class="versusChallengeLine">
+          <h4>${tier.availableAt ? `${tier.completed}/3 monthly ${difficulty} challenges complete` : `All ${difficulty} challenges complete`}</h4>
+          ${difficultyLabel}
+        </div>
+        ${tier.availableAt ? `<div class="versusCooldown" data-challenge-unlock="${tier.availableAt}">
+          <span>Next challenge in</span><span class="versusCooldownTime" role="timer" aria-label="Time until next challenge"></span>
+          <progress max="86400" aria-label="Time elapsed until next challenge"></progress>
+        </div>` : ""}`;
+      return `<article class="versusChallengeTask">${content}</article>`;
     }).join("")}</div>`;
   updateChallengeCountdowns(panel);
 }
