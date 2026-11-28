@@ -41,7 +41,7 @@ test("lobby splits compact player cards, and offline opponents can be selected b
   {playerKey:"b-off",playerName:"Ben",status:"offline",played:1}
  ]);
  const html = node("leaderboardRows").innerHTML;
- assert.match(html, /<h3>Online<\/h3>[\s\S]*Alex[\s\S]*<summary>Offline[\s\S]*Zoe/);
+ assert.match(html, /<h3>Online <span class="versusSectionCount">1<\/span><\/h3>[\s\S]*Alex[\s\S]*<summary>Offline[\s\S]*Zoe/);
  assert.match(html, /<summary>Offline[\s\S]*Ben[\s\S]*Ada[\s\S]*Zoe/);
  assert.match(html, /🇬🇧/);
  assert.match(html, /52.50 <small>avg/);
@@ -260,7 +260,7 @@ function onlineScorerHarness(status = "playing") {
   const ctx = vm.createContext({
     window: { ONMLiveDarts: api }, onlineMatchId: "versus-test", PAGE_MODE: "league", MATCH_MODE: "online",
     STARTING_SCORE: 501, GAME_TYPE: "bestOf", LEGS_TO_WIN: 2, IN_MODE: "straight",
-    els: { legsCount: { textContent: "3" }, input: {}, submit: {},
+    els: { legsCount: { textContent: "3" }, input: {}, submit: {}, turnMessage: {},
       keypad: { classList: { toggle() {} }, querySelectorAll: () => [] } }, state: { players: [{}, {}] },
     calculateFirstNineImpact: () => ({ firstNineScore: 0, firstNineDartsUsed: 0 }),
     getFirebasePlayerRating: async () => ({ rating: 1000, gamesPlayed: 0, wins: 0 }),
@@ -270,7 +270,7 @@ function onlineScorerHarness(status = "playing") {
     fullyStopDartAudio() {}, clearOnlineSession() {}, resetOnlineLobbyState() {},
     initialisePageModeView() {}, showLeagueResumePrompt() {},
     document: { getElementById: () => null }, clearInterval() {},
-    getCurrentPlayerKey: () => "nick", clearDartAudioQueue() {},
+    getCurrentPlayerKey: () => "nick", firstNameOnly: name => name?.split(" ")[0], clearDartAudioQueue() {},
     isDartAudioSuppressed: () => false, playDartCallout: name => calls.audio.push(name)
   });
   for (const [start, end] of [
@@ -357,17 +357,15 @@ test("a stale connection pauses play and lets the disconnected player rejoin", (
 
 test("the visible countdown starts thirty seconds after the throw begins", () => {
   const h = onlineScorerHarness();
-  const countdown = {};
-  h.ctx.document.getElementById = id => id === "onlineThrowCountdown" ? countdown : null;
+  const countdown = h.ctx.els.turnMessage;
   vm.runInContext("onlineMatchConnected = true", h.ctx);
   h.match().game.turnStartedAt = 1000;
   h.ctx.renderOnlineMatchClock(h.match(), "nick", 30999);
-  assert.equal(countdown.hidden, true);
+  assert.equal(countdown.textContent, "Nick's turn");
   h.ctx.renderOnlineMatchClock(h.match(), "nick", 31000);
-  assert.equal(countdown.hidden, false);
   assert.equal(countdown.textContent, "30s to throw");
   h.ctx.renderOnlineMatchClock(h.match(), "test", 32000);
-  assert.equal(countdown.textContent, "Opponent has 29s to throw");
+  assert.equal(countdown.textContent, "Nick has 29s to throw");
 });
 
 test("a shared score edit queues correction before the corrected number", () => {

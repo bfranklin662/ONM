@@ -194,3 +194,14 @@ body:has(#leaderboardView:not(.hidden)) {
 .versusInviteDetails dd { margin-top: 6px; font-size: 1rem; color: #f2fbf5; }
 .versusInviteFooter { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 #dartInviteSoundBtn[hidden] { display: none; }
+
+
+.versusSectionCount {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #234b35;
+  color: #d6efdf;
+  font-size: .8rem;
+  font-variant-numeric: tabular-nums;
+}

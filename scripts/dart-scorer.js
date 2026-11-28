@@ -466,15 +466,18 @@ function renderOnlineMatchClock(match, myKey, now = onlineMatchNow()) {
     hideOpponentMissingOverlay();
   }
 
-  const countdown = document.getElementById("onlineThrowCountdown");
-  if (!countdown) return;
+  renderVersusTurnLabel(match, myKey, now);
+}
+
+function renderVersusTurnLabel(match, myKey, now) {
   const startedAt = onlineTurnStartedAt(match);
-  const show = Boolean(startedAt && !match.reconnect && now >= startedAt + ONLINE_THROW_WARNING_MS);
-  countdown.hidden = !show;
-  if (!show) return;
+  const activeKey = match.game.currentPlayerKey;
+  const name = firstNameOnly(match.game.players?.[activeKey]?.name) || "Opponent";
+  const warning = startedAt && !match.reconnect && now >= startedAt + ONLINE_THROW_WARNING_MS;
   const seconds = onlineSecondsLeft(startedAt + ONLINE_THROW_LIMIT_MS, now);
-  const text = match.game.currentPlayerKey === myKey ? `${seconds}s to throw` : `Opponent has ${seconds}s to throw`;
-  if (countdown.textContent !== text) countdown.textContent = text;
+  els.turnMessage.textContent = warning
+    ? (activeKey === myKey ? `${seconds}s to throw` : `${name} has ${seconds}s to throw`)
+    : `${name}'s turn`;
 }
 
 function isVersusScorer() {
@@ -521,8 +524,6 @@ function stopOnlineMatchClock() {
   onlineClockMatchId = null;
   onlineMatchConnected = false;
   hideOpponentMissingOverlay();
-  const countdown = document.getElementById("onlineThrowCountdown");
-  if (countdown) countdown.hidden = true;
 }
 
 function returnToOnlineRejoin(match, keepLeagueMode = true) {
@@ -2761,6 +2762,12 @@ els.molVictoryCloseBtn?.addEventListener("click", () => {
   if (els.molVictoryOverlay?.dataset.resultMode === "history") {
     els.molVictoryOverlay.classList.add("hidden");
     els.molVictoryOverlay.setAttribute("aria-hidden", "true");
+    const history = document.getElementById("leagueInfoOverlay");
+    if (history?.inert) {
+      history.inert = false;
+      history.setAttribute("aria-hidden", "false");
+      history.querySelector("[data-history-selected]")?.focus();
+    }
     return;
   }
 
@@ -3594,6 +3601,9 @@ function render() {
     ? `${playerName(state.currentPlayer)} · Count from the opening double`
     : `${playerName(state.currentPlayer)}'s turn!`;
   els.turnMessage.classList.toggle("playerTwoTurn", state.currentPlayer === 1);
+  if (onlineMatchId && window.currentOnlineMatch?.status === "playing") {
+    renderVersusTurnLabel(window.currentOnlineMatch, getCurrentPlayerKey(), onlineMatchNow());
+  }
   if (document.activeElement !== els.input) {
     els.input.blur();
   }
@@ -7153,10 +7163,12 @@ function openOnlineCoinDecider(match) {
 }
 
 async function restoreOnlineSession() {
+  if (onlineMatchId) return true;
   const saved = await getSavedOnlineSessionMatch();
   if (!saved) return false;
 
   const { session, match } = saved;
+  let restoredMatch = match;
   const myKey = getCurrentPlayerKey();
   if (!myKey) return false;
   const { db, ref, runTransaction, setPresenceStatus } = window.ONMLiveDarts;
@@ -7169,7 +7181,9 @@ async function restoreOnlineSession() {
       clearOnlineSession();
       return false;
     }
-    if (!result.committed && latest?.status !== "complete") return false;
+    if (!latest || (!result.committed && latest.status !== "complete" &&
+        (latest.status !== "playing" || latest.reconnect?.playerKey === myKey))) return false;
+    restoredMatch = latest;
   }
 
   onlineInviteAccepted = true;
@@ -7177,18 +7191,16 @@ async function restoreOnlineSession() {
   onlineMatchId = session.matchId;
   onlineRole = session.role;
   MATCH_MODE = "online";
-  STATS_MODE = match.statsMode || "casual";
+  STATS_MODE = restoredMatch.statsMode || "casual";
+  window.STATS_MODE = STATS_MODE;
   hideLeagueResumePrompt();
 
-  if (match.status === "playing") {
+  if (restoredMatch.status === "playing") {
     void setPresenceStatus?.(myKey, "playing")?.catch(err => console.warn("Could not update presence:", err));
   }
   lastOnlineCalloutId = match.game?.lastCallout?.id || null;
   lastOnlineCalloutAt = match.game?.lastCallout?.createdAt || null;
   listenToOnlineMatch(onlineMatchId);
-  document.body.classList.remove("scorer-fullscreen");
-  window.scrollTo(0, 0);
-  updateSetupPlayerMode();
   return true;
 }
 
@@ -8081,14 +8093,16 @@ document.getElementById("leagueResumeMatchBtn")?.addEventListener("click", async
   }
 
   try {
-    if (!(await restoreOnlineSession())) {
+    if (!(await restoreOnlineSession()) && !onlineMatchId) {
       hideLeagueResumePrompt();
       showOnlineNotice("That online match is no longer available.");
       initialisePageModeView();
     }
   } catch (err) {
     console.warn("Could not rejoin match:", err);
-    showOnlineNotice("Could not rejoin the match. Please try again.");
+    if (!onlineMatchId || onlineClockMatchId !== onlineMatchId) {
+      showOnlineNotice("Could not rejoin the match. Please try again.");
+    }
   } finally {
     if (button) {
       button.disabled = false;
@@ -8291,9 +8305,9 @@ function renderLeaderboard(players = []) {
   const offlineWasOpen = rowsEl.querySelector?.(".versusOfflineSection")?.open ?? true;
   rowsEl.innerHTML = unknown
     ? '<div class="versusEmpty">Player availability couldn’t be loaded. Please try Refresh.</div>'
-    : `<section class="versusSection"><h3>Online</h3>${playerGrid(connected, "No players online.")}</section>
+    : `<section class="versusSection"><h3>Online <span class="versusSectionCount">${connected.length}</span></h3>${playerGrid(connected, "No players online.")}</section>
        <details class="versusSection versusOfflineSection"${offlineWasOpen ? " open" : ""}>
-         <summary>Offline <span class="versusBoardChevron" aria-hidden="true"></span></summary>
+         <summary>Offline <span class="versusSectionCount">${offline.length}</span> <span class="versusBoardChevron" aria-hidden="true"></span></summary>
          ${playerGrid(offline, "No offline players.")}
        </details>`;
 
@@ -8581,21 +8595,28 @@ function openLeagueHistory() {
         const result = buildVersusHistoryResult(match);
         const me = result.players.find(player => player.key === myKey);
         const opponent = result.players.find(player => player.key !== myKey);
-        return `<button type="button" class="leagueHistoryItem" data-history-index="${index}">
+        return `<div class="leagueHistoryItem">
           <div>
             <div class="leagueMatchKicker">vs ${escapeHtml(opponent?.name || "Opponent")} (${escapeHtml(result.title)})</div>
             <strong class="${me?.isWinner ? "win" : "loss"}">${me?.legs ?? 0}-${opponent?.legs ?? 0} ${result.forfeitByKey ? (me?.isWinner ? "Win by forfeit" : "Loss by forfeit") : me?.isWinner ? "Win" : "Loss"}</strong>
+            <small>${escapeHtml(formatLeagueMatchDate(result.dateTime))}</small>
           </div>
-          <small>${escapeHtml(formatLeagueMatchDate(result.dateTime))}</small>
-        </button>`;
+          <button type="button" class="btn btnGhost leagueHistoryStatsBtn" data-history-index="${index}" aria-label="Stats vs ${escapeHtml(opponent?.name || "Opponent")}">Stats</button>
+        </div>`;
       }).join("")}
     </div>
   `);
 
-  document.querySelectorAll("#leagueInfoBody .leagueHistoryItem").forEach(button => {
+  const overlay = document.getElementById("leagueInfoOverlay");
+  overlay?.querySelectorAll("[data-history-index]").forEach(button => {
     button.addEventListener("click", () => {
-      closeLeagueInfoModal();
+      overlay.querySelector("[data-history-selected]")?.removeAttribute("data-history-selected");
+      button.setAttribute("data-history-selected", "");
       openMolVictoryScreen(buildVersusHistoryResult(history[Number(button.dataset.historyIndex)]));
+      els.molVictoryCloseBtn.textContent = "Back to history";
+      els.molVictoryCloseBtn.focus({ preventScroll: true });
+      overlay.inert = true;
+      overlay.setAttribute("aria-hidden", "true");
     });
   });
 }
