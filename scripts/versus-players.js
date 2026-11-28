@@ -145,7 +145,7 @@
     return { month, goal: monthlyGoal, progress };
   }
 
-  const api = { players, inviteProfiles, statusOf, withProfilePhotos, monthlyChallenges };
+  const api = { players, inviteProfiles, statusOf, withProfilePhotos, monthlyChallenges, matchTime };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.ONMVersusPlayers = api;
 })(typeof window !== "undefined" ? window : globalThis);

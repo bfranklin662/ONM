@@ -29,7 +29,9 @@ test("lobby splits compact player cards, and offline opponents can be selected b
   if (!nodes.has(id)) nodes.set(id, {innerHTML:"",textContent:"",classList:{add(){},toggle(){}},getAttribute:()=>null,querySelectorAll:()=>buttons});
   return nodes.get(id);
  };
- const ctx = {document:{getElementById:node,querySelectorAll:()=>[],querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},
+ const ctx = {document:{getElementById:node,querySelectorAll:()=>[],querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})},ONMVersusPlayers:E,ONMVersusChallenges:{
+   monthKey:()=>"2026-11",challengesFor:key=>({completed:key==="b-off"?2:0,totalCompleted:key==="b-off"?2:0})
+  }},loggedInUser:{},currentVersusMatches:[],versusRankingInvites:[],
   getCurrentPlayerKey:()=>"me",leaderboardFlag:()=>"🇬🇧",escapeHtml:value=>String(value).replace(/</g,"&lt;"),
   getPlayerPhotoField:player=>player?.photo || "",getPlayerNationality:()=> "British",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, getVersusMatchHistory:()=>[], selectedVersusPlayerKey:"", selectedVersusPlayerWasOnline:false, isPlayerOnline:async()=>online, openCompetitiveInviteFlow:key=>invited.push(key), showOnlineNotice:message=>notices.push(message)};
  vm.runInNewContext(part,ctx);
@@ -51,11 +53,10 @@ test("lobby splits compact player cards, and offline opponents can be selected b
  assert.equal(node("versusYourFastestLeg").textContent,"18 darts");
  assert.equal(node("versusYourHighestOut").textContent,134);
  const board = node("versusLeaderboardRows").innerHTML;
- assert.match(board, /Nick[\s\S]*18 darts/);
+ assert.match(board, /Ben[\s\S]*Nick/);
  assert.doesNotMatch(board, /Zoe/);
- assert.match(board, /<details class="versusBoardCard"/);
- assert.match(board, /Highest out/);
- assert.match(board, />2 🔥<\/span>/);
+ assert.match(board, /Wins[\s\S]*Streak[\s\S]*Average[\s\S]*Challenges/);
+ assert.match(board, />2 🔥<\/td>/);
  assert.doesNotMatch(board, /Losses|Win rate/);
  assert.match(html, /class="versusAvatar" src="images\/alex.jpg"/);
  assert.doesNotMatch(html, /Wins|data-versus-player="me"/);
@@ -637,7 +638,7 @@ test("monthly challenges use the UK month and reward both players once per oppon
   assert.equal(result.progress.has("e"), false);
 });
 
-test("Monster Coin challenges rotate one slot per tier after a full day and award at most nine monthly completions", () => {
+test("Versus challenges rotate one slot per tier after a full day and award at most nine monthly completions", () => {
   const { challengesFor } = require("../scripts/versus-challenges");
   const start = Date.parse("2026-12-01T12:00:00Z");
   const first = {
@@ -661,9 +662,9 @@ test("Monster Coin challenges rotate one slot per tier after a full day and awar
   assert.equal(challengesFor("a", matches, invites, waiting.availableAt - 1).tiers.find(tier => tier.difficulty === waiting.difficulty).active, null);
   const done = challengesFor("a", matches, invites, start + 30 * 86400000);
   assert.equal(done.completed, 9);
-  assert.equal(done.coins, 18);
+  assert.equal(done.totalCompleted, 9);
   assert.ok(done.tiers.every(tier => !tier.active && !tier.availableAt));
   const january = challengesFor("a", matches, invites, Date.parse("2027-01-01T00:00:00Z"));
   assert.equal(january.completed, 0);
-  assert.equal(january.coins, 18);
+  assert.equal(january.totalCompleted, 9);
 });

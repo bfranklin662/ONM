@@ -62,7 +62,7 @@
     return events.sort((a, b) => a.time - b.time);
   }
 
-  function tierState(difficulty, challenges, events, now, reward) {
+  function tierState(difficulty, challenges, events, now) {
     let index = 0;
     let availableAt = 0;
     let value = 0;
@@ -89,7 +89,7 @@
     }
     const active = now >= availableAt ? challenges[index] : null;
     return {
-      difficulty, reward, completed: index, availableAt: index < challenges.length && !active ? availableAt : 0,
+      difficulty, completed: index, availableAt: index < challenges.length && !active ? availableAt : 0,
       active: active ? { label: active[1], target: active[3], value } : null
     };
   }
@@ -103,20 +103,20 @@
       if (!grouped.has(month)) grouped.set(month, []);
       grouped.get(month).push(event);
     }
-    let coins = 0;
+    let totalCompleted = 0;
     let tiers = [];
     for (const [month, events] of grouped) {
-      const states = Object.entries(pools).map(([difficulty, pool], index) => {
+      const states = Object.entries(pools).map(([difficulty, pool]) => {
         const seed = playerKey + "/" + month + "/" + difficulty;
         const selected = [...pool].sort((a, b) => hash(a[0] + "/" + seed) - hash(b[0] + "/" + seed)).slice(0, 3);
-        return tierState(difficulty, selected, events, now, index + 1);
+        return tierState(difficulty, selected, events, now);
       });
-      coins += states.reduce((total, state) => total + state.completed * state.reward, 0);
+      totalCompleted += states.reduce((total, state) => total + state.completed, 0);
       if (month === currentMonth) tiers = states;
     }
-    return { coins, tiers, completed: tiers.reduce((total, tier) => total + tier.completed, 0) };
+    return { totalCompleted, tiers, completed: tiers.reduce((total, tier) => total + tier.completed, 0) };
   }
 
-  if (typeof module !== "undefined" && module.exports) module.exports = { challengesFor };
-  else root.ONMVersusChallenges = { challengesFor };
+  if (typeof module !== "undefined" && module.exports) module.exports = { challengesFor, monthKey };
+  else root.ONMVersusChallenges = { challengesFor, monthKey };
 })(typeof window !== "undefined" ? window : globalThis);

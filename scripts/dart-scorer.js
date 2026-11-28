@@ -291,6 +291,7 @@ let competitiveGameType = "bestOf";
 let molVictoryShownForMatchId = null;
 let currentLeagueProfile = null;
 let currentVersusMatches = [];
+let versusRankingInvites = null;
 
 let gameOnAnnouncedForMatchId = null;
 
@@ -6558,6 +6559,8 @@ function listenForDartInvites() {
   const { db, ref, onValue, update, inviteTimeLeft } = window.ONMLiveDarts;
 
   onValue(ref(db, "dartInvites"), snapshot => {
+    versusRankingInvites = Object.values(snapshot.val() || {});
+    if (window.currentLeaderboardPlayers) renderVersusRankings(window.currentLeaderboardPlayers, getCurrentPlayerKey());
     if (activeDartInvite && snapshot.child(activeDartInvite.inviteId).val()?.status !== "pending") {
       closeIncomingDartInvite();
     }
@@ -8198,36 +8201,55 @@ function formatStreak(streak) {
   return value > 0 ? `${value} 🔥` : "";
 }
 
-function renderMonthlyVersusBoard(players, myKey) {
-  const board = document.getElementById("versusMonthlyBoard");
-  const monthly = window.ONMVersusPlayers?.monthlyChallenges;
-  if (!board || !monthly) return;
-  if (!myKey) { board.textContent = "Log in to view monthly challenges."; return; }
-  const { month, goal, progress } = monthly(currentVersusMatches);
-  const rows = players.filter(player => progress.has(player.playerKey) || player.playerKey === myKey)
-    .sort((a, b) => Math.min(goal, progress.get(b.playerKey)?.opponents.size || 0) - Math.min(goal, progress.get(a.playerKey)?.opponents.size || 0) ||
-      a.playerName.localeCompare(b.playerName));
-  board.innerHTML = `
-    <div class="versusChallengeBrief">
-      <h3>${escapeHtml(month)} · Play four different opponents</h3>
-      <p>Finish a Versus match and you both get credit. Play four different opponents to earn the monthly badge.</p>
-    </div>
-    <table class="versusMonthlyTable">
-      <thead><tr><th scope="col">Player</th><th scope="col">Opponents</th><th scope="col">Milestones</th></tr></thead>
-      <tbody>${rows.map(player => {
-        const row = progress.get(player.playerKey);
-        const count = row?.opponents.size || 0;
-        const badges = [
-          count >= goal && "Challenge complete",
-          row?.firstWin && "First Versus win",
-          row?.personalBest && `Best checkout · ${row.personalBest}`,
-          row?.decidingLeg && "Deciding leg"
-        ].filter(Boolean);
-        return `<tr><th scope="row">${escapeHtml(player.playerName)}</th>
-          <td>${Math.min(count, goal)}/${goal}</td>
-          <td>${badges.map(badge => `<span class="versusChallengeBadge">${escapeHtml(badge)}</span>`).join("") || "—"}</td></tr>`;
+function renderVersusRankings(players, myKey) {
+  const challengeEngine = window.ONMVersusChallenges;
+  const monthly = document.getElementById("versusMonthlyBoard");
+  const allTime = document.getElementById("versusLeaderboardRows");
+  if (!challengeEngine || !monthly || !allTime) return;
+  if (!myKey || !versusRankingInvites) {
+    monthly.textContent = allTime.textContent = myKey ? "Loading challenge rankings…" : "Log in to view the leaderboard.";
+    return;
+  }
+
+  const now = Date.now();
+  const month = challengeEngine.monthKey(now);
+  const { players: getStats, matchTime } = window.ONMVersusPlayers;
+  const monthlyMatches = currentVersusMatches.filter(match => {
+    const time = matchTime(match);
+    return time !== null && time <= now && challengeEngine.monthKey(time) === month;
+  });
+  const monthlyStats = new Map(getStats(players, monthlyMatches).map(player => [player.playerKey, player]));
+  const scores = new Map(players.map(player => [player.playerKey,
+    challengeEngine.challengesFor(player.playerKey, currentVersusMatches, versusRankingInvites, now)]));
+  function table(monthlyPeriod) {
+    const entries = players.map(profile => {
+      const stats = monthlyPeriod ? monthlyStats.get(profile.playerKey) : profile;
+      const score = scores.get(profile.playerKey);
+      const completed = monthlyPeriod ? score.completed : score.totalCompleted;
+      return { profile, stats, completed };
+    }).filter(({ stats, completed }) => stats?.played || completed)
+      .sort((a, b) => b.completed - a.completed || b.stats.wins - a.stats.wins ||
+        Number(b.stats.average || 0) - Number(a.stats.average || 0) ||
+        a.profile.playerName.localeCompare(b.profile.playerName));
+    if (!entries.length) return '<p class="versusEmpty">No results for this period yet.</p>';
+    return `<div class="versusRankingScroll"><table class="versusMonthlyTable versusRankingTable">
+      <thead><tr><th scope="col" aria-label="Player image"></th><th scope="col">Player</th><th scope="col" aria-label="Flag"></th>
+        <th scope="col">Wins</th><th scope="col">Streak</th><th scope="col">Average</th><th scope="col" aria-sort="descending">Challenges</th></tr></thead>
+      <tbody>${entries.map(({ profile, stats, completed }) => {
+        const photo = getPlayerPhotoField(profile);
+        const src = /^(https?:\/\/|\/?(?:images|graphics)\/)/i.test(photo) ? photo : "graphics/logoWoText.png";
+        const flag = profile.nationality ? leaderboardFlag(profile.nationality) : "";
+        return `<tr><td><img class="versusAvatar" src="${escapeHtml(src)}" alt="" loading="lazy"></td>
+          <th scope="row">${escapeHtml(profile.playerName)}</th>
+          <td>${flag ? `<span role="img" aria-label="${escapeHtml(profile.nationality)}">${escapeHtml(flag)}</span>` : ""}</td>
+          <td>${stats.wins ?? "—"}</td><td>${escapeHtml(formatStreak(stats.winStreak) || "—")}</td>
+          <td>${escapeHtml(stats.average ?? "—")}</td>
+          <td><strong class="versusChallengeTicks">${completed} ✓</strong></td></tr>`;
       }).join("")}</tbody>
-    </table>`;
+    </table></div>`;
+  }
+  monthly.innerHTML = table(true);
+  allTime.innerHTML = table(false);
 }
 
 document.querySelectorAll("[data-versus-period]").forEach(button => {
@@ -8285,36 +8307,8 @@ function renderLeaderboard(players = []) {
     return `<img class="versusAvatar" src="${escapeHtml(src)}" alt="" loading="lazy">`;
   }
 
-  renderMonthlyVersusBoard(players, myKey);
+  renderVersusRankings(players, myKey);
   const board = document.getElementById("versusLeaderboardRows");
-  if (board) {
-    const expanded = new Set([...board.querySelectorAll("details[open]")].map(row => row.dataset.playerKey));
-    const standings = players.filter(player => player.played > 0).sort((a, b) =>
-      (Number(b.average) || 0) - (Number(a.average) || 0) ||
-      (b.wins || 0) - (a.wins || 0) ||
-      (a.playerName || "").localeCompare(b.playerName || ""));
-    board.innerHTML = standings.length ? standings.map(player => {
-      const fields = [
-        ["Played", player.played], ["Wins", player.wins],
-        ...(player.average == null ? [] : [["3-dart avg", player.average]]),
-        ["Fastest leg", player.fastestLeg ? `${player.fastestLeg} darts` : null],
-        ["180s", player.oneEightys], ["Bull outs", player.bullOuts], ["Highest out", player.highestOut]
-      ];
-      const flag = player.nationality ? leaderboardFlag(player.nationality) : "";
-      const streak = player.winStreak > 0
-        ? `<span class="versusWinStreak" aria-label="${Number(player.winStreak)} consecutive wins">${formatStreak(player.winStreak)}</span>`
-        : "";
-      return `<details class="versusBoardCard" data-player-key="${escapeHtml(player.playerKey)}"${expanded.has(player.playerKey) ? " open" : ""}>
-        <summary>
-          <span class="versusPlayerHeading">${playerAvatar(player)}<strong>${escapeHtml(player.playerName || "Player")}${flag ? ` <span role="img" aria-label="${escapeHtml(player.nationality)}">${escapeHtml(flag)}</span>` : ""}</strong></span>
-          ${streak}
-          ${player.average == null ? "" : `<span class="versusAverage">${escapeHtml(player.average)} <small>avg</small></span>`}
-          <span class="versusBoardChevron" aria-hidden="true"></span>
-        </summary>
-        <dl>${fields.map(([label, value]) => `<div><dt>${label}</dt><dd>${escapeHtml(value ?? "—")}</dd></div>`).join("")}</dl>
-      </details>`;
-    }).join("") : '<p class="versusEmpty">No Versus stats available.</p>';
-  }
   const opponents = players.filter(player => player.playerKey !== myKey);
   const connected = opponents.filter(player => ["online", "playing", "monster-bot"].includes(player.status));
   const offline = opponents.filter(player => player.status === "offline").sort((a, b) =>
@@ -8688,19 +8682,24 @@ function renderVersusChallenges() {
   const panel = document.getElementById("versusChallengesPanel");
   const playerKey = getCurrentPlayerKey();
   if (!panel || panel.hidden || !challengeDataReady || !playerKey) return;
-  const { coins, tiers, completed } = window.ONMVersusChallenges.challengesFor(playerKey, challengeMatches, outgoingVersusInvites);
+  const { tiers, completed } = window.ONMVersusChallenges.challengesFor(playerKey, challengeMatches, outgoingVersusInvites);
+  const month = new Intl.DateTimeFormat("en-GB", { month: "long", timeZone: "Europe/London" }).format(Date.now());
+  const profile = window.currentLeaderboardPlayers?.find(player => player.playerKey === playerKey);
+  const photo = getPlayerPhotoField(profile || loggedInUser || {});
+  const photoSrc = /^(https?:\/\/|\/?(?:images|graphics)\/)/i.test(photo) ? photo : "graphics/logoWoText.png";
   panel.innerHTML = `
-    <div class="versusChallengeBrief versusCoinSummary">
-      <div><h3>Monthly challenges</h3><p>${completed}/9 completed this month</p></div>
-      <strong>${coins} Monster ${coins === 1 ? "Coin" : "Coins"}</strong>
+    <div class="versusChallengeBrief versusChallengeProfile">
+      <img src="${escapeHtml(photoSrc)}" alt="" class="versusAvatar">
+      <div><h3>${escapeHtml(month)} challenges</h3><p>${completed}/9 completed</p></div>
+      <strong class="versusChallengeTicks">${completed} ✓</strong>
     </div>
     <div class="versusChallengeCards">${tiers.map(tier => `
       <article class="versusChallengeBrief">
-        <div class="versusCoinSummary"><h3>${tier.difficulty}</h3><span>${tier.completed}/3 complete</span></div>
+        <div class="versusChallengeLine"><h3 class="versusChallengeDifficulty">${tier.difficulty.toUpperCase()}</h3><span>${tier.completed}/3 complete</span></div>
         ${tier.active ? `
           <h4>${tier.active.label}</h4>
           <progress max="${tier.active.target}" value="${tier.active.value}" aria-label="${tier.active.label}"></progress>
-          <div class="versusCoinSummary"><span>${tier.active.value}/${tier.active.target}</span><strong>+${tier.reward} Monster ${tier.reward === 1 ? "Coin" : "Coins"}</strong></div>`
+          <div class="versusChallengeLine"><span>${tier.active.value}/${tier.active.target}</span><strong class="versusChallengeTicks">+1 ✓</strong></div>`
           : tier.availableAt ? `<p data-challenge-unlock="${tier.availableAt}"></p>` : '<p>All three challenges completed</p>'}
       </article>`).join("")}</div>`;
   updateChallengeCountdowns(panel);

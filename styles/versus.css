@@ -221,12 +221,23 @@ body:has(#leaderboardView:not(.hidden)) {
 .versusChallengeBadge { display:inline-block;margin:0 4px 4px 0;padding:3px 6px;border-radius:6px;background:#234b35;color:#e5f7eb; }
 #versusLeaderboardRows[hidden],#versusMonthlyBoard[hidden] { display:none; }
 
-.versusChallengeCards { display:grid;gap:8px;margin:10px 0;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr)); }
-.versusCoinSummary { display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap; }
-.versusCoinSummary strong { color:#ffd740; }
+.versusChallengeCards { display:grid;gap:8px;margin:10px 0;grid-template-columns:minmax(0,1fr); }
+.versusChallengeLine { display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap; }
+
 .versusChallengeCards h4 { margin:12px 0 8px; }
 .versusChallengeCards progress { width:100%;accent-color:#89d7ac; }
 @media (max-width:440px) {
   .versusMenu button { gap:4px;padding-inline:4px;font-size:.8rem; }
   .versusMenu svg { width:14px;height:14px; }
 }
+
+.versusChallengeProfile { display:flex;align-items:center;gap:12px; }
+.versusChallengeProfile .versusAvatar { width:52px;height:52px;flex:none; }
+.versusChallengeProfile > div { flex:1; }
+.versusChallengeCards article { padding:14px; }
+.versusChallengeDifficulty { letter-spacing:.08em;color:#addeb9; }
+.versusChallengeTicks { display:inline-block;white-space:nowrap;color:#a7efbb;background:#234b35;border-radius:999px;padding:3px 8px; }
+.versusRankingScroll { max-width:100%;overflow:auto; }
+.versusRankingTable th,.versusRankingTable td { vertical-align:middle;text-align:center; }
+.versusRankingTable th[scope="row"],.versusRankingTable th:nth-child(2) { text-align:left; }
+.versusRankingTable td:first-child img { display:block; }
