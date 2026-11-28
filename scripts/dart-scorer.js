@@ -8205,7 +8205,7 @@ function renderMonthlyVersusBoard(players, myKey) {
   if (!myKey) { board.textContent = "Log in to view monthly challenges."; return; }
   const { month, goal, progress } = monthly(currentVersusMatches);
   const rows = players.filter(player => progress.has(player.playerKey) || player.playerKey === myKey)
-    .sort((a, b) => (progress.get(b.playerKey)?.opponents.size || 0) - (progress.get(a.playerKey)?.opponents.size || 0) ||
+    .sort((a, b) => Math.min(goal, progress.get(b.playerKey)?.opponents.size || 0) - Math.min(goal, progress.get(a.playerKey)?.opponents.size || 0) ||
       a.playerName.localeCompare(b.playerName));
   board.innerHTML = `
     <div class="versusChallengeBrief">
@@ -8285,7 +8285,7 @@ function renderLeaderboard(players = []) {
     return `<img class="versusAvatar" src="${escapeHtml(src)}" alt="" loading="lazy">`;
   }
 
-  if (typeof renderMonthlyVersusBoard === "function") renderMonthlyVersusBoard(players, myKey);
+  renderMonthlyVersusBoard(players, myKey);
   const board = document.getElementById("versusLeaderboardRows");
   if (board) {
     const expanded = new Set([...board.querySelectorAll("details[open]")].map(row => row.dataset.playerKey));

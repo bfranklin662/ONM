@@ -29,7 +29,7 @@ test("lobby splits compact player cards, and offline opponents can be selected b
   if (!nodes.has(id)) nodes.set(id, {innerHTML:"",textContent:"",classList:{add(){},toggle(){}},getAttribute:()=>null,querySelectorAll:()=>buttons});
   return nodes.get(id);
  };
- const ctx = {document:{getElementById:node,querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},
+ const ctx = {document:{getElementById:node,querySelectorAll:()=>[],querySelector:()=>node("meta")},window:{ONMSession:{getUser:()=>({})}},loggedInUser:{},
   getCurrentPlayerKey:()=>"me",leaderboardFlag:()=>"🇬🇧",escapeHtml:value=>String(value).replace(/</g,"&lt;"),
   getPlayerPhotoField:player=>player?.photo || "",getPlayerNationality:()=> "British",getLoggedInFullName:()=>"Nick",currentLeagueProfile:null, getVersusMatchHistory:()=>[], selectedVersusPlayerKey:"", selectedVersusPlayerWasOnline:false, isPlayerOnline:async()=>online, openCompetitiveInviteFlow:key=>invited.push(key), showOnlineNotice:message=>notices.push(message)};
  vm.runInNewContext(part,ctx);
@@ -609,4 +609,30 @@ test("an invite retries its alert after a browser blocks autoplay", async () => 
   assert.equal(attempts, 2);
   assert.equal(button.hidden, true);
   assert.equal(audio.volume, 1);
+});
+
+test("monthly challenges use the UK month and reward both players once per opponent", () => {
+  const game = {
+    matchMode: "online", dateTime: "2026-10-01T18:00:00Z",
+    playerOneId: "a", playerTwoId: "b", playerOneWon: true,
+    playerOneLegs: 2, playerTwoLegs: 1, playerOneHighestOut: 70
+  };
+  const previous = { ...game, dateTime: "2026-09-30T22:59:00Z", playerOneHighestOut: 50 };
+  const monthStart = { ...game, dateTime: "2026-09-30T23:00:00Z" };
+  const result = E.monthlyChallenges([
+    previous, monthStart, game,
+    { ...game, playerTwoId: "c", playerOneWon: false, playerTwoWon: true },
+    { ...game, playerTwoId: "d", forfeitByKey: "d" },
+    { ...game, playerTwoId: "e", matchMode: "local" }
+  ], Date.parse("2026-10-25T12:00:00Z"));
+  assert.equal(result.month, "October 2026");
+  assert.equal(result.goal, 4);
+  assert.deepEqual([...result.progress.get("a").opponents], ["b", "c"]);
+  assert.deepEqual([...result.progress.get("b").opponents], ["a"]);
+  assert.equal(result.progress.get("a").firstWin, false);
+  assert.equal(result.progress.get("a").personalBest, 70);
+  assert.equal(result.progress.get("c").firstWin, true);
+  assert.equal(result.progress.get("b").decidingLeg, true);
+  assert.equal(result.progress.has("d"), false);
+  assert.equal(result.progress.has("e"), false);
 });
